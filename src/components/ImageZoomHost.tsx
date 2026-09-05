@@ -20,6 +20,10 @@ function closestLevel(value: number): number {
   );
 }
 
+function isZoomScope(img: HTMLImageElement): boolean {
+  return !!img.closest(".examContent, .resultReviewPage");
+}
+
 export default function ImageZoomHost() {
   const [zoom, setZoom] = useState<ZoomState>(null);
   const [scale, setScale] = useState<number>(1);
@@ -41,7 +45,7 @@ export default function ImageZoomHost() {
 
   useEffect(() => {
     const prepareImage = (img: HTMLImageElement) => {
-      if (!img.closest(".examContent")) return;
+      if (!isZoomScope(img)) return;
       img.dataset.zoomable = "true";
       img.tabIndex = 0;
       img.setAttribute("role", "button");
@@ -53,7 +57,9 @@ export default function ImageZoomHost() {
 
     const prepare = (root: ParentNode = document) => {
       if (root instanceof HTMLImageElement) prepareImage(root);
-      for (const img of root.querySelectorAll<HTMLImageElement>(".examContent img")) {
+      for (const img of root.querySelectorAll<HTMLImageElement>(
+        ".examContent img, .resultReviewPage img",
+      )) {
         prepareImage(img);
       }
     };
@@ -78,7 +84,7 @@ export default function ImageZoomHost() {
 
     const onClick = (event: MouseEvent) => {
       const target = event.target;
-      if (!(target instanceof HTMLImageElement) || !target.closest(".examContent")) return;
+      if (!(target instanceof HTMLImageElement) || !isZoomScope(target)) return;
       event.preventDefault();
       open(target);
     };
@@ -102,7 +108,7 @@ export default function ImageZoomHost() {
       if (
         (event.key === "Enter" || event.key === " ") &&
         target instanceof HTMLImageElement &&
-        target.closest(".examContent")
+        isZoomScope(target)
       ) {
         event.preventDefault();
         open(target);
