@@ -133,7 +133,7 @@ export function startOAuth(provider: OAuthProvider) {
   if (typeof window === "undefined") return;
   const redirectTo = `${window.location.origin}/account`;
   const params = new URLSearchParams({ provider, redirect_to: redirectTo });
-  window.location.assign(`${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`);
+  window.location.href = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 }
 
 export function consumeOAuthRedirect(): AuthSession | null {
