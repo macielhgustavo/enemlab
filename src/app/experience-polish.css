@@ -1,0 +1,19 @@
+/* Final placement polish for the exam controls and result shortcut. */
+
+.examExperienceBar {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 800px) {
+  .examExperienceBar {
+    left: auto;
+    right: 10px;
+    transform: none;
+  }
+
+  .resultReviewShortcut {
+    bottom: 76px;
+  }
+}
