@@ -344,8 +344,7 @@ export default function DataPage() {
       <Card style={{ marginTop: 14 }}>
         <h2>Privacidade e armazenamento</h2>
         <p className="muted">
-          Histórico, SRS e notas ficam localmente neste navegador. Nada é enviado a um
-          servidor.
+          O ENEM Lab mantém uma cópia completa do histórico, SRS e notas neste navegador. Se você entrar em uma conta e ativar a sincronização, uma cópia também é salva na nuvem para continuidade entre dispositivos, protegida por autenticação e políticas RLS da sua conta. Backups JSON e snapshots locais continuam disponíveis.
         </p>
         <div className="row">
           <button
