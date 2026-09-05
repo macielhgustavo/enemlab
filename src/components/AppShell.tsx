@@ -20,6 +20,9 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
 import CommandPalette from "@/components/CommandPalette";
+import ImageZoomHost from "@/components/ImageZoomHost";
+import QuestionIssueReporter from "@/components/QuestionIssueReporter";
+import ExamExperienceHost from "@/components/ExamExperienceHost";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -34,7 +37,6 @@ const NAV = [
   { href: "/data", label: "Dados", icon: Database, short: "Dados" },
 ];
 
-// Barra inferior do mobile: as cinco rotas de maior uso.
 const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
 
 function openPalette() {
@@ -52,7 +54,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
 
-  // Telemetria do sistema (só depois da hidratação, para não divergir do SSR).
   const due = hydrated ? dueSRS(db).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
@@ -61,6 +62,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     : due > 0
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
+
+  const isExam = pathname.startsWith("/exam/");
+  const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
+  const canOpenResultReview = /^\/result\/[^/]+$/.test(pathname);
+
+  if (isExam) {
+    return (
+      <div className="layout examLayout">
+        <main className="content examContent">{children}</main>
+        <ImageZoomHost />
+        <QuestionIssueReporter />
+        <ExamExperienceHost />
+      </div>
+    );
+  }
 
   return (
     <div className="layout">
@@ -126,6 +142,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="content">{children}</main>
 
+      {canOpenResultReview && (
+        <Link className="resultReviewShortcut" href={`${pathname}/review`}>
+          Revisar questão a questão →
+        </Link>
+      )}
+
       <nav className="mobilebar" aria-label="Navegação principal">
         {MOBILE.map((item) => {
           const Icon = item.icon;
@@ -143,6 +165,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
+      {isResultReview && <ImageZoomHost />}
       <CommandPalette />
     </div>
   );
