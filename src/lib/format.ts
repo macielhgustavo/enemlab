@@ -180,6 +180,78 @@ function protectMath(raw: string, token: (html: string) => string): string {
   return raw;
 }
 
+function splitMarkdownTableRow(line: string): string[] {
+  let value = line.trim();
+  if (value.startsWith("|")) value = value.slice(1);
+  if (value.endsWith("|")) value = value.slice(0, -1);
+  return value.split("|").map((cell) => cell.trim());
+}
+
+function renderMarkdownTableCell(value: string): string {
+  let cell = esc(repairQuestionText(value));
+  cell = cell.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  cell = cell.replace(/__(.+?)__/g, "<strong>$1</strong>");
+  cell = cell.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
+  return cell;
+}
+
+/** Converte tabelas markdown simples em HTML seguro e rolável. */
+function protectMarkdownTables(raw: string, token: (html: string) => string): string {
+  const lines = raw.split("\n");
+  const out: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const headerLine = lines[i];
+    const separatorLine = lines[i + 1];
+    if (!headerLine?.includes("|") || !separatorLine?.includes("|")) {
+      out.push(headerLine);
+      continue;
+    }
+
+    const header = splitMarkdownTableRow(headerLine);
+    const separators = splitMarkdownTableRow(separatorLine);
+    const validSeparator =
+      header.length >= 2 &&
+      separators.length === header.length &&
+      separators.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s/g, "")));
+
+    if (!validSeparator) {
+      out.push(headerLine);
+      continue;
+    }
+
+    const rows: string[][] = [];
+    let j = i + 2;
+    while (j < lines.length && lines[j].includes("|") && lines[j].trim()) {
+      const cells = splitMarkdownTableRow(lines[j]);
+      while (cells.length < header.length) cells.push("");
+      rows.push(cells.slice(0, header.length));
+      j++;
+    }
+
+    const html = [
+      '<div class="questionTableWrap"><table class="questionTable">',
+      "<thead><tr>",
+      ...header.map((cell) => `<th>${renderMarkdownTableCell(cell)}</th>`),
+      "</tr></thead>",
+      rows.length
+        ? `<tbody>${rows
+            .map(
+              (row) =>
+                `<tr>${row.map((cell) => `<td>${renderMarkdownTableCell(cell)}</td>`).join("")}</tr>`,
+            )
+            .join("")}</tbody>`
+        : "",
+      "</table></div>",
+    ].join("");
+
+    out.push(token(html));
+    i = j - 1;
+  }
+
+  return out.join("\n");
+}
+
 // Converte o markdown enxuto do banco em HTML seguro. Também preserva
 // marcação matemática e um subconjunto mínimo de HTML comum em provas.
 export function richText(x: unknown): string {
@@ -191,6 +263,7 @@ export function richText(x: unknown): string {
     return idx;
   };
 
+  raw = protectMarkdownTables(raw, token);
   raw = protectInlineHtml(raw, token);
   raw = protectMath(raw, token);
 
