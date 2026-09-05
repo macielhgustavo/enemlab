@@ -13,6 +13,7 @@ import {
 import { fmtSec, shortSec, richText, safeUrl, markdownImageUrls } from "@/lib/format";
 import { questionsForAttempt, finishAttemptInDB } from "@/lib/services/attempts";
 import { saveSnapshot } from "@/lib/idb";
+import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
 
@@ -277,17 +278,7 @@ export default function ExamPage() {
   if (finished) {
     return <div className="card"><span className="muted">Abrindo resultado…</span></div>;
   }
-  if (isLoading || !questions)
-    return (
-      <div className="card questionCard">
-        <div className="loadingQuestion">
-          <div>
-            <div className="loader" style={{ margin: "auto" }} />
-            <p>Carregando questões…</p>
-          </div>
-        </div>
-      </div>
-    );
+  if (isLoading || !questions) return <QuestionSkeleton />;
   if (error || !qs.length)
     return (
       <div className="card questionCard">

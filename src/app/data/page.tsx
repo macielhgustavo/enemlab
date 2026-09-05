@@ -8,6 +8,7 @@ import { runSelfTests, type SelfTest } from "@/lib/domain/selftests";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import type { DB } from "@/lib/domain/types";
 import { Card, Empty } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 
 export default function DataPage() {
   const db = useStore((s) => s.db);
@@ -16,6 +17,7 @@ export default function DataPage() {
   const wipe = useStore((s) => s.wipe);
   const mutate = useStore((s) => s.mutate);
   const replaceDBFull = replaceDB;
+  const { success, error: toastError } = useToast();
   const hydrated = useHydrated();
   const importRef = useRef<HTMLInputElement>(null);
   const mergeRef = useRef<HTMLInputElement>(null);
@@ -34,7 +36,7 @@ export default function DataPage() {
     if (!s?.data) return;
     if (!confirm("Restaurar este snapshot e substituir o estado atual?")) return;
     replaceDBFull(s.data);
-    alert("Snapshot restaurado.");
+    success("Snapshot restaurado.");
   }
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
@@ -54,6 +56,7 @@ export default function DataPage() {
     a.click();
     URL.revokeObjectURL(u);
     saveSnapshot(db, "backup").then(refreshSnapshots);
+    success("Backup exportado.");
   }
 
   async function onImport(e: React.ChangeEvent<HTMLInputElement>, merge: boolean) {
@@ -64,15 +67,15 @@ export default function DataPage() {
       if (!Array.isArray(x.attempts)) throw new Error("Backup inválido.");
       if (merge) {
         mergeDB(x);
-        alert("Backup mesclado sem apagar tentativas existentes.");
+        success("Backup mesclado sem apagar tentativas existentes.");
       } else {
         if (confirm("Substituir todos os dados atuais?")) {
           replaceDB(x);
-          alert("Backup importado.");
+          success("Backup importado.");
         }
       }
     } catch (err) {
-      alert((err as Error).message);
+      toastError((err as Error).message);
     } finally {
       e.target.value = "";
     }

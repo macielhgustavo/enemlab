@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
+import { ToastProvider } from "@/components/Toast";
 
 // Aplica o tema (data-theme) no <html> a partir do store.
 function ThemeSync() {
@@ -29,7 +30,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <ThemeSync />
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </QueryClientProvider>
   );
 }

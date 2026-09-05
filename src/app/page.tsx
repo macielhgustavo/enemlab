@@ -13,8 +13,11 @@ import {
   evolutionSeries,
 } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
-import { Metric, AreaBar, Card } from "@/components/ui";
+import { AreaBar, Card } from "@/components/ui";
 import EvolutionChart from "@/components/EvolutionChart";
+import { AnimatedNumber, Ring } from "@/components/dash";
+import { DashboardSkeleton } from "@/components/Skeleton";
+import { Target, CheckCircle2, RotateCcw, Flame, Zap } from "lucide-react";
 
 export default function HomePage() {
   const db = useStore((s) => s.db);
@@ -23,14 +26,7 @@ export default function HomePage() {
   const hydrated = useHydrated();
 
   if (!hydrated) {
-    return (
-      <div className="card">
-        <div className="row" style={{ gap: 10 }}>
-          <span className="loader" />
-          <span className="muted">Carregando seus dados…</span>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const rows = officialRows(db).filter((x) => x.correct);
@@ -53,6 +49,13 @@ export default function HomePage() {
     for (let j = i; j < arr.length && arr[j].isCorrect; j++) n++;
     return Math.max(b, n);
   }, 0);
+
+  // Dashboard: prontidão geral, nível (volume) e XP.
+  const totalQ = rows.length;
+  const overall = totalQ ? pct(rows.filter((x) => x.isCorrect).length, totalQ) : null;
+  const PER_LEVEL = 50;
+  const level = Math.floor(totalQ / PER_LEVEL) + 1;
+  const xpInLevel = totalQ % PER_LEVEL;
 
   // Metas da semana
   const ws = new Date();
@@ -85,24 +88,54 @@ export default function HomePage() {
 
   return (
     <>
-      <Card className="hero glow">
-        <span className="pill">
-          questões reais + aprendizagem adaptativa
-        </span>
-        <h1>Abra e saiba exatamente o que estudar agora.</h1>
-        <p>
-          Questões reais do ENEM, classificação por conteúdo, confiança, tempo, revisão
-          espaçada e histórico. O algoritmo recomenda blocos; você continua no controle.
-        </p>
-        <div className="row">
-          <Link className="btn bigAction link-btn" href="/practice">
-            ▶ Montar treino
-          </Link>
-          <Link className="btn ghost link-btn" href="/srs">
-            Revisões de hoje
-          </Link>
+      <section className="dash-hero">
+        <div className="dash-top">
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <span className="pill">questões reais + aprendizagem adaptativa</span>
+            <h1 style={{ marginTop: 12 }}>
+              {streak > 0 ? `${streak} dia${streak > 1 ? "s" : ""} de foco.` : "Comece agora."}
+            </h1>
+            <p style={{ color: "var(--muted)", fontSize: 15.5, lineHeight: 1.6, maxWidth: 560 }}>
+              {due > 0
+                ? `Você tem ${due} revisão(ões) vencida(s). Comece pela retenção — rende mais que volume novo.`
+                : "Abra e saiba exatamente o que estudar agora. O algoritmo recomenda; você decide."}
+            </p>
+            <div className="row" style={{ marginTop: 18 }}>
+              <Link className="btn bigAction link-btn" href="/practice">
+                Montar treino
+              </Link>
+              <Link className="btn ghost link-btn" href={due > 0 ? "/srs" : "/plano"}>
+                {due > 0 ? "Revisões de hoje" : "Ver meu plano"}
+              </Link>
+              {streak > 0 && (
+                <span className="streak-flame">
+                  <Flame size={16} /> {streak}
+                </span>
+              )}
+            </div>
+
+            <div style={{ marginTop: 22, maxWidth: 420 }}>
+              <div
+                className="row between"
+                style={{ fontSize: 12, marginBottom: 6, color: "var(--muted)" }}
+              >
+                <b style={{ color: "var(--text)" }}>Nível {level}</b>
+                <span>
+                  {xpInLevel}/{PER_LEVEL} questões p/ o próximo
+                </span>
+              </div>
+              <div className="level-bar">
+                <span style={{ width: `${(xpInLevel / PER_LEVEL) * 100}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <Ring value={overall} size={148}>
+            <b>{overall === null ? "—" : <AnimatedNumber value={overall} format={(n) => `${Math.round(n)}%`} />}</b>
+            <small>domínio geral</small>
+          </Ring>
         </div>
-      </Card>
+      </section>
 
       {inProg && (
         <Card className="continueCard" style={{ marginTop: 14 }}>
@@ -121,11 +154,43 @@ export default function HomePage() {
         </Card>
       )}
 
-      <div className="grid grid4" style={{ marginTop: 14 }}>
-        <Metric label="Últimas 100" value={rollPct === null ? "—" : rollPct + "%"} />
-        <Metric label="Questões reais" value={rows.length} />
-        <Metric label="Revisões vencidas" value={due} />
-        <Metric label="Sequência" value={`${streak}d`} />
+      <div className="statline" style={{ marginTop: 14 }}>
+        <div className="stat">
+          <div className="ico">
+            <Target size={18} />
+          </div>
+          <div className="val">
+            {rollPct === null ? "—" : <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />}
+          </div>
+          <div className="lbl">Últimas 100</div>
+        </div>
+        <div className="stat">
+          <div className="ico">
+            <CheckCircle2 size={18} />
+          </div>
+          <div className="val">
+            <AnimatedNumber value={totalQ} />
+          </div>
+          <div className="lbl">Questões reais</div>
+        </div>
+        <div className="stat">
+          <div className="ico">
+            <RotateCcw size={18} />
+          </div>
+          <div className="val">
+            <AnimatedNumber value={due} />
+          </div>
+          <div className="lbl">Revisões vencidas</div>
+        </div>
+        <div className="stat">
+          <div className="ico">
+            <Zap size={18} />
+          </div>
+          <div className="val">
+            <AnimatedNumber value={streak} format={(n) => `${Math.round(n)}d`} />
+          </div>
+          <div className="lbl">Sequência</div>
+        </div>
       </div>
 
       <Card style={{ marginTop: 14 }}>

@@ -11,6 +11,7 @@ import { fetchExam } from "@/lib/api/enem";
 import { normalizeText } from "@/lib/format";
 import { attemptFromQuestions } from "@/lib/services/attempts";
 import { Card, Empty } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
 
 function bankStatus(db: DB, q: Question): string {
@@ -25,6 +26,7 @@ export default function BankPage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
+  const { info } = useToast();
   const hydrated = useHydrated();
 
   const [year, setYear] = useState(2023);
@@ -81,7 +83,7 @@ export default function BankPage() {
   function start() {
     const qs = (questions || []).filter((q) => selected.has(questionKey(q)));
     if (!qs.length) {
-      alert("Selecione pelo menos uma questão.");
+      info("Selecione pelo menos uma questão.");
       return;
     }
     const a = attemptFromQuestions(qs[0].year, "ingles", qs, "bank");

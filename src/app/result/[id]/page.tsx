@@ -15,6 +15,7 @@ import {
   buildRetryAttempt,
 } from "@/lib/services/attempts";
 import { AreaBar, Metric, Card } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 import MathContent from "@/components/MathContent";
 import type { ResultRow } from "@/lib/domain/types";
 
@@ -42,6 +43,7 @@ export default function ResultPage() {
   const hydrated = useHydrated();
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
+  const { info, success } = useToast();
   const a = db.attempts.find((x) => x.id === id);
   const [showCorrection, setShowCorrection] = useState(false);
 
@@ -86,7 +88,7 @@ export default function ResultPage() {
   function retryWrong() {
     const wrong = r.rows.filter((x) => x.isCorrect === false);
     if (!wrong.length) {
-      alert("Sem erros para refazer.");
+      info("Sem erros para refazer.");
       return;
     }
     const retry = buildRetryAttempt(a!, wrong);
@@ -185,6 +187,7 @@ export default function ResultPage() {
       el.download = `resultado_ENEM_${a!.year}.png`;
       el.click();
       URL.revokeObjectURL(u);
+      success("Imagem do resultado exportada.");
     }, "image/png");
   }
 
