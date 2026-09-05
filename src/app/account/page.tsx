@@ -137,7 +137,7 @@ export default function AccountPage() {
                 <h2>Mesclar este navegador com sua nuvem</h2>
                 <p className="muted">Este é o primeiro vínculo desta conta neste navegador. O ENEM Lab vai unir tentativas, notas e revisões antes de ativar o sync automático.</p>
                 <div className="mergeSummary"><span>{db.attempts.length} tentativas locais</span><span>{cloud.cloudExists ? "Há dados na nuvem" : "Nuvem ainda vazia"}</span></div>
-                <button className="btn accountPrimary" onClick={() => void cloud.mergeAndEnable()} disabled={cloud.status === "syncing"}>Mesclar e ativar sincronização</button>
+                <button className="btn accountPrimary" onClick={() => void cloud.mergeAndEnable()}>Mesclar e ativar sincronização</button>
                 <p className="mergeFine">Nada é substituído silenciosamente. Em conflitos de histórico, a versão com mais progresso é preservada.</p>
               </>
             ) : (
