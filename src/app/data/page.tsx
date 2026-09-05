@@ -28,7 +28,14 @@ export default function DataPage() {
     setSnapshots(await listSnapshots());
   }
   useEffect(() => {
-    if (hydrated) refreshSnapshots();
+    if (!hydrated) return;
+    let alive = true;
+    listSnapshots().then((s) => {
+      if (alive) setSnapshots(s);
+    });
+    return () => {
+      alive = false;
+    };
   }, [hydrated]);
 
   async function restore(snapId: string) {

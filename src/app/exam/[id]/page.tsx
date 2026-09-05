@@ -40,13 +40,16 @@ export default function ExamPage() {
   const [essayMode, setEssayMode] = useState(false);
   const [essayText, setEssayText] = useState("");
   const [pass, setPass] = useState(1);
-  const [tick, setTick] = useState(0); // força re-render do cronômetro
+  // Cronômetro como estado: a renderização lê estado puro, não refs.
+  const [clock, setClock] = useState({ elapsed: 0, qSec: 0 });
 
   const timeQ = useRef<Record<string, number>>({});
   const elapsed = useRef(0);
   const qEntered = useRef<number | null>(null);
   const inited = useRef(false);
-  const startMs = useRef<number>(Date.now());
+  // Definido na inicialização a partir de attempt.startedAt (ler o relógio
+  // durante a renderização tornaria o componente impuro).
+  const startMs = useRef<number | null>(null);
   const passByQuestion = useRef<Record<string, number>>({});
 
   // Inicializa a partir da tentativa salva (uma vez).
@@ -65,7 +68,8 @@ export default function ExamPage() {
     qEntered.current = Date.now();
   }, [attempt]);
 
-  const qs = questions || [];
+  // Estabiliza a referência: sem isso os hooks abaixo recalculam a cada render.
+  const qs = useMemo(() => questions || [], [questions]);
   const q = qs[current];
   const k = q ? questionKey(q) : "";
 
@@ -75,6 +79,7 @@ export default function ExamPage() {
     timeQ.current[key] =
       (timeQ.current[key] || 0) + Math.max(0, Math.min(900, (Date.now() - qEntered.current) / 1000));
     qEntered.current = Date.now();
+    setClock((c) => ({ ...c, qSec: timeQ.current[key] || 0 }));
   }, [q, essayMode]);
 
   // Persiste o estado de trabalho na store.
@@ -102,15 +107,16 @@ export default function ExamPage() {
     if (!attempt || attempt.finishedAt) return;
     const handle = setInterval(() => {
       const now = Date.now();
-      if (attempt.strict) {
+      if (attempt.strict && startMs.current != null) {
         elapsed.current = Math.max(elapsed.current, (now - startMs.current) / 1000);
       } else {
         elapsed.current += 1;
       }
-      setTick((t) => t + 1);
+      const live = qEntered.current && !essayMode ? (now - qEntered.current) / 1000 : 0;
+      setClock({ elapsed: elapsed.current, qSec: (timeQ.current[k] || 0) + live });
     }, 1000);
     return () => clearInterval(handle);
-  }, [attempt]);
+  }, [attempt, k, essayMode]);
 
   // Persiste periodicamente e ao sair.
   useEffect(() => {
@@ -226,17 +232,21 @@ export default function ExamPage() {
     });
   }, [id, essayText, mutate]);
 
+  // Dependências simples (sem optional chaining) para o compilador do React
+  // conseguir preservar a memoização.
+  const essayMeta = attempt?.essay;
+  const attemptYear = attempt?.year;
   const exportEssay = useCallback(() => {
-    if (!attempt?.essay) return;
-    const txt = `ENEM ${attempt.year}\nTema: ${attempt.essay.theme}\n\n${essayText}`;
+    if (!essayMeta) return;
+    const txt = `ENEM ${attemptYear}\nTema: ${essayMeta.theme}\n\n${essayText}`;
     const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
     const u = URL.createObjectURL(blob);
     const el = document.createElement("a");
     el.href = u;
-    el.download = `redacao_ENEM_${attempt.year}.txt`;
+    el.download = `redacao_ENEM_${attemptYear}.txt`;
     el.click();
     URL.revokeObjectURL(u);
-  }, [attempt?.essay, attempt?.year, essayText]);
+  }, [essayMeta, attemptYear, essayText]);
 
   // Se a tentativa já está finalizada, vai direto ao resultado.
   const finished = !!(attempt?.finishedAt && attempt?.result);
@@ -254,10 +264,8 @@ export default function ExamPage() {
     [qs, flags],
   );
 
-  const left = attempt ? Math.max(0, (attempt.minutes || 0) * 60 - elapsed.current) : 0;
-  const qSec = q
-    ? (timeQ.current[k] || 0) + (qEntered.current && !essayMode ? (Date.now() - qEntered.current) / 1000 : 0)
-    : 0;
+  const left = attempt ? Math.max(0, (attempt.minutes || 0) * 60 - clock.elapsed) : 0;
+  const qSec = q ? clock.qSec : 0;
   // Alerta de ritmo
   let paceMsg = "";
   if (attempt?.alerts !== false && !essayMode && q) {
@@ -266,7 +274,6 @@ export default function ExamPage() {
     else if (left > 0 && rem > 0 && left / rem < 75)
       paceMsg = `Ritmo apertado: ~${Math.round(left / rem)}s por questão restante.`;
   }
-  void tick;
 
   if (!hydrated) return <div className="card"><span className="muted">Carregando…</span></div>;
   if (!attempt)

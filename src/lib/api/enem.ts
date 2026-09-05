@@ -26,7 +26,20 @@ interface ApiError extends Error {
   status?: number;
 }
 
-async function fetchPage(year: number, lang: string, limit: number, offset: number) {
+// Resposta paginada da API: pode vir como array puro ou envelopada.
+interface Envelope {
+  questions?: Question[];
+  data?: Question[];
+  metadata?: { hasMore?: boolean; has_more?: boolean; total?: number; limit?: number };
+}
+type Page = Question[] | Envelope;
+
+async function fetchPage(
+  year: number,
+  lang: string,
+  limit: number,
+  offset: number,
+): Promise<Page> {
   const p = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (year !== 2009 && lang) p.set("language", lang);
   let tries = 0;
@@ -63,7 +76,7 @@ export async function fetchExam(
   if (!force && yearCache.has(key)) return yearCache.get(key)!;
 
   let working: number | null = null,
-    first: unknown = null,
+    first: Page | null = null,
     last: ApiError | null = null;
   for (const lim of [100, 50, 25, 10]) {
     try {
@@ -79,17 +92,18 @@ export async function fetchExam(
   if (!working) throw new Error(last?.message || "API rejeitou a consulta");
 
   const all: Question[] = [];
-  let data: any = first,
+  let data: Page | null = first,
     offset = 0,
     safety = 0;
   while (data && safety++ < 30) {
     const q: Question[] = Array.isArray(data) ? data : data.questions || data.data || [];
     all.push(...q);
-    const m = data.metadata || {},
-      more =
-        m.hasMore === true ||
-        m.has_more === true ||
-        (Number.isFinite(m.total) && offset + q.length < m.total);
+    const m = Array.isArray(data) ? {} : data.metadata || {};
+    const total = m.total;
+    const more =
+      m.hasMore === true ||
+      m.has_more === true ||
+      (typeof total === "number" && offset + q.length < total);
     if (!more || !q.length) break;
     offset += q.length;
     await sleep(1050);

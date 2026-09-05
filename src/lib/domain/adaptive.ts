@@ -76,7 +76,7 @@ export function adaptiveCandidates(db: DB): Candidate[] {
       const content = (note.tag && note.tag.trim()) || x.content;
       const st = ms[content] || { c: 0, t: 0 };
       const acc = st.t ? pct(st.c, st.t) : 50;
-      let score =
+      const score =
         100 -
         acc +
         (x.confidence === "certeza" ? 25 : x.confidence === "duvida" ? 10 : 0) +

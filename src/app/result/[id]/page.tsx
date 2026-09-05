@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec, richText } from "@/lib/format";
 import { AREA_LABELS } from "@/lib/domain/constants";
-import { discipline, questionKey } from "@/lib/domain/classify";
+import { discipline } from "@/lib/domain/classify";
 import { coherenceForAttempt, fatigueForAttempt } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
 import {

@@ -253,7 +253,7 @@ export async function questionsForAttempt(a: Attempt): Promise<Question[]> {
   for (const [y, refs] of Object.entries(groups)) {
     const all = await fetchExam(Number(y), a.lang);
     for (const r of refs) {
-      let q =
+      const q =
         all.find(
           (x) =>
             x.index === r.index &&

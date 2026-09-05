@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -34,7 +34,6 @@ export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const commands: Cmd[] = useMemo(
     () => [
@@ -63,6 +62,9 @@ export default function CommandPalette() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        // Zera a busca no próprio handler em vez de sincronizar por efeito.
+        setQuery("");
+        setActive(0);
         setOpen((v) => !v);
       } else if (e.key === "Escape") {
         setOpen(false);
@@ -72,15 +74,8 @@ export default function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => {
-    if (open) {
-      setQuery("");
-      setActive(0);
-      setTimeout(() => inputRef.current?.focus(), 30);
-    }
-  }, [open]);
-
-  useEffect(() => setActive(0), [query]);
+  // Mantém a seleção válida quando a lista encolhe, sem efeito de sincronização.
+  const activeIndex = Math.min(active, Math.max(0, filtered.length - 1));
 
   const choose = useCallback(
     (cmd?: Cmd) => {
@@ -100,7 +95,7 @@ export default function CommandPalette() {
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      choose(filtered[active]);
+      choose(filtered[activeIndex]);
     }
   };
 
@@ -126,30 +121,41 @@ export default function CommandPalette() {
             <div className="cmdk-search">
               <Search size={17} style={{ color: "var(--muted)" }} />
               <input
-                ref={inputRef}
+                autoFocus
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActive(0);
+                }}
                 onKeyDown={onListKey}
                 placeholder="Buscar telas e ações…"
-                aria-label="Comando"
+                aria-label="Buscar telas e ações"
+                role="combobox"
+                aria-expanded
+                aria-controls="cmdk-listbox"
+                aria-activedescendant={filtered[activeIndex] ? `cmdk-${filtered[activeIndex].id}` : undefined}
               />
               <kbd className="cmdk-esc">esc</kbd>
             </div>
-            <div className="cmdk-list">
+            <div className="cmdk-list" id="cmdk-listbox" role="listbox">
               {filtered.length === 0 && <div className="cmdk-empty">Nada encontrado.</div>}
               {filtered.map((c, i) => {
                 const Icon = c.icon;
+                const isActive = i === activeIndex;
                 return (
                   <button
                     key={c.id}
-                    className={`cmdk-item ${i === active ? "active" : ""}`}
+                    id={`cmdk-${c.id}`}
+                    role="option"
+                    aria-selected={isActive}
+                    className={`cmdk-item ${isActive ? "active" : ""}`}
                     onMouseEnter={() => setActive(i)}
                     onClick={() => choose(c)}
                   >
                     <Icon size={17} />
                     <span>{c.label}</span>
                     {c.hint && <span className="cmdk-hint">{c.hint}</span>}
-                    {i === active && <CornerDownLeft size={14} className="cmdk-enter" />}
+                    {isActive && <CornerDownLeft size={14} className="cmdk-enter" />}
                   </button>
                 );
               })}

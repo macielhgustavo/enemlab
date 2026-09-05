@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS, REASONS, contentPath } from "@/lib/domain/constants";
+import { AREA_LABELS, REASONS } from "@/lib/domain/constants";
 import { shortSec } from "@/lib/format";
 import { parseManualTags } from "@/lib/domain/stats";
 import { buildRetryAttempt } from "@/lib/services/attempts";

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
@@ -15,6 +15,13 @@ export default function SrsPage() {
   const hydrated = useHydrated();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Relógio como estado explícito: mantém a renderização pura e faz a
+  // fila se atualizar sozinha conforme os itens vencem.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   async function review(limit: number) {
     setBusy(true);
@@ -46,7 +53,6 @@ export default function SrsPage() {
 
   const all = allSrs(db);
   const due = dueSRS(db);
-  const now = Date.now();
   const soon = all.filter(
     (x) => +new Date(x.due) > now && +new Date(x.due) <= now + 3 * 86400000,
   );

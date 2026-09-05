@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
@@ -22,18 +22,19 @@ export default function PlanoPage() {
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
-  const [budget, setBudget] = useState(30);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
+  // Lê a preferência salva já na inicialização: a primeira renderização
+  // devolve o estado de carregamento, então não há divergência de hidratação.
+  const [budget, setBudget] = useState(() => {
+    if (typeof window === "undefined") return 30;
     try {
       const v = Number(localStorage.getItem(BUDGET_KEY));
-      if (v > 0) setBudget(v);
+      return v > 0 ? v : 30;
     } catch {
-      /* noop */
+      return 30;
     }
-  }, []);
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   function changeBudget(v: number) {
     setBudget(v);
