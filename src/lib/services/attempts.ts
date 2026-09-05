@@ -197,11 +197,11 @@ export async function buildDueReviewsAttempt(db: DB, limit = 30): Promise<Attemp
   return attemptFromQuestions(year, lang, qs, "srs");
 }
 
-// Sprint de 15 questões de um conteúdo específico.
-export async function buildContentSprintAttempt(content: string): Promise<Attempt> {
+// Sprint focado de tamanho variável para o plano diário e treino manual.
+export async function buildContentSprintAttempt(content: string, n = 15): Promise<Attempt> {
   const all = await fetchExam(2023, "ingles");
-  const qs = sample(all.filter((q) => classifyContent(q) === content), 15);
-  if (!qs.length) throw new Error("Não encontrei questões suficientes desse conteúdo em 2023.");
+  const qs = sample(all.filter((q) => classifyContent(q) === content), Math.max(1, n));
+  if (!qs.length) throw new Error("Não encontrei questões desse conteúdo em 2023.");
   return attemptFromQuestions(2023, "ingles", qs, "content");
 }
 
