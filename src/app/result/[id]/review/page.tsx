@@ -57,7 +57,8 @@ export default function ResultReviewPage() {
     staleTime: Infinity,
   });
 
-  const rows = attempt?.result?.rows || [];
+  const resultRows = attempt?.result?.rows;
+  const rows = useMemo(() => resultRows || [], [resultRows]);
   const filtered = useMemo(() => rows.filter((row) => rowMatches(row, filter)), [rows, filter]);
   const currentPosition = Math.min(position, Math.max(0, filtered.length - 1));
 
