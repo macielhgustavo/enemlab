@@ -62,7 +62,7 @@ export default function AccountPage() {
       <PageHead
         eyebrow="Identidade e continuidade"
         title="Conta e nuvem"
-        subtitle="Seu histórico continua localmente e pode acompanhar você entre computador e celular."
+        sub="Seu histórico continua localmente e pode acompanhar você entre computador e celular."
       />
 
       {!cloud.user ? (
