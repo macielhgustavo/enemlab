@@ -3,7 +3,7 @@ import type { AreaId } from "./types";
 
 export const API_BASE = "https://api.enem.dev/v1";
 
-export const FINAL_BUILD = "7.2-data-quality-2026.09";
+export const FINAL_BUILD = "7.3-cloud-sync-2026.09";
 export const FINAL_SCHEMA = 6.6;
 
 export const LETTERS = ["A", "B", "C", "D", "E"] as const;

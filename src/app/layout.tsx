@@ -8,6 +8,7 @@ import "./exam-experience.css";
 import "./result-review.css";
 import "./experience-polish.css";
 import "./daily-plan.css";
+import "./account.css";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/AppShell";
 

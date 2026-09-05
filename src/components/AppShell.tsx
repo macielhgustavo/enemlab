@@ -15,10 +15,13 @@ import {
   Sun,
   Moon,
   Search,
+  UserRound,
+  Cloud,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
+import { useCloudSync } from "@/components/CloudSyncProvider";
 import CommandPalette from "@/components/CommandPalette";
 import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
@@ -35,6 +38,7 @@ const NAV = [
   { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
   { href: "/review", label: "Erros", icon: BookX, short: "Erros" },
   { href: "/data", label: "Dados", icon: Database, short: "Dados" },
+  { href: "/account", label: "Conta", icon: UserRound, short: "Conta" },
 ];
 
 const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
@@ -53,15 +57,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const toggleTheme = useStore((s) => s.toggleTheme);
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const cloud = useCloudSync();
 
   const due = hydrated ? dueSRS(db).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
   const sysLabel = !hydrated
-    ? "sincronizando"
+    ? "carregando"
     : due > 0
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
+
+  const cloudLabel = cloud.status === "syncing"
+    ? "sincronizando"
+    : cloud.status === "needs-merge"
+      ? "mesclar conta"
+      : cloud.user
+        ? cloud.status === "idle" ? "nuvem em dia" : "nuvem offline"
+        : "somente local";
 
   const isExam = pathname.startsWith("/exam/");
   const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
@@ -129,7 +142,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="rail-foot">
-          <span className="tele">{theme === "dark" ? "Escuro" : "Claro"}</span>
+          <Link href="/account" className="tele" style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+            <Cloud size={12} /> {cloudLabel}
+          </Link>
           <button
             className="iconbtn"
             onClick={toggleTheme}
