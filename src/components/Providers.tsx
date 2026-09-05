@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { ToastProvider } from "@/components/Toast";
+import CloudSyncProvider from "@/components/CloudSyncProvider";
 
 // Mantém o <html data-theme> em dia quando o usuário troca o tema.
 // A primeira aplicação é feita pelo script de boot no layout, antes da
@@ -32,7 +33,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <ThemeSync />
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        <CloudSyncProvider>{children}</CloudSyncProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
