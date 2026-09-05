@@ -18,42 +18,38 @@ const NAV = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const theme = useStore((s) => s.db.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
 
   return (
-    <>
-      <header className="top">
-        <div className="topin">
-          <div className="logo">
-            <span className="mark">E</span>
-            <span>ENEM Lab</span>
-          </div>
-          <span className="pill">Next.js • Adaptive • Estatística • SRS</span>
-          <div className="spacer" />
-          <button className="iconbtn" onClick={toggleTheme} aria-label="Alternar tema">
-            ◐
-          </button>
+    <div className="layout">
+      <aside className="rail">
+        <div className="brand">
+          <span className="mark">E</span>
+          <span className="name">ENEM Lab</span>
         </div>
-      </header>
-
-      <main className="shell">
-        <nav className="nav">
+        <div className="tag">Adaptive · Estatística · SRS</div>
+        <nav className="railnav">
           {NAV.map((item) => {
             const active =
               item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "active" : ""}
-              >
+              <Link key={item.href} href={item.href} className={active ? "active" : ""}>
                 {item.label}
               </Link>
             );
           })}
         </nav>
-        {children}
-      </main>
-    </>
+        <div className="rail-foot">
+          <span className="muted" style={{ fontSize: 11 }}>
+            {theme === "dark" ? "Tema escuro" : "Tema claro"}
+          </span>
+          <button className="iconbtn" onClick={toggleTheme} aria-label="Alternar tema">
+            ◐
+          </button>
+        </div>
+      </aside>
+      <main className="content">{children}</main>
+    </div>
   );
 }
