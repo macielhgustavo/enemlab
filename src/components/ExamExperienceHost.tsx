@@ -100,7 +100,7 @@ export default function ExamExperienceHost() {
   }, [textScale]);
 
   useEffect(() => {
-    syncNavigator();
+    const initialFrame = window.requestAnimationFrame(syncNavigator);
     const observer = new MutationObserver(syncNavigator);
     const root = document.querySelector(".examContent") || document.body;
     observer.observe(root, {
@@ -111,6 +111,7 @@ export default function ExamExperienceHost() {
     });
     const timer = window.setInterval(syncNavigator, 1500);
     return () => {
+      window.cancelAnimationFrame(initialFrame);
       observer.disconnect();
       window.clearInterval(timer);
     };
