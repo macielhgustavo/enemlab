@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Cloud, Github, LogOut, Mail, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
+import { Cloud, LogOut, Mail, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { useCloudSync } from "@/components/CloudSyncProvider";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
@@ -46,9 +46,7 @@ export default function AccountPage() {
         await cloud.signInEmail(email, password);
       } else {
         const result = await cloud.signUpEmail(email, password);
-        if (result === "confirm-email") {
-          setMessage("Conta criada. Confirme o e-mail antes de entrar.");
-        }
+        if (result === "confirm-email") setMessage("Conta criada. Confirme o e-mail antes de entrar.");
       }
     } catch {
       // O provider já expõe a mensagem de erro.
@@ -59,11 +57,7 @@ export default function AccountPage() {
 
   return (
     <section className="accountPage">
-      <PageHead
-        eyebrow="Identidade e continuidade"
-        title="Conta e nuvem"
-        sub="Seu histórico continua localmente e pode acompanhar você entre computador e celular."
-      />
+      <PageHead eyebrow="Identidade e continuidade" title="Conta e nuvem" sub="Seu histórico continua localmente e pode acompanhar você entre computador e celular." />
 
       {!cloud.user ? (
         <div className="accountAuthGrid">
@@ -74,12 +68,10 @@ export default function AccountPage() {
 
             <div className="oauthStack">
               <button className="oauthButton google" type="button" onClick={() => cloud.signInOAuth("google")}>
-                <span className="oauthGlyph">G</span>
-                Continuar com Google
+                <span className="oauthGlyph">G</span>Continuar com Google
               </button>
               <button className="oauthButton" type="button" onClick={() => cloud.signInOAuth("github")}>
-                <Github size={18} />
-                Continuar com GitHub
+                <span className="oauthGlyph">GH</span>Continuar com GitHub
               </button>
             </div>
 
@@ -90,9 +82,7 @@ export default function AccountPage() {
               <div className="accountInput"><Mail size={16} /><input id="account-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" /></div>
               <label htmlFor="account-password">Senha</label>
               <div className="accountInput"><ShieldCheck size={16} /><input id="account-password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" /></div>
-              <button className="btn accountPrimary" disabled={busy} type="submit">
-                {busy ? "Aguarde…" : mode === "login" ? "Entrar com e-mail" : "Criar conta"}
-              </button>
+              <button className="btn accountPrimary" disabled={busy} type="submit">{busy ? "Aguarde…" : mode === "login" ? "Entrar com e-mail" : "Criar conta"}</button>
             </form>
 
             <button className="accountMode" type="button" onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(null); }}>
@@ -146,10 +136,7 @@ export default function AccountPage() {
               <>
                 <h2>Mesclar este navegador com sua nuvem</h2>
                 <p className="muted">Este é o primeiro vínculo desta conta neste navegador. O ENEM Lab vai unir tentativas, notas e revisões antes de ativar o sync automático.</p>
-                <div className="mergeSummary">
-                  <span>{db.attempts.length} tentativas locais</span>
-                  <span>{cloud.cloudExists ? "Há dados na nuvem" : "Nuvem ainda vazia"}</span>
-                </div>
+                <div className="mergeSummary"><span>{db.attempts.length} tentativas locais</span><span>{cloud.cloudExists ? "Há dados na nuvem" : "Nuvem ainda vazia"}</span></div>
                 <button className="btn accountPrimary" onClick={() => void cloud.mergeAndEnable()} disabled={cloud.status === "syncing"}>Mesclar e ativar sincronização</button>
                 <p className="mergeFine">Nada é substituído silenciosamente. Em conflitos de histórico, a versão com mais progresso é preservada.</p>
               </>
