@@ -62,6 +62,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
 
+  // Durante uma prova a aplicação entra em modo foco: sem sidebar,
+  // navegação mobile ou command palette competindo com o enunciado.
+  if (pathname.startsWith("/exam/")) {
+    return (
+      <div className="layout examLayout">
+        <main className="content examContent">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="layout">
       <aside className="rail">
