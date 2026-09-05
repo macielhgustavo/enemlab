@@ -6,7 +6,7 @@ import { FINAL_BUILD, FINAL_SCHEMA } from "@/lib/domain/constants";
 import { rebuildSessions } from "@/lib/domain/stats";
 import { runSelfTests, type SelfTest } from "@/lib/domain/selftests";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
-import type { DB } from "@/lib/domain/types";
+import { parseBackup } from "@/lib/validators/backup";
 import { Card, Empty } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
@@ -70,15 +70,17 @@ export default function DataPage() {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
-      const x = JSON.parse(await f.text()) as DB;
-      if (!Array.isArray(x.attempts)) throw new Error("Backup inválido.");
+      const parsed = parseBackup(await f.text());
+      if (!parsed.ok) throw new Error(parsed.error);
+      const x = parsed.data;
+      const provs = parsed.providers.join(", ");
       if (merge) {
         mergeDB(x);
-        success("Backup mesclado sem apagar tentativas existentes.");
+        success(`Backup mesclado: ${parsed.attempts} tentativa(s) de ${provs}.`);
       } else {
         if (confirm("Substituir todos os dados atuais?")) {
           replaceDB(x);
-          success("Backup importado.");
+          success(`Backup importado: ${parsed.attempts} tentativa(s) de ${provs}.`);
         }
       }
     } catch (err) {
