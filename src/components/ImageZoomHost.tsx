@@ -1,5 +1,6 @@
 "use client";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -25,18 +26,18 @@ export default function ImageZoomHost() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const drag = useRef<{ pointerId: number; start: Point; origin: Point } | null>(null);
 
-  const setLevel = (next: number) => {
+  const setLevel = useCallback((next: number) => {
     const level = closestLevel(next);
     setScale(level);
     if (level === 1) setOffset({ x: 0, y: 0 });
-  };
+  }, []);
 
-  const close = () => {
+  const close = useCallback(() => {
     setZoom(null);
     setScale(1);
     setOffset({ x: 0, y: 0 });
     drag.current = null;
-  };
+  }, []);
 
   useEffect(() => {
     const prepareImage = (img: HTMLImageElement) => {
@@ -115,7 +116,7 @@ export default function ImageZoomHost() {
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [zoom, scale]);
+  }, [close, scale, setLevel, zoom]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (scale <= 1) return;
