@@ -10,6 +10,7 @@ import {
   buildUnseenAcrossYears,
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
+import { isQuestionUsableForPractice } from "../domain/question-quality";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -98,19 +99,21 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
   }
 
   const all = await fetchExam(year, lang);
+  const practiceAll = all.filter(isQuestionUsableForPractice);
 
   if (mode === "unseen15" || mode === "unseen30") {
     const n = mode === "unseen15" ? 15 : 30;
-    const pool = all.filter(
+    const pool = practiceAll.filter(
       (q) => (area === "all" || discipline(q) === area) && !seen.has(questionKey(q)),
     );
     const qs = sample(pool, n);
-    if (!qs.length) throw new Error("Você já viu todas as questões desse filtro.");
+    if (!qs.length) throw new Error("Você já viu todas as questões utilizáveis desse filtro.");
     return attemptFromQuestions(year, lang, qs, mode);
   }
 
   if (mode === "adaptive15") {
-    const qs = buildAdaptiveQuestions(db, all, 15);
+    const qs = buildAdaptiveQuestions(db, practiceAll, 15);
+    if (!qs.length) throw new Error("Não encontrei questões válidas para o treino adaptativo.");
     return attemptFromQuestions(year, lang, qs, "adaptive15");
   }
 
@@ -118,6 +121,8 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
     if (year < 2014)
       throw new Error("Use 2014–2023 para o ENEM Real (estrutura comparável ao formato atual).");
     const day = mode === "real1" ? 1 : 2;
+    // Provas reais preservam a estrutura oficial. Questões suspeitas são avisadas no runner,
+    // não removidas silenciosamente.
     const pool = buildRealDay(all, day, lang);
     return baseAttempt({
       year,
@@ -135,15 +140,19 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
 
   let pool: Question[];
   if (mode === "full") {
+    // "full" também mantém a estrutura do ano; a auditoria fica visível durante a prova.
     pool = dedupeByIndex(all, lang).slice(0, 180);
   } else {
-    pool = area === "all" ? dedupeByIndex(all, lang) : all.filter((q) => discipline(q) === area);
+    pool =
+      area === "all"
+        ? dedupeByIndex(practiceAll, lang)
+        : practiceAll.filter((q) => discipline(q) === area);
     if (area !== "all" && pool.length > 45) pool = pool.slice(0, 45);
     if (mode === "sprint15") pool = sample(pool, 15);
     else if (mode === "sprint30") pool = sample(pool, 30);
     else pool.sort((a, b) => a.index - b.index);
   }
-  if (!pool.length) throw new Error("Nenhuma questão para este filtro.");
+  if (!pool.length) throw new Error("Nenhuma questão válida para este filtro.");
 
   return baseAttempt({
     year,
@@ -165,8 +174,9 @@ export async function buildAdaptiveAttempt(
   year = 2023,
   lang: Language = "ingles",
 ): Promise<Attempt> {
-  const all = await fetchExam(year, lang);
+  const all = (await fetchExam(year, lang)).filter(isQuestionUsableForPractice);
   const qs = buildAdaptiveQuestions(db, all, n);
+  if (!qs.length) throw new Error("Não encontrei questões válidas para o treino adaptativo.");
   return attemptFromQuestions(year, lang, qs, "adaptive");
 }
 
@@ -199,9 +209,9 @@ export async function buildDueReviewsAttempt(db: DB, limit = 30): Promise<Attemp
 
 // Sprint focado de tamanho variável para o plano diário e treino manual.
 export async function buildContentSprintAttempt(content: string, n = 15): Promise<Attempt> {
-  const all = await fetchExam(2023, "ingles");
+  const all = (await fetchExam(2023, "ingles")).filter(isQuestionUsableForPractice);
   const qs = sample(all.filter((q) => classifyContent(q) === content), Math.max(1, n));
-  if (!qs.length) throw new Error("Não encontrei questões desse conteúdo em 2023.");
+  if (!qs.length) throw new Error("Não encontrei questões válidas desse conteúdo em 2023.");
   return attemptFromQuestions(2023, "ingles", qs, "content");
 }
 
