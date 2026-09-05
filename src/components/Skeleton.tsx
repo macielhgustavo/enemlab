@@ -44,42 +44,50 @@ export function DashboardSkeleton() {
   );
 }
 
-// Skeleton da questão no executor de prova.
+// Skeleton do executor: espelha o modo foco (cabeçalho + corpo + dock).
 export function QuestionSkeleton() {
   return (
-    <section className="examGrid">
-      <div className="card questionCard">
-        <div className="questionTop">
-          <div style={{ flex: 1 }}>
-            <Sk w={180} h={13} />
-            <Sk w={260} h={12} style={{ marginTop: 8 }} />
-          </div>
-          <Sk w={54} h={22} r={999} />
+    <section className="focus">
+      <header className="focushead">
+        <Sk w={62} h={26} r={7} />
+        <div className="segbar">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <i key={i} />
+          ))}
         </div>
-        <Sk h={16} style={{ marginTop: 8 }} />
-        <Sk w="92%" h={16} style={{ marginTop: 10 }} />
-        <Sk w="85%" h={16} style={{ marginTop: 10 }} />
-        <Sk w="60%" h={16} style={{ marginTop: 10 }} />
-        <div style={{ display: "grid", gap: 11, marginTop: 24 }}>
+        <div className="clock" style={{ gap: 12 }}>
+          <Sk w={96} h={26} r={7} />
+          <Sk w={104} h={36} r={11} />
+        </div>
+      </header>
+
+      <div className="focusbody">
+        <Sk w={200} h={12} r={4} />
+        <Sk w={280} h={12} r={4} style={{ marginTop: 10 }} />
+        <div style={{ marginTop: 30, display: "grid", gap: 12 }}>
+          <Sk h={18} />
+          <Sk w="94%" h={18} />
+          <Sk w="88%" h={18} />
+          <Sk w="62%" h={18} />
+        </div>
+        <div style={{ display: "grid", gap: 12, marginTop: 34 }}>
           {[0, 1, 2, 3, 4].map((i) => (
-            <Sk key={i} h={52} r={14} />
+            <Sk key={i} h={62} r={14} />
           ))}
         </div>
       </div>
-      <aside className="card sidebar">
-        <Sk w={120} h={28} />
-        <Sk h={9} r={999} style={{ marginTop: 16 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 16 }}>
-          {[0, 1, 2].map((i) => (
-            <Sk key={i} h={34} r={10} />
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 5, marginTop: 16 }}>
-          {Array.from({ length: 16 }).map((_, i) => (
-            <Sk key={i} h={30} r={8} />
-          ))}
-        </div>
-      </aside>
+
+      <div className="dock">
+        {[0, 1, 2].map((i) => (
+          <Sk key={i} w={40} h={40} r={12} />
+        ))}
+        <span className="sep" />
+        {[0, 1, 2].map((i) => (
+          <Sk key={`c${i}`} w={64} h={34} r={11} />
+        ))}
+        <span className="sep" />
+        <Sk w={40} h={40} r={12} />
+      </div>
     </section>
   );
 }

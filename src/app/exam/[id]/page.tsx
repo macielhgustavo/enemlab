@@ -13,6 +13,8 @@ import {
 import { fmtSec, shortSec, richText, safeUrl, markdownImageUrls } from "@/lib/format";
 import { questionsForAttempt, finishAttemptInDB } from "@/lib/services/attempts";
 import { saveSnapshot } from "@/lib/idb";
+import { motion } from "motion/react";
+import { ChevronLeft, ChevronRight, Star, LayoutGrid, PenLine } from "lucide-react";
 import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
@@ -40,6 +42,8 @@ export default function ExamPage() {
   const [essayMode, setEssayMode] = useState(false);
   const [essayText, setEssayText] = useState("");
   const [pass, setPass] = useState(1);
+  // Mapa da prova: aberto sob demanda no dock, não ocupando a tela.
+  const [navOpen, setNavOpen] = useState(false);
   // Cronômetro como estado: a renderização lê estado puro, não refs.
   const [clock, setClock] = useState({ elapsed: 0, qSec: 0 });
 
@@ -317,8 +321,57 @@ export default function ExamPage() {
   const files = (q.files || []).map(String).filter((f) => !embeddedUrls.has(safeUrl(f)));
 
   return (
-    <section className="examGrid">
-      <div className="card questionCard">
+    <section className="focus">
+      {/* ---- Cabeçalho mínimo: identidade, progresso segmentado e relógio ---- */}
+      <header className="focushead">
+        <div className="id">
+          <span className="cur">{essayMode ? "R" : String(current + 1).padStart(2, "0")}</span>
+          <span className="tot">/ {qs.length}</span>
+        </div>
+
+        <div className="segbar" aria-hidden="true">
+          {qs.map((qq, i) => {
+            const kk = questionKey(qq);
+            const cls = [
+              answers[kk] ? "done" : "",
+              flags[kk] ? "flag" : "",
+              i === current && !essayMode ? "at" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return <i key={kk} className={cls} />;
+          })}
+        </div>
+
+        <div className="clock">
+          <div className={`t ${left > 0 && left <= 300 ? "low" : ""}`}>{fmtSec(left)}</div>
+          {!attempt.strict && (
+            <button
+              className="btn secondary"
+              style={{ padding: "9px 14px", fontSize: 12 }}
+              onClick={() => {
+                commitQTime();
+                commit();
+                router.push("/history");
+              }}
+            >
+              Salvar e sair
+            </button>
+          )}
+          <button className="btn" style={{ padding: "9px 16px", fontSize: 12 }} onClick={finish}>
+            Finalizar
+          </button>
+        </div>
+      </header>
+
+      {paceMsg && (
+        <div className="focusbody" style={{ padding: "0 28px" }}>
+          <div className="paceAlert">{paceMsg}</div>
+        </div>
+      )}
+
+      <div className="focusbody">
+        <div className="card questionCard">
         {essayMode && attempt.essay ? (
           <div className="essayEditor">
             <div className="questionTop">
@@ -383,30 +436,19 @@ export default function ExamPage() {
           </div>
         ) : (
           <div id="questionContent">
+            {/* Índice e progresso vivem no cabeçalho de foco; aqui fica só a
+                procedência da questão. */}
             <div className="questionTop">
-              <div style={{ display: "flex", gap: 18, alignItems: "center", minWidth: 0 }}>
-                {/* Número como elemento de orientação, não como texto corrido. */}
-                <span className="qIndex" aria-hidden="true">
-                  {String(current + 1).padStart(2, "0")}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="qTitle">
-                    Questão {q.index} • ENEM {q.year}
-                  </div>
-                  <div className="qArea">
-                    {AREA_LABELS[discipline(q)] || discipline(q)} • {content}
-                    {q.language ? ` • ${q.language}` : ""}
-                  </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="qTitle">
+                  Questão {q.index} • ENEM {q.year}
+                </div>
+                <div className="qArea">
+                  {AREA_LABELS[discipline(q)] || discipline(q)} • {content}
+                  {q.language ? ` • ${q.language}` : ""}
                 </div>
               </div>
-              <div style={{ display: "grid", gap: 8, minWidth: 132 }}>
-                <span className="pill" style={{ justifySelf: "end" }}>
-                  {current + 1}/{qs.length}
-                </span>
-                <div className="runbar" aria-hidden="true">
-                  <span style={{ width: `${((current + 1) / Math.max(1, qs.length)) * 100}%` }} />
-                </div>
-              </div>
+              <span className="tele">{shortSec(qSec)} nesta questão</span>
             </div>
 
             {q.context && <MathContent className="context" html={richText(q.context)} />}
@@ -455,159 +497,155 @@ export default function ExamPage() {
         )}
       </div>
 
-      <aside className="card sidebar">
-        <div className="row between">
-          <div>
-            <div className="tele">Tempo restante</div>
-            {/* Abaixo de 5 min o cronômetro entra em estado crítico. */}
-            <div className={`timer ${left > 0 && left <= 300 ? "low" : ""}`}>{fmtSec(left)}</div>
-          </div>
-          {!attempt.strict && (
-            <button
-              className="btn secondary"
-              onClick={() => {
-                commitQTime();
-                commit();
-                router.push("/history");
-              }}
-            >
-              Salvar e sair
-            </button>
-          )}
-        </div>
-        <div className="infoLine" style={{ marginTop: 7 }}>
-          <span className="badge2">
-            {attempt.realDay ? `ENEM Real • Dia ${attempt.realDay}` : attempt.mode}
-          </span>
-          {attempt.strict && <span className="badge2 strictBadge">modo rígido</span>}
-        </div>
-        <div className="progress" style={{ margin: "12px 0" }}>
-          <span style={{ width: `${(answeredCount / qs.length) * 100}%` }} />
-        </div>
-        {paceMsg && <div className="paceAlert">{paceMsg}</div>}
+      </div>
 
-        {attempt.strategy && (
-          <div className="strategyBox">
-            <div className="row between">
-              <b style={{ fontSize: 12 }}>Estratégia em passagens</b>
-              <span className="badge2">{pass}ª passagem</span>
-            </div>
-            <div className="passButtons" style={{ marginTop: 7 }}>
-              {[1, 2, 3].map((n) => (
-                <button
-                  key={n}
-                  className={pass === n ? "active" : ""}
-                  onClick={() => setPass(n)}
-                >
-                  {n}ª
+      {/* ---- Dock inferior: navegação, confiança e mapa da prova ---- */}
+      {navOpen && (
+        <motion.div
+          className="dockgrid"
+          initial={{ opacity: 0, y: 14, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        >
+          <div className="row between" style={{ marginBottom: 12 }}>
+            <span className="tele">Mapa da prova</span>
+            <span className="tele">
+              {answeredCount}/{qs.length} respondidas · {flaggedCount} marcadas
+            </span>
+          </div>
+          <div className="qgrid">
+            {qs.map((qq, i) => {
+              const kk = questionKey(qq);
+              const cls = [
+                answers[kk] ? "answered" : "",
+                flags[kk] ? "flagged" : "",
+                i === current && !essayMode ? "current" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <button key={kk} className={cls} onClick={() => goto(i)}>
+                  {qq.index}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        <div className="row between" style={{ fontSize: 12, color: "var(--muted)" }}>
-          <span>
-            {answeredCount}/{qs.length} respondidas
-          </span>
-          <span>{flaggedCount} marcadas</span>
-        </div>
-
-        <div style={{ marginTop: 15 }}>
-          <label>Confiança</label>
-          <div className="conf">
-            {(
-              [
-                ["certeza", "✓ certeza"],
-                ["duvida", "~ dúvida"],
-                ["chute", "? chute"],
-              ] as const
-            ).map(([v, lbl]) => (
-              <button
-                key={v}
-                className={confidence[k] === v ? "selected" : ""}
-                onClick={() => setConf(v)}
-              >
-                {lbl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="row between" style={{ marginTop: 12 }}>
-          <button className="btn secondary" onClick={() => goto(current - 1)}>
-            ←
-          </button>
-          <button className="btn ghost" onClick={toggleFlag}>
-            {flags[k] ? "★ marcada" : "☆ revisar"}
-          </button>
-          <button className="btn secondary" onClick={() => goto(current + 1)}>
-            →
-          </button>
-        </div>
-
-        <div className="row" style={{ marginTop: 8, gap: 6 }}>
-          <button
-            className="btn secondary"
-            style={{ flex: 1, fontSize: 11, padding: "8px 6px" }}
-            onClick={nextUnanswered}
-            disabled={answeredCount >= qs.length}
-          >
-            Próxima em branco →
-          </button>
-          {flaggedCount > 0 && (
+          <div className="row" style={{ marginTop: 12, gap: 8 }}>
             <button
               className="btn secondary"
-              style={{ flex: 1, fontSize: 11, padding: "8px 6px" }}
-              onClick={nextFlagged}
+              style={{ flex: 1, fontSize: 11.5, padding: "9px 8px" }}
+              onClick={nextUnanswered}
+              disabled={answeredCount >= qs.length}
             >
-              Próxima marcada →
+              Próxima em branco
             </button>
-          )}
-        </div>
-
-        <div className="qgrid">
-          {qs.map((qq, i) => {
-            const kk = questionKey(qq);
-            const cls = [
-              answers[kk] ? "answered" : "",
-              flags[kk] ? "flagged" : "",
-              i === current && !essayMode ? "current" : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-            return (
-              <button key={kk} className={cls} onClick={() => goto(i)}>
-                {qq.index}
+            {flaggedCount > 0 && (
+              <button
+                className="btn secondary"
+                style={{ flex: 1, fontSize: 11.5, padding: "9px 8px" }}
+                onClick={nextFlagged}
+              >
+                Próxima marcada
               </button>
-            );
-          })}
+            )}
+          </div>
+          {attempt.strategy && (
+            <div className="strategyBox">
+              <div className="row between">
+                <b style={{ fontSize: 12 }}>Estratégia em passagens</b>
+                <span className="badge2">{pass}ª</span>
+              </div>
+              <div className="passButtons" style={{ marginTop: 8 }}>
+                {[1, 2, 3].map((n) => (
+                  <button key={n} className={pass === n ? "active" : ""} onClick={() => setPass(n)}>
+                    {n}ª
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="tele" style={{ marginTop: 12 }}>
+            A–E responder · ← → navegar · 1/2/3 confiança
+          </div>
+        </motion.div>
+      )}
+
+      <motion.div
+        className="dock"
+        initial={{ opacity: 0, y: 26 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <button
+          className="navbtn"
+          onClick={() => goto(current - 1)}
+          disabled={essayMode}
+          aria-label="Questão anterior"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <button
+          className={`navbtn ${flags[k] ? "on" : ""}`}
+          onClick={toggleFlag}
+          disabled={essayMode}
+          aria-label={flags[k] ? "Desmarcar questão" : "Marcar para revisar"}
+        >
+          <Star size={17} fill={flags[k] ? "currentColor" : "none"} />
+        </button>
+        <button
+          className="navbtn"
+          onClick={() => goto(current + 1)}
+          disabled={essayMode}
+          aria-label="Próxima questão"
+        >
+          <ChevronRight size={18} />
+        </button>
+
+        <span className="sep" />
+
+        <div className="conf">
+          {(
+            [
+              ["certeza", "certeza"],
+              ["duvida", "dúvida"],
+              ["chute", "chute"],
+            ] as const
+          ).map(([v, lbl]) => (
+            <button
+              key={v}
+              className={confidence[k] === v ? "selected" : ""}
+              onClick={() => setConf(v)}
+              disabled={essayMode}
+            >
+              {lbl}
+            </button>
+          ))}
         </div>
 
-        <div className="muted" style={{ fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
-          Atalhos: <b>A–E</b> responder · <b>← →</b> navegar · <b>1/2/3</b> confiança
-        </div>
+        <span className="sep" />
 
-        <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "15px 0" }} />
-        <div className="muted" style={{ fontSize: 11, marginBottom: 9 }}>
-          {essayMode ? "redação em andamento" : `${shortSec(qSec)} nesta questão`}
-        </div>
+        <button
+          className={`navbtn ${navOpen ? "on" : ""}`}
+          onClick={() => setNavOpen((v) => !v)}
+          aria-label="Mapa da prova"
+          aria-expanded={navOpen}
+        >
+          <LayoutGrid size={17} />
+        </button>
         {attempt.essay && (
           <button
-            className="btn secondary"
-            style={{ width: "100%", marginBottom: 8 }}
+            className={`navbtn ${essayMode ? "on" : ""}`}
             onClick={() => {
               commitQTime();
-              setEssayMode(true);
+              setEssayMode(!essayMode);
             }}
+            aria-label="Redação"
           >
-            ✍ Redação
+            <PenLine size={17} />
           </button>
         )}
-        <button className="btn" style={{ width: "100%" }} onClick={finish}>
-          Finalizar e corrigir
-        </button>
-      </aside>
+      </motion.div>
     </section>
   );
 }
