@@ -277,7 +277,7 @@
 }
 
 .dailyPlanBlock[data-kind="unseen"] {
-  --block-accent: var(--good);
+  --block-accent: var(--ok);
 }
 
 .dailyPlanOrder {
