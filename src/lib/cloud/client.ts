@@ -133,6 +133,8 @@ export function startOAuth(provider: OAuthProvider) {
   if (typeof window === "undefined") return;
   const redirectTo = `${window.location.origin}/account`;
   const params = new URLSearchParams({ provider, redirect_to: redirectTo });
+  // Navegação deliberadamente externa para o endpoint de autorização do Supabase.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 }
 
