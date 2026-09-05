@@ -119,6 +119,7 @@ export default function ExamExperienceHost() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (interactiveTarget(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key === "f" || event.key === "F") {
         event.preventDefault();
         setDeepFocus((value) => !value);
