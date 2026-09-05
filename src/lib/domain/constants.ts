@@ -3,7 +3,7 @@ import type { AreaId } from "./types";
 
 export const API_BASE = "https://api.enem.dev/v1";
 
-export const FINAL_BUILD = "7.0-next-2026.09";
+export const FINAL_BUILD = "7.2-data-quality-2026.09";
 export const FINAL_SCHEMA = 6.6;
 
 export const LETTERS = ["A", "B", "C", "D", "E"] as const;
@@ -63,6 +63,7 @@ export const CONTENTS: Record<string, string[]> = {
   matematica: [
     "Porcentagem e juros",
     "Razão e proporcionalidade",
+    "Aritmética e medidas",
     "Funções",
     "Geometria plana",
     "Geometria espacial",
@@ -72,6 +73,7 @@ export const CONTENTS: Record<string, string[]> = {
     "Combinatória",
     "Sequências",
     "Leitura de gráficos",
+    "Matemática • Não classificado",
   ],
   "ciencias-natureza": [
     "Física • Mecânica",
@@ -79,14 +81,19 @@ export const CONTENTS: Record<string, string[]> = {
     "Física • Termologia",
     "Física • Óptica e ondas",
     "Química • Estequiometria",
+    "Química • Reações e separação",
     "Química • Soluções e pH",
+    "Química • Interações intermoleculares",
     "Química • Orgânica",
     "Química • Eletroquímica",
     "Biologia • Ecologia",
     "Biologia • Genética",
+    "Biologia • Imunologia",
+    "Biologia • Botânica",
     "Biologia • Fisiologia",
     "Biologia • Evolução",
     "Biologia • Citologia e metabolismo",
+    "Natureza • Não classificado",
   ],
   "ciencias-humanas": [
     "História do Brasil",
@@ -98,6 +105,7 @@ export const CONTENTS: Record<string, string[]> = {
     "Sociologia",
     "Filosofia",
     "Trabalho e cidadania",
+    "Humanas • Não classificado",
   ],
   linguagens: [
     "Interpretação textual",
@@ -118,6 +126,7 @@ export function contentAllLabels(): string[] {
 export const TAXONOMY: Record<string, string[]> = {
   "Porcentagem e juros": ["Matemática", "Aritmética", "Porcentagem e juros"],
   "Razão e proporcionalidade": ["Matemática", "Aritmética", "Razão e proporcionalidade"],
+  "Aritmética e medidas": ["Matemática", "Aritmética", "Medidas e operações"],
   Funções: ["Matemática", "Álgebra", "Funções"],
   "Geometria plana": ["Matemática", "Geometria", "Plana"],
   "Geometria espacial": ["Matemática", "Geometria", "Espacial"],
@@ -127,19 +136,25 @@ export const TAXONOMY: Record<string, string[]> = {
   Combinatória: ["Matemática", "Combinatória", "Contagem"],
   Sequências: ["Matemática", "Álgebra", "Sequências"],
   "Leitura de gráficos": ["Matemática", "Dados", "Gráficos"],
+  "Matemática • Não classificado": ["Matemática", "Não classificado"],
   "Física • Mecânica": ["Natureza", "Física", "Mecânica"],
   "Física • Eletricidade": ["Natureza", "Física", "Eletricidade"],
   "Física • Termologia": ["Natureza", "Física", "Termologia"],
   "Física • Óptica e ondas": ["Natureza", "Física", "Óptica e ondas"],
   "Química • Estequiometria": ["Natureza", "Química", "Estequiometria"],
+  "Química • Reações e separação": ["Natureza", "Química", "Reações e separação de misturas"],
   "Química • Soluções e pH": ["Natureza", "Química", "Soluções e pH"],
+  "Química • Interações intermoleculares": ["Natureza", "Química", "Interações intermoleculares"],
   "Química • Orgânica": ["Natureza", "Química", "Orgânica"],
   "Química • Eletroquímica": ["Natureza", "Química", "Eletroquímica"],
   "Biologia • Ecologia": ["Natureza", "Biologia", "Ecologia"],
   "Biologia • Genética": ["Natureza", "Biologia", "Genética"],
+  "Biologia • Imunologia": ["Natureza", "Biologia", "Imunologia"],
+  "Biologia • Botânica": ["Natureza", "Biologia", "Botânica"],
   "Biologia • Fisiologia": ["Natureza", "Biologia", "Fisiologia"],
   "Biologia • Evolução": ["Natureza", "Biologia", "Evolução"],
   "Biologia • Citologia e metabolismo": ["Natureza", "Biologia", "Citologia e metabolismo"],
+  "Natureza • Não classificado": ["Natureza", "Não classificado"],
   "História do Brasil": ["Humanas", "História", "Brasil"],
   "História Geral": ["Humanas", "História", "Geral"],
   "Geografia • Urbanização": ["Humanas", "Geografia", "Urbanização"],
@@ -149,6 +164,7 @@ export const TAXONOMY: Record<string, string[]> = {
   Sociologia: ["Humanas", "Sociologia"],
   Filosofia: ["Humanas", "Filosofia"],
   "Trabalho e cidadania": ["Humanas", "Sociedade", "Trabalho e cidadania"],
+  "Humanas • Não classificado": ["Humanas", "Não classificado"],
   "Interpretação textual": ["Linguagens", "Português", "Interpretação"],
   "Argumentação e gêneros": ["Linguagens", "Português", "Argumentação e gêneros"],
   "Gramática em contexto": ["Linguagens", "Português", "Gramática em contexto"],

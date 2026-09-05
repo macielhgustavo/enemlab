@@ -2,7 +2,7 @@
 // Funções puras: recebem o db como argumento.
 import { pct } from "../format";
 import { contentAllLabels } from "./constants";
-import { classifyContent, discipline, questionKey } from "./classify";
+import { classifyContent, discipline, isUnclassifiedContent, questionKey } from "./classify";
 import type {
   Attempt,
   DB,
@@ -131,7 +131,7 @@ export interface WeakContent extends Tally {
 export function weakestContents(db: DB, n = 5): WeakContent[] {
   const st = masteryStats(db);
   return Object.entries(st)
-    .filter(([, v]) => v.t > 0)
+    .filter(([name, v]) => v.t > 0 && !isUnclassifiedContent(name))
     .map(([name, v]) => ({ name, ...v, p: pct(v.c, v.t) }))
     .sort((a, b) => a.p - b.p || b.t - a.t)
     .slice(0, n);
