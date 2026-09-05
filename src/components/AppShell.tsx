@@ -21,6 +21,7 @@ import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
 import CommandPalette from "@/components/CommandPalette";
 import ImageZoomHost from "@/components/ImageZoomHost";
+import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -66,6 +67,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="layout examLayout">
         <main className="content examContent">{children}</main>
         <ImageZoomHost />
+        <QuestionIssueReporter />
       </div>
     );
   }
