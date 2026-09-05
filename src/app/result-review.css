@@ -1,0 +1,492 @@
+/* Dedicated question-by-question post-exam correction. */
+
+.resultReviewPage {
+  position: relative;
+}
+
+.resultReviewLayout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.resultReviewRail {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-solid);
+}
+
+.resultReviewFilters {
+  display: grid;
+  gap: 5px;
+}
+
+.resultReviewFilters button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.resultReviewFilters button:hover,
+.resultReviewFilters button.active {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.resultReviewFilters button.active {
+  color: var(--brand-ink);
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  background: var(--brand-soft);
+}
+
+.resultReviewFilters b {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultReviewLegend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.resultReviewLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.resultReviewLegend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+}
+
+.resultReviewLegend i.correct {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+
+.resultReviewLegend i.wrong {
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  border-color: var(--bad);
+}
+
+.resultReviewLegend i.blank {
+  background: var(--surface-2);
+}
+
+.resultReviewLegend i.flagged {
+  border-color: var(--warn);
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+
+.resultReviewGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.resultReviewGrid button {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultReviewGrid button.correct {
+  color: var(--brand-ink);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--line));
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--surface-2));
+}
+
+.resultReviewGrid button.wrong {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 38%, var(--line));
+  background: color-mix(in srgb, var(--bad) 8%, var(--surface-2));
+}
+
+.resultReviewGrid button.flagged {
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+
+.resultReviewGrid button.current {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.resultReviewMain {
+  min-width: 0;
+}
+
+.resultReviewQuestionCard {
+  padding: 34px clamp(24px, 4vw, 54px) 44px;
+}
+
+.resultReviewQuestionTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.resultReviewEyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--brand);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.resultReviewQuestionTop h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.resultReviewPath {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.resultReviewStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resultReviewStatus.correct {
+  color: var(--brand-ink);
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  background: var(--brand-soft);
+}
+
+.resultReviewStatus.wrong {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, var(--line));
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
+}
+
+.resultReviewStatus.blank {
+  color: var(--text-faint);
+  background: var(--surface-2);
+}
+
+.resultReviewTelemetry {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.resultReviewTelemetry > span {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.resultReviewTelemetry small,
+.resultReviewTelemetry b {
+  display: block;
+}
+
+.resultReviewTelemetry small {
+  margin-bottom: 4px;
+  color: var(--text-faint);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.resultReviewTelemetry b {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.resultReviewTelemetry .flag b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--warn);
+}
+
+.resultReviewQuestionBody {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.resultReviewQuestionBody .context {
+  margin: 28px 0;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1.78;
+}
+
+.resultReviewQuestionBody .intro {
+  margin: 28px 0 18px;
+  font-size: 18px;
+  line-height: 1.64;
+  font-weight: 600;
+}
+
+.resultReviewQuestionBody .answers {
+  display: grid;
+  gap: 10px;
+}
+
+.resultReviewQuestionBody .answer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 17px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+
+.resultReviewQuestionBody .answer.correctReview {
+  border-color: color-mix(in srgb, var(--brand) 48%, var(--line));
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--surface-2));
+}
+
+.resultReviewQuestionBody .answer.wrongReview {
+  border-color: color-mix(in srgb, var(--bad) 48%, var(--line));
+  background: color-mix(in srgb, var(--bad) 8%, var(--surface-2));
+}
+
+.resultReviewQuestionBody .letter {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--panel-solid);
+  font-weight: 800;
+}
+
+.resultReviewQuestionBody .correctReview .letter {
+  color: var(--void);
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.resultReviewQuestionBody .wrongReview .letter {
+  color: #fff;
+  border-color: var(--bad);
+  background: var(--bad);
+}
+
+.resultReviewQuestionBody .altText {
+  min-width: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.resultReviewAltState {
+  align-self: center;
+  color: var(--text-faint);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resultReviewQuestionBody .correctReview .resultReviewAltState {
+  color: var(--brand);
+}
+
+.resultReviewQuestionBody .wrongReview .resultReviewAltState {
+  color: var(--bad);
+}
+
+.resultReviewQuestionBody .embeddedMedia.blockMedia,
+.resultReviewQuestionBody .qImages {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 22px 0 26px;
+}
+
+.resultReviewQuestionBody .embeddedMedia.blockMedia img,
+.resultReviewQuestionBody .qImages img,
+.resultReviewQuestionBody .altImg {
+  max-width: min(100%, 920px);
+  max-height: 72dvh;
+  object-fit: contain;
+  cursor: zoom-in;
+  border-radius: 10px;
+  background: #fff;
+  padding: 5px;
+}
+
+.resultReviewQuestionBody .embeddedMedia.inlineMedia {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.resultReviewQuestionBody .embeddedMedia.inlineMedia img {
+  max-height: 90px;
+  max-width: 280px;
+}
+
+.resultReviewQuestionBody mjx-container[display="true"] {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px 10px;
+}
+
+.resultReviewPager {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.resultReviewPager > span {
+  justify-self: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.resultReviewPager .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.resultReviewShortcut {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 110;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+  color: var(--text-dim);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.resultReviewShortcut:hover {
+  color: var(--brand-ink);
+  border-color: var(--line-glow);
+}
+
+@media (max-width: 1120px) {
+  .resultReviewLayout {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .resultReviewTelemetry {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .resultReviewLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .resultReviewRail {
+    position: static;
+  }
+
+  .resultReviewFilters {
+    grid-template-columns: repeat(5, minmax(90px, 1fr));
+    overflow-x: auto;
+  }
+
+  .resultReviewGrid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .resultReviewQuestionCard {
+    padding: 22px 16px 30px;
+  }
+
+  .resultReviewQuestionTop {
+    flex-direction: column;
+  }
+
+  .resultReviewTelemetry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resultReviewGrid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .resultReviewQuestionBody .answer {
+    grid-template-columns: 32px 1fr;
+  }
+
+  .resultReviewAltState {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .resultReviewPager {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .resultReviewPager > span {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .resultReviewShortcut {
+    right: 10px;
+    bottom: 10px;
+  }
+}
