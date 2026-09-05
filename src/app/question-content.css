@@ -1,0 +1,190 @@
+/* Question content — media, math and text fidelity. */
+
+.examContent .context,
+.examContent .intro,
+.examContent .altText {
+  font-variant-numeric: lining-nums tabular-nums;
+  text-rendering: optimizeLegibility;
+}
+
+.examContent .context sup,
+.examContent .intro sup,
+.examContent .altText sup,
+.examContent .context sub,
+.examContent .intro sub,
+.examContent .altText sub {
+  line-height: 0;
+  font-size: 0.76em;
+}
+
+/* Imagens grandes de figura deixam de ficar espremidas dentro do texto. */
+.examContent .embeddedMedia.blockMedia {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  margin: 24px 0 28px;
+}
+
+.examContent .embeddedMedia.blockMedia img,
+.examContent .qImages img {
+  width: auto;
+  max-width: min(100%, 920px);
+  max-height: 76dvh;
+  min-height: 180px;
+  object-fit: contain;
+}
+
+.examContent .embeddedMedia.inlineMedia {
+  display: inline-flex;
+  vertical-align: middle;
+  align-items: center;
+  margin: 0 0.22em;
+}
+
+.examContent .embeddedMedia.inlineMedia img {
+  width: auto;
+  max-width: min(280px, 100%);
+  max-height: 90px;
+  min-height: 0;
+  padding: 2px 4px;
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.examContent img[data-zoomable="true"],
+.examContent .qImages img,
+.examContent .altImg {
+  cursor: zoom-in;
+  transition: transform 160ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.examContent img[data-zoomable="true"]:hover,
+.examContent .qImages img:hover,
+.examContent .altImg:hover {
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--line));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.examContent img[data-zoomable="true"]:focus-visible,
+.examContent .qImages img:focus-visible,
+.examContent .altImg:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 5px;
+}
+
+/* MathJax: fórmulas grandes rolam horizontalmente sem estourar o layout. */
+.examContent mjx-container {
+  max-width: 100%;
+  color: var(--text);
+}
+
+.examContent mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 10px 4px 12px;
+  margin: 18px 0 !important;
+  scrollbar-width: thin;
+}
+
+.examContent .mathSource {
+  white-space: normal;
+}
+
+/* Modal global de ampliação de imagens da prova. */
+.imageZoomBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 8, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+.imageZoomDialog {
+  width: min(1500px, 96vw);
+  height: min(940px, 94dvh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  background: var(--panel-solid);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.imageZoomBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.imageZoomBar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.imageZoomBar button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.imageZoomDialog > img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  padding: 18px;
+  background: #fff;
+  cursor: default !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.imageZoomHint {
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--text-faint);
+  font-size: 10px;
+  text-align: center;
+}
+
+:root[data-theme="light"] .imageZoomBackdrop {
+  background: rgba(18, 32, 28, 0.62);
+}
+
+@media (max-width: 700px) {
+  .examContent .embeddedMedia.blockMedia img,
+  .examContent .qImages img {
+    min-height: 120px;
+    max-height: 62dvh;
+  }
+
+  .imageZoomBackdrop {
+    padding: 8px;
+  }
+
+  .imageZoomDialog {
+    width: 100%;
+    height: min(92dvh, 860px);
+    border-radius: 12px;
+  }
+}
