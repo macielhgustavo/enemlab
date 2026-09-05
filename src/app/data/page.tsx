@@ -2,9 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { FINAL_BUILD, FINAL_SCHEMA } from "@/lib/domain/constants";
+import { FINAL_BUILD, FINAL_SCHEMA, examYears } from "@/lib/domain/constants";
 import { rebuildSessions } from "@/lib/domain/stats";
 import { runSelfTests, type SelfTest } from "@/lib/domain/selftests";
+import { auditQuestionSet, type QuestionBankAudit } from "@/lib/domain/question-quality";
+import { fetchExam } from "@/lib/api/enem";
+import type { Language } from "@/lib/domain/types";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import { parseBackup } from "@/lib/validators/backup";
 import { Card, Empty } from "@/components/ui";
@@ -23,6 +26,11 @@ export default function DataPage() {
   const mergeRef = useRef<HTMLInputElement>(null);
   const [selfTests, setSelfTests] = useState<SelfTest[] | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [auditYear, setAuditYear] = useState(2023);
+  const [auditLang, setAuditLang] = useState<Language>("ingles");
+  const [bankAudit, setBankAudit] = useState<QuestionBankAudit | null>(null);
+  const [auditBusy, setAuditBusy] = useState(false);
+  const [auditError, setAuditError] = useState("");
 
   async function refreshSnapshots() {
     setSnapshots(await listSnapshots());
@@ -44,6 +52,21 @@ export default function DataPage() {
     if (!confirm("Restaurar este snapshot e substituir o estado atual?")) return;
     replaceDBFull(s.data);
     success("Snapshot restaurado.");
+  }
+
+  async function runBankAudit() {
+    setAuditBusy(true);
+    setAuditError("");
+    try {
+      const questions = await fetchExam(auditYear, auditLang);
+      setBankAudit(auditQuestionSet(questions));
+    } catch (err) {
+      const message = (err as Error).message || "Falha ao auditar o banco.";
+      setAuditError(message);
+      toastError(message);
+    } finally {
+      setAuditBusy(false);
+    }
   }
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
@@ -165,6 +188,97 @@ export default function DataPage() {
           </div>
         </Card>
       </div>
+
+      <Card style={{ marginTop: 14 }}>
+        <div className="row between" style={{ alignItems: "flex-end" }}>
+          <div>
+            <h2>Qualidade do banco de questões</h2>
+            <div className="muted">
+              Audita estrutura, gabarito, alternativas, mídia, codificação, fórmulas e confiança da classificação.
+            </div>
+          </div>
+          <div className="row" style={{ alignItems: "flex-end" }}>
+            <div>
+              <label>Ano</label>
+              <select value={auditYear} onChange={(e) => setAuditYear(Number(e.target.value))}>
+                {examYears().map((year) => (
+                  <option value={year} key={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Idioma</label>
+              <select value={auditLang} onChange={(e) => setAuditLang(e.target.value as Language)}>
+                <option value="ingles">Inglês</option>
+                <option value="espanhol">Espanhol</option>
+              </select>
+            </div>
+            <button className="btn secondary" disabled={auditBusy} onClick={runBankAudit}>
+              {auditBusy ? "Auditando…" : "Auditar edição"}
+            </button>
+          </div>
+        </div>
+
+        {!bankAudit && !auditError && (
+          <div className="notice" style={{ marginTop: 14 }}>
+            A auditoria não altera questões. Treinos livres já evitam itens bloqueados; provas reais preservam a estrutura oficial e apenas sinalizam problemas.
+          </div>
+        )}
+        {auditError && <div className="notice" style={{ marginTop: 14 }}>{auditError}</div>}
+
+        {bankAudit && (
+          <>
+            <div className="healthGrid" style={{ marginTop: 14 }}>
+              <div className="healthItem">
+                <small>Questões</small>
+                <b>{bankAudit.total}</b>
+                <div className="muted">itens auditados</div>
+              </div>
+              <div className="healthItem">
+                <small>Saudáveis</small>
+                <b className="healthOk">{bankAudit.healthy}</b>
+                <div className="muted">sem alerta relevante</div>
+              </div>
+              <div className="healthItem">
+                <small>Revisar</small>
+                <b style={{ color: "var(--warn)" }}>{bankAudit.review}</b>
+                <div className="muted">avisos de qualidade</div>
+              </div>
+              <div className="healthItem">
+                <small>Bloqueadas</small>
+                <b style={{ color: "var(--bad)" }}>{bankAudit.blocked}</b>
+                <div className="muted">fora de treinos livres</div>
+              </div>
+              <div className="healthItem">
+                <small>Score médio</small>
+                <b>{bankAudit.averageScore}/100</b>
+                <div className="muted">qualidade estrutural</div>
+              </div>
+              <div className="healthItem">
+                <small>Classificação</small>
+                <b>{bankAudit.lowClassification}</b>
+                <div className="muted">com baixa confiança • {bankAudit.unclassified} sem classe</div>
+              </div>
+            </div>
+
+            <div className="testGrid" style={{ marginTop: 14 }}>
+              {bankAudit.issueCounts.length === 0 && <div className="muted">Nenhum problema detectado.</div>}
+              {bankAudit.issueCounts.slice(0, 8).map((item) => (
+                <div className="testRow" key={item.code}>
+                  <span
+                    className={`testDot ${item.severity === "error" ? "bad" : item.severity === "warning" ? "warn" : ""}`}
+                  />
+                  <div>
+                    <b>{item.label}</b>
+                    <div className="muted" style={{ fontSize: 11 }}>{item.code}</div>
+                  </div>
+                  <span className="badge2">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
 
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>
