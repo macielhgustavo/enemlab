@@ -1,222 +1,316 @@
 "use client";
+
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight, BrainCircuit, Clock3, Gauge, RotateCcw, Sparkles, Target } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct } from "@/lib/format";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
-import { areaStats, weakestContents, wilsonInterval } from "@/lib/domain/stats";
-import { dueSRS } from "@/lib/domain/srs";
+import { areaStats, wilsonInterval } from "@/lib/domain/stats";
+import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import {
-  buildDueReviewsAttempt,
+  buildAdaptiveAttempt,
   buildContentSprintAttempt,
+  buildDueReviewsAttempt,
   buildTrainingAttempt,
 } from "@/lib/services/attempts";
-import { Card } from "@/components/ui";
+import { Card, PageHead } from "@/components/ui";
 import type { Attempt } from "@/lib/domain/types";
 
-const BUDGET_KEY = "enem_lab_daily_budget";
+const BUDGET_KEY = "enem_lab_daily_minutes";
+const BUDGET_PRESETS = [30, 45, 60, 90, 120];
 
 export default function PlanoPage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
-  // Lê a preferência salva já na inicialização: a primeira renderização
-  // devolve o estado de carregamento, então não há divergência de hidratação.
+  const [now] = useState(() => new Date());
   const [budget, setBudget] = useState(() => {
-    if (typeof window === "undefined") return 30;
+    if (typeof window === "undefined") return 60;
     try {
-      const v = Number(localStorage.getItem(BUDGET_KEY));
-      return v > 0 ? v : 30;
+      const stored = Number(localStorage.getItem(BUDGET_KEY));
+      return stored >= 20 ? stored : 60;
     } catch {
-      return 30;
+      return 60;
     }
   });
-  const [busy, setBusy] = useState(false);
+  const [busyBlock, setBusyBlock] = useState<string | null>(null);
   const [err, setErr] = useState("");
 
-  function changeBudget(v: number) {
-    setBudget(v);
+  function changeBudget(value: number) {
+    setBudget(value);
     try {
-      localStorage.setItem(BUDGET_KEY, String(v));
+      localStorage.setItem(BUDGET_KEY, String(value));
     } catch {
-      /* noop */
+      /* preferência continua válida apenas nesta sessão */
     }
   }
 
-  async function run(builder: () => Promise<Attempt>) {
-    setBusy(true);
+  async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
+    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions);
+    if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
+    if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
+    return buildTrainingAttempt(db, {
+      year: 2023,
+      lang: "ingles",
+      mode: "unseen15",
+      area: "all",
+      minutes: Math.max(35, block.minutes),
+      strict: false,
+      strategy: false,
+      alerts: true,
+    });
+  }
+
+  async function startBlock(block: DailyPlanBlock) {
+    setBusyBlock(block.id);
     setErr("");
     try {
-      const a = await builder();
-      addAttempt(a);
-      router.push(`/exam/${a.id}`);
-    } catch (e) {
-      setErr((e as Error).message);
-      setBusy(false);
+      const attempt = await buildBlockAttempt(block);
+      attempt.plan = {
+        source: "daily-plan",
+        dateKey: plan.dateKey,
+        blockId: block.id,
+      };
+      addAttempt(attempt);
+      router.push(`/exam/${attempt.id}`);
+    } catch (error) {
+      setErr((error as Error).message || "Não foi possível montar este bloco.");
+      setBusyBlock(null);
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated) return <Card><span className="muted">Carregando plano…</span></Card>;
 
-  const due = dueSRS(db);
-  const weak = weakestContents(db, 4);
+  const plan = buildDailyPlan(db, budget, now);
   const stats = areaStats(db);
+  const activePlan = db.attempts.find(
+    (attempt) => attempt.plan?.source === "daily-plan" && attempt.plan.dateKey === plan.dateKey && !attempt.finishedAt,
+  );
+  const progress = Math.min(100, Math.round((plan.signals.minutesToday / Math.max(1, plan.budgetMinutes)) * 100));
 
-  // Prontidão por área (banda de Wilson: garantido = limite inferior).
-  const readiness = AREA_ORDER.map((a) => {
-    const v = stats[a] || { c: 0, t: 0 };
-    const ci = wilsonInterval(v.c, v.t);
-    return { area: a, ...v, low: ci.low, high: ci.high, p: v.t ? pct(v.c, v.t) : null };
+  const readiness = AREA_ORDER.map((area) => {
+    const value = stats[area] || { c: 0, t: 0 };
+    const ci = wilsonInterval(value.c, value.t);
+    return {
+      area,
+      ...value,
+      low: ci.low,
+      high: ci.high,
+      p: value.t ? pct(value.c, value.t) : null,
+    };
   });
 
-  // Blocos do plano na ordem: retenção → conteúdos frágeis → volume novo.
-  const blocks: { key: number; questions: number }[] = [];
-  if (due.length) blocks.push({ key: 0, questions: Math.min(due.length, 30) });
-  weak.forEach((_, i) => blocks.push({ key: 1 + i, questions: 15 }));
-  blocks.push({ key: 99, questions: 15 });
-  const totalQ = blocks.reduce((s, b) => s + b.questions, 0);
-  const days = Math.max(1, Math.ceil(totalQ / Math.max(1, budget)));
-
   return (
-    <>
-      <Card className="hero glow">
-        <span className="pill">Plano de estudo</span>
-        <h1 style={{ fontSize: "clamp(32px,4vw,50px)" }}>
-          Um caminho ordenado, não uma pilha de questões.
-        </h1>
-        <p>
-          O plano prioriza retenção (revisões vencidas), depois seus conteúdos mais frágeis
-          por confiança estatística, e por fim volume inédito para ampliar a amostra.
-        </p>
-        <div className="row" style={{ alignItems: "flex-end", gap: 16 }}>
-          <div style={{ maxWidth: 200 }}>
-            <label>Orçamento diário (questões)</label>
-            <input
-              type="number"
-              min={5}
-              max={200}
-              value={budget}
-              onChange={(e) => changeBudget(Number(e.target.value))}
-            />
+    <div className="dailyPlanPage">
+      <PageHead
+        eyebrow="Plano · inteligência diária"
+        title="Seu estudo de hoje, já priorizado."
+        sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
+        right={
+          <Link className="btn secondary link-btn" href="/adaptive">
+            Abrir Adaptive
+          </Link>
+        }
+      />
+
+      {activePlan && (
+        <div className="dailyPlanActive">
+          <div>
+            <strong>Sessão do plano em andamento</strong>
+            <span>
+              Você já iniciou um bloco hoje. Termine ou retome antes de abrir outro para manter o diagnóstico limpo.
+            </span>
           </div>
-          <div className="notice" style={{ flex: 1, minWidth: 220 }}>
-            Plano de hoje: <b>{totalQ}</b> questões em <b>{blocks.length}</b> blocos • no seu
-            ritmo, ~<b>{days}</b> dia(s).
-          </div>
+          <Link className="btn link-btn" href={`/exam/${activePlan.id}`}>
+            Continuar <ArrowRight size={15} />
+          </Link>
         </div>
-        {(busy || err) && (
-          <div className="notice" style={{ marginTop: 12 }}>
-            {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
-            {busy ? "Montando bloco…" : err}
+      )}
+
+      <div className="dailyPlanOverview">
+        <Card className="dailyPlanBudget">
+          <div className="dailyPlanBudgetHead">
+            <div>
+              <div className="eyebrow">TEMPO DISPONÍVEL</div>
+              <h2>Quanto cabe no seu dia?</h2>
+            </div>
+            <div className="dailyPlanBudgetValue">
+              <b>{plan.budgetMinutes} min</b>
+              <span>orçamento de hoje</span>
+            </div>
+          </div>
+
+          <div className="dailyBudgetPresets" aria-label="Tempo disponível para estudar hoje">
+            {BUDGET_PRESETS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={budget === value ? "active" : ""}
+                onClick={() => changeBudget(value)}
+                aria-pressed={budget === value}
+              >
+                {value} min
+              </button>
+            ))}
+          </div>
+
+          <div className="dailyPlanProgress">
+            <div className="dailyPlanProgressLine">
+              <span>tempo estudado hoje</span>
+              <b>{plan.signals.minutesToday}/{plan.budgetMinutes} min</b>
+            </div>
+            <div className="dailyPlanProgressTrack" aria-label={`${progress}% do tempo diário usado`}>
+              <span style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="dailyPlanBudgetNote">
+            Seu ritmo recente é de aproximadamente <b>{plan.avgQuestionMinutes} min por questão</b>. O motor usa esse valor para não sugerir mais trabalho do que cabe no tempo escolhido.
+          </div>
+        </Card>
+
+        <Card className="dailyPlanSummary">
+          <div>
+            <div className="eyebrow">MISSÃO DO DIA</div>
+            <h2>{plan.blocks.length ? `${plan.blocks.length} bloco${plan.blocks.length > 1 ? "s" : ""}` : "Tempo cumprido"}</h2>
+          </div>
+          <div className="dailyPlanSummaryHero">
+            <b>{plan.totalQuestions}</b>
+            <span>questões planejadas para o restante do dia</span>
+          </div>
+          <div className="dailyPlanSummaryMeta">
+            <div>
+              <small>tempo planejado</small>
+              <b>{plan.totalMinutes} min</b>
+            </div>
+            <div>
+              <small>já concluídos</small>
+              <b>{plan.signals.completedPlanBlocks} bloco(s)</b>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="dailySignalGrid" aria-label="Sinais usados pelo plano">
+        <div className="dailySignal">
+          <RotateCcw size={15} />
+          <small>retenção</small>
+          <b>{plan.signals.dueReviews}</b>
+          <span>revisões vencidas agora</span>
+        </div>
+        <div className="dailySignal">
+          <Target size={15} />
+          <small>ritmo semanal</small>
+          <b>{plan.signals.weeklyQuestions}/{plan.signals.weeklyTarget || "—"}</b>
+          <span>{plan.signals.paceDeficit ? `${plan.signals.paceDeficit} abaixo do ritmo esperado` : "ritmo esperado em dia"}</span>
+        </div>
+        <div className="dailySignal">
+          <Clock3 size={15} />
+          <small>hoje</small>
+          <b>{plan.signals.questionsToday}</b>
+          <span>questões já concluídas · alvo {plan.targetToday}</span>
+        </div>
+        <div className="dailySignal">
+          <Gauge size={15} />
+          <small>erro crítico</small>
+          <b>{plan.signals.highConfidenceErrors}</b>
+          <span>erros recentes respondidos com certeza</span>
+        </div>
+      </div>
+
+      <Card className="dailyPlanQueueCard">
+        <div className="dailyPlanQueueHead">
+          <div>
+            <div className="eyebrow">ORDEM RECOMENDADA</div>
+            <h2>Plano para o restante de hoje</h2>
+          </div>
+          <span>recalcula automaticamente após cada tentativa</span>
+        </div>
+
+        {err && <div className="notice" style={{ marginTop: 12 }}>{err}</div>}
+
+        {plan.blocks.length ? (
+          <div className="dailyPlanQueue">
+            {plan.blocks.map((block, index) => (
+              <div className="dailyPlanBlock" data-kind={block.kind} key={block.id}>
+                <div className="dailyPlanOrder">{String(index + 1).padStart(2, "0")}</div>
+                <div>
+                  <div className="eyebrow">{block.eyebrow}</div>
+                  <h3>{block.title}</h3>
+                  <div className="dailyPlanReason">{block.reason}</div>
+                  <div className="dailyPlanMeta">
+                    <span>{block.questions} questões</span>
+                    <span>~{block.minutes} min</span>
+                    {block.metric && <span>{block.metric}</span>}
+                  </div>
+                </div>
+                <div className="dailyPlanAction">
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={!!busyBlock || !!activePlan}
+                    onClick={() => startBlock(block)}
+                  >
+                    {busyBlock === block.id ? (
+                      <><span className="loader" /> montando</>
+                    ) : (
+                      <>{block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} /></>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="dailyPlanEmpty">
+            <BrainCircuit size={24} />
+            <b>Seu orçamento de estudo já foi cumprido.</b>
+            <span>
+              Se ainda estiver bem, aumente o tempo disponível acima. Caso contrário, encerre por hoje: o plano foi feito para controlar carga, não apenas empilhar questões.
+            </span>
           </div>
         )}
       </Card>
 
-      <Card style={{ marginTop: 14 }}>
-        <h2>Prontidão por área</h2>
-        <div className="muted" style={{ marginBottom: 10 }}>
-          Faixa de Wilson (95%): o limite inferior é o desempenho que você já sustenta com
-          confiança; o superior é o teto plausível com a amostra atual.
+      <Card>
+        <div className="dailyPlanQueueHead">
+          <div>
+            <div className="eyebrow">CONFIANÇA ESTATÍSTICA</div>
+            <h2>Prontidão por área</h2>
+          </div>
+          <span>IC de Wilson 95% · sem TRI fictícia</span>
         </div>
-        {readiness.map((r) => (
-          <div key={r.area} style={{ margin: "12px 0" }}>
-            <div className="row between" style={{ fontSize: 13, marginBottom: 4 }}>
-              <b>{AREA_LABELS[r.area]}</b>
-              <span className="muted">
-                {r.p === null
-                  ? "sem amostra"
-                  : `garantido ${r.low}% • possível ${r.high}% • n=${r.t}`}
-              </span>
-            </div>
-            <div className="ciBar">
-              {r.t > 0 && (
-                <span
-                  className="range"
-                  style={{ left: `${r.low}%`, width: `${Math.max(2, r.high - r.low)}%` }}
-                />
-              )}
-            </div>
-          </div>
-        ))}
-      </Card>
-
-      <Card style={{ marginTop: 14 }}>
-        <h2>Seu plano para hoje</h2>
-        <div className="queue" style={{ marginTop: 10 }}>
-          <div className="studyBlock">
-            <div className="prio">1 · retenção</div>
-            <h3>
-              {due.length ? `${due.length} revisão(ões) vencida(s)` : "Nenhuma revisão vencida"}
-            </h3>
-            <div className="muted">
-              Consolidar o que já foi visto rende mais que volume novo. Comece por aqui.
-            </div>
-            {due.length > 0 && (
-              <button
-                className="btn secondary"
-                style={{ marginTop: 10 }}
-                disabled={busy}
-                onClick={() => run(() => buildDueReviewsAttempt(db, 30))}
-              >
-                Revisar agora
-              </button>
-            )}
-          </div>
-
-          {weak.map((w) => (
-            <div className="studyBlock" key={w.name}>
-              <div className="prio">2 · conteúdo frágil</div>
-              <h3>
-                {w.name} — {w.p}%
-              </h3>
-              <div className="muted">
-                {w.c}/{w.t} acertos • IC95% {wilsonInterval(w.c, w.t).low}–
-                {wilsonInterval(w.c, w.t).high}%. Um sprint focado aqui move o ponteiro.
+        <div className="dailyReadinessGrid">
+          {readiness.map((item) => (
+            <div className="dailyReadinessItem" key={item.area}>
+              <div className="row between">
+                <b>{AREA_LABELS[item.area]}</b>
+                <span className="muted">{item.p === null ? "sem amostra" : `${item.p}% · n=${item.t}`}</span>
               </div>
-              <button
-                className="btn secondary"
-                style={{ marginTop: 10 }}
-                disabled={busy}
-                onClick={() => run(() => buildContentSprintAttempt(w.name))}
-              >
-                Treinar {w.name}
-              </button>
+              <div className="ciBar" style={{ marginTop: 9 }}>
+                {item.t > 0 && (
+                  <span
+                    className="range"
+                    style={{ left: `${item.low}%`, width: `${Math.max(2, item.high - item.low)}%` }}
+                  />
+                )}
+              </div>
+              <div className="muted" style={{ marginTop: 7 }}>
+                {item.t ? `faixa sustentável estimada: ${item.low}–${item.high}%` : "resolva questões desta área para calibrar"}
+              </div>
             </div>
           ))}
-
-          <div className="studyBlock">
-            <div className="prio">3 · volume novo</div>
-            <h3>Questões inéditas</h3>
-            <div className="muted">
-              Amplia a amostra e expõe conteúdos ainda não medidos, alimentando o mapa de
-              domínio e o motor adaptativo.
-            </div>
-            <button
-              className="btn secondary"
-              style={{ marginTop: 10 }}
-              disabled={busy}
-              onClick={() =>
-                run(() =>
-                  buildTrainingAttempt(db, {
-                    year: 2023,
-                    lang: "ingles",
-                    mode: "unseen15",
-                    area: "all",
-                    minutes: 50,
-                    strict: false,
-                    strategy: false,
-                    alerts: true,
-                  }),
-                )
-              }
-            >
-              Nunca vi — 15
-            </button>
-          </div>
         </div>
       </Card>
-    </>
+
+      <div style={{ height: 20 }} />
+      <div className="muted" style={{ fontSize: 10, display: "flex", gap: 7, alignItems: "center" }}>
+        <Sparkles size={12} /> O plano usa somente seu histórico local e se adapta conforme você conclui novas questões.
+      </div>
+    </div>
   );
 }
