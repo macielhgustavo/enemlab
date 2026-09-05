@@ -14,7 +14,7 @@ import {
   questionsForAttempt,
   buildRetryAttempt,
 } from "@/lib/services/attempts";
-import { AreaBar, Metric, Card } from "@/components/ui";
+import { AreaBar, Metric, Card, PageHead } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import MathContent from "@/components/MathContent";
 import type { ResultRow } from "@/lib/domain/types";
@@ -241,16 +241,20 @@ export default function ResultPage() {
 
   return (
     <>
-      <Card className="hero">
-        <span className="pill">Resultado instantâneo</span>
-        <h1 style={{ fontSize: 50 }}>
-          {r.correct}/{r.total} • {p}%
-        </h1>
-        <p>
-          ENEM {a.year}. Acertos brutos; não é TRI.
-          {a.essay ? " Redação salva separadamente." : ""}
-        </p>
-        <div className="row">
+      <PageHead
+        eyebrow={`Resultado · ENEM ${a.year}`}
+        title={`${p}% de acerto`}
+        sub={`Acertos brutos; não é TRI.${a.essay ? " Redação salva separadamente." : ""}`}
+      />
+
+      <Card>
+        <div className="scoreline">
+          <span className="big">{r.correct}</span>
+          <span className="of">
+            de {r.total} questões • {r.blank} em branco
+          </span>
+        </div>
+        <div className="row" style={{ marginTop: 18 }}>
           <button className="btn" onClick={retryWrong}>
             Refazer erradas
           </button>

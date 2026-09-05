@@ -10,9 +10,17 @@ import { historicalQuestionRows, personalDifficulty, difficultyLabel } from "@/l
 import { fetchExam } from "@/lib/api/enem";
 import { normalizeText } from "@/lib/format";
 import { attemptFromQuestions } from "@/lib/services/attempts";
-import { Card, Empty } from "@/components/ui";
+import { Card, Empty, PageHead } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
+
+// Rótulos de status com cor própria, como os chips do centro de controle.
+const STATUS: Record<string, { label: string; cls: string }> = {
+  unseen: { label: "Nunca vi", cls: "tagUnseen" },
+  wrong: { label: "Já errei", cls: "tagWrong" },
+  correct: { label: "Dominada", cls: "tagMastered" },
+  srs: { label: "No SRS", cls: "tagSrs" },
+};
 
 function bankStatus(db: DB, q: Question): string {
   const k = questionKey(q);
@@ -95,18 +103,13 @@ export default function BankPage() {
 
   return (
     <>
-      <Card className="hero">
-        <span className="pill">Banco explorável</span>
-        <h1 style={{ fontSize: "clamp(30px,4vw,48px)" }}>
-          Encontre exatamente o tipo de questão que quer treinar.
-        </h1>
-        <p>
-          Filtre por ano, área, conteúdo, status e dificuldade pessoal estimada. Selecione
-          itens e monte um treino customizado.
-        </p>
-      </Card>
+      <PageHead
+        eyebrow="Módulo · acervo"
+        title="Banco de questões"
+        sub="Filtre por ano, área, conteúdo, status e dificuldade pessoal; selecione e monte um treino."
+      />
 
-      <Card style={{ marginTop: 14 }}>
+      <Card>
         <div className="bankFilters">
           <input
             type="text"
@@ -197,12 +200,9 @@ export default function BankPage() {
                     {String(q.context || q.alternativesIntroduction || "").replace(/\s+/g, " ")}
                   </div>
                 </div>
-                <div>
+                <div style={{ display: "grid", gap: 5, justifyItems: "end" }}>
                   <span className={`badge2 ${dc}`}>{dl}</span>
-                  <br />
-                  <span className="badge2" style={{ marginTop: 5 }}>
-                    {st}
-                  </span>
+                  <span className={`badge2 ${STATUS[st].cls}`}>{STATUS[st].label}</span>
                 </div>
               </div>
             );

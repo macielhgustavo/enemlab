@@ -8,7 +8,7 @@ import {
   contentMasteryState,
   wilsonInterval,
 } from "@/lib/domain/stats";
-import { Empty, Card } from "@/components/ui";
+import { Empty, Card, PageHead } from "@/components/ui";
 
 export default function MasteryPage() {
   const db = useStore((s) => s.db);
@@ -29,16 +29,19 @@ export default function MasteryPage() {
 
   return (
     <>
+      <PageHead
+        eyebrow="Módulo · domínio"
+        title="Mapa de domínio"
+        sub="Domínio por conteúdo, com amostra, retenção e intervalo de confiança."
+        right={<span className="badge2">{tested} conteúdos testados</span>}
+      />
+
       <Card>
-        <div className="row between">
-          <div>
-            <h2>Mapa de domínio</h2>
-            <div className="muted">
-              Domínio por conteúdo com amostra, retenção e IC de Wilson (95%). Questões
-              podem contar em mais de um conteúdo.
-            </div>
-          </div>
-          <span className="badge2">{tested} conteúdos testados</span>
+        <div className="htitle">
+          <h2>Conteúdos</h2>
+          <span className="muted" style={{ fontSize: 12 }}>
+            IC de Wilson 95% · uma questão pode contar em mais de um conteúdo
+          </span>
         </div>
         <div className="masteryLegend" style={{ margin: "12px 0" }}>
           <span className="m">dominado</span>

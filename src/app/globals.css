@@ -3035,3 +3035,168 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   TELAS INTERNAS — mesma linguagem do centro de controle
+   ============================================================ */
+
+/* Card único: superfície sólida, sem vidro nem brilho superior. */
+.card {
+  background: var(--surface-1);
+  backdrop-filter: none;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: none;
+}
+.card::before {
+  display: none;
+}
+:root[data-theme="light"] .card {
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 40, 32, 0.04);
+}
+.card + .card {
+  margin-top: 14px;
+}
+.card h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+.card h2 + .muted {
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+
+/* Cabeçalho de página compacto para as telas internas */
+.pagehead.sm h1 {
+  font-size: clamp(25px, 2.6vw, 34px);
+  margin: 12px 0 5px;
+}
+.pagehead.sm {
+  margin-bottom: 18px;
+}
+.pagehead .headright {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* Métricas antigas passam a falar a língua da coluna de indicadores */
+.metric {
+  background: var(--surface-1);
+  backdrop-filter: none;
+  border-radius: 14px;
+  box-shadow: none;
+  padding: 17px 18px;
+}
+:root[data-theme="light"] .metric {
+  background: #fff;
+}
+.metric::after {
+  display: none;
+}
+.metric:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--line));
+  box-shadow: none;
+}
+.metric small {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+}
+.metric b {
+  font-size: 28px;
+}
+
+/* Blocos internos seguem a mesma superfície */
+.studyBlock,
+.queueItem,
+.modeCard,
+.sessionCard,
+.record,
+.reportBlock,
+.compareSide,
+.healthItem,
+.bankItem,
+.srsItem,
+.timeSplit > div,
+.strategyBox,
+.domain {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 13px;
+}
+:root[data-theme="light"] .studyBlock,
+:root[data-theme="light"] .queueItem,
+:root[data-theme="light"] .modeCard,
+:root[data-theme="light"] .sessionCard,
+:root[data-theme="light"] .record,
+:root[data-theme="light"] .reportBlock,
+:root[data-theme="light"] .compareSide,
+:root[data-theme="light"] .healthItem,
+:root[data-theme="light"] .bankItem,
+:root[data-theme="light"] .srsItem,
+:root[data-theme="light"] .timeSplit > div,
+:root[data-theme="light"] .strategyBox,
+:root[data-theme="light"] .domain {
+  background: #fafcfb;
+}
+.studyBlock:hover,
+.queueItem:hover,
+.modeCard:hover,
+.bankItem:hover,
+.srsItem:hover,
+.domain:hover {
+  transform: none;
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
+}
+
+/* Barras e chips sem glow exagerado */
+.progress > span,
+.level-bar span,
+.goalProgress span,
+.runbar span {
+  box-shadow: none;
+}
+.dueDot,
+.testDot,
+.masteryLegend span:before {
+  box-shadow: none;
+}
+.pill {
+  letter-spacing: 0.16em;
+}
+
+/* Grade de domínio no ritmo da referência */
+.domainGrid {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 10px;
+}
+.domain .score {
+  font-size: 26px;
+}
+
+/* Resultado: placar como indicador principal */
+.scoreline {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.scoreline .big {
+  font-size: clamp(46px, 6vw, 78px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.scoreline .of {
+  font-size: 15px;
+  color: var(--muted);
+}

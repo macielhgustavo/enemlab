@@ -27,6 +27,28 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="empty">{children}</div>;
 }
 
+/** Cabeçalho de página no padrão do centro de controle. */
+export function PageHead({
+  eyebrow,
+  title,
+  sub,
+  right,
+}: {
+  eyebrow: string;
+  title: string;
+  sub?: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <header className="pagehead sm">
+      <div className="eyebrow">{eyebrow}</div>
+      <h1>{title}</h1>
+      {sub && <div className="sub">{sub}</div>}
+      {right && <div className="headright">{right}</div>}
+    </header>
+  );
+}
+
 export function Card({
   children,
   className = "",

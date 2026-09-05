@@ -6,7 +6,7 @@ import { useHydrated } from "@/lib/hooks";
 import { AREA_LABELS } from "@/lib/domain/constants";
 import { allSrs, dueSRS } from "@/lib/domain/srs";
 import { buildDueReviewsAttempt, buildActiveRecallAttempt } from "@/lib/services/attempts";
-import { Metric, Empty, Card } from "@/components/ui";
+import { Metric, Empty, Card, PageHead } from "@/components/ui";
 
 export default function SrsPage() {
   const db = useStore((s) => s.db);
@@ -60,36 +60,32 @@ export default function SrsPage() {
 
   return (
     <>
-      <Card className="hero">
-        <span className="pill">Revisão espaçada</span>
-        <h1 style={{ fontSize: "clamp(32px,4vw,50px)" }}>
-          Errar uma vez não encerra a questão.
-        </h1>
-        <p>
-          Questões erradas entram na fila. Quando você acerta na revisão, o intervalo
-          aumenta. Se errar de novo, ela volta mais cedo.
-        </p>
-        <div className="row">
-          <button className="btn" onClick={() => review(30)} disabled={busy || due.length === 0}>
-            Revisar vencidas
-          </button>
-          <button
-            className="btn secondary"
-            onClick={() => review(15)}
-            disabled={busy || due.length === 0}
-          >
-            Bloco de até 15
-          </button>
+      <PageHead
+        eyebrow="Módulo · revisões"
+        title="Revisão espaçada"
+        sub="Errar uma vez não encerra a questão: ela volta na hora certa."
+        right={
+          <>
+            <button className="btn" onClick={() => review(30)} disabled={busy || due.length === 0}>
+              Revisar vencidas
+            </button>
+            <button
+              className="btn secondary"
+              onClick={() => review(15)}
+              disabled={busy || due.length === 0}
+            >
+              Bloco de 15
+            </button>
+          </>
+        }
+      />
+
+      {(busy || err) && (
+        <div className="notice" style={{ marginBottom: 14 }}>
+          {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
+          {busy ? "Montando bloco de revisão…" : err}
         </div>
-        {(busy || err) && (
-          <div className="notice" style={{ marginTop: 12 }}>
-            {busy && (
-              <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />
-            )}
-            {busy ? "Montando bloco de revisão…" : err}
-          </div>
-        )}
-      </Card>
+      )}
 
       <div className="grid grid4" style={{ marginTop: 14 }}>
         <Metric label="Vencidas" value={due.length} />

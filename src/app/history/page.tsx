@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec } from "@/lib/format";
 import { rebuildSessions, coherenceForAttempt } from "@/lib/domain/stats";
-import { Empty, Card } from "@/components/ui";
+import { Empty, Card, PageHead } from "@/components/ui";
 
 export default function HistoryPage() {
   const db = useStore((s) => s.db);
@@ -36,17 +36,23 @@ export default function HistoryPage() {
 
   return (
     <>
-      <Card>
-        <div className="row between">
-          <div>
-            <h2>Histórico</h2>
-            <div className="muted">Tentativas salvas neste navegador.</div>
-          </div>
+      <PageHead
+        eyebrow="Módulo · histórico"
+        title="Histórico"
+        sub="Tentativas salvas neste navegador, com sessão e resultado."
+        right={
           <Link className="btn link-btn" href="/practice">
-            Novo
+            Novo treino
           </Link>
+        }
+      />
+
+      <Card>
+        <div className="htitle">
+          <h2>Tentativas</h2>
+          <span className="badge2">{db.attempts.length} registradas</span>
         </div>
-        <div className="tablewrap" style={{ marginTop: 12 }}>
+        <div className="tablewrap">
           {db.attempts.length === 0 ? (
             <Empty>Nenhuma tentativa.</Empty>
           ) : (

@@ -18,7 +18,7 @@ import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec } from "@/lib/format";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
 import {
-  officialRows,
+
   areaStats,
   rollingRows,
   streakDays,
@@ -66,7 +66,6 @@ export default function HomePage() {
 
   if (!hydrated) return <DashboardSkeleton />;
 
-  const rows = officialRows(db).filter((x) => x.correct);
   const roll = rollingRows(db, 100);
   const rollPct = roll.length ? pct(roll.filter((x) => x.isCorrect).length, roll.length) : null;
   const due = dueSRS(db).length;
