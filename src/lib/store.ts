@@ -12,7 +12,8 @@ export function defaultDB(): DB {
     v: 6,
     schema: FINAL_SCHEMA,
     build: FINAL_BUILD,
-    theme: "light",
+    // O produto é desenhado no escuro; claro fica como alternativa.
+    theme: "dark",
     attempts: [],
     notes: {},
     srs: {},

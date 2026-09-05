@@ -384,18 +384,29 @@ export default function ExamPage() {
         ) : (
           <div id="questionContent">
             <div className="questionTop">
-              <div>
-                <div className="qTitle">
-                  Questão {q.index} • ENEM {q.year}
-                </div>
-                <div className="qArea">
-                  {AREA_LABELS[discipline(q)] || discipline(q)} • {content}
-                  {q.language ? ` • ${q.language}` : ""}
+              <div style={{ display: "flex", gap: 18, alignItems: "center", minWidth: 0 }}>
+                {/* Número como elemento de orientação, não como texto corrido. */}
+                <span className="qIndex" aria-hidden="true">
+                  {String(current + 1).padStart(2, "0")}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="qTitle">
+                    Questão {q.index} • ENEM {q.year}
+                  </div>
+                  <div className="qArea">
+                    {AREA_LABELS[discipline(q)] || discipline(q)} • {content}
+                    {q.language ? ` • ${q.language}` : ""}
+                  </div>
                 </div>
               </div>
-              <span className="pill">
-                {current + 1}/{qs.length}
-              </span>
+              <div style={{ display: "grid", gap: 8, minWidth: 132 }}>
+                <span className="pill" style={{ justifySelf: "end" }}>
+                  {current + 1}/{qs.length}
+                </span>
+                <div className="runbar" aria-hidden="true">
+                  <span style={{ width: `${((current + 1) / Math.max(1, qs.length)) * 100}%` }} />
+                </div>
+              </div>
             </div>
 
             {q.context && <MathContent className="context" html={richText(q.context)} />}
@@ -447,12 +458,9 @@ export default function ExamPage() {
       <aside className="card sidebar">
         <div className="row between">
           <div>
-            <div className="muted" style={{ fontSize: 11 }}>
-              TEMPO
-            </div>
-            <div className="timer" style={{ color: left === 0 ? "var(--bad)" : undefined }}>
-              {fmtSec(left)}
-            </div>
+            <div className="tele">Tempo restante</div>
+            {/* Abaixo de 5 min o cronômetro entra em estado crítico. */}
+            <div className={`timer ${left > 0 && left <= 300 ? "low" : ""}`}>{fmtSec(left)}</div>
           </div>
           {!attempt.strict && (
             <button

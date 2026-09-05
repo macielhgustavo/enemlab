@@ -1,5 +1,19 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import {
+  Target,
+  CheckCircle2,
+  RotateCcw,
+  Flame,
+  Zap,
+  AlertTriangle,
+  TrendingDown,
+  ShieldCheck,
+  ArrowRight,
+  Play,
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct } from "@/lib/format";
@@ -14,20 +28,35 @@ import {
 } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
 import { AreaBar, Card } from "@/components/ui";
-import EvolutionChart from "@/components/EvolutionChart";
 import { AnimatedNumber, Ring } from "@/components/dash";
-import { DashboardSkeleton } from "@/components/Skeleton";
-import { Target, CheckCircle2, RotateCcw, Flame, Zap } from "lucide-react";
+import { DashboardSkeleton, Sk } from "@/components/Skeleton";
+
+// Recharts é pesado: carrega sob demanda, fora do bundle inicial.
+const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
+  ssr: false,
+  loading: () => <Sk h={230} r={14} />,
+});
+const AreaRadar = dynamic(() => import("@/components/charts").then((m) => m.AreaRadar), {
+  ssr: false,
+  loading: () => <Sk h={260} r={14} />,
+});
+
+function saudacao(hora: number) {
+  if (hora < 5) return "Boa madrugada";
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
 
 export default function HomePage() {
   const db = useStore((s) => s.db);
   const goals = db.goals;
   const setGoals = useStore((s) => s.setGoals);
   const hydrated = useHydrated();
+  // Relógio lido uma vez, fora da renderização pura.
+  const [hora] = useState(() => new Date().getHours());
 
-  if (!hydrated) {
-    return <DashboardSkeleton />;
-  }
+  if (!hydrated) return <DashboardSkeleton />;
 
   const rows = officialRows(db).filter((x) => x.correct);
   const roll = rollingRows(db, 100);
@@ -39,7 +68,6 @@ export default function HomePage() {
   const weak = weakestContents(db, 3);
   const evo = evolutionSeries(db);
 
-  // Recordes
   const completed = db.attempts.filter((a) => a.result);
   const best = completed.length
     ? Math.max(...completed.map((a) => pct(a.result!.correct, a.result!.total)))
@@ -50,7 +78,6 @@ export default function HomePage() {
     return Math.max(b, n);
   }, 0);
 
-  // Dashboard: prontidão geral, nível (volume) e XP.
   const totalQ = rows.length;
   const overall = totalQ ? pct(rows.filter((x) => x.isCorrect).length, totalQ) : null;
   const PER_LEVEL = 50;
@@ -86,42 +113,105 @@ export default function HomePage() {
     days.push({ key, n, lv, title: `${d.toLocaleDateString("pt-BR")}: ${n} questões` });
   }
 
+  const radar = AREA_ORDER.map((k) => {
+    const v = stats[k] || { c: 0, t: 0 };
+    return { area: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : 0, n: v.t };
+  });
+
+  // Painel de alertas — só o que é verdade nos dados.
+  const alerts: { cls: string; icon: React.ReactNode; title: string; desc: string; href: string; cta: string }[] =
+    [];
+  if (due > 0)
+    alerts.push({
+      cls: "crit",
+      icon: <RotateCcw size={16} />,
+      title: `${due} revisão(ões) vencida(s)`,
+      desc: "Retenção rende mais que volume novo.",
+      href: "/srs",
+      cta: "Revisar",
+    });
+  if (weak.length)
+    alerts.push({
+      cls: "warn",
+      icon: <AlertTriangle size={16} />,
+      title: `Conteúdo frágil: ${weak[0].name}`,
+      desc: `${weak[0].p}% de acerto em ${weak[0].t} questão(ões).`,
+      href: "/plano",
+      cta: "Plano",
+    });
+  if (streak === 0 && completed.length > 0)
+    alerts.push({
+      cls: "warn",
+      icon: <TrendingDown size={16} />,
+      title: "Ritmo interrompido",
+      desc: "Você não registrou estudo hoje.",
+      href: "/practice",
+      cta: "Treinar",
+    });
+  if (!alerts.length)
+    alerts.push({
+      cls: "ok",
+      icon: <ShieldCheck size={16} />,
+      title: "Nenhum alerta ativo",
+      desc: "Revisões em dia e sem quedas de ritmo.",
+      href: "/practice",
+      cta: "Treinar",
+    });
+
+  // A missão do dia.
+  const missao = inProg
+    ? { titulo: "Retomar a sessão em andamento", detalhe: `ENEM ${inProg.year} • ${inProg.mode}`, href: `/exam/${inProg.id}`, cta: "Continuar" }
+    : due > 0
+      ? { titulo: `Consolidar ${due} revisão(ões)`, detalhe: "Fila de repetição espaçada vencida", href: "/srs", cta: "Iniciar revisão" }
+      : weak.length
+        ? { titulo: `Atacar ${weak[0].name}`, detalhe: `Conteúdo mais frágil — ${weak[0].p}% de acerto`, href: "/plano", cta: "Ver plano" }
+        : { titulo: "Calibrar seu perfil", detalhe: "Um sprint de 15 alimenta o motor adaptativo", href: "/practice", cta: "Montar treino" };
+
   return (
     <>
+      {/* ---------- HERO DE MISSÃO ---------- */}
       <section className="dash-hero">
-        <div className="dash-top">
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <span className="pill">questões reais + aprendizagem adaptativa</span>
-            <h1 style={{ marginTop: 12 }}>
-              {streak > 0 ? `${streak} dia${streak > 1 ? "s" : ""} de foco.` : "Comece agora."}
+        <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+            <span className="pill">{saudacao(hora)} · painel de missão</span>
+            <h1 style={{ marginTop: 16 }}>
+              {streak > 0 ? (
+                <>
+                  {streak} dia{streak > 1 ? "s" : ""} <br />
+                  em órbita.
+                </>
+              ) : (
+                <>
+                  Pronto para <br />
+                  decolar.
+                </>
+              )}
             </h1>
-            <p style={{ color: "var(--muted)", fontSize: 15.5, lineHeight: 1.6, maxWidth: 560 }}>
+            <p style={{ color: "var(--text-dim)", maxWidth: 460, fontSize: 15.5 }}>
               {due > 0
-                ? `Você tem ${due} revisão(ões) vencida(s). Comece pela retenção — rende mais que volume novo.`
-                : "Abra e saiba exatamente o que estudar agora. O algoritmo recomenda; você decide."}
+                ? `${due} revisão(ões) aguardam. A retenção vem antes do volume.`
+                : "O motor adaptativo recomenda; você mantém o controle da rota."}
             </p>
-            <div className="row" style={{ marginTop: 18 }}>
-              <Link className="btn bigAction link-btn" href="/practice">
-                Montar treino
+
+            <div className="row" style={{ marginTop: 24, gap: 12 }}>
+              <Link className="btn bigAction link-btn" href={missao.href}>
+                <Play size={16} /> {missao.cta}
               </Link>
-              <Link className="btn ghost link-btn" href={due > 0 ? "/srs" : "/plano"}>
-                {due > 0 ? "Revisões de hoje" : "Ver meu plano"}
+              <Link className="btn secondary link-btn" href="/plano">
+                Ver plano completo
               </Link>
               {streak > 0 && (
                 <span className="streak-flame">
-                  <Flame size={16} /> {streak}
+                  <Flame size={15} /> {streak}
                 </span>
               )}
             </div>
 
-            <div style={{ marginTop: 22, maxWidth: 420 }}>
-              <div
-                className="row between"
-                style={{ fontSize: 12, marginBottom: 6, color: "var(--muted)" }}
-              >
-                <b style={{ color: "var(--text)" }}>Nível {level}</b>
-                <span>
-                  {xpInLevel}/{PER_LEVEL} questões p/ o próximo
+            <div style={{ marginTop: 28, maxWidth: 420 }}>
+              <div className="row between" style={{ marginBottom: 8 }}>
+                <span className="tele">Nível {level}</span>
+                <span className="tele">
+                  {xpInLevel}/{PER_LEVEL} para o próximo
                 </span>
               </div>
               <div className="level-bar">
@@ -130,133 +220,144 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Ring value={overall} size={148}>
-            <b>{overall === null ? "—" : <AnimatedNumber value={overall} format={(n) => `${Math.round(n)}%`} />}</b>
+          <Ring value={overall} size={168} stroke={10}>
+            <b>
+              {overall === null ? (
+                "—"
+              ) : (
+                <AnimatedNumber value={overall} format={(n) => `${Math.round(n)}%`} />
+              )}
+            </b>
             <small>domínio geral</small>
           </Ring>
         </div>
       </section>
 
-      {inProg && (
-        <Card className="continueCard" style={{ marginTop: 14 }}>
-          <div>
-            <span className="pill">continuar</span>
-            <h2 style={{ marginTop: 7 }}>
-              ENEM {inProg.year} • {inProg.mode}
+      {/* ---------- PRÓXIMA MISSÃO ---------- */}
+      <Card className="glow" style={{ marginTop: 14 }}>
+        <div className="row between" style={{ gap: 18 }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="tele" style={{ color: "var(--brand)" }}>
+              Próxima missão
+            </span>
+            <h2 style={{ fontSize: 25, letterSpacing: "-0.03em", margin: "10px 0 6px" }}>
+              {missao.titulo}
             </h2>
-            <div className="muted">
-              {Object.keys(inProg.answers || {}).length}/{inProg.questionRefs.length} respondidas
+            <div className="muted" style={{ fontSize: 13.5 }}>
+              {missao.detalhe}
             </div>
           </div>
-          <Link className="btn bigAction link-btn" href={`/exam/${inProg.id}`}>
-            Continuar →
+          <Link className="btn link-btn" href={missao.href}>
+            {missao.cta} <ArrowRight size={15} />
           </Link>
-        </Card>
-      )}
-
-      <div className="statline" style={{ marginTop: 14 }}>
-        <div className="stat">
-          <div className="ico">
-            <Target size={18} />
-          </div>
-          <div className="val">
-            {rollPct === null ? "—" : <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />}
-          </div>
-          <div className="lbl">Últimas 100</div>
-        </div>
-        <div className="stat">
-          <div className="ico">
-            <CheckCircle2 size={18} />
-          </div>
-          <div className="val">
-            <AnimatedNumber value={totalQ} />
-          </div>
-          <div className="lbl">Questões reais</div>
-        </div>
-        <div className="stat">
-          <div className="ico">
-            <RotateCcw size={18} />
-          </div>
-          <div className="val">
-            <AnimatedNumber value={due} />
-          </div>
-          <div className="lbl">Revisões vencidas</div>
-        </div>
-        <div className="stat">
-          <div className="ico">
-            <Zap size={18} />
-          </div>
-          <div className="val">
-            <AnimatedNumber value={streak} format={(n) => `${Math.round(n)}d`} />
-          </div>
-          <div className="lbl">Sequência</div>
-        </div>
-      </div>
-
-      <Card style={{ marginTop: 14 }}>
-        <div className="row between">
-          <div>
-            <h2>Evolução</h2>
-            <div className="muted">média móvel das últimas questões corrigidas</div>
-          </div>
-          <span className="badge2">
-            {rollPct === null ? "sem dados" : `${rollPct}%`}
-          </span>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <EvolutionChart values={evo} />
         </div>
       </Card>
 
+      {/* ---------- TELEMETRIA ---------- */}
+      <div className="grid grid4" style={{ marginTop: 14 }}>
+        {[
+          {
+            ico: <Target size={16} />,
+            val: rollPct === null ? "—" : <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />,
+            lbl: "Últimas 100",
+          },
+          { ico: <CheckCircle2 size={16} />, val: <AnimatedNumber value={totalQ} />, lbl: "Questões reais" },
+          { ico: <RotateCcw size={16} />, val: <AnimatedNumber value={due} />, lbl: "Revisões vencidas" },
+          {
+            ico: <Zap size={16} />,
+            val: <AnimatedNumber value={streak} format={(n) => `${Math.round(n)}d`} />,
+            lbl: "Sequência",
+          },
+        ].map((s, i) => (
+          <div className="stat" key={i}>
+            <div className="ico">{s.ico}</div>
+            <div className="val">{s.val}</div>
+            <div className="lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ---------- COMPOSIÇÃO ASSIMÉTRICA ---------- */}
+      <div className="mission-grid">
+        <div className="stack">
+          <Card>
+            <div className="row between">
+              <div>
+                <h2>Evolução do aproveitamento</h2>
+                <div className="muted" style={{ fontSize: 12.5 }}>
+                  média móvel das questões corrigidas
+                </div>
+              </div>
+              <span className="badge2">{rollPct === null ? "sem dados" : `${rollPct}%`}</span>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <EvolutionArea values={evo} />
+            </div>
+          </Card>
+
+          <Card>
+            <div className="row between">
+              <div>
+                <h2>Atividade</h2>
+                <div className="muted" style={{ fontSize: 12.5 }}>
+                  últimos 90 dias
+                </div>
+              </div>
+              <span className="badge2">{streak} dia(s) seguidos</span>
+            </div>
+            <div className="weekGrid" style={{ marginTop: 16 }}>
+              {days.map((d) => (
+                <div key={d.key} className={`dayCell ${d.lv}`} title={d.title} />
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <div className="stack">
+          <Card>
+            <h2>Alertas</h2>
+            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
+              {alerts.map((a, i) => (
+                <div className="alertitem" key={i}>
+                  <span className={`ai ${a.cls}`}>{a.icon}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 650 }}>{a.title}</div>
+                    <div className="muted" style={{ fontSize: 11.5 }}>
+                      {a.desc}
+                    </div>
+                  </div>
+                  <Link className="btn secondary link-btn" style={{ padding: "7px 12px", fontSize: 11.5 }} href={a.href}>
+                    {a.cta}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card>
+            <h2>Radar por área</h2>
+            <div className="muted" style={{ fontSize: 12.5 }}>
+              acerto relativo entre as quatro áreas
+            </div>
+            <AreaRadar data={radar} />
+          </Card>
+        </div>
+      </div>
+
+      {/* ---------- ÁREAS + RECORDES ---------- */}
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>
           <h2>Áreas</h2>
-          {AREA_ORDER.map((k) => {
-            const v = stats[k] || { c: 0, t: 0 };
-            return <AreaBar key={k} name={AREA_LABELS[k]} c={v.c} t={v.t} />;
-          })}
-        </Card>
-        <Card>
-          <h2>Próximas ações</h2>
-          <div className="studyBlock">
-            <div className="prio">recomendação</div>
-            <h3>{due ? `${due} revisão(ões) vencida(s)` : "Adaptive 15"}</h3>
-            <div className="muted">
-              {due
-                ? "Comece pela retenção antes de buscar questões novas."
-                : weak.length
-                  ? `Conteúdos mais frágeis: ${weak.map((x) => x.name).join(", ")}.`
-                  : "Faça um sprint para o algoritmo aprender seu perfil."}
-            </div>
-            <Link
-              className="btn secondary link-btn"
-              style={{ marginTop: 10 }}
-              href={due ? "/srs" : "/practice"}
-            >
-              {due ? "Revisar agora" : "Gerar treino"}
-            </Link>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid2" style={{ marginTop: 14 }}>
-        <Card>
-          <div className="row between">
-            <div>
-              <h2>Atividade</h2>
-              <div className="muted">últimos 90 dias</div>
-            </div>
-            <span className="badge2">{streak} dia(s)</span>
-          </div>
-          <div className="weekGrid" style={{ marginTop: 13 }}>
-            {days.map((d) => (
-              <div key={d.key} className={`dayCell ${d.lv}`} title={d.title} />
-            ))}
+          <div style={{ marginTop: 8 }}>
+            {AREA_ORDER.map((k) => {
+              const v = stats[k] || { c: 0, t: 0 };
+              return <AreaBar key={k} name={AREA_LABELS[k]} c={v.c} t={v.t} />;
+            })}
           </div>
         </Card>
         <Card>
           <h2>Recordes pessoais</h2>
-          <div className="recordGrid">
+          <div className="recordGrid" style={{ marginTop: 12 }}>
             <div className="record">
               <small>Melhor tentativa</small>
               <b>
@@ -269,19 +370,18 @@ export default function HomePage() {
               <b>{longest}</b>
             </div>
             <div className="record">
-              <small>Questões nesta semana</small>
+              <small>Questões na semana</small>
               <b>{weekQ}</b>
             </div>
           </div>
         </Card>
       </div>
 
+      {/* ---------- METAS ---------- */}
       <Card style={{ marginTop: 14 }}>
-        <div className="row between">
-          <div>
-            <h2>Metas da semana</h2>
-            <div className="muted">Configuráveis; sem punição se você não bater.</div>
-          </div>
+        <h2>Metas da semana</h2>
+        <div className="muted" style={{ fontSize: 12.5, marginBottom: 8 }}>
+          Configuráveis; sem punição se você não bater.
         </div>
         {(
           [
@@ -291,21 +391,20 @@ export default function HomePage() {
           ] as const
         ).map(([name, val, key]) => (
           <div className="goalRow" key={key}>
-            <b>{name}</b>
+            <b style={{ fontSize: 13 }}>{name}</b>
             <input
               type="number"
               min={0}
               value={goals[key]}
-              onChange={(e) =>
-                setGoals({ ...goals, [key]: Math.max(0, Number(e.target.value || 0)) })
-              }
+              aria-label={`Meta semanal de ${name.toLowerCase()}`}
+              onChange={(e) => setGoals({ ...goals, [key]: Math.max(0, Number(e.target.value || 0)) })}
             />
             <div>
               <div className="goalProgress">
                 <span style={{ width: `${Math.min(100, pct(val, goals[key] || 1))}%` }} />
               </div>
-              <div className="muted" style={{ fontSize: 10 }}>
-                {val}/{goals[key]}
+              <div className="tele" style={{ marginTop: 6 }}>
+                {val} de {goals[key]}
               </div>
             </div>
           </div>
