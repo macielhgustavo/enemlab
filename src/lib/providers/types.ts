@@ -25,6 +25,22 @@ export interface NormalizedAlternative {
   isCorrect: boolean;
 }
 
+export interface NormalizedClassification {
+  primary: string;
+  tags: string[];
+  path: string[];
+  subtopic: string | null;
+  confidence: "alta" | "media" | "baixa";
+  score: number;
+}
+
+export interface NormalizedQuestionQuality {
+  score: number;
+  status: "healthy" | "review" | "blocked";
+  scoreable: boolean;
+  issueCodes: string[];
+}
+
 /**
  * Questão normalizada: a forma que a aplicação consome, independente do
  * formato bruto de cada provider.
@@ -39,6 +55,8 @@ export interface NormalizedQuestion {
   subject: ExamSubject;
   /** Conteúdo classificado (taxonomia do provider). */
   content: string;
+  classification?: NormalizedClassification;
+  quality?: NormalizedQuestionQuality;
   context: string | null;
   alternativesIntroduction: string | null;
   alternatives: NormalizedAlternative[];
