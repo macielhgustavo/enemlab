@@ -8,15 +8,21 @@ export default function ImageZoomHost() {
   const [zoom, setZoom] = useState<ZoomState>(null);
 
   useEffect(() => {
+    const prepareImage = (img: HTMLImageElement) => {
+      if (!img.closest(".examContent")) return;
+      img.dataset.zoomable = "true";
+      img.tabIndex = 0;
+      img.setAttribute("role", "button");
+      if (!img.getAttribute("aria-label")) {
+        img.setAttribute("aria-label", `${img.alt || "Imagem da questão"}. Clique para ampliar.`);
+      }
+      img.title = "Clique para ampliar";
+    };
+
     const prepare = (root: ParentNode = document) => {
+      if (root instanceof HTMLImageElement) prepareImage(root);
       for (const img of root.querySelectorAll<HTMLImageElement>(".examContent img")) {
-        img.dataset.zoomable = "true";
-        img.tabIndex = 0;
-        img.setAttribute("role", "button");
-        if (!img.getAttribute("aria-label")) {
-          img.setAttribute("aria-label", `${img.alt || "Imagem da questão"}. Clique para ampliar.`);
-        }
-        img.title = "Clique para ampliar";
+        prepareImage(img);
       }
     };
 
