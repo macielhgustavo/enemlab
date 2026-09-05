@@ -20,6 +20,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
 import CommandPalette from "@/components/CommandPalette";
+import ImageZoomHost from "@/components/ImageZoomHost";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -34,7 +35,6 @@ const NAV = [
   { href: "/data", label: "Dados", icon: Database, short: "Dados" },
 ];
 
-// Barra inferior do mobile: as cinco rotas de maior uso.
 const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
 
 function openPalette() {
@@ -52,7 +52,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
 
-  // Telemetria do sistema (só depois da hidratação, para não divergir do SSR).
   const due = hydrated ? dueSRS(db).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
@@ -62,12 +61,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
 
-  // Durante uma prova a aplicação entra em modo foco: sem sidebar,
-  // navegação mobile ou command palette competindo com o enunciado.
   if (pathname.startsWith("/exam/")) {
     return (
       <div className="layout examLayout">
         <main className="content examContent">{children}</main>
+        <ImageZoomHost />
       </div>
     );
   }
