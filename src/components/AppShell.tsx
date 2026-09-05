@@ -1,8 +1,6 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
 import {
   Home,
   Dumbbell,
@@ -16,24 +14,32 @@ import {
   Database,
   Sun,
   Moon,
-  LayoutGrid,
-  X,
+  Search,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useHydrated } from "@/lib/hooks";
+import { dueSRS } from "@/lib/domain/srs";
 import CommandPalette from "@/components/CommandPalette";
 
-const MODULES = [
-  { href: "/", label: "Bancada", icon: Home },
-  { href: "/practice", label: "Montar experimento", icon: Dumbbell },
-  { href: "/bank", label: "Acervo", icon: Library },
-  { href: "/adaptive", label: "Adaptive 2.0", icon: Sparkles },
-  { href: "/plano", label: "Plano", icon: Map },
-  { href: "/mastery", label: "Domínio", icon: Gauge },
-  { href: "/srs", label: "Revisões", icon: RotateCcw },
-  { href: "/history", label: "Histórico", icon: Clock },
-  { href: "/review", label: "Caderno de erros", icon: BookX },
-  { href: "/data", label: "Dados", icon: Database },
+const NAV = [
+  { href: "/", label: "Início", icon: Home, short: "Início" },
+  { href: "/practice", label: "Treinar", icon: Dumbbell, short: "Treinar" },
+  { href: "/bank", label: "Banco", icon: Library, short: "Banco" },
+  { href: "/adaptive", label: "Adaptive 2.0", icon: Sparkles, short: "Adaptive" },
+  { href: "/plano", label: "Plano", icon: Map, short: "Plano" },
+  { href: "/mastery", label: "Domínio", icon: Gauge, short: "Domínio" },
+  { href: "/srs", label: "Revisões", icon: RotateCcw, short: "Revisões" },
+  { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
+  { href: "/review", label: "Erros", icon: BookX, short: "Erros" },
+  { href: "/data", label: "Dados", icon: Database, short: "Dados" },
 ];
+
+// Barra inferior do mobile: as cinco rotas de maior uso.
+const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
+
+function openPalette() {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+}
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -43,96 +49,87 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const theme = useStore((s) => s.db.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
-  const [open, setOpen] = useState(false);
+  const db = useStore((s) => s.db);
+  const hydrated = useHydrated();
 
-  const onCanvas = pathname === "/";
-  const inExam = pathname.startsWith("/exam/");
-  const current = MODULES.find((m) => isActive(pathname, m.href));
+  // Telemetria do sistema (só depois da hidratação, para não divergir do SSR).
+  const due = hydrated ? dueSRS(db).length : 0;
+  const attempts = hydrated ? db.attempts.length : 0;
+  const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
+  const sysLabel = !hydrated
+    ? "sincronizando"
+    : due > 0
+      ? `${due} pendente${due > 1 ? "s" : ""}`
+      : "tudo em dia";
 
   return (
     <div className="layout">
-      <main className="content">
-        {/* A bancada desenha o próprio canvas; as demais telas ganham medida. */}
-        {onCanvas || inExam ? children : <div className="labpage">{children}</div>}
-      </main>
+      <aside className="rail">
+        <div className="brand">
+          <span className="mark">E</span>
+          <span className="name">ENEM Lab</span>
+        </div>
+        <div className="tag">Mission Control</div>
 
-      {!inExam && (
-        <button
-          className="launcher"
-          onClick={() => setOpen(true)}
-          style={{ position: "fixed", left: 24, bottom: 24, zIndex: 80 }}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <LayoutGrid size={15} />
-          <span>{current?.label ?? "Módulos"}</span>
+        <button className="cmdk-trigger" onClick={openPalette}>
+          <Search size={14} />
+          <span>Buscar</span>
           <kbd>⌘K</kbd>
         </button>
-      )}
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="sheet"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={() => setOpen(false)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Módulos"
+        <nav className="railnav">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={isActive(pathname, item.href) ? "active" : ""}
+                aria-current={isActive(pathname, item.href) ? "page" : undefined}
+              >
+                <Icon size={16} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="sysline">
+          <span className={`sysdot ${sysClass}`} />
+          <span>{sysLabel}</span>
+          <span style={{ marginLeft: "auto", opacity: 0.7 }}>{attempts} sessões</span>
+        </div>
+
+        <div className="rail-foot">
+          <span className="tele">{theme === "dark" ? "Escuro" : "Claro"}</span>
+          <button
+            className="iconbtn"
+            onClick={toggleTheme}
+            aria-label={`Mudar para tema ${theme === "dark" ? "claro" : "escuro"}`}
           >
-            <motion.div
-              className="sheet-in"
-              initial={{ opacity: 0, y: 18, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              onClick={(e) => e.stopPropagation()}
+            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
+      </aside>
+
+      <main className="content">{children}</main>
+
+      <nav className="mobilebar" aria-label="Navegação principal">
+        {MOBILE.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive(pathname, item.href) ? "active" : ""}
+              aria-current={isActive(pathname, item.href) ? "page" : undefined}
             >
-              <div className="row between">
-                <span className="ptitle" style={{ margin: 0 }}>
-                  Módulos do laboratório
-                </span>
-                <button className="iconbtn" onClick={() => setOpen(false)} aria-label="Fechar">
-                  <X size={15} />
-                </button>
-              </div>
-              <div className="sheet-grid">
-                {MODULES.map((m, i) => {
-                  const Icon = m.icon;
-                  return (
-                    <motion.div
-                      key={m.href}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.03 * i, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                      <Link
-                        href={m.href}
-                        className={isActive(pathname, m.href) ? "active" : ""}
-                        onClick={() => setOpen(false)}
-                      >
-                        <Icon size={17} />
-                        {m.label}
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </div>
-              <div className="row between" style={{ marginTop: 16 }}>
-                <span className="ptitle" style={{ margin: 0 }}>
-                  Tema {theme === "dark" ? "escuro" : "claro"}
-                </span>
-                <button className="iconbtn" onClick={toggleTheme} aria-label="Alternar tema">
-                  {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Icon size={18} />
+              <span>{item.short}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       <CommandPalette />
     </div>
