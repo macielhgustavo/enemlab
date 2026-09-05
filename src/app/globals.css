@@ -1189,7 +1189,7 @@ tbody tr:hover {
   animation: none;
 }
 #questionContent {
-  max-width: 940px;
+  max-width: 1040px;
   margin: 0 auto;
 }
 .questionTop {
@@ -1215,9 +1215,9 @@ tbody tr:hover {
   margin-top: 5px;
 }
 .context {
-  font-size: 16px;
-  line-height: 1.72;
-  margin: 18px 0;
+  font-size: 18.5px;
+  line-height: 1.75;
+  margin: 20px 0;
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -1232,10 +1232,10 @@ tbody tr:hover {
   font-weight: 800;
 }
 .intro {
-  font-size: 16px;
-  line-height: 1.62;
+  font-size: 18px;
+  line-height: 1.66;
   font-weight: 600;
-  margin: 22px 0 14px;
+  margin: 24px 0 16px;
   overflow-wrap: anywhere;
 }
 .qImages {
@@ -1246,8 +1246,8 @@ tbody tr:hover {
 }
 .qImages img {
   display: block;
-  max-width: min(100%, 780px);
-  max-height: 500px;
+  max-width: min(100%, 940px);
+  max-height: 660px;
   object-fit: contain;
   border-radius: 10px;
   background: #fff;
@@ -1263,8 +1263,8 @@ tbody tr:hover {
 }
 .embeddedMedia img {
   display: block;
-  max-width: min(100%, 520px);
-  max-height: 92px;
+  max-width: min(100%, 620px);
+  max-height: 120px;
   object-fit: contain;
   background: #fff;
   border-radius: 6px;
@@ -1276,8 +1276,8 @@ tbody tr:hover {
   justify-content: center;
 }
 .embeddedMedia.blockMedia img {
-  max-width: min(100%, 780px);
-  max-height: 470px;
+  max-width: min(100%, 940px);
+  max-height: 600px;
   border: 1px solid #e5e7e6;
   padding: 4px;
   border-radius: 10px;
@@ -1345,14 +1345,14 @@ tbody tr:hover {
   color: #fff;
 }
 .altText {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.62;
   overflow-wrap: anywhere;
 }
 .altImg {
   display: block;
-  max-width: min(100%, 650px);
-  max-height: 320px;
+  max-width: min(100%, 780px);
+  max-height: 420px;
   object-fit: contain;
   margin: 12px auto 2px;
   background: #fff;
@@ -1643,7 +1643,8 @@ tbody tr:hover {
   }
   .context,
   .intro {
-    font-size: 15.5px;
+    font-size: 16.5px;
+    line-height: 1.68;
   }
   .areaBar {
     grid-template-columns: 110px 1fr 44px;
