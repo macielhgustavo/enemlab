@@ -133,6 +133,26 @@ export default function ExamPage() {
     [qs.length, commitQTime],
   );
 
+  // Pula para a próxima questão que satisfaz um predicado (circular).
+  const jumpTo = useCallback(
+    (predicate: (key: string) => boolean) => {
+      if (!qs.length) return;
+      for (let step = 1; step <= qs.length; step++) {
+        const i = (current + step) % qs.length;
+        if (predicate(questionKey(qs[i]))) {
+          goto(i);
+          return;
+        }
+      }
+    },
+    [qs, current, goto],
+  );
+  const nextUnanswered = useCallback(
+    () => jumpTo((key) => !answers[key]),
+    [jumpTo, answers],
+  );
+  const nextFlagged = useCallback(() => jumpTo((key) => !!flags[key]), [jumpTo, flags]);
+
   const answer = useCallback(
     (L: string) => {
       if (!q) return;
@@ -520,6 +540,26 @@ export default function ExamPage() {
           </button>
         </div>
 
+        <div className="row" style={{ marginTop: 8, gap: 6 }}>
+          <button
+            className="btn secondary"
+            style={{ flex: 1, fontSize: 11, padding: "8px 6px" }}
+            onClick={nextUnanswered}
+            disabled={answeredCount >= qs.length}
+          >
+            Próxima em branco →
+          </button>
+          {flaggedCount > 0 && (
+            <button
+              className="btn secondary"
+              style={{ flex: 1, fontSize: 11, padding: "8px 6px" }}
+              onClick={nextFlagged}
+            >
+              Próxima marcada →
+            </button>
+          )}
+        </div>
+
         <div className="qgrid">
           {qs.map((qq, i) => {
             const kk = questionKey(qq);
@@ -536,6 +576,10 @@ export default function ExamPage() {
               </button>
             );
           })}
+        </div>
+
+        <div className="muted" style={{ fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
+          Atalhos: <b>A–E</b> responder · <b>← →</b> navegar · <b>1/2/3</b> confiança
         </div>
 
         <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "15px 0" }} />

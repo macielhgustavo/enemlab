@@ -1,17 +1,35 @@
 "use client";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec } from "@/lib/format";
-import { rebuildSessions } from "@/lib/domain/stats";
+import { rebuildSessions, coherenceForAttempt } from "@/lib/domain/stats";
 import { Empty, Card } from "@/components/ui";
 
 export default function HistoryPage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
   const sessions = useMemo(() => (hydrated ? rebuildSessions(db) : []), [db, hydrated]);
+  const completed = db.attempts.filter((a) => a.result);
+  const [cmpA, setCmpA] = useState("");
+  const [cmpB, setCmpB] = useState("");
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+
+  const a1 = db.attempts.find((x) => x.id === (cmpA || completed[0]?.id));
+  const a2 = db.attempts.find((x) => x.id === (cmpB || completed[1]?.id));
+  const metrics = (a: typeof a1) =>
+    a?.result
+      ? {
+          p: pct(a.result.correct, a.result.total),
+          avg: Math.round(
+            a.result.rows.reduce((s, r) => s + (r.timeSec || 0), 0) / Math.max(1, a.result.rows.length),
+          ),
+          co: coherenceForAttempt(db, a),
+        }
+      : null;
+  const mA = metrics(a1);
+  const mB = metrics(a2);
 
   const sessionOf = new Map<string, string>();
   sessions.forEach((s) => s.attemptIds.forEach((id) => sessionOf.set(id, s.id)));
@@ -129,6 +147,67 @@ export default function HistoryPage() {
             })}
         </div>
       </Card>
+
+      {completed.length >= 2 && (
+        <Card style={{ marginTop: 14 }}>
+          <h2>Comparar tentativas</h2>
+          <div className="grid grid2" style={{ marginTop: 8 }}>
+            <div>
+              <label>Tentativa A</label>
+              <select value={cmpA || completed[0]?.id} onChange={(e) => setCmpA(e.target.value)}>
+                {completed.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {new Date(a.finishedAt!).toLocaleDateString("pt-BR")} • ENEM {a.year} •{" "}
+                    {pct(a.result!.correct, a.result!.total)}%
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Tentativa B</label>
+              <select value={cmpB || completed[1]?.id} onChange={(e) => setCmpB(e.target.value)}>
+                {completed.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {new Date(a.finishedAt!).toLocaleDateString("pt-BR")} • ENEM {a.year} •{" "}
+                    {pct(a.result!.correct, a.result!.total)}%
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {mA && mB && a1 && a2 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="compareGrid">
+                <div className="compareSide">
+                  <b>
+                    ENEM {a1.year} • {mA.p}%
+                  </b>
+                  <div className="muted">
+                    tempo médio {shortSec(mA.avg)} • coerência {mA.co.label}
+                  </div>
+                </div>
+                <div className="vs">VS</div>
+                <div className="compareSide">
+                  <b>
+                    ENEM {a2.year} • {mB.p}%
+                  </b>
+                  <div className="muted">
+                    tempo médio {shortSec(mB.avg)} • coerência {mB.co.label}
+                  </div>
+                </div>
+              </div>
+              <div className="notice" style={{ marginTop: 10 }}>
+                {mB.p - mA.p >= 3
+                  ? "A segunda tentativa teve aproveitamento maior."
+                  : mA.p - mB.p >= 3
+                    ? "A primeira tentativa teve aproveitamento maior."
+                    : "Os aproveitamentos ficaram próximos."}{" "}
+                Compare também composição e dificuldade pessoal antes de concluir evolução.
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
     </>
   );
 }

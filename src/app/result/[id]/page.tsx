@@ -18,6 +18,23 @@ import { AreaBar, Metric, Card } from "@/components/ui";
 import MathContent from "@/components/MathContent";
 import type { ResultRow } from "@/lib/domain/types";
 
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 export default function ResultPage() {
   const params = useParams();
   const id = params.id as string;
@@ -75,6 +92,100 @@ export default function ResultPage() {
     const retry = buildRetryAttempt(a!, wrong);
     addAttempt(retry);
     router.push(`/exam/${retry.id}`);
+  }
+
+  // Exporta um resumo do resultado como PNG compartilhável (canvas, sem libs).
+  function exportImage() {
+    const S = 1080;
+    const cv = document.createElement("canvas");
+    cv.width = S;
+    cv.height = S;
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    const C = {
+      bg: "#f4f7f6",
+      panel: "#ffffff",
+      brand: "#0d6b53",
+      text: "#122019",
+      muted: "#687871",
+      line: "#dfe8e4",
+      ok: "#147a4e",
+      bad: "#b42318",
+    };
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, S, S);
+    ctx.fillStyle = C.brand;
+    ctx.fillRect(0, 0, S, 12);
+    // Cabeçalho
+    ctx.fillStyle = C.brand;
+    ctx.font = "800 34px Inter, system-ui, sans-serif";
+    ctx.fillText("ENEM Lab", 64, 96);
+    ctx.fillStyle = C.muted;
+    ctx.font = "600 26px Inter, system-ui, sans-serif";
+    ctx.fillText(`Resultado • ENEM ${a!.year}`, 64, 134);
+    // Placar
+    ctx.fillStyle = C.text;
+    ctx.font = "900 150px Inter, system-ui, sans-serif";
+    ctx.fillText(`${r.correct}/${r.total}`, 60, 300);
+    ctx.fillStyle = C.brand;
+    ctx.font = "900 96px Inter, system-ui, sans-serif";
+    ctx.fillText(`${p}%`, 60, 400);
+    // Métricas
+    const mets: [string, string][] = [
+      ["Em branco", String(r.blank)],
+      ["Tempo médio", shortSec(avg)],
+      ["Erros c/ certeza", String(cw)],
+    ];
+    mets.forEach(([label, val], i) => {
+      const x = 64 + i * 330;
+      ctx.fillStyle = C.panel;
+      roundRect(ctx, x, 450, 300, 130, 18);
+      ctx.fill();
+      ctx.strokeStyle = C.line;
+      ctx.stroke();
+      ctx.fillStyle = C.muted;
+      ctx.font = "600 24px Inter, system-ui, sans-serif";
+      ctx.fillText(label, x + 22, 496);
+      ctx.fillStyle = C.text;
+      ctx.font = "900 52px Inter, system-ui, sans-serif";
+      ctx.fillText(val, x + 22, 556);
+    });
+    // Por área
+    ctx.fillStyle = C.text;
+    ctx.font = "800 34px Inter, system-ui, sans-serif";
+    ctx.fillText("Por área", 64, 660);
+    let y = 700;
+    Object.entries(areas).forEach(([kk, v]) => {
+      const label = AREA_LABELS[kk] || kk;
+      const pp = pct(v.c, v.t);
+      ctx.fillStyle = C.text;
+      ctx.font = "700 26px Inter, system-ui, sans-serif";
+      ctx.fillText(label, 64, y + 26);
+      ctx.fillStyle = C.line;
+      roundRect(ctx, 430, y + 6, 500, 22, 11);
+      ctx.fill();
+      ctx.fillStyle = C.brand;
+      roundRect(ctx, 430, y + 6, Math.max(11, (500 * pp) / 100), 22, 11);
+      ctx.fill();
+      ctx.fillStyle = C.muted;
+      ctx.font = "700 24px Inter, system-ui, sans-serif";
+      ctx.fillText(`${v.c}/${v.t}`, 950, y + 26);
+      y += 56;
+    });
+    // Rodapé
+    ctx.fillStyle = C.muted;
+    ctx.font = "500 24px Inter, system-ui, sans-serif";
+    ctx.fillText("Acertos brutos; não é a nota TRI oficial.", 64, S - 56);
+
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const u = URL.createObjectURL(blob);
+      const el = document.createElement("a");
+      el.href = u;
+      el.download = `resultado_ENEM_${a!.year}.png`;
+      el.click();
+      URL.revokeObjectURL(u);
+    }, "image/png");
   }
 
   const usedQ = Math.round(a.questionSec || a.elapsed || 0);
@@ -139,6 +250,9 @@ export default function ResultPage() {
         <div className="row">
           <button className="btn" onClick={retryWrong}>
             Refazer erradas
+          </button>
+          <button className="btn secondary" onClick={exportImage}>
+            Exportar imagem
           </button>
           <Link className="btn secondary link-btn" href="/adaptive">
             Adaptive

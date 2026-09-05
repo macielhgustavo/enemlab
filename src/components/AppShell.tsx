@@ -8,6 +8,7 @@ const NAV = [
   { href: "/practice", label: "Treinar" },
   { href: "/bank", label: "Banco" },
   { href: "/adaptive", label: "Adaptive 2.0" },
+  { href: "/plano", label: "Plano" },
   { href: "/mastery", label: "Domínio" },
   { href: "/srs", label: "Revisões" },
   { href: "/history", label: "Histórico" },
