@@ -2422,3 +2422,616 @@ kbd {
     font-size: 32px;
   }
 }
+
+/* ============================================================
+   CENTRO DE CONTROLE — composição de referência
+   Sidebar enxuta + cabeçalho editorial + duas fileiras de cards
+   com funções e escalas diferentes. Bloco final: sobrepõe o resto.
+   ============================================================ */
+
+.layout {
+  grid-template-columns: 178px minmax(0, 1fr);
+}
+.rail {
+  padding: 22px 12px 16px;
+  gap: 2px;
+}
+.rail .brand {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 10px 18px;
+}
+.rail .mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 19px;
+}
+.rail .brand .name {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.rail .tag,
+.rail .sysline {
+  display: none;
+}
+.rail .cmdk-trigger {
+  margin-bottom: 14px;
+}
+.railnav a {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.railnav a.active {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand-ink);
+  box-shadow: none;
+}
+.railnav a.active::before {
+  left: -12px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+/* Assinatura vertical no pé da navegação */
+.rail-sign {
+  margin-top: auto;
+  padding: 0 12px 14px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1.9;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.rail-sign i {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--brand);
+  margin-bottom: 12px;
+  font-style: normal;
+}
+
+.content {
+  max-width: 1560px;
+  padding: 30px 34px 26px;
+}
+
+/* ---------- Cabeçalho da página ---------- */
+.pagehead {
+  position: relative;
+  margin-bottom: 22px;
+}
+.pagehead .eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.pagehead h1 {
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  margin: 14px 0 6px;
+}
+.pagehead h1 span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.pagehead .sub {
+  font-size: clamp(16px, 1.5vw, 21px);
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+/* Micro-copy alinhada à direita, como na referência */
+.pagehead .aside {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 46px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  line-height: 2;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: left;
+}
+.pagehead .aside i {
+  display: block;
+  width: 20px;
+  height: 1px;
+  background: var(--line-strong);
+  margin-top: 10px;
+  font-style: normal;
+}
+
+/* ---------- Fileiras ---------- */
+.hrow {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  align-items: stretch;
+}
+.hrow-1 {
+  grid-template-columns: minmax(0, 1.95fr) minmax(0, 1.05fr) minmax(0, 1fr);
+}
+.hrow-2 {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.1fr) minmax(0, 1.05fr);
+}
+.hcard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-1);
+  padding: 20px 22px;
+}
+:root[data-theme="light"] .hcard {
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 40, 32, 0.04);
+}
+.hcard .htitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.hcard .htitle h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.hcard .seeall {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hcard .seeall:hover {
+  color: var(--brand);
+}
+
+/* ---------- Próxima missão ---------- */
+.mission {
+  border-color: color-mix(in srgb, var(--brand) 26%, var(--line));
+  padding: 24px 26px;
+}
+.mission::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--brand);
+}
+.mission .k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.mission .head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.mission .badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  border: 1px solid color-mix(in srgb, var(--brand) 34%, var(--line));
+  flex-shrink: 0;
+}
+.mission h3 {
+  font-size: clamp(24px, 2.5vw, 36px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.mission .meta {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.mission .meta b {
+  color: var(--text-dim);
+  font-weight: 650;
+}
+.mission .cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 14px 26px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+  color: #04120d;
+  background: linear-gradient(120deg, var(--brand-strong), var(--brand));
+  transition: transform 0.2s var(--ease), box-shadow 0.24s var(--ease);
+}
+.mission .cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.mission .art {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46%;
+  max-width: 340px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.mission .sig {
+  position: absolute;
+  right: 26px;
+  bottom: 22px;
+  text-align: right;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1.9;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.mission .brandtag {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---------- Meta diária (anel) ---------- */
+.goal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.goal .ringbox {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.goal .val {
+  position: absolute;
+  text-align: center;
+}
+.goal .val b {
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.goal .val b i {
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 700;
+}
+.goal .val small {
+  display: block;
+  margin-top: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.weekdots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 260px;
+  text-align: center;
+}
+.weekdots i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  font-style: normal;
+}
+.weekdots .on i {
+  background: var(--brand);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 60%, transparent);
+}
+.weekdots span {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+/* ---------- Coluna de indicadores ---------- */
+.statcol {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 18px;
+}
+.statrow {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 4px;
+}
+.statrow + .statrow {
+  border-top: 1px solid var(--line);
+}
+.statrow .chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--brand) 7%, transparent);
+}
+.statrow .n {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.statrow .l {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 7px;
+  line-height: 1.5;
+}
+.statrow .spark {
+  width: 74px;
+  height: 26px;
+}
+.dots5 {
+  display: flex;
+  gap: 5px;
+}
+.dots5 i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  font-style: normal;
+}
+.dots5 i.on {
+  background: var(--brand);
+}
+
+/* ---------- Mini indicadores sob o gráfico ---------- */
+.minigrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.mini {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 11px;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.mini .mi {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  border: 1px solid var(--line);
+}
+.mini b {
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  display: block;
+}
+.mini span {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  display: block;
+  margin-top: 3px;
+}
+
+/* ---------- Atividade recente ---------- */
+.actlist {
+  display: flex;
+  flex-direction: column;
+}
+.actrow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 13px;
+  align-items: center;
+  padding: 13px 2px;
+  text-decoration: none;
+  color: inherit;
+}
+.actrow + .actrow {
+  border-top: 1px solid var(--line);
+}
+.actrow:hover .t {
+  color: var(--brand);
+}
+.actrow .mark2 {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.actrow .mark2.pend {
+  color: var(--text-faint);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+}
+.actrow .t {
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: color 0.18s var(--ease);
+}
+.actrow .s {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-top: 3px;
+}
+.actrow .w {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* ---------- Mapa de domínio ---------- */
+.dmap {
+  width: 100%;
+  display: block;
+}
+.dmap .link {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  fill: none;
+}
+.dmap .hubc {
+  fill: none;
+  stroke: var(--line);
+}
+.dmap .hublbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  fill: var(--text-faint);
+}
+.dmap .anm {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: var(--text-dim);
+}
+.dmap .apc {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.dlegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+.dlegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dlegend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  font-style: normal;
+}
+
+/* ---------- Rodapé ---------- */
+.pagefoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.pagefoot .end {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.pagefoot .end i {
+  width: 34px;
+  height: 1px;
+  background: var(--line-strong);
+  font-style: normal;
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1280px) {
+  .hrow-1,
+  .hrow-2 {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .hrow-1 > :first-child,
+  .hrow-2 > :first-child {
+    grid-column: 1 / -1;
+  }
+  .pagehead .aside {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .rail-sign {
+    display: none;
+  }
+  .content {
+    padding: 18px 16px 90px;
+  }
+  .hrow-1,
+  .hrow-2 {
+    grid-template-columns: 1fr;
+  }
+  .mission .art {
+    display: none;
+  }
+  .mission .sig {
+    display: none;
+  }
+  .minigrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -94,6 +94,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        <div className="rail-sign">
+          <i />
+          Disciplina
+          <br />
+          hoje
+          <br />
+          <br />
+          Resultados
+          <br />
+          amanhã
+        </div>
+
         <div className="sysline">
           <span className={`sysdot ${sysClass}`} />
           <span>{sysLabel}</span>

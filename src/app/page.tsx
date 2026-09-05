@@ -4,19 +4,18 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   Target,
-  CheckCircle2,
-  RotateCcw,
+  BarChart3,
   Flame,
-  Zap,
-  AlertTriangle,
-  TrendingDown,
-  ShieldCheck,
+  Clock,
+  TrendingUp,
+  CheckCircle2,
+  FileText,
   ArrowRight,
-  Play,
+  Crosshair,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { pct } from "@/lib/format";
+import { pct, shortSec } from "@/lib/format";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
 import {
   officialRows,
@@ -27,34 +26,43 @@ import {
   evolutionSeries,
 } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
-import { AreaBar, Card } from "@/components/ui";
+import DomainMap from "@/components/DomainMap";
 import { AnimatedNumber, Ring } from "@/components/dash";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
 
-// Recharts é pesado: carrega sob demanda, fora do bundle inicial.
 const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
   ssr: false,
   loading: () => <Sk h={230} r={14} />,
 });
-const AreaRadar = dynamic(() => import("@/components/charts").then((m) => m.AreaRadar), {
-  ssr: false,
-  loading: () => <Sk h={260} r={14} />,
-});
 
-function saudacao(hora: number) {
-  if (hora < 5) return "Boa madrugada";
-  if (hora < 12) return "Bom dia";
-  if (hora < 18) return "Boa tarde";
+function saudacao(h: number) {
+  if (h < 5) return "Boa madrugada";
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
   return "Boa noite";
 }
 
+/** Sparkline mínima para os indicadores da coluna direita. */
+function Spark({ values }: { values: number[] }) {
+  if (values.length < 2) return <div className="spark" />;
+  const max = Math.max(...values, 1);
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * 74},${24 - (v / max) * 20}`)
+    .join(" ");
+  return (
+    <svg className="spark" viewBox="0 0 74 26" aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="var(--brand)" strokeWidth={1.5} />
+    </svg>
+  );
+}
+
+const WD = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
+
 export default function HomePage() {
   const db = useStore((s) => s.db);
-  const goals = db.goals;
-  const setGoals = useStore((s) => s.setGoals);
   const hydrated = useHydrated();
-  // Relógio lido uma vez, fora da renderização pura.
   const [hora] = useState(() => new Date().getHours());
+  const [hoje] = useState(() => new Date());
 
   if (!hydrated) return <DashboardSkeleton />;
 
@@ -65,351 +73,361 @@ export default function HomePage() {
   const streak = streakDays(db);
   const inProg = db.attempts.find((a) => !a.finishedAt);
   const stats = areaStats(db);
-  const weak = weakestContents(db, 3);
+  const weak = weakestContents(db, 4);
   const evo = evolutionSeries(db);
-
   const completed = db.attempts.filter((a) => a.result);
-  const best = completed.length
-    ? Math.max(...completed.map((a) => pct(a.result!.correct, a.result!.total)))
-    : 0;
-  const longest = rows.reduce((b, _x, i, arr) => {
-    let n = 0;
-    for (let j = i; j < arr.length && arr[j].isCorrect; j++) n++;
-    return Math.max(b, n);
-  }, 0);
 
-  const totalQ = rows.length;
-  const overall = totalQ ? pct(rows.filter((x) => x.isCorrect).length, totalQ) : null;
-  const PER_LEVEL = 50;
-  const level = Math.floor(totalQ / PER_LEVEL) + 1;
-  const xpInLevel = totalQ % PER_LEVEL;
+  // ---- Meta diária: fatia da meta semanal ----
+  const alvoDia = Math.max(1, Math.round((db.goals.questions || 0) / 7));
+  const hojeKey = hoje.toISOString().slice(0, 10);
+  const feitasHoje = completed
+    .filter((a) => new Date(a.finishedAt!).toISOString().slice(0, 10) === hojeKey)
+    .reduce((s, a) => s + (a.result!.total || 0), 0);
+  const metaPct = Math.min(100, Math.round((feitasHoje / alvoDia) * 100));
 
-  // Metas da semana
-  const ws = new Date();
+  // ---- Semana corrente: dias com atividade ----
+  const ws = new Date(hoje);
   ws.setHours(0, 0, 0, 0);
   ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
-  const weekAttempts = db.attempts.filter((a) => a.result && new Date(a.finishedAt!) >= ws);
-  const weekQ = weekAttempts.reduce((s, a) => s + (a.result!.total || 0), 0);
-  const weekEss = weekAttempts.filter((a) => a.essay?.text?.trim()).length;
-  const weekRev = weekAttempts
-    .filter((a) => a.mode === "srs" || a.mode === "retry")
-    .reduce((s, a) => s + (a.result!.total || 0), 0);
-
-  // Atividade 90 dias
-  const counts: Record<string, number> = {};
-  db.attempts
-    .filter((a) => a.result)
-    .forEach((a) => {
-      const d = new Date(a.finishedAt!).toISOString().slice(0, 10);
-      counts[d] = (counts[d] || 0) + (a.result!.total || 0);
-    });
-  const days: { key: string; n: number; lv: string; title: string }[] = [];
-  for (let i = 89; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+  const diasAtivos = WD.map((_, i) => {
+    const d = new Date(ws);
+    d.setDate(d.getDate() + i);
     const key = d.toISOString().slice(0, 10);
-    const n = counts[key] || 0;
-    const lv = n === 0 ? "" : n < 15 ? "l1" : n < 40 ? "l2" : n < 90 ? "l3" : "l4";
-    days.push({ key, n, lv, title: `${d.toLocaleDateString("pt-BR")}: ${n} questões` });
-  }
-
-  const radar = AREA_ORDER.map((k) => {
-    const v = stats[k] || { c: 0, t: 0 };
-    return { area: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : 0, n: v.t };
+    return completed.some((a) => new Date(a.finishedAt!).toISOString().slice(0, 10) === key);
   });
 
-  // Painel de alertas — só o que é verdade nos dados.
-  const alerts: { cls: string; icon: React.ReactNode; title: string; desc: string; href: string; cta: string }[] =
-    [];
-  if (due > 0)
-    alerts.push({
-      cls: "crit",
-      icon: <RotateCcw size={16} />,
-      title: `${due} revisão(ões) vencida(s)`,
-      desc: "Retenção rende mais que volume novo.",
-      href: "/srs",
-      cta: "Revisar",
-    });
-  if (weak.length)
-    alerts.push({
-      cls: "warn",
-      icon: <AlertTriangle size={16} />,
-      title: `Conteúdo frágil: ${weak[0].name}`,
-      desc: `${weak[0].p}% de acerto em ${weak[0].t} questão(ões).`,
-      href: "/plano",
-      cta: "Plano",
-    });
-  if (streak === 0 && completed.length > 0)
-    alerts.push({
-      cls: "warn",
-      icon: <TrendingDown size={16} />,
-      title: "Ritmo interrompido",
-      desc: "Você não registrou estudo hoje.",
-      href: "/practice",
-      cta: "Treinar",
-    });
-  if (!alerts.length)
-    alerts.push({
-      cls: "ok",
-      icon: <ShieldCheck size={16} />,
-      title: "Nenhum alerta ativo",
-      desc: "Revisões em dia e sem quedas de ritmo.",
-      href: "/practice",
-      cta: "Treinar",
-    });
+  // ---- Séries auxiliares (dados reais, sem inventar) ----
+  const sessoesPorSemana: number[] = [];
+  for (let w = 7; w >= 0; w--) {
+    const ini = new Date(ws);
+    ini.setDate(ini.getDate() - w * 7);
+    const fim = new Date(ini);
+    fim.setDate(fim.getDate() + 7);
+    sessoesPorSemana.push(
+      completed.filter((a) => {
+        const t = new Date(a.finishedAt!);
+        return t >= ini && t < fim;
+      }).length,
+    );
+  }
+  const deltaPP = evo.length >= 2 ? Math.round(evo[evo.length - 1] - evo[0]) : null;
+  const tempoTotal = completed.reduce((s, a) => s + (a.elapsed || 0), 0);
 
-  // A missão do dia.
+  const areasMap = AREA_ORDER.map((k) => {
+    const v = stats[k] || { c: 0, t: 0 };
+    return { id: k, label: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : null, n: v.t };
+  });
+
+  // ---- Próxima missão, derivada do estado real ----
   const missao = inProg
-    ? { titulo: "Retomar a sessão em andamento", detalhe: `ENEM ${inProg.year} • ${inProg.mode}`, href: `/exam/${inProg.id}`, cta: "Continuar" }
+    ? {
+        k: "sessão em andamento",
+        t: `Retomar ENEM ${inProg.year}`,
+        meta: [
+          `${Object.keys(inProg.answers || {}).length}/${inProg.questionRefs.length} respondidas`,
+          inProg.mode,
+        ],
+        href: `/exam/${inProg.id}`,
+        cta: "Continuar sessão",
+      }
     : due > 0
-      ? { titulo: `Consolidar ${due} revisão(ões)`, detalhe: "Fila de repetição espaçada vencida", href: "/srs", cta: "Iniciar revisão" }
+      ? {
+          k: "prioridade: retenção",
+          t: `Revisar ${due} ${due > 1 ? "itens" : "item"}`,
+          meta: [`${due} vencidas`, "repetição espaçada"],
+          href: "/srs",
+          cta: "Iniciar revisão",
+        }
       : weak.length
-        ? { titulo: `Atacar ${weak[0].name}`, detalhe: `Conteúdo mais frágil — ${weak[0].p}% de acerto`, href: "/plano", cta: "Ver plano" }
-        : { titulo: "Calibrar seu perfil", detalhe: "Um sprint de 15 alimenta o motor adaptativo", href: "/practice", cta: "Montar treino" };
+        ? {
+            k: "prioridade: conteúdo frágil",
+            t: `Revisar ${weak[0].name}`,
+            meta: [
+              `${weak[0].t} questões medidas`,
+              `${weak.length} conteúdos frágeis`,
+              `${weak[0].p}% de acerto`,
+            ],
+            href: "/plano",
+            cta: "Iniciar sessão",
+          }
+        : {
+            k: "calibração",
+            t: "Montar seu primeiro treino",
+            meta: ["15 questões", "~24 min"],
+            href: "/practice",
+            cta: "Iniciar sessão",
+          };
+
+  const recentes = [...completed]
+    .sort((a, b) => +new Date(b.finishedAt!) - +new Date(a.finishedAt!))
+    .slice(0, 5);
+
+  // Usa o relógio capturado uma vez no estado: ler Date.now() aqui tornaria
+  // a renderização impura.
+  function haQuanto(iso: string) {
+    const ms = hoje.getTime() - new Date(iso).getTime();
+    const h = Math.floor(ms / 3600000);
+    if (h < 1) return "agora há pouco";
+    if (h < 24) return `há ${h}h`;
+    const d = Math.floor(h / 24);
+    return `há ${d} dia${d > 1 ? "s" : ""}`;
+  }
 
   return (
     <>
-      {/* ---------- HERO DE MISSÃO ---------- */}
-      <section className="dash-hero">
-        <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <div style={{ flex: "1 1 340px", minWidth: 0 }}>
-            <span className="pill">{saudacao(hora)} · painel de missão</span>
-            <h1 style={{ marginTop: 16 }}>
-              {streak > 0 ? (
-                <>
-                  {streak} dia{streak > 1 ? "s" : ""} <br />
-                  em órbita.
-                </>
-              ) : (
-                <>
-                  Pronto para <br />
-                  decolar.
-                </>
-              )}
-            </h1>
-            <p style={{ color: "var(--text-dim)", maxWidth: 460, fontSize: 15.5 }}>
-              {due > 0
-                ? `${due} revisão(ões) aguardam. A retenção vem antes do volume.`
-                : "O motor adaptativo recomenda; você mantém o controle da rota."}
-            </p>
-
-            <div className="row" style={{ marginTop: 24, gap: 12 }}>
-              <Link className="btn bigAction link-btn" href={missao.href}>
-                <Play size={16} /> {missao.cta}
-              </Link>
-              <Link className="btn secondary link-btn" href="/plano">
-                Ver plano completo
-              </Link>
-              {streak > 0 && (
-                <span className="streak-flame">
-                  <Flame size={15} /> {streak}
-                </span>
-              )}
-            </div>
-
-            <div style={{ marginTop: 28, maxWidth: 420 }}>
-              <div className="row between" style={{ marginBottom: 8 }}>
-                <span className="tele">Nível {level}</span>
-                <span className="tele">
-                  {xpInLevel}/{PER_LEVEL} para o próximo
-                </span>
-              </div>
-              <div className="level-bar">
-                <span style={{ width: `${(xpInLevel / PER_LEVEL) * 100}%` }} />
-              </div>
-            </div>
-          </div>
-
-          <Ring value={overall} size={168} stroke={10}>
-            <b>
-              {overall === null ? (
-                "—"
-              ) : (
-                <AnimatedNumber value={overall} format={(n) => `${Math.round(n)}%`} />
-              )}
-            </b>
-            <small>domínio geral</small>
-          </Ring>
+      <header className="pagehead">
+        <div className="eyebrow">
+          Centro de controle ·{" "}
+          {hoje.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
         </div>
-      </section>
+        <h1>{saudacao(hora)}.</h1>
+        <div className="sub">
+          {inProg
+            ? "Você tem uma sessão em aberto."
+            : due > 0
+              ? "Sua fila de revisão está pronta."
+              : "Sua próxima sessão já está pronta."}
+        </div>
+        <div className="aside">
+          <div>
+            Estudo transforma
+            <br />
+            possibilidades
+            <br />
+            em realidade.
+            <i />
+          </div>
+          <div>
+            Mais
+            <br />
+            conhecimento
+            <br />
+            mais futuro
+            <i />
+          </div>
+        </div>
+      </header>
 
-      {/* ---------- PRÓXIMA MISSÃO ---------- */}
-      <Card className="glow" style={{ marginTop: 14 }}>
-        <div className="row between" style={{ gap: 18 }}>
-          <div style={{ minWidth: 0 }}>
-            <span className="tele" style={{ color: "var(--brand)" }}>
-              Próxima missão
+      {/* ---------- FILEIRA 1 ---------- */}
+      <div className="hrow hrow-1">
+        <section className="hcard mission">
+          <div className="brandtag">ENEM Lab</div>
+          <div className="k">Próxima missão</div>
+          <div className="head">
+            <span className="badge">
+              <Crosshair size={22} />
             </span>
-            <h2 style={{ fontSize: 25, letterSpacing: "-0.03em", margin: "10px 0 6px" }}>
-              {missao.titulo}
-            </h2>
-            <div className="muted" style={{ fontSize: 13.5 }}>
-              {missao.detalhe}
-            </div>
+            <h3>{missao.t}</h3>
           </div>
-          <Link className="btn link-btn" href={missao.href}>
-            {missao.cta} <ArrowRight size={15} />
+          <div className="meta">
+            {missao.meta.map((m, i) => (
+              <span key={i}>
+                {i > 0 && " • "}
+                <b>{m}</b>
+              </span>
+            ))}
+          </div>
+          <Link className="cta" href={missao.href}>
+            {missao.cta} <ArrowRight size={17} />
           </Link>
-        </div>
-      </Card>
 
-      {/* ---------- TELEMETRIA ---------- */}
-      <div className="grid grid4" style={{ marginTop: 14 }}>
-        {[
-          {
-            ico: <Target size={16} />,
-            val: rollPct === null ? "—" : <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />,
-            lbl: "Últimas 100",
-          },
-          { ico: <CheckCircle2 size={16} />, val: <AnimatedNumber value={totalQ} />, lbl: "Questões reais" },
-          { ico: <RotateCcw size={16} />, val: <AnimatedNumber value={due} />, lbl: "Revisões vencidas" },
-          {
-            ico: <Zap size={16} />,
-            val: <AnimatedNumber value={streak} format={(n) => `${Math.round(n)}d`} />,
-            lbl: "Sequência",
-          },
-        ].map((s, i) => (
-          <div className="stat" key={i}>
-            <div className="ico">{s.ico}</div>
-            <div className="val">{s.val}</div>
-            <div className="lbl">{s.lbl}</div>
+          <svg className="art" viewBox="0 0 340 150" aria-hidden="true">
+            <polyline
+              points="0,140 46,112 78,124 118,70 152,96 196,44 238,86 276,58 340,104"
+              fill="none"
+              stroke="var(--brand)"
+              strokeOpacity="0.5"
+              strokeWidth="1.2"
+            />
+            <polyline
+              points="0,150 46,126 78,136 118,90 152,112 196,66 238,102 276,78 340,118"
+              fill="none"
+              stroke="var(--brand)"
+              strokeOpacity="0.22"
+              strokeWidth="1"
+            />
+          </svg>
+          <div className="sig">
+            Pequenas sessões
+            <br />
+            grandes resultados
           </div>
-        ))}
-      </div>
+        </section>
 
-      {/* ---------- COMPOSIÇÃO ASSIMÉTRICA ---------- */}
-      <div className="mission-grid">
-        <div className="stack">
-          <Card>
-            <div className="row between">
-              <div>
-                <h2>Evolução do aproveitamento</h2>
-                <div className="muted" style={{ fontSize: 12.5 }}>
-                  média móvel das questões corrigidas
-                </div>
+        <section className="hcard goal">
+          <div className="ringbox">
+            <Ring value={metaPct} size={186} stroke={13} />
+            <div className="val">
+              <b>
+                <AnimatedNumber value={metaPct} format={(n) => `${Math.round(n)}`} />
+                <i>%</i>
+              </b>
+              <small>Meta diária</small>
+            </div>
+          </div>
+          <div className="weekdots">
+            {WD.map((d, i) => (
+              <div key={d} className={diasAtivos[i] ? "on" : ""}>
+                <i />
+                <span>{d}</span>
               </div>
-              <span className="badge2">{rollPct === null ? "sem dados" : `${rollPct}%`}</span>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <EvolutionArea values={evo} />
-            </div>
-          </Card>
+            ))}
+          </div>
+        </section>
 
-          <Card>
-            <div className="row between">
-              <div>
-                <h2>Atividade</h2>
-                <div className="muted" style={{ fontSize: 12.5 }}>
-                  últimos 90 dias
-                </div>
+        <section className="hcard statcol">
+          <div className="statrow">
+            <span className="chip">
+              <BarChart3 size={18} />
+            </span>
+            <div>
+              <div className="n">
+                <AnimatedNumber value={completed.length} />
               </div>
-              <span className="badge2">{streak} dia(s) seguidos</span>
+              <div className="l">
+                Sessões
+                <br />
+                realizadas
+              </div>
             </div>
-            <div className="weekGrid" style={{ marginTop: 16 }}>
-              {days.map((d) => (
-                <div key={d.key} className={`dayCell ${d.lv}`} title={d.title} />
+            <Spark values={sessoesPorSemana} />
+          </div>
+
+          <div className="statrow">
+            <span className="chip">
+              <Target size={18} />
+            </span>
+            <div>
+              <div className="n">
+                {rollPct === null ? (
+                  "—"
+                ) : (
+                  <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />
+                )}
+              </div>
+              <div className="l">Taxa de acerto</div>
+            </div>
+            <Spark values={evo} />
+          </div>
+
+          <div className="statrow">
+            <span className="chip" style={{ color: "#ff9d4d" }}>
+              <Flame size={18} />
+            </span>
+            <div>
+              <div className="n">{String(streak).padStart(2, "0")}</div>
+              <div className="l">Dias em sequência</div>
+            </div>
+            <div className="dots5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <i key={i} className={i < Math.min(5, streak) ? "on" : ""} />
               ))}
             </div>
-          </Card>
-        </div>
+          </div>
+        </section>
+      </div>
 
-        <div className="stack">
-          <Card>
-            <h2>Alertas</h2>
-            <div style={{ display: "grid", gap: 9, marginTop: 12 }}>
-              {alerts.map((a, i) => (
-                <div className="alertitem" key={i}>
-                  <span className={`ai ${a.cls}`}>{a.icon}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 650 }}>{a.title}</div>
-                    <div className="muted" style={{ fontSize: 11.5 }}>
-                      {a.desc}
+      {/* ---------- FILEIRA 2 ---------- */}
+      <div className="hrow hrow-2">
+        <section className="hcard">
+          <div className="htitle">
+            <h2>Evolução de desempenho</h2>
+            <span className="badge2">média móvel</span>
+          </div>
+          <EvolutionArea values={evo} />
+          <div className="minigrid">
+            <div className="mini">
+              <span className="mi">
+                <TrendingUp size={16} />
+              </span>
+              <div>
+                <b>{deltaPP === null ? "—" : `${deltaPP > 0 ? "+" : ""}${deltaPP} p.p.`}</b>
+                <span>vs. início da série</span>
+              </div>
+            </div>
+            <div className="mini">
+              <span className="mi">
+                <BarChart3 size={16} />
+              </span>
+              <div>
+                <b>{completed.length}</b>
+                <span>sessões corrigidas</span>
+              </div>
+            </div>
+            <div className="mini">
+              <span className="mi">
+                <Clock size={16} />
+              </span>
+              <div>
+                <b>{tempoTotal ? shortSec(tempoTotal) : "—"}</b>
+                <span>tempo total de estudo</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="hcard">
+          <div className="htitle">
+            <h2>Mapa de domínio</h2>
+            <Link className="seeall" href="/mastery">
+              Ver detalhes <ArrowRight size={13} />
+            </Link>
+          </div>
+          <DomainMap areas={areasMap} />
+        </section>
+
+        <section className="hcard">
+          <div className="htitle">
+            <h2>Atividade recente</h2>
+            <Link className="seeall" href="/history">
+              Ver todas <ArrowRight size={13} />
+            </Link>
+          </div>
+          <div className="actlist">
+            {recentes.length ? (
+              recentes.map((a) => (
+                <Link className="actrow" href={`/result/${a.id}`} key={a.id}>
+                  <span className="mark2">
+                    <CheckCircle2 size={16} />
+                  </span>
+                  <div>
+                    <div className="t">
+                      {a.mode === "srs"
+                        ? "Revisão espaçada"
+                        : a.mode === "retry"
+                          ? "Revisão de erros"
+                          : a.realDay
+                            ? `ENEM Real • Dia ${a.realDay}`
+                            : `Sessão ENEM ${a.year}`}
+                    </div>
+                    <div className="s">
+                      {pct(a.result!.correct, a.result!.total)}% • {a.result!.total} questões
                     </div>
                   </div>
-                  <Link className="btn secondary link-btn" style={{ padding: "7px 12px", fontSize: 11.5 }} href={a.href}>
-                    {a.cta}
-                  </Link>
+                  <span className="w">{haQuanto(a.finishedAt!)}</span>
+                </Link>
+              ))
+            ) : (
+              <div className="actrow" style={{ borderTop: "none" }}>
+                <span className="mark2 pend">
+                  <FileText size={15} />
+                </span>
+                <div>
+                  <div className="t">Nenhuma sessão ainda</div>
+                  <div className="s">Corrija um treino para preencher o histórico</div>
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <h2>Radar por área</h2>
-            <div className="muted" style={{ fontSize: 12.5 }}>
-              acerto relativo entre as quatro áreas
-            </div>
-            <AreaRadar data={radar} />
-          </Card>
-        </div>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* ---------- ÁREAS + RECORDES ---------- */}
-      <div className="grid grid2" style={{ marginTop: 14 }}>
-        <Card>
-          <h2>Áreas</h2>
-          <div style={{ marginTop: 8 }}>
-            {AREA_ORDER.map((k) => {
-              const v = stats[k] || { c: 0, t: 0 };
-              return <AreaBar key={k} name={AREA_LABELS[k]} c={v.c} t={v.t} />;
-            })}
-          </div>
-        </Card>
-        <Card>
-          <h2>Recordes pessoais</h2>
-          <div className="recordGrid" style={{ marginTop: 12 }}>
-            <div className="record">
-              <small>Melhor tentativa</small>
-              <b>
-                {best || "—"}
-                {best ? "%" : ""}
-              </b>
-            </div>
-            <div className="record">
-              <small>Sequência de acertos</small>
-              <b>{longest}</b>
-            </div>
-            <div className="record">
-              <small>Questões na semana</small>
-              <b>{weekQ}</b>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* ---------- METAS ---------- */}
-      <Card style={{ marginTop: 14 }}>
-        <h2>Metas da semana</h2>
-        <div className="muted" style={{ fontSize: 12.5, marginBottom: 8 }}>
-          Configuráveis; sem punição se você não bater.
-        </div>
-        {(
-          [
-            ["Questões", weekQ, "questions"],
-            ["Redações", weekEss, "essays"],
-            ["Revisões", weekRev, "reviews"],
-          ] as const
-        ).map(([name, val, key]) => (
-          <div className="goalRow" key={key}>
-            <b style={{ fontSize: 13 }}>{name}</b>
-            <input
-              type="number"
-              min={0}
-              value={goals[key]}
-              aria-label={`Meta semanal de ${name.toLowerCase()}`}
-              onChange={(e) => setGoals({ ...goals, [key]: Math.max(0, Number(e.target.value || 0)) })}
-            />
-            <div>
-              <div className="goalProgress">
-                <span style={{ width: `${Math.min(100, pct(val, goals[key] || 1))}%` }} />
-              </div>
-              <div className="tele" style={{ marginTop: 6 }}>
-                {val} de {goals[key]}
-              </div>
-            </div>
-          </div>
-        ))}
-      </Card>
+      <footer className="pagefoot">
+        <span>{"/// Foco hoje. Conquista sempre."}</span>
+        <span className="end">
+          ENEM Lab <i />
+        </span>
+      </footer>
     </>
   );
 }
