@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { AREA_LABELS } from "@/lib/domain/constants";
 import { discipline } from "@/lib/domain/classify";
-import { richText, safeUrl, shortSec } from "@/lib/format";
+import { markdownImageUrls, richText, safeUrl, shortSec } from "@/lib/format";
 import { questionsForAttempt } from "@/lib/services/attempts";
 import MathContent from "@/components/MathContent";
 import { Card, PageHead } from "@/components/ui";
@@ -59,18 +59,7 @@ export default function ResultReviewPage() {
 
   const rows = attempt?.result?.rows || [];
   const filtered = useMemo(() => rows.filter((row) => rowMatches(row, filter)), [rows, filter]);
-
-  useEffect(() => {
-    setPosition(0);
-  }, [filter]);
-
-  useEffect(() => {
-    if (!filtered.length) {
-      setPosition(0);
-      return;
-    }
-    setPosition((value) => Math.min(value, filtered.length - 1));
-  }, [filtered.length]);
+  const currentPosition = Math.min(position, Math.max(0, filtered.length - 1));
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -81,6 +70,7 @@ export default function ResultReviewPage() {
       ) {
         return;
       }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         setPosition((value) => Math.max(0, value - 1));
@@ -109,7 +99,7 @@ export default function ResultReviewPage() {
     flagged: rows.filter((row) => row.flagged).length,
   };
 
-  const row = filtered[position];
+  const row = filtered[currentPosition];
   const question = row && questions ? findQuestion(questions, row) : undefined;
 
   return (
@@ -133,7 +123,10 @@ export default function ResultReviewPage() {
                 key={item.id}
                 type="button"
                 className={filter === item.id ? "active" : ""}
-                onClick={() => setFilter(item.id)}
+                onClick={() => {
+                  setFilter(item.id);
+                  setPosition(0);
+                }}
                 role="tab"
                 aria-selected={filter === item.id}
               >
@@ -157,10 +150,10 @@ export default function ResultReviewPage() {
                 <button
                   key={item.key}
                   type="button"
-                  className={`${status} ${item.flagged ? "flagged" : ""} ${index === position ? "current" : ""}`}
+                  className={`${status} ${item.flagged ? "flagged" : ""} ${index === currentPosition ? "current" : ""}`}
                   onClick={() => setPosition(index)}
                   aria-label={`Questão ${item.index}, ${status === "correct" ? "certa" : status === "wrong" ? "errada" : "em branco"}${item.flagged ? ", marcada" : ""}`}
-                  aria-current={index === position ? "true" : undefined}
+                  aria-current={index === currentPosition ? "true" : undefined}
                 >
                   {item.index}
                 </button>
@@ -181,7 +174,12 @@ export default function ResultReviewPage() {
           ) : error || !question || !row ? (
             <Card className="empty">Não foi possível carregar esta questão para revisão.</Card>
           ) : (
-            <ReviewQuestion row={row} question={question} position={position} total={filtered.length} />
+            <ReviewQuestion
+              row={row}
+              question={question}
+              position={currentPosition}
+              total={filtered.length}
+            />
           )}
 
           {!!filtered.length && (
@@ -190,18 +188,18 @@ export default function ResultReviewPage() {
                 type="button"
                 className="btn secondary"
                 onClick={() => setPosition((value) => Math.max(0, value - 1))}
-                disabled={position === 0}
+                disabled={currentPosition === 0}
               >
                 <ArrowLeft size={15} /> anterior
               </button>
               <span>
-                {position + 1} de {filtered.length}
+                {currentPosition + 1} de {filtered.length}
               </span>
               <button
                 type="button"
                 className="btn secondary"
                 onClick={() => setPosition((value) => Math.min(filtered.length - 1, value + 1))}
-                disabled={position >= filtered.length - 1}
+                disabled={currentPosition >= filtered.length - 1}
               >
                 próxima <ArrowRight size={15} />
               </button>
@@ -225,7 +223,15 @@ function ReviewQuestion({
   total: number;
 }) {
   const status = statusOf(row);
-  const standaloneFiles = (question.files || []).map(String).map(safeUrl).filter(Boolean);
+  const embeddedUrls = new Set([
+    ...markdownImageUrls(question.context),
+    ...markdownImageUrls(question.alternativesIntroduction),
+    ...(question.alternatives || []).flatMap((alt) => markdownImageUrls(alt.text)),
+  ]);
+  const standaloneFiles = (question.files || [])
+    .map(String)
+    .map(safeUrl)
+    .filter((src) => src && !embeddedUrls.has(src));
 
   return (
     <Card className="resultReviewQuestionCard">
