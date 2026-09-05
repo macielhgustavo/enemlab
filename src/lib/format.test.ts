@@ -39,4 +39,14 @@ describe("richText", () => {
     expect(html).toContain('data-zoomable="true"');
     expect(html).toContain('class="questionMedia"');
   });
+
+  it("turns markdown tables into a scrollable question table", () => {
+    const html = richText(
+      "| Grandeza | Valor | Unidade |\n| --- | --- | --- |\n| Tensão | 220 | V |\n| Corrente | 10 | A |",
+    );
+    expect(html).toContain('class="questionTableWrap"');
+    expect(html).toContain('class="questionTable"');
+    expect(html).toContain("<th>Grandeza</th>");
+    expect(html).toContain("<td>Corrente</td>");
+  });
 });
