@@ -91,6 +91,12 @@ export interface Essay {
   versions?: { at: string; text: string }[];
 }
 
+export interface DailyPlanStamp {
+  source: "daily-plan";
+  dateKey: string;
+  blockId: string;
+}
+
 export interface Attempt {
   id: string;
   year: number;
@@ -107,6 +113,7 @@ export interface Attempt {
   activeRecall?: boolean;
   revealedRecall?: boolean;
   retryOf?: string;
+  plan?: DailyPlanStamp;
   questionRefs: QuestionRef[];
   answers: Record<string, string>;
   confidence: Record<string, Confidence>;
