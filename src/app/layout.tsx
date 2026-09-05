@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "./exam-focus.css";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/AppShell";
 
