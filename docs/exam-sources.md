@@ -57,6 +57,32 @@ O Data Quality trata esse modo com régua própria: cobra **procedência** (font
 URL válida, número, matéria) e **gabarito**, e não cobra enunciado nem texto de
 alternativa.
 
+### Leitor embutido
+
+O documento oficial é exibido dentro da sessão, sob demanda, num `iframe` que
+carrega direto do servidor da instituição. Nada é baixado, copiado ou
+reservido pelo nosso domínio — o navegador do aluno busca o arquivo na fonte.
+
+Antes de implementar, foi medido se o servidor permite:
+
+```bash
+curl -sSI https://www.vestibular.ita.br/provas/2026_fase1.pdf
+```
+
+`vestibular.ita.br` responde `200` com `Content-Type: application/pdf`, **sem**
+`X-Frame-Options`, `Content-Security-Policy: frame-ancestors` ou
+`Content-Disposition`. Ou seja: não há proteção contra embed a ser contornada.
+Se uma fonte futura enviar qualquer um desses cabeçalhos, o leitor embutido
+**não** deve ser usado para ela — só o link externo.
+
+Regras que valem para qualquer fonte em modo referência:
+
+- carregar apenas quando o aluno pede (a prova do ITA passa de 12 MB);
+- manter sempre o link externo visível: nem todo navegador exibe PDF embutido;
+- usar só parâmetros de exibição do visualizador (`#navpanes=0&view=FitH`),
+  nunca alterar o documento;
+- nunca reservir o arquivo a partir do nosso domínio para contornar bloqueio.
+
 ## 5. Como adicionar uma prova nova
 
 1. **Descobrir a fonte oficial** e confirmar que ela publica as provas.
