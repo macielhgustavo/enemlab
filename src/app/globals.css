@@ -2357,6 +2357,12 @@ kbd {
     color: var(--brand);
     background: rgba(0, 229, 160, 0.1);
   }
+  /* No claro, o verde da marca sobre a pílula clara dava 4,23:1 — abaixo do
+     mínimo, justamente no rótulo que diz onde o aluno está. O tom escuro da
+     marca resolve sem mudar a cor da identidade. */
+  :root[data-theme="light"] .mobilebar a.active {
+    color: var(--brand-ink);
+  }
   .mobilebar a.active svg {
     filter: drop-shadow(0 0 6px rgba(0, 229, 160, 0.7));
   }
