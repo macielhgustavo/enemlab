@@ -29,6 +29,9 @@ import {
 import { dueSRS } from "@/lib/domain/srs";
 import DomainMap from "@/components/DomainMap";
 import { AnimatedNumber, Ring } from "@/components/dash";
+import { MetricCard } from "@/components/enem-lab/MetricCard";
+import { EmptyState } from "@/components/enem-lab/states";
+import { Button } from "@/components/ui/button";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
 import { examLabel } from "@/lib/providers/label";
 import { sameProvider } from "@/lib/providers";
@@ -287,55 +290,39 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="hcard statcol">
-          <div className="statrow">
-            <span className="chip">
-              <BarChart3 size={18} />
-            </span>
-            <div>
-              <div className="n">
-                <AnimatedNumber value={completed.length} />
+        {/* Indicadores no MetricCard: mesmos números, mesma origem. O que
+            muda é que "sem amostra" deixa de virar zero — a taxa de acerto
+            só existe depois de uma correção. */}
+        <section className="hcard statcol el-stack" style={{ gap: "var(--space-12)" }}>
+          <MetricCard
+            label="Sessões realizadas"
+            value={completed.length}
+            icon={<BarChart3 size={14} />}
+            tone="accent"
+            aside={<Spark values={sessoesPorSemana} />}
+          />
+          <MetricCard
+            label="Taxa de acerto"
+            value={rollPct}
+            format={(n) => `${Math.round(n)}%`}
+            icon={<Target size={14} />}
+            hint={rollPct === null ? "Corrija um treino para calcular" : undefined}
+            aside={<Spark values={evo} />}
+          />
+          <MetricCard
+            label="Dias em sequência"
+            value={streak}
+            format={(n) => String(Math.round(n)).padStart(2, "0")}
+            icon={<Flame size={14} />}
+            tone="warning"
+            aside={
+              <div className="dots5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <i key={i} className={i < Math.min(5, streak) ? "on" : ""} />
+                ))}
               </div>
-              <div className="l">
-                Sessões
-                <br />
-                realizadas
-              </div>
-            </div>
-            <Spark values={sessoesPorSemana} />
-          </div>
-
-          <div className="statrow">
-            <span className="chip">
-              <Target size={18} />
-            </span>
-            <div>
-              <div className="n">
-                {rollPct === null ? (
-                  "—"
-                ) : (
-                  <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />
-                )}
-              </div>
-              <div className="l">Taxa de acerto</div>
-            </div>
-            <Spark values={evo} />
-          </div>
-
-          <div className="statrow">
-            <span className="chip" style={{ color: "#ff9d4d" }}>
-              <Flame size={18} />
-            </span>
-            <div>
-              <div className="n">{String(streak).padStart(2, "0")}</div>
-              <div className="l">Dias em sequência</div>
-            </div>
-            <div className="dots5">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <i key={i} className={i < Math.min(5, streak) ? "on" : ""} />
-              ))}
-            </div>
-          </div>
+            }
+          />
         </section>
       </div>
 
@@ -420,15 +407,16 @@ export default function HomePage() {
                 </Link>
               ))
             ) : (
-              <div className="actrow" style={{ borderTop: "none" }}>
-                <span className="mark2 pend">
-                  <FileText size={15} />
-                </span>
-                <div>
-                  <div className="t">Nenhuma sessão ainda</div>
-                  <div className="s">Corrija um treino para preencher o histórico</div>
-                </div>
-              </div>
+              <EmptyState
+                icon={<FileText size={20} />}
+                title="Nenhuma sessão ainda"
+                description="Corrija um treino para o painel começar a medir seu desempenho."
+                action={
+                  <Button asChild variant="primary" size="sm">
+                    <Link href="/practice">Montar treino</Link>
+                  </Button>
+                }
+              />
             )}
           </div>
         </section>

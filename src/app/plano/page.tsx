@@ -9,6 +9,8 @@ import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct } from "@/lib/format";
 import { areasOf } from "@/lib/providers/taxonomy";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/enem-lab/states";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import {
@@ -85,7 +87,12 @@ export default function PlanoPage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando plano…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <LoadingState lines={4} label="Carregando o plano de hoje" />
+      </Card>
+    );
 
   const plan = buildDailyPlan(db, budget, now, providerId);
   const stats = areaStats(db, providerId);
@@ -115,9 +122,9 @@ export default function PlanoPage() {
         title="Seu estudo de hoje, já priorizado."
         sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
         right={
-          <Link className="btn secondary link-btn" href="/adaptive">
-            Abrir Adaptive
-          </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/adaptive">Abrir Adaptive</Link>
+          </Button>
         }
       />
 
@@ -129,9 +136,11 @@ export default function PlanoPage() {
               Você já iniciou um bloco hoje. Termine ou retome antes de abrir outro para manter o diagnóstico limpo.
             </span>
           </div>
-          <Link className="btn link-btn" href={`/exam/${activePlan.id}`}>
-            Continuar <ArrowRight size={15} />
-          </Link>
+          <Button asChild variant="primary">
+            <Link href={`/exam/${activePlan.id}`}>
+              Continuar <ArrowRight size={15} />
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -260,18 +269,14 @@ export default function PlanoPage() {
                   </div>
                 </div>
                 <div className="dailyPlanAction">
-                  <button
-                    type="button"
-                    className="btn"
+                  <Button
+                    variant="primary"
                     disabled={!!busyBlock || !!activePlan}
+                    loading={busyBlock === block.id}
                     onClick={() => startBlock(block)}
                   >
-                    {busyBlock === block.id ? (
-                      <><span className="loader" /> montando</>
-                    ) : (
-                      <>{block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} /></>
-                    )}
-                  </button>
+                    {block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} />
+                  </Button>
                 </div>
               </div>
             ))}

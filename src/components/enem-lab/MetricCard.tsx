@@ -17,6 +17,7 @@ export function MetricCard({
   hint,
   format,
   icon,
+  aside,
   tone = "default",
   className,
 }: {
@@ -27,6 +28,8 @@ export function MetricCard({
   hint?: React.ReactNode;
   format?: (n: number) => string;
   icon?: React.ReactNode;
+  /** Faixa à direita do número: sparkline, pontinhos de sequência. */
+  aside?: React.ReactNode;
   tone?: "default" | "accent" | "warning" | "danger";
   className?: string;
 }) {
@@ -43,17 +46,20 @@ export function MetricCard({
         )}
       </div>
 
-      <div className="el-metric__value telemetry">
-        {semDado ? (
-          <span className="el-metric__empty" title="Ainda sem amostra">
-            —
-          </span>
-        ) : (
-          <>
-            <AnimatedNumber value={value} format={format} />
-            {unit && <span className="el-metric__unit">{unit}</span>}
-          </>
-        )}
+      <div className="el-metric__row">
+        <div className="el-metric__value telemetry">
+          {semDado ? (
+            <span className="el-metric__empty" title="Ainda sem amostra">
+              —
+            </span>
+          ) : (
+            <>
+              <AnimatedNumber value={value} format={format} />
+              {unit && <span className="el-metric__unit">{unit}</span>}
+            </>
+          )}
+        </div>
+        {aside && <div className="el-metric__aside">{aside}</div>}
       </div>
 
       {hint && <div className="caption el-metric__hint">{hint}</div>}

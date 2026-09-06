@@ -41,6 +41,18 @@
   background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
+.el-metric__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.el-metric__aside {
+  flex-shrink: 0;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+}
 .el-metric__value {
   display: flex;
   align-items: baseline;
@@ -264,4 +276,10 @@
 }
 .el-notice--danger svg {
   color: var(--danger);
+}
+
+/* ---------------- Charts ---------------- */
+.el-chart {
+  width: 100%;
+  min-width: 0;
 }
