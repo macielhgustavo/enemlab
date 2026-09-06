@@ -63,14 +63,12 @@ describe("escopo por prova", () => {
     expect(providersInHistory(dbMisto())).toEqual(["enem", "outra-prova"]);
   });
 
-  it("estatística de área muda quando escopada por prova", () => {
+  it("estatística de área é escopada por prova, e ENEM é o padrão", () => {
     const db = dbMisto();
-    // Sem escopo, as quatro linhas caem juntas na mesma área.
-    expect(areaStats(db).matematica).toEqual({ c: 1, t: 4 });
-    // O escopo é o que impede a leitura enganosa.
-    const soEnem = officialRowsOf(db, "enem").filter((r) => r.correct);
-    expect(soEnem.filter((r) => r.isCorrect).length).toBe(1);
-    expect(soEnem.length).toBe(2);
+    // O padrão é ENEM: as duas linhas da outra prova ficam de fora.
+    expect(areaStats(db).matematica).toEqual({ c: 1, t: 2 });
+    // A outra prova tem os próprios números, no mesmo nome de área.
+    expect(areaStats(db, "outra-prova").matematica).toEqual({ c: 0, t: 2 });
   });
 });
 

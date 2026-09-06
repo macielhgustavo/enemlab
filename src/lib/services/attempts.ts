@@ -11,8 +11,8 @@ import {
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
 import { isQuestionUsableForPractice } from "../domain/question-quality";
-import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID, resolveProviderId } from "../providers";
-import { itaQuestionsForAttempt } from "./ita-attempts";
+import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers";
+import { itaQuestionsForAttempt, buildItaReviewAttempt } from "./ita-attempts";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -186,13 +186,23 @@ export async function buildAdaptiveAttempt(
 }
 
 // Bloco de revisões SRS vencidas.
-export async function buildDueReviewsAttempt(db: DB, limit = 30): Promise<Attempt> {
+export async function buildDueReviewsAttempt(
+  db: DB,
+  limit = 30,
+  providerId: string = ENEM_PROVIDER_ID,
+): Promise<Attempt> {
   const due = Object.entries(db.srs)
+    .filter(([, v]) => sameProvider(v.providerId, providerId))
     .filter(([, v]) => new Date(v.due).getTime() <= Date.now())
     .map(([key, v]) => ({ key, ...v }))
     .sort((a, b) => +new Date(a.due) - +new Date(b.due))
     .slice(0, limit);
   if (!due.length) throw new Error("Nenhuma revisão vencida.");
+
+  // Prova em modo referência monta a fila do próprio gabarito.
+  if (resolveProviderId(providerId) === ITA_PROVIDER_ID) {
+    return buildItaReviewAttempt(due);
+  }
   const groups: Record<string, typeof due> = {};
   due.forEach((x) => {
     const k = `${x.year}|${x.language || "ingles"}`;
@@ -242,6 +252,9 @@ export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
 export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Attempt> {
   const x = db.srs[key];
   if (!x) throw new Error("Item de revisão não encontrado.");
+  if (resolveProviderId(x.providerId) === ITA_PROVIDER_ID) {
+    return buildItaReviewAttempt([{ key, ...x }], true);
+  }
   const lang = (x.language || "ingles") as Language;
   const all = await fetchExam(x.year, lang);
   const q =

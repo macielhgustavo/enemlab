@@ -151,3 +151,37 @@ export function buildItaAdaptiveAttempt(db: DB, n = 15): Attempt {
     })),
   };
 }
+
+/**
+ * Fila de revisão do ITA a partir de itens do SRS. Agrupa por edição para o
+ * aluno não precisar alternar entre PDFs a cada questão.
+ */
+export function buildItaReviewAttempt(
+  itens: { key: string; year: number; index: number; area?: string; language?: string | null }[],
+  recall = false,
+): Attempt {
+  if (!itens.length) throw new Error("Nenhuma revisão vencida do ITA.");
+
+  // Edição com mais itens vencidos vira a sessão: menos troca de documento.
+  const porAno = new Map<number, typeof itens>();
+  for (const i of itens) {
+    const lista = porAno.get(i.year) ?? [];
+    lista.push(i);
+    porAno.set(i.year, lista);
+  }
+  const [year, escolhidos] = [...porAno.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+
+  const base = buildItaFirstPhaseAttempt(year, { minutes: Math.max(20, escolhidos.length * 5) });
+  return {
+    ...base,
+    mode: recall ? "srs-recall" : "srs",
+    activeRecall: recall,
+    questionRefs: escolhidos.map((i) => ({
+      providerId: ITA_PROVIDER_ID,
+      index: i.index,
+      year: i.year,
+      language: i.language ?? null,
+      discipline: i.area ?? "unknown",
+    })),
+  };
+}

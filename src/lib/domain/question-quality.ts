@@ -78,8 +78,60 @@ function allMedia(q: Question): string[] {
   ];
 }
 
+/** Fecha o relatório a partir das ocorrências, com a mesma régua de severidade. */
+function buildReport(q: Question, issues: QuestionQualityIssue[]): QuestionQualityReport {
+  const errorCount = issues.filter((x) => x.severity === "error").length;
+  const warningCount = issues.filter((x) => x.severity === "warning").length;
+  const infoCount = issues.filter((x) => x.severity === "info").length;
+  return {
+    score: Math.max(0, 100 - errorCount * 35 - warningCount * 11 - infoCount * 2),
+    status: errorCount ? "blocked" : warningCount ? "review" : "healthy",
+    // Sem gabarito não há como pontuar — vale para qualquer modo.
+    scoreable: !!q.correctAlternative,
+    issues,
+    mediaCount: 0,
+    classificationConfidence: "alta",
+    classificationPrimary: String(q.discipline || ""),
+  };
+}
+
+/**
+ * Questão de fonte apenas-referência (prova digitalizada): o enunciado vive no
+ * documento oficial de propósito. Cobrar texto e alternativas dela marcaria
+ * toda a prova como quebrada — o que se cobra é a procedência.
+ */
+function inspectReferenceQuestion(q: Question): QuestionQualityIssue[] {
+  const issues: QuestionQualityIssue[] = [];
+  const src = q.official;
+
+  if (!src || !src.institution) {
+    issues.push(issue("missing-source", "error", "Questão de referência sem fonte oficial", "context"));
+  }
+  if (!src?.documentUrl || !safeUrl(src.documentUrl)) {
+    issues.push(issue("invalid-source-url", "error", "URL do documento oficial inválida", "context"));
+  }
+  if (!q.number || q.number < 1) {
+    issues.push(issue("missing-number", "error", "Questão sem numeração oficial", "context"));
+  }
+  if (!String(q.discipline || "").trim()) {
+    issues.push(issue("missing-subject", "error", "Questão sem matéria", "context"));
+  }
+  // Gabarito ausente só é problema se a questão não foi anulada — e anulada
+  // chega aqui justamente sem gabarito, então isto é aviso, não erro.
+  if (!q.correctAlternative) {
+    issues.push(
+      issue("missing-answer-key", "warning", "Sem gabarito (questão anulada?)", "alternatives"),
+    );
+  }
+  return issues;
+}
+
 export function inspectQuestion(q: Question): QuestionQualityReport {
   const issues: QuestionQualityIssue[] = [];
+
+  if (q.statementAvailable === false) {
+    return buildReport(q, inspectReferenceQuestion(q));
+  }
   const raw = rawQuestionText(q);
   const repaired = repairQuestionText(raw);
   const alternatives = q.alternatives || [];
