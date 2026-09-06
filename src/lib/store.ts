@@ -19,6 +19,7 @@ export function defaultDB(): DB {
     srs: {},
     sessions: [],
     goals: { questions: 150, essays: 2, reviews: 30 },
+    activeProvider: "enem",
     lastOpened: null,
     lastBackupAt: null,
   };
@@ -54,6 +55,7 @@ interface StoreState {
   /** Aplica uma mutação sobre uma cópia do db e persiste. */
   mutate: (mutator: (db: DB) => void) => void;
   setTheme: (theme: "light" | "dark") => void;
+  setActiveProvider: (providerId: string) => void;
   toggleTheme: () => void;
   addAttempt: (a: Attempt) => void;
   replaceDB: (db: DB) => void;
@@ -81,6 +83,8 @@ export const useStore = create<StoreState>()(
           return { db };
         }),
       setTheme: (theme) => get().mutate((db) => { db.theme = theme; }),
+      setActiveProvider: (providerId) =>
+        get().mutate((db) => { db.activeProvider = providerId; }),
       toggleTheme: () =>
         get().mutate((db) => { db.theme = db.theme === "dark" ? "light" : "dark"; }),
       addAttempt: (a) =>

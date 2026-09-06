@@ -202,6 +202,8 @@ export interface DB {
   srs: Record<string, SrsEntry>;
   sessions: StudySession[];
   goals: Goals;
+  /** Prova ativa na interface. Ausente = ENEM, como sempre foi. */
+  activeProvider?: string;
   lastOpened: string | null;
   lastBackupAt: string | null;
   migratedFrom?: string;
