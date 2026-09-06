@@ -9,6 +9,11 @@ name: Capturas de referência (Linux)
 # artefato, e quem estiver atualizando baixa e commita — assim a mudança
 # visual passa por revisão humana, que é o ponto de ter regressão visual.
 #
+# Nota de partida: `workflow_dispatch` só fica disponível depois que o
+# arquivo chega ao branch padrão. Na primeira vez, a referência veio do
+# artefato do job `visual` do CI, que grava o PNG obtido quando ainda não há
+# com o que comparar. Daqui em diante, use este workflow.
+#
 # Passo a passo em docs/visual-testing.md.
 
 on:

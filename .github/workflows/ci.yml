@@ -82,7 +82,12 @@ jobs:
 
       # O relatório traz o esperado, o obtido e o diff lado a lado — sem ele,
       # "1,4% de pixels diferentes" não diz a ninguém o que mudou.
-      - name: Guardar diferenças
+      #
+      # As capturas vão junto porque resolvem o problema de partida: quando
+      # ainda não existe referência, o Playwright grava o PNG obtido e
+      # reprova. Esse mesmo artefato é o que se baixa para criar a primeira
+      # referência Linux, sem precisar de um workflow que escreve no repo.
+      - name: Guardar diferenças e capturas
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -90,4 +95,5 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            e2e/__screenshots__/
           retention-days: 7
