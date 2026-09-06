@@ -285,12 +285,9 @@
   position: fixed;
   inset: 0;
   z-index: 90;
-  background: rgba(2, 6, 8, 0.66);
+  background: var(--overlay-veil);
   backdrop-filter: blur(6px);
   animation: el-fade var(--motion-normal) var(--easing-standard);
-}
-:root[data-theme="light"] .el-overlay {
-  background: rgba(18, 32, 28, 0.38);
 }
 
 .el-dialog {

@@ -544,3 +544,153 @@
     width: 100%;
   }
 }
+
+/* ---------------- Histórico ---------------- */
+.el-histfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-16);
+}
+.el-histlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.el-histitem {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: var(--space-16);
+  padding-left: calc(var(--space-16) + 3px);
+}
+/* Faixa de desempenho na lateral: dá para varrer a coluna sem ler número. */
+.el-histitem__rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.el-histitem__rail--success { background: var(--success); }
+.el-histitem__rail--warning { background: var(--warning); }
+.el-histitem__rail--danger { background: var(--danger); }
+.el-histitem__rail--neutral { background: var(--border-strong); }
+
+.el-histitem__id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.el-histitem__score {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 96px;
+}
+.el-histitem__pct {
+  font-size: 20px;
+  line-height: 1;
+}
+.el-histitem__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  color: var(--text-muted);
+  min-width: 0;
+}
+.el-histitem__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.el-histitem__session {
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 20ch;
+}
+.el-histitem__cta {
+  justify-self: end;
+}
+
+@media (max-width: 900px) {
+  .el-histitem {
+    grid-template-columns: 1fr auto;
+    row-gap: var(--space-8);
+  }
+  .el-histitem__meta {
+    grid-column: 1 / -1;
+  }
+  .el-histitem__cta {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* ---------------- ResultSummary ---------------- */
+.el-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+.el-result__score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-24);
+  flex-wrap: wrap;
+}
+/* O placar é o assunto da tela: tudo mais é apoio. */
+.el-result__big {
+  font-size: clamp(48px, 8vw, 76px);
+  line-height: 0.9;
+}
+.el-result__of {
+  font-size: 0.42em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.el-result__pct {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.el-result__pct .telemetry {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--accent-primary);
+}
+.el-result__bar {
+  max-width: 520px;
+}
+.el-result__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--border-subtle);
+}
+.el-result__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.el-result__fact .telemetry {
+  font-size: 20px;
+  line-height: 1.1;
+}
+.el-result__note {
+  color: var(--text-faint);
+}
+.el-result__actions {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}

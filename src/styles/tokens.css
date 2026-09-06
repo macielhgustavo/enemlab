@@ -65,6 +65,9 @@
   --shadow-md: var(--shadow);
   /* --shadow-sm e --shadow-lg já existem. */
   --shadow-focus: 0 0 0 2px var(--bg-canvas), 0 0 0 4px var(--accent-primary);
+  /* Véu atrás de diálogo e painel. É mais opaco no escuro porque ali o
+     conteúdo de trás compete mais com o de cima. */
+  --overlay-veil: rgba(2, 6, 8, 0.66);
 
   /* ---- Movimento ----
      Faixas curtas de propósito: microinteração some antes de o
@@ -104,6 +107,8 @@
   --success: var(--ok);
   --warning: var(--warn);
   --danger: var(--bad);
+
+  --overlay-veil: rgba(18, 32, 28, 0.38);
 }
 
 /* Quem pediu menos movimento recebe menos movimento — inclusive
