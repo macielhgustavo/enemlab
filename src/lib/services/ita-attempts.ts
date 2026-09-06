@@ -11,30 +11,14 @@ import {
   itaYears,
 } from "../providers";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
+import { toLegacyQuestion } from "../providers/legacy";
 import type { Attempt, DB, Question } from "../domain/types";
 
-/** Converte a questão normalizada do ITA para o formato que o runner consome. */
-function toQuestion(n: ReturnType<typeof itaFirstPhaseQuestions>[number]): Question {
-  return {
-    index: n.index,
-    number: n.number,
-    year: n.year,
-    language: n.language,
-    // O id da matéria do ITA ("physics") é propositalmente distinto das áreas
-    // do ENEM ("ciencias-natureza"): impede que as duas provas se somem.
-    discipline: n.subject.id,
-    alternatives: n.alternatives.map((a) => ({
-      letter: a.letter,
-      text: "",
-      file: null,
-      isCorrect: a.isCorrect,
-    })),
-    correctAlternative: n.correctAlternative ?? undefined,
-    files: [],
-    statementAvailable: false,
-    official: n.official,
-  };
-}
+// A conversão para o formato do runner é a mesma de qualquer outra prova.
+// Aqui existia uma segunda cópia do adaptador; ela caiu na v8.0.1. O id da
+// matéria do ITA ("physics") continua propositalmente distinto das áreas do
+// ENEM ("ciencias-natureza"), o que impede que as duas provas se somem.
+const toQuestion = toLegacyQuestion;
 
 /** Questões de uma tentativa do ITA, reconstruídas a partir do gabarito. */
 export function itaQuestionsForAttempt(a: Attempt): Question[] {
