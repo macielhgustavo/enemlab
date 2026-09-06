@@ -342,7 +342,7 @@ th,
   font-size: 15px;
   color: var(--void);
   background: linear-gradient(145deg, var(--brand-strong), var(--brand-dim));
-  box-shadow: 0 0 24px rgba(0, 229, 160, 0.45);
+  box-shadow: 0 0 12px rgba(0, 229, 160, 0.22);
 }
 .rail .tag {
   font-size: 9px;
@@ -386,25 +386,42 @@ th,
   color: var(--text);
   background: var(--glass);
 }
+/* Ativo é superfície sutil + um indicador sólido. O gradiente com brilho no
+   fundo e o drop-shadow no ícone somavam três sinais para dizer uma coisa
+   só, e o item ativo brilhava mais que a ação principal da página. */
 .railnav a.active {
-  color: var(--brand-ink);
-  background: linear-gradient(90deg, rgba(0, 229, 160, 0.14), rgba(0, 229, 160, 0.02));
-  box-shadow: inset 0 0 0 1px rgba(0, 229, 160, 0.16);
+  color: var(--text-primary);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--border-default);
 }
 .railnav a.active svg {
   opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 160, 0.6));
+  color: var(--accent-primary);
 }
 .railnav a.active::before {
   content: "";
   position: absolute;
   left: -14px;
-  top: 10px;
-  bottom: 10px;
+  top: 9px;
+  bottom: 9px;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--brand);
-  box-shadow: 0 0 10px var(--brand);
+  background: var(--accent-primary);
+}
+
+/* Agrupamento: onze itens em fila viravam uma lista para ler inteira. */
+.railgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.railgroup + .railgroup {
+  margin-top: var(--space-16);
+}
+.railgroup__label {
+  padding: 0 12px 6px;
+  font-size: 9.5px;
+  color: var(--text-faint);
 }
 
 .rail-foot {
