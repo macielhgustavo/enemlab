@@ -10,6 +10,7 @@ import { questionsFor } from "@/lib/providers/access";
 import type { Language } from "@/lib/domain/types";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import { parseBackup } from "@/lib/validators/backup";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { Card, Empty } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
@@ -115,6 +116,14 @@ export default function DataPage() {
 
   return (
     <>
+      {/* A tela abria direto num <h2>, sem <h1>: o documento começava no
+          segundo nível e um leitor de tela não tinha como saber onde estava. */}
+      <PageHeader
+        eyebrow="Módulo · dados"
+        title="Dados e backup"
+        description="Exporte, importe e confira a saúde do que está guardado neste navegador."
+      />
+
       <div className="grid grid2">
         <Card>
           <h2>Backup e sincronização manual</h2>

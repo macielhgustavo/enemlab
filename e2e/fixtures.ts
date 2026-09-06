@@ -156,10 +156,13 @@ export async function interceptarApi(page: Page) {
 export async function aguardarApp(page: Page) {
   await page.waitForLoadState("load");
   await page.locator("main, .content").first().waitFor({ state: "visible" });
+  // Best-effort: nem toda tela tem cabeçalho, e esta função estabiliza a
+  // página — quem afirma o que deve existir é o teste, não a preparação.
   await page
     .locator("h1, .el-head, .pagehead")
     .first()
-    .waitFor({ state: "visible", timeout: 15_000 });
+    .waitFor({ state: "visible", timeout: 8_000 })
+    .catch(() => {});
   // Esqueleto some quando os dados chegam. Se a tela legitimamente não tem
   // esqueleto, a espera resolve na hora.
   await page

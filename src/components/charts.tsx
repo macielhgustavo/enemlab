@@ -1,5 +1,4 @@
 "use client";
-import { useStore } from "@/lib/store";
 import {
   Area,
   AreaChart,
@@ -16,17 +15,23 @@ import {
 } from "recharts";
 import { Activity, Radar as RadarIcon } from "lucide-react";
 
-// Paletas espelhando os tokens do design system. Derivar do tema (em vez de
-// ler o DOM) mantém a renderização pura e reage à troca de tema na hora.
-const PALETTE = {
-  dark: { brand: "#00e5a0", cyan: "#22d3ee", grid: "rgba(255,255,255,.07)", axis: "#4e6b6a" },
-  light: { brand: "#00875f", cyan: "#0e8fa8", grid: "rgba(6,40,34,.11)", axis: "#8aa39d" },
+/**
+ * Cores dos gráficos, direto dos tokens.
+ *
+ * Aqui havia uma tabela de hex duplicando o design system, e ela ficou para
+ * trás: o eixo no tema claro ainda usava `#8aa39d`, o valor que reprovava
+ * contraste AA e já tinha sido corrigido nos tokens. Duplicata de cor não
+ * envelhece junto com o original.
+ *
+ * `var(--x)` funciona em atributo de apresentação de SVG, então o Recharts
+ * recebe o token e a troca de tema acontece sem re-render.
+ */
+const c = {
+  brand: "var(--accent-primary)",
+  cyan: "var(--accent-info)",
+  grid: "var(--border-subtle)",
+  axis: "var(--text-muted)",
 } as const;
-
-function useChartColors() {
-  const theme = useStore((s) => s.db.theme);
-  return PALETTE[theme === "light" ? "light" : "dark"];
-}
 
 function EmptyChart({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -48,7 +53,6 @@ interface TipProps {
 
 /** Evolução do aproveitamento (média móvel já calculada no domínio). */
 export function EvolutionArea({ values }: { values: number[] }) {
-  const c = useChartColors();
   if (!values || values.length < 2) {
     return (
       <EmptyChart icon={<Activity size={24} />}>
@@ -119,7 +123,6 @@ export interface RadarDatum {
 
 /** Radar de desempenho por área. Só plota áreas com amostra. */
 export function AreaRadar({ data }: { data: RadarDatum[] }) {
-  const c = useChartColors();
   const withSample = data.filter((d) => d.n > 0);
   if (withSample.length < 3) {
     return (
