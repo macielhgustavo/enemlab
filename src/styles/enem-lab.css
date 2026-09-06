@@ -479,7 +479,7 @@
 .el-banklist {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--density-gap);
   margin-top: var(--space-16);
 }
 .el-bankitem {
@@ -555,7 +555,7 @@
 .el-histlist {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--density-gap);
 }
 .el-histitem {
   position: relative;
@@ -746,4 +746,37 @@
   color: var(--text-faint);
   padding-bottom: 2px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ---------------- Fila do SRS ---------------- */
+.el-srslist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+  margin-top: var(--space-16);
+}
+.el-srsitem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-12);
+}
+.el-srsitem__body {
+  min-width: 0;
+}
+.el-srsitem__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+@media (max-width: 767px) {
+  .el-srsitem {
+    grid-template-columns: 1fr auto;
+    row-gap: var(--space-8);
+  }
+  .el-srsitem__body {
+    grid-column: 1 / -1;
+  }
 }

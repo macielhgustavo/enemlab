@@ -15,7 +15,7 @@ const gapVar = (g?: Space) => (g === undefined ? undefined : `var(--space-${g})`
 
 /** Coluna. O empilhamento padrão de qualquer tela. */
 export function Stack({
-  gap = 16,
+  gap,
   className,
   style,
   ...props
@@ -23,7 +23,8 @@ export function Stack({
   return (
     <div
       className={cn("el-stack", className)}
-      style={{ gap: gapVar(gap), ...style }}
+      // Sem `gap` explícito, herda a densidade do container.
+      style={{ gap: gap === undefined ? "var(--density-gap)" : gapVar(gap), ...style }}
       {...props}
     />
   );
@@ -125,11 +126,33 @@ export function PageHeader({
   );
 }
 
-/** Envelope de uma tela: largura máxima e respiro vertical consistentes. */
+export type Density = "compact" | "default" | "spacious";
+
+/**
+ * Envelope de uma tela.
+ *
+ * `density` não é preferência do usuário: é uma decisão de projeto sobre
+ * quanto ar aquele conteúdo merece. Uma lista de centenas de linhas e um
+ * painel de três números não podem respirar igual, e antes respiravam —
+ * porque a densidade só existia na documentação.
+ *
+ * O atributo redefine `--density-gap` e `--density-pad` para a subárvore
+ * inteira, então componente novo herda sem precisar saber que isso existe.
+ */
 export function PageShell({
   className,
   width = "default",
+  density = "default",
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { width?: "default" | "wide" | "narrow" }) {
-  return <div className={cn("el-shell", `el-shell--${width}`, className)} {...props} />;
+}: React.HTMLAttributes<HTMLDivElement> & {
+  width?: "default" | "wide" | "narrow";
+  density?: Density;
+}) {
+  return (
+    <div
+      className={cn("el-shell", `el-shell--${width}`, className)}
+      data-density={density}
+      {...props}
+    />
+  );
 }

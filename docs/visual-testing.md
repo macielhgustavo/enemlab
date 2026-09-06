@@ -80,9 +80,25 @@ Cada item abaixo já causou uma falha aqui:
 | `networkidle` | **não use.** Estourou de forma intermitente; espere conteúdo |
 | Cursor piscando | `caret-color: transparent` |
 
-A tolerância é 1,2% dos pixels (`maxDiffPixelRatio`), em
-`playwright.config.ts`. É larga o bastante para sobreviver a
-sub-pixel e estreita o bastante para pegar layout, cor e componente sumido.
+## Tolerância
+
+O padrão é 1,2% dos pixels (`maxDiffPixelRatio`, em `playwright.config.ts`),
+larga o bastante para sobreviver a sub-pixel entre máquinas.
+
+Ela é uma **fração do total**, então numa página longa 1,2% é bastante espaço
+para uma mudança real se esconder — já aconteceu: uma correção de espaçamento
+no Resultado não fez a captura falhar.
+
+Por isso algumas telas apertam a régua em `e2e/visual.spec.ts`:
+
+| Tela | Tolerância | Por quê |
+|---|---|---|
+| Banco | 0,5% | lista repetitiva: mudança de layout aparece em todas as linhas |
+| Histórico, Revisões, Domínio | 0,6% | curtas e densas em texto |
+| Home, Resultado, Plano | 1,2% | longas, o ruído acumula mais |
+
+Apertar demais troca uma cegueira por outra: alarme falso semanal também
+ensina a ignorar o vermelho.
 
 ## Quando uma captura falha
 

@@ -61,6 +61,19 @@ function openPalette() {
   window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 }
 
+/**
+ * Quanto ar cada tela merece.
+ *
+ * Não é preferência do usuário: é decisão de projeto. Rota não listada fica
+ * no padrão — o default precisa ser o certo para a maioria, senão vira uma
+ * tabela que alguém tem que manter.
+ */
+function densidadeDaRota(pathname: string): "compact" | "default" | "spacious" {
+  if (pathname === "/") return "spacious";
+  if (pathname.startsWith("/bank") || pathname.startsWith("/srs")) return "compact";
+  return "default";
+}
+
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
@@ -164,7 +177,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="content">{children}</main>
+      {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
+          poucos blocos com muito peso. Antes as duas respiravam igual, porque
+          densidade só existia na documentação. */}
+      <main className="content" data-density={densidadeDaRota(pathname)}>
+        {children}
+      </main>
 
       {canOpenResultReview && (
         <Link className="resultReviewShortcut" href={`${pathname}/review`}>
