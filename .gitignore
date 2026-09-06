@@ -48,3 +48,9 @@ next-env.d.ts
 # Python (script de ingestão)
 __pycache__/
 *.py[cod]
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

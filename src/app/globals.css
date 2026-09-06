@@ -31,7 +31,9 @@
   --text: #e8f4f1;
   --text-dim: #a9c0bd;
   --muted: #7d9a97;
-  --text-faint: #4e6b6a;
+  /* Passa AA (5.4:1 sobre surface-1). O valor anterior, #4e6b6a,
+     ficava em 3.3:1 e reprovava em 22 elementos da Home. */
+  --text-faint: #6f8f8c;
 
   /* ---- Linhas / bordas ---- */
   --line: rgba(255, 255, 255, 0.075);
@@ -111,7 +113,9 @@
   --text: #08211c;
   --text-dim: #365049;
   --muted: #55706a;
-  --text-faint: #8aa39d;
+  /* Passa AA (4.8:1 sobre o canvas). O anterior, #8aa39d, dava 2.5:1 —
+     o claro herdou a escala do escuro sem refazer a conta. */
+  --text-faint: #5e706b;
 
   --line: rgba(6, 40, 34, 0.11);
   --line-strong: rgba(6, 40, 34, 0.2);

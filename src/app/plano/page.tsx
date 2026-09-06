@@ -148,7 +148,7 @@ export default function PlanoPage() {
             </div>
           </div>
 
-          <div className="dailyBudgetPresets" aria-label="Tempo disponível para estudar hoje">
+          <div className="dailyBudgetPresets" role="group" aria-label="Tempo disponível para estudar hoje">
             {BUDGET_PRESETS.map((value) => (
               <button
                 key={value}
@@ -167,7 +167,14 @@ export default function PlanoPage() {
               <span>tempo estudado hoje</span>
               <b>{plan.signals.minutesToday}/{plan.budgetMinutes} min</b>
             </div>
-            <div className="dailyPlanProgressTrack" aria-label={`${progress}% do tempo diário usado`}>
+            <div
+              className="dailyPlanProgressTrack"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${progress}% do tempo diário usado`}
+            >
               <span style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -199,7 +206,7 @@ export default function PlanoPage() {
         </Card>
       </div>
 
-      <div className="dailySignalGrid" aria-label="Sinais usados pelo plano">
+      <div className="dailySignalGrid" role="group" aria-label="Sinais usados pelo plano">
         <div className="dailySignal">
           <RotateCcw size={15} />
           <small>retenção</small>
