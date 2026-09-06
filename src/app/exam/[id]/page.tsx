@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS, LETTERS } from "@/lib/domain/constants";
+import { LETTERS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import {
   classifyContent,
   discipline,
   questionKey,
 } from "@/lib/domain/classify";
-import { ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 
 import { fmtSec, shortSec, richText, safeUrl, markdownImageUrls } from "@/lib/format";
 import { questionsForAttempt, finishAttemptInDB } from "@/lib/services/attempts";
@@ -19,15 +20,15 @@ import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
 
-// Matérias de provas fora da taxonomia do ENEM (ex.: ITA).
-const SUBJECT_LABELS: Record<string, string> = {
-  mathematics: "Matemática",
-  physics: "Física",
-  chemistry: "Química",
-  english: "Inglês",
-  portuguese: "Português",
-};
 
+/** Host de uma URL, para dizer ao aluno de onde o documento vem. */
+function hostDe(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "servidor oficial";
+  }
+}
 
 export default function ExamPage() {
   const params = useParams();
@@ -54,6 +55,9 @@ export default function ExamPage() {
   const [pass, setPass] = useState(1);
   // Cronômetro como estado: a renderização lê estado puro, não refs.
   const [clock, setClock] = useState({ elapsed: 0, qSec: 0 });
+  // Leitor da prova oficial embutido. Fica aberto entre as questões: numa
+  // sessão do ITA o aluno lê tudo no mesmo documento.
+  const [leitorAberto, setLeitorAberto] = useState(false);
 
   const timeQ = useRef<Record<string, number>>({});
   const elapsed = useRef(0);
@@ -321,7 +325,7 @@ export default function ExamPage() {
   // "ENEM" em prova de outro vestibular.
   const institution = q.official?.institution ?? "ENEM";
   const area = discipline(q);
-  const subjectLabel = AREA_LABELS[area] || SUBJECT_LABELS[area] || area;
+  const subjectLabel = areaLabel(area, attempt.providerId);
   const selected = answers[k];
   const needRecall = !!attempt.activeRecall && !attempt.revealedRecall;
 
@@ -440,14 +444,43 @@ export default function ExamPage() {
                   oficial na questão <b>{q.number ?? q.index}</b> e marque a alternativa
                   abaixo.
                 </p>
-                <a
-                  className="btn secondary"
-                  href={q.official.documentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink size={15} /> Abrir prova oficial
-                </a>
+                <div className="refActions">
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => setLeitorAberto((v) => !v)}
+                  >
+                    <BookOpen size={15} /> {leitorAberto ? "Fechar leitor" : "Ler aqui"}
+                  </button>
+                  <a
+                    className="btn secondary"
+                    href={q.official.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink size={15} /> Abrir prova oficial
+                  </a>
+                </div>
+
+                {/* Carregado só quando o aluno pede: a prova do ITA passa de
+                    12 MB. O arquivo vem do servidor oficial, não do nosso — o
+                    app referencia o documento, não o hospeda. */}
+                {leitorAberto && (
+                  <div className="refEmbed">
+                    <iframe
+                      // Parâmetros de exibição do visualizador de PDF: esconde
+                      // as miniaturas e ajusta à largura. É preferência de
+                      // leitura, não alteração do documento.
+                      src={`${q.official.documentUrl}#navpanes=0&view=FitH`}
+                      title={`Prova oficial ${q.official.institution} ${q.year}`}
+                    />
+                    <div className="refEmbedNote">
+                      Documento oficial do {q.official.institution}, carregado direto de{" "}
+                      {hostDe(q.official.documentUrl)}. Se o leitor aparecer em branco, o
+                      navegador não exibe PDF embutido — use &ldquo;Abrir prova oficial&rdquo;.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -491,7 +524,19 @@ export default function ExamPage() {
               })}
             </div>
             <div className="sourceLine">
-              ENEM {q.year} • conteúdo classificado automaticamente como “{content}”.
+              {/* A classificação de conteúdo é heurística sobre o enunciado.
+                  Em modo referência não há enunciado aqui, então dizer o
+                  conteúdo seria chute — a linha vira só procedência. */}
+              {q.statementAvailable === false ? (
+                <>
+                  {institution} {q.year} • questão {q.number ?? q.index} • enunciado na prova
+                  oficial.
+                </>
+              ) : (
+                <>
+                  {institution} {q.year} • conteúdo classificado automaticamente como “{content}”.
+                </>
+              )}
             </div>
           </div>
         )}

@@ -6,43 +6,19 @@
 // tocar nas telas.
 //
 // Transição: a aplicação ainda consome o formato `Question` (herdado do ENEM).
-// O alvo é `NormalizedQuestion`, e este módulo é a ponte enquanto isso —
-// por isso o adaptador abaixo é explícito em vez de escondido.
+// O alvo é `NormalizedQuestion`, e a ponte é o adaptador em `./legacy`.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
 import { ENEM_PROVIDER_ID } from "./enem";
+import { toLegacyQuestion } from "./legacy";
 import { getProvider, resolveProviderId } from "./registry";
-import type { NormalizedQuestion } from "./types";
+
+export { toLegacyQuestion };
 
 export interface QuestionQuery {
   year: number;
   language?: Language;
   force?: boolean;
-}
-
-/** Converte a forma normalizada de volta ao formato consumido hoje. */
-export function toLegacyQuestion(q: NormalizedQuestion): Question {
-  return {
-    index: q.index,
-    year: q.year,
-    language: q.language,
-    discipline: q.subject.area,
-    context: q.context ?? undefined,
-    alternativesIntroduction: q.alternativesIntroduction ?? undefined,
-    alternatives: q.alternatives.map((a) => ({
-      letter: a.letter,
-      text: a.text ?? "",
-      file: a.file,
-      isCorrect: a.isCorrect,
-    })),
-    correctAlternative: q.correctAlternative ?? undefined,
-    files: q.files,
-    // Procedência precisa sobreviver à conversão: sem isto o Banco e o runner
-    // não sabem que a questão é de prova digitalizada.
-    number: q.number,
-    statementAvailable: q.statementAvailable,
-    official: q.official,
-  };
 }
 
 /**

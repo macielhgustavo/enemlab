@@ -3,7 +3,12 @@
 import { pct } from "../format";
 import { contentAllLabels } from "./constants";
 import { classifyContent, discipline, isUnclassifiedContent, questionKey } from "./classify";
-import { DEFAULT_PROVIDER_ID, filterByProvider, resolveProviderId } from "../providers/registry";
+import {
+  DEFAULT_PROVIDER_ID,
+  filterByProvider,
+  resolveProviderId,
+  sameProvider,
+} from "../providers/registry";
 import type {
   Attempt,
   DB,
@@ -69,9 +74,12 @@ export function questionTagsByRow(db: DB, row: EnrichedRow): string[] {
   return [row.content].filter(Boolean);
 }
 
-export function areaStats(db: DB): Record<string, Tally> {
+export function areaStats(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): Record<string, Tally> {
   const out: Record<string, Tally> = {};
-  officialRows(db)
+  officialRowsOf(db, providerId)
     .filter((x) => x.correct)
     .forEach((x) => {
       (out[x.area] ??= { c: 0, t: 0 }).t++;
@@ -80,17 +88,21 @@ export function areaStats(db: DB): Record<string, Tally> {
   return out;
 }
 
-export function rollingRows(db: DB, n = 100): EnrichedRow[] {
-  return officialRows(db)
+export function rollingRows(
+  db: DB,
+  n = 100,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): EnrichedRow[] {
+  return officialRowsOf(db, providerId)
     .filter((x) => x.correct)
     .slice(-n);
 }
 
-export function streakDays(db: DB): number {
+export function streakDays(db: DB, providerId: string = DEFAULT_PROVIDER_ID): number {
   const dates = [
     ...new Set(
       db.attempts
-        .filter((a) => a.result)
+        .filter((a) => a.result && sameProvider(a.providerId, providerId))
         .map((a) => new Date(a.finishedAt!).toISOString().slice(0, 10)),
     ),
   ]
@@ -160,8 +172,12 @@ export interface WeakContent extends Tally {
   name: string;
   p: number;
 }
-export function weakestContents(db: DB, n = 5): WeakContent[] {
-  const st = masteryStats(db);
+export function weakestContents(
+  db: DB,
+  n = 5,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): WeakContent[] {
+  const st = masteryStats(db, providerId);
   return Object.entries(st)
     .filter(([name, v]) => v.t > 0 && !isUnclassifiedContent(name))
     .map(([name, v]) => ({ name, ...v, p: pct(v.c, v.t) }))
@@ -329,8 +345,13 @@ export function rebuildSessions(db: DB): StudySession[] {
 }
 
 // Série de evolução: média móvel de acerto ao longo das questões corrigidas.
-export function evolutionSeries(db: DB, maxPoints = 30, window = 50): number[] {
-  const rows = officialRows(db).filter((x) => x.correct);
+export function evolutionSeries(
+  db: DB,
+  maxPoints = 30,
+  window = 50,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): number[] {
+  const rows = officialRowsOf(db, providerId).filter((x) => x.correct);
   if (rows.length < 2) return [];
   const vals: number[] = [];
   const stepSize = Math.max(1, Math.floor(rows.length / maxPoints));

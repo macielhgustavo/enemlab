@@ -162,3 +162,66 @@ describe("merge com várias provas", () => {
     expect(merged.srs["ita-2026-first-1"].providerId).toBe("ita");
   });
 });
+
+describe("ida e volta pela nuvem", () => {
+  // syncCloudState manda o DB inteiro como JSON (p_data) e recebe de volta o
+  // que o outro aparelho gravou. Não há filtro de campos no caminho, e é
+  // justamente por isso que vale travar: qualquer normalização introduzida
+  // aqui apagaria a origem da prova de tentativas já salvas, sem erro nenhum.
+  function comDuasProvas(): DB {
+    return {
+      v: 6,
+      schema: 6.6,
+      build: "test",
+      theme: "dark",
+      activeProvider: "ita",
+      attempts: [
+        {
+          id: "a_enem",
+          year: 2023,
+          questionRefs: [{ index: 1, year: 2023, language: "ingles", discipline: "matematica" }],
+        },
+        {
+          id: "a_ita",
+          providerId: "ita",
+          year: 2026,
+          questionRefs: [
+            { providerId: "ita", index: 3, year: 2026, language: null, discipline: "physics" },
+          ],
+        },
+      ],
+      notes: {},
+      srs: {
+        "2023-1-pt-matematica": { reps: 2, interval: 7, due: "2026-09-10", year: 2023, index: 1, area: "matematica" },
+        "ita-2026-first-3": { reps: 1, interval: 2, due: "2026-09-11", year: 2026, index: 3, area: "physics", providerId: "ita" },
+      },
+      sessions: [],
+      goals: { questions: 150, essays: 2, reviews: 30 },
+      lastOpened: null,
+      lastBackupAt: null,
+    } as unknown as DB;
+  }
+
+  it("a serialização preserva a origem da prova", () => {
+    const original = comDuasProvas();
+    const daNuvem = JSON.parse(JSON.stringify(original)) as DB;
+
+    expect(daNuvem).toEqual(original);
+    expect(daNuvem.activeProvider).toBe("ita");
+    expect(daNuvem.attempts.find((a) => a.id === "a_ita")!.providerId).toBe("ita");
+    // Legada continua sem carimbo: é o que permite resolvê-la como ENEM.
+    expect(daNuvem.attempts.find((a) => a.id === "a_enem")!.providerId).toBeUndefined();
+    expect(daNuvem.srs["ita-2026-first-3"].providerId).toBe("ita");
+    expect(daNuvem.attempts.find((a) => a.id === "a_ita")!.questionRefs[0].providerId).toBe("ita");
+  });
+
+  it("aparelho novo recebe as duas provas sem misturar", () => {
+    const doOutroAparelho = JSON.parse(JSON.stringify(comDuasProvas())) as DB;
+    const aparelhoVazio = { ...comDuasProvas(), attempts: [], srs: {} } as DB;
+
+    const merged = mergeCloudDB(aparelhoVazio, doOutroAparelho);
+    expect(merged.attempts.map((a) => a.id).sort()).toEqual(["a_enem", "a_ita"]);
+    expect(Object.keys(merged.srs).sort()).toEqual(["2023-1-pt-matematica", "ita-2026-first-3"]);
+    expect(merged.attempts.find((a) => a.id === "a_ita")!.providerId).toBe("ita");
+  });
+});

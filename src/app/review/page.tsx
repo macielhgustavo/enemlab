@@ -3,7 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS, REASONS } from "@/lib/domain/constants";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { sameProvider } from "@/lib/providers";
+import { REASONS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import { shortSec } from "@/lib/format";
 import { parseManualTags } from "@/lib/domain/stats";
 import { buildRetryAttempt } from "@/lib/services/attempts";
@@ -24,6 +27,7 @@ export default function ReviewPage() {
   const router = useRouter();
   const hydrated = useHydrated();
   const [filter, setFilter] = useState("all");
+  const { providerId } = useActiveProvider();
 
   function saveNote(nk: string, field: "reason" | "tags" | "text" | "knew", value: string) {
     mutate((d) => {
@@ -49,8 +53,10 @@ export default function ReviewPage() {
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
+  // Caderno de erros respeita a prova ativa: um erro do ITA nunca aparece
+  // como se fosse do ENEM.
   const items = db.attempts
-    .filter((a) => a.result)
+    .filter((a) => a.result && sameProvider(a.providerId, providerId))
     .flatMap((a) =>
       a.result!.rows
         .filter((r) => r.isCorrect === false)
@@ -99,7 +105,7 @@ export default function ReviewPage() {
                     ENEM {a.year} • questão {r.index}
                   </b>
                   <div className="muted" style={{ fontSize: 12 }}>
-                    {AREA_LABELS[r.area] || r.area} • {r.selected || "—"} → {r.correct} •{" "}
+                    {areaLabel(r.area, providerId)} • {r.selected || "—"} → {r.correct} •{" "}
                     {r.confidence || "sem confiança"} • {shortSec(r.timeSec)}
                   </div>
                   <div className="multiTags">

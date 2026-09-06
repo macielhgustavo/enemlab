@@ -6,6 +6,7 @@ import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec } from "@/lib/format";
 import { rebuildSessions, coherenceForAttempt } from "@/lib/domain/stats";
 import { Empty, Card, PageHead } from "@/components/ui";
+import { examLabel } from "@/lib/providers/label";
 
 export default function HistoryPage() {
   const db = useStore((s) => s.db);
@@ -39,7 +40,7 @@ export default function HistoryPage() {
       <PageHead
         eyebrow="Módulo · histórico"
         title="Histórico"
-        sub="Tentativas salvas neste navegador, com sessão e resultado."
+        sub="Todas as provas, juntas de propósito: cada linha identifica a banca."
         right={
           <Link className="btn link-btn" href="/practice">
             Novo treino
@@ -50,7 +51,7 @@ export default function HistoryPage() {
       <Card>
         <div className="htitle">
           <h2>Tentativas</h2>
-          <span className="badge2">{db.attempts.length} registradas</span>
+          <span className="badge2">{db.attempts.length} registradas · todas as provas</span>
         </div>
         <div className="tablewrap">
           {db.attempts.length === 0 ? (
@@ -71,7 +72,7 @@ export default function HistoryPage() {
                 {db.attempts.map((a) => (
                   <tr key={a.id}>
                     <td>{new Date(a.startedAt).toLocaleString("pt-BR")}</td>
-                    <td>ENEM {a.year}</td>
+                    <td>{examLabel(a.providerId)} {a.year}</td>
                     <td>{a.realDay ? `real dia ${a.realDay}` : a.mode}</td>
                     <td>
                       <b>
@@ -163,7 +164,7 @@ export default function HistoryPage() {
               <select value={cmpA || completed[0]?.id} onChange={(e) => setCmpA(e.target.value)}>
                 {completed.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {new Date(a.finishedAt!).toLocaleDateString("pt-BR")} • ENEM {a.year} •{" "}
+                    {new Date(a.finishedAt!).toLocaleDateString("pt-BR")} • {examLabel(a.providerId)} {a.year} •{" "}
                     {pct(a.result!.correct, a.result!.total)}%
                   </option>
                 ))}
@@ -186,7 +187,7 @@ export default function HistoryPage() {
               <div className="compareGrid">
                 <div className="compareSide">
                   <b>
-                    ENEM {a1.year} • {mA.p}%
+                    {examLabel(a1.providerId)} {a1.year} • {mA.p}%
                   </b>
                   <div className="muted">
                     tempo médio {shortSec(mA.avg)} • coerência {mA.co.label}
@@ -195,7 +196,7 @@ export default function HistoryPage() {
                 <div className="vs">VS</div>
                 <div className="compareSide">
                   <b>
-                    ENEM {a2.year} • {mB.p}%
+                    {examLabel(a2.providerId)} {a2.year} • {mB.p}%
                   </b>
                   <div className="muted">
                     tempo médio {shortSec(mB.avg)} • coerência {mB.co.label}

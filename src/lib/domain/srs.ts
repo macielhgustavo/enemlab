@@ -1,6 +1,6 @@
 // Revisão espaçada (portada do v6).
 import { SRS_INTERVALS } from "./constants";
-import { resolveProviderId } from "../providers/registry";
+import { DEFAULT_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers/registry";
 import type { Attempt, DB, ResultRow, SrsEntry } from "./types";
 
 // Atualiza a fila SRS a partir de uma linha corrigida (muta db.srs).
@@ -43,15 +43,17 @@ export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
 export interface DueSrs extends SrsEntry {
   key: string;
 }
-export function dueSRS(db: DB): DueSrs[] {
+export function dueSRS(db: DB, providerId: string = DEFAULT_PROVIDER_ID): DueSrs[] {
   return Object.entries(db.srs)
+    .filter(([, v]) => sameProvider(v.providerId, providerId))
     .filter(([, v]) => new Date(v.due).getTime() <= Date.now())
     .map(([key, v]) => ({ key, ...v }))
     .sort((a, b) => +new Date(a.due) - +new Date(b.due));
 }
 
-export function allSrs(db: DB): DueSrs[] {
+export function allSrs(db: DB, providerId: string = DEFAULT_PROVIDER_ID): DueSrs[] {
   return Object.entries(db.srs)
+    .filter(([, v]) => sameProvider(v.providerId, providerId))
     .map(([key, v]) => ({ key, ...v }))
     .sort((a, b) => +new Date(a.due) - +new Date(b.due));
 }

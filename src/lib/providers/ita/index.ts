@@ -55,13 +55,24 @@ export function itaFirstPhaseUrl(year: number): string {
 }
 
 /** URLs oficiais das provas da 2ª fase, por matéria. */
+/**
+ * Primeiro ano em que o ITA publica a prova de Português da 2ª fase como
+ * arquivo próprio. Conferido por HEAD em todas as edições ingeridas
+ * (2019–2026) em 2026-09-06: Matemática, Física e Química respondem 200 nas
+ * oito; Português responde 404 até 2024 e 200 de 2025 em diante.
+ *
+ * Sem esta regra o app oferecia um link morto em seis das oito edições.
+ */
+const ITA_2F_PORTUGUES_DESDE = 2025;
+
 export function itaSecondPhaseUrls(year: number): { subject: string; label: string; url: string }[] {
   const slugs: [string, string][] = [
     ["matematica", "mathematics"],
     ["fisica", "physics"],
     ["quimica", "chemistry"],
-    ["portugues", "portuguese"],
   ];
+  if (year >= ITA_2F_PORTUGUES_DESDE) slugs.push(["portugues", "portuguese"]);
+
   return slugs.map(([slug, subject]) => ({
     subject,
     label: SUBJECT_LABELS[subject] ?? subject,

@@ -156,4 +156,24 @@ describe("2ª fase", () => {
     ]);
     expect(urls[0].url).toBe("https://www.vestibular.ita.br/provas/matematica_2026_2f.pdf");
   });
+
+  // Conferido por HEAD nas oito edições ingeridas em 2026-09-06: Matemática,
+  // Física e Química respondem 200 em todas; Português responde 404 até 2024.
+  // Montar a URL pelo padrão sem esta regra oferecia link morto ao aluno.
+  it("só oferece Português nas edições em que o ITA publica o arquivo", () => {
+    for (const ano of [2019, 2020, 2021, 2022, 2023, 2024]) {
+      expect(itaSecondPhaseUrls(ano).map((u) => u.subject)).not.toContain("portuguese");
+    }
+    for (const ano of [2025, 2026]) {
+      expect(itaSecondPhaseUrls(ano).map((u) => u.subject)).toContain("portuguese");
+    }
+  });
+
+  it("as três matérias constantes aparecem em todas as edições", () => {
+    for (const ano of itaYears()) {
+      expect(itaSecondPhaseUrls(ano).map((u) => u.subject)).toEqual(
+        expect.arrayContaining(["mathematics", "physics", "chemistry"]),
+      );
+    }
+  });
 });

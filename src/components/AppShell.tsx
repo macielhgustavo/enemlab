@@ -21,6 +21,7 @@ import {
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
+import { resolveProviderId } from "@/lib/providers";
 import { useCloudSync } from "@/components/CloudSyncProvider";
 import CommandPalette from "@/components/CommandPalette";
 import ExamSwitch from "@/components/ExamSwitch";
@@ -60,7 +61,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const cloud = useCloudSync();
 
-  const due = hydrated ? dueSRS(db).length : 0;
+  const due = hydrated ? dueSRS(db, resolveProviderId(db.activeProvider)).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
   const sysLabel = !hydrated

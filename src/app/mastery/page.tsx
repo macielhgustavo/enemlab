@@ -25,7 +25,7 @@ export default function MasteryPage() {
   // lista inteira zerada seria ruído: só aparece o que foi medido.
   const entries = Object.entries(st).filter(([, v]) => (isEnem ? true : v.t > 0));
   const tested = entries.filter(([, v]) => v.t > 0).length;
-  const weak = weakestContents(db, 8);
+  const weak = weakestContents(db, 8, providerId);
 
   // Tipos de erro classificados
   const reasonCounts: Record<string, number> = {};

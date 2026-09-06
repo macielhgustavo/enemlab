@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct, shortSec } from "@/lib/format";
-import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
+import { areasOf } from "@/lib/providers/taxonomy";
 import {
 
   areaStats,
@@ -29,6 +30,8 @@ import { dueSRS } from "@/lib/domain/srs";
 import DomainMap from "@/components/DomainMap";
 import { AnimatedNumber, Ring } from "@/components/dash";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
+import { examLabel } from "@/lib/providers/label";
+import { sameProvider } from "@/lib/providers";
 
 const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
   ssr: false,
@@ -61,20 +64,27 @@ const WD = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 export default function HomePage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [hora] = useState(() => new Date().getHours());
   const [hoje] = useState(() => new Date());
 
   if (!hydrated) return <DashboardSkeleton />;
 
-  const roll = rollingRows(db, 100);
+  const roll = rollingRows(db, 100, providerId);
   const rollPct = roll.length ? pct(roll.filter((x) => x.isCorrect).length, roll.length) : null;
-  const due = dueSRS(db).length;
-  const streak = streakDays(db);
-  const inProg = db.attempts.find((a) => !a.finishedAt);
-  const stats = areaStats(db);
-  const weak = weakestContents(db, 4);
-  const evo = evolutionSeries(db);
-  const completed = db.attempts.filter((a) => a.result);
+  const due = dueSRS(db, providerId).length;
+  const streak = streakDays(db, providerId);
+  // Sessões e atividade também são da prova ativa: sem isto o painel do ITA
+  // conta sessões do ENEM e sugere retomar uma prova de outra banca.
+  const inProg = db.attempts.find(
+    (a) => !a.finishedAt && sameProvider(a.providerId, providerId),
+  );
+  const stats = areaStats(db, providerId);
+  const weak = weakestContents(db, 4, providerId);
+  const evo = evolutionSeries(db, undefined, undefined, providerId);
+  const completed = db.attempts.filter(
+    (a) => a.result && sameProvider(a.providerId, providerId),
+  );
 
   // ---- Meta diária: fatia da meta semanal ----
   const alvoDia = Math.max(1, Math.round((db.goals.questions || 0) / 7));
@@ -112,16 +122,19 @@ export default function HomePage() {
   const deltaPP = evo.length >= 2 ? Math.round(evo[evo.length - 1] - evo[0]) : null;
   const tempoTotal = completed.reduce((s, a) => s + (a.elapsed || 0), 0);
 
-  const areasMap = AREA_ORDER.map((k) => {
-    const v = stats[k] || { c: 0, t: 0 };
-    return { id: k, label: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : null, n: v.t };
+  // A divisão de conteúdo é de cada banca: o ENEM tem quatro áreas, o ITA tem
+  // matérias. Ler a taxonomia do provider evita o painel do ITA listar áreas
+  // do ENEM zeradas.
+  const areasMap = areasOf(providerId).map(({ id, label }) => {
+    const v = stats[id] || { c: 0, t: 0 };
+    return { id, label, pct: v.t ? pct(v.c, v.t) : null, n: v.t };
   });
 
   // ---- Próxima missão, derivada do estado real ----
   const missao = inProg
     ? {
         k: "sessão em andamento",
-        t: `Retomar ENEM ${inProg.year}`,
+        t: `Retomar ${examLabel(inProg.providerId)} ${inProg.year}`,
         meta: [
           `${Object.keys(inProg.answers || {}).length}/${inProg.questionRefs.length} respondidas`,
           inProg.mode,
@@ -372,7 +385,7 @@ export default function HomePage() {
               Ver detalhes <ArrowRight size={13} />
             </Link>
           </div>
-          <DomainMap areas={areasMap} />
+          <DomainMap areas={areasMap} hub={examLabel(providerId)} />
         </section>
 
         <section className="hcard">
@@ -397,7 +410,7 @@ export default function HomePage() {
                           ? "Revisão de erros"
                           : a.realDay
                             ? `ENEM Real • Dia ${a.realDay}`
-                            : `Sessão ENEM ${a.year}`}
+                            : `Sessão ${examLabel(a.providerId)} ${a.year}`}
                     </div>
                     <div className="s">
                       {pct(a.result!.correct, a.result!.total)}% • {a.result!.total} questões

@@ -11,30 +11,14 @@ import {
   itaYears,
 } from "../providers";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
+import { toLegacyQuestion } from "../providers/legacy";
 import type { Attempt, DB, Question } from "../domain/types";
 
-/** Converte a questão normalizada do ITA para o formato que o runner consome. */
-function toQuestion(n: ReturnType<typeof itaFirstPhaseQuestions>[number]): Question {
-  return {
-    index: n.index,
-    number: n.number,
-    year: n.year,
-    language: n.language,
-    // O id da matéria do ITA ("physics") é propositalmente distinto das áreas
-    // do ENEM ("ciencias-natureza"): impede que as duas provas se somem.
-    discipline: n.subject.id,
-    alternatives: n.alternatives.map((a) => ({
-      letter: a.letter,
-      text: "",
-      file: null,
-      isCorrect: a.isCorrect,
-    })),
-    correctAlternative: n.correctAlternative ?? undefined,
-    files: [],
-    statementAvailable: false,
-    official: n.official,
-  };
-}
+// A conversão para o formato do runner é a mesma de qualquer outra prova.
+// Aqui existia uma segunda cópia do adaptador; ela caiu na v8.0.1. O id da
+// matéria do ITA ("physics") continua propositalmente distinto das áreas do
+// ENEM ("ciencias-natureza"), o que impede que as duas provas se somem.
+const toQuestion = toLegacyQuestion;
 
 /** Questões de uma tentativa do ITA, reconstruídas a partir do gabarito. */
 export function itaQuestionsForAttempt(a: Attempt): Question[] {
@@ -148,6 +132,40 @@ export function buildItaAdaptiveAttempt(db: DB, n = 15): Attempt {
       year: q.year,
       language: q.language ?? null,
       discipline: String(q.discipline),
+    })),
+  };
+}
+
+/**
+ * Fila de revisão do ITA a partir de itens do SRS. Agrupa por edição para o
+ * aluno não precisar alternar entre PDFs a cada questão.
+ */
+export function buildItaReviewAttempt(
+  itens: { key: string; year: number; index: number; area?: string; language?: string | null }[],
+  recall = false,
+): Attempt {
+  if (!itens.length) throw new Error("Nenhuma revisão vencida do ITA.");
+
+  // Edição com mais itens vencidos vira a sessão: menos troca de documento.
+  const porAno = new Map<number, typeof itens>();
+  for (const i of itens) {
+    const lista = porAno.get(i.year) ?? [];
+    lista.push(i);
+    porAno.set(i.year, lista);
+  }
+  const [year, escolhidos] = [...porAno.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+
+  const base = buildItaFirstPhaseAttempt(year, { minutes: Math.max(20, escolhidos.length * 5) });
+  return {
+    ...base,
+    mode: recall ? "srs-recall" : "srs",
+    activeRecall: recall,
+    questionRefs: escolhidos.map((i) => ({
+      providerId: ITA_PROVIDER_ID,
+      index: i.index,
+      year: i.year,
+      language: i.language ?? null,
+      discipline: i.area ?? "unknown",
     })),
   };
 }
