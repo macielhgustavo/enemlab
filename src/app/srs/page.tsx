@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { AREA_LABELS } from "@/lib/domain/constants";
 import { allSrs, dueSRS } from "@/lib/domain/srs";
 import { buildDueReviewsAttempt, buildActiveRecallAttempt } from "@/lib/services/attempts";
@@ -13,6 +14,7 @@ export default function SrsPage() {
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   // Relógio como estado explícito: mantém a renderização pura e faz a
@@ -27,7 +29,7 @@ export default function SrsPage() {
     setBusy(true);
     setErr("");
     try {
-      const a = await buildDueReviewsAttempt(db, limit);
+      const a = await buildDueReviewsAttempt(db, limit, providerId);
       addAttempt(a);
       router.push(`/exam/${a.id}`);
     } catch (e) {
@@ -51,8 +53,8 @@ export default function SrsPage() {
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
-  const all = allSrs(db);
-  const due = dueSRS(db);
+  const all = allSrs(db, providerId);
+  const due = dueSRS(db, providerId);
   const soon = all.filter(
     (x) => +new Date(x.due) > now && +new Date(x.due) <= now + 3 * 86400000,
   );

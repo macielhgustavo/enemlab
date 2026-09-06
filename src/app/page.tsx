@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct, shortSec } from "@/lib/format";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
 import {
@@ -29,6 +30,7 @@ import { dueSRS } from "@/lib/domain/srs";
 import DomainMap from "@/components/DomainMap";
 import { AnimatedNumber, Ring } from "@/components/dash";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
+import { examLabel } from "@/lib/providers/label";
 
 const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
   ssr: false,
@@ -61,19 +63,20 @@ const WD = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 export default function HomePage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [hora] = useState(() => new Date().getHours());
   const [hoje] = useState(() => new Date());
 
   if (!hydrated) return <DashboardSkeleton />;
 
-  const roll = rollingRows(db, 100);
+  const roll = rollingRows(db, 100, providerId);
   const rollPct = roll.length ? pct(roll.filter((x) => x.isCorrect).length, roll.length) : null;
-  const due = dueSRS(db).length;
-  const streak = streakDays(db);
+  const due = dueSRS(db, providerId).length;
+  const streak = streakDays(db, providerId);
   const inProg = db.attempts.find((a) => !a.finishedAt);
-  const stats = areaStats(db);
-  const weak = weakestContents(db, 4);
-  const evo = evolutionSeries(db);
+  const stats = areaStats(db, providerId);
+  const weak = weakestContents(db, 4, providerId);
+  const evo = evolutionSeries(db, undefined, undefined, providerId);
   const completed = db.attempts.filter((a) => a.result);
 
   // ---- Meta diária: fatia da meta semanal ----
@@ -121,7 +124,7 @@ export default function HomePage() {
   const missao = inProg
     ? {
         k: "sessão em andamento",
-        t: `Retomar ENEM ${inProg.year}`,
+        t: `Retomar ${examLabel(inProg.providerId)} ${inProg.year}`,
         meta: [
           `${Object.keys(inProg.answers || {}).length}/${inProg.questionRefs.length} respondidas`,
           inProg.mode,
@@ -397,7 +400,7 @@ export default function HomePage() {
                           ? "Revisão de erros"
                           : a.realDay
                             ? `ENEM Real • Dia ${a.realDay}`
-                            : `Sessão ENEM ${a.year}`}
+                            : `Sessão ${examLabel(a.providerId)} ${a.year}`}
                     </div>
                     <div className="s">
                       {pct(a.result!.correct, a.result!.total)}% • {a.result!.total} questões

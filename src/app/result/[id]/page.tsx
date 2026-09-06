@@ -10,6 +10,8 @@ import { AREA_LABELS } from "@/lib/domain/constants";
 import { discipline } from "@/lib/domain/classify";
 import { coherenceForAttempt, fatigueForAttempt } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
+import { resolveProviderId } from "@/lib/providers";
+import { examLabel } from "@/lib/providers/label";
 import {
   questionsForAttempt,
   buildRetryAttempt,
@@ -225,7 +227,7 @@ export default function ResultPage() {
         </span>
       </div>,
     );
-  const dueNow = dueSRS(db).length;
+  const dueNow = dueSRS(db, resolveProviderId(a.providerId)).length;
   blocks.push(
     <div className="reportBlock" key="next">
       <strong>Próxima ação</strong>
@@ -242,7 +244,7 @@ export default function ResultPage() {
   return (
     <>
       <PageHead
-        eyebrow={`Resultado · ENEM ${a.year}`}
+        eyebrow={`Resultado · ${examLabel(a.providerId)} ${a.year}${a.providerId === "ita" ? " · 1ª fase" : ""}`}
         title={`${p}% de acerto`}
         sub={`Acertos brutos; não é TRI.${a.essay ? " Redação salva separadamente." : ""}`}
       />

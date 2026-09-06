@@ -11,6 +11,7 @@ import { buildAdaptiveAttempt } from "@/lib/services/attempts";
 import { buildItaAdaptiveAttempt } from "@/lib/services/ita-attempts";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { ITA_PROVIDER_ID } from "@/lib/providers";
+import { examLabel } from "@/lib/providers/label";
 import { Metric, Empty, Card } from "@/components/ui";
 
 export default function AdaptivePage() {
@@ -40,8 +41,8 @@ export default function AdaptivePage() {
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
   const cand = adaptiveCandidates(db);
-  const weak = weakestContents(db, 4);
-  const due = dueSRS(db);
+  const weak = weakestContents(db, 4, providerId);
+  const due = dueSRS(db, providerId);
   const certezaWrong = officialRows(db).filter(
     (x) => x.isCorrect === false && x.confidence === "certeza",
   ).length;
@@ -93,7 +94,7 @@ export default function AdaptivePage() {
                 <div>
                   <b>{x.content}</b>
                   <div className="muted" style={{ fontSize: 11 }}>
-                    ENEM {x.year} • {x.confidence || "sem confiança"} • {shortSec(x.timeSec)}
+                    {examLabel(providerId)} {x.year} • {x.confidence || "sem confiança"} • {shortSec(x.timeSec)}
                   </div>
                 </div>
               </div>

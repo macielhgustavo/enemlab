@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BrainCircuit, Clock3, Gauge, RotateCcw, Sparkles, Target } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct } from "@/lib/format";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
@@ -27,6 +28,7 @@ export default function PlanoPage() {
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [now] = useState(() => new Date());
   const [budget, setBudget] = useState(() => {
     if (typeof window === "undefined") return 60;
@@ -50,7 +52,7 @@ export default function PlanoPage() {
   }
 
   async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
-    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions);
+    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
     if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
     if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
     return buildTrainingAttempt(db, {
@@ -85,8 +87,8 @@ export default function PlanoPage() {
 
   if (!hydrated) return <Card><span className="muted">Carregando plano…</span></Card>;
 
-  const plan = buildDailyPlan(db, budget, now);
-  const stats = areaStats(db);
+  const plan = buildDailyPlan(db, budget, now, providerId);
+  const stats = areaStats(db, providerId);
   const activePlan = db.attempts.find(
     (attempt) => attempt.plan?.source === "daily-plan" && attempt.plan.dateKey === plan.dateKey && !attempt.finishedAt,
   );
