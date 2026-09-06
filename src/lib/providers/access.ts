@@ -37,6 +37,11 @@ export function toLegacyQuestion(q: NormalizedQuestion): Question {
     })),
     correctAlternative: q.correctAlternative ?? undefined,
     files: q.files,
+    // Procedência precisa sobreviver à conversão: sem isto o Banco e o runner
+    // não sabem que a questão é de prova digitalizada.
+    number: q.number,
+    statementAvailable: q.statementAvailable,
+    official: q.official,
   };
 }
 

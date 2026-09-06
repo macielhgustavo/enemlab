@@ -8,6 +8,9 @@ import { officialRows, weakestContents } from "@/lib/domain/stats";
 import { adaptiveCandidates } from "@/lib/domain/adaptive";
 import { dueSRS } from "@/lib/domain/srs";
 import { buildAdaptiveAttempt } from "@/lib/services/attempts";
+import { buildItaAdaptiveAttempt } from "@/lib/services/ita-attempts";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { ITA_PROVIDER_ID } from "@/lib/providers";
 import { Metric, Empty, Card } from "@/components/ui";
 
 export default function AdaptivePage() {
@@ -15,6 +18,8 @@ export default function AdaptivePage() {
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
+  const isIta = providerId === ITA_PROVIDER_ID;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -22,7 +27,8 @@ export default function AdaptivePage() {
     setBusy(true);
     setErr("");
     try {
-      const a = await buildAdaptiveAttempt(db, n);
+      // O adaptativo do ITA usa só o histórico do ITA, e só objetivas.
+      const a = isIta ? buildItaAdaptiveAttempt(db, n) : await buildAdaptiveAttempt(db, n);
       addAttempt(a);
       router.push(`/exam/${a.id}`);
     } catch (e) {

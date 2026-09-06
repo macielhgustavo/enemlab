@@ -8,8 +8,10 @@ import {
   itaAnswerKey,
   itaFirstPhaseQuestions,
   itaFirstPhaseUrl,
+  itaYears,
 } from "../providers";
-import type { Attempt, Question } from "../domain/types";
+import { buildAdaptiveQuestions } from "../domain/adaptive";
+import type { Attempt, DB, Question } from "../domain/types";
 
 /** Converte a questão normalizada do ITA para o formato que o runner consome. */
 function toQuestion(n: ReturnType<typeof itaFirstPhaseQuestions>[number]): Question {
@@ -116,4 +118,36 @@ export function buildItaFirstPhaseAttempt(
 /** Link do documento oficial usado por uma tentativa do ITA. */
 export function itaAttemptSourceUrl(a: Attempt): string {
   return itaFirstPhaseUrl(a.year);
+}
+
+/**
+ * Fila adaptativa do ITA: junta as objetivas de todas as edições ingeridas e
+ * deixa o motor ranquear pelo histórico do próprio ITA. Sem TRI e sem
+ * discursivas — só 1ª fase.
+ */
+export function buildItaAdaptiveAttempt(db: DB, n = 15): Attempt {
+  const anos = itaYears();
+  if (!anos.length) throw new Error("Nenhuma edição do ITA disponível.");
+
+  const pool: Question[] = [];
+  for (const year of anos) {
+    pool.push(...itaFirstPhaseQuestions(year).map(toQuestion));
+  }
+
+  const escolhidas = buildAdaptiveQuestions(db, pool, n, ITA_PROVIDER_ID);
+  if (!escolhidas.length) throw new Error("Não encontrei questões do ITA para o adaptativo.");
+
+  // Uma fila adaptativa pode cruzar anos: cada ref carrega o seu.
+  const base = buildItaFirstPhaseAttempt(escolhidas[0].year, { minutes: Math.max(30, n * 5) });
+  return {
+    ...base,
+    mode: "adaptive",
+    questionRefs: escolhidas.map((q) => ({
+      providerId: ITA_PROVIDER_ID,
+      index: q.index,
+      year: q.year,
+      language: q.language ?? null,
+      discipline: String(q.discipline),
+    })),
+  };
 }
