@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { officialRows, officialRowsOf, providersInHistory, areaStats } from "./stats";
+import { officialRows, officialRowsOf, providersInHistory, areaStats, masteryStats } from "./stats";
 import { makeDB, makeRow, makeAttempt } from "./__fixtures__/db";
 
 // Cenário: histórico com uma tentativa legada (sem providerId, portanto ENEM)
@@ -71,5 +71,46 @@ describe("escopo por prova", () => {
     const soEnem = officialRowsOf(db, "enem").filter((r) => r.correct);
     expect(soEnem.filter((r) => r.isCorrect).length).toBe(1);
     expect(soEnem.length).toBe(2);
+  });
+});
+
+describe("domínio não mistura provas", () => {
+  it("linha de outra banca não entra no mapa de domínio do ENEM", () => {
+    const db = makeDB({
+      attempts: [
+        makeAttempt({
+          id: "a_enem",
+          result: {
+            rows: [makeRow({ key: "e1", content: "Funções", isCorrect: true })],
+            correct: 1,
+            total: 1,
+            blank: 0,
+          },
+        }),
+        makeAttempt({
+          id: "a_ita",
+          providerId: "ita",
+          result: {
+            rows: [
+              makeRow({
+                key: "i1",
+                providerId: "ita",
+                content: "Funções",
+                isCorrect: false,
+              }),
+            ],
+            correct: 0,
+            total: 1,
+            blank: 0,
+          },
+        }),
+      ],
+    });
+
+    // Sem escopo, o erro do ITA derrubaria o domínio de "Funções" do ENEM.
+    expect(masteryStats(db).Funções).toEqual({ c: 1, t: 1 });
+    expect(masteryStats(db, "ita").Funções).toEqual({ c: 0, t: 1 });
+    // O escopo nulo é o único jeito de ver tudo junto, e é explícito.
+    expect(masteryStats(db, null).Funções).toEqual({ c: 1, t: 2 });
   });
 });

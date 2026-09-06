@@ -48,6 +48,21 @@ export interface Question {
   alternatives?: Alternative[];
   correctAlternative?: string;
   files?: string[];
+
+  // ---- v8: provas em modo referência (enunciado na fonte oficial) ----
+  /** Numeração oficial na prova, quando difere do índice. */
+  number?: number;
+  /**
+   * false quando o enunciado não está disponível em texto e precisa ser lido
+   * no documento oficial. A UI mostra a referência em vez de questão vazia.
+   */
+  statementAvailable?: boolean;
+  official?: {
+    official: boolean;
+    institution: string;
+    documentUrl: string;
+    page?: number;
+  };
 }
 
 export interface QuestionRef {

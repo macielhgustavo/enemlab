@@ -3200,3 +3200,31 @@ kbd {
   font-size: 15px;
   color: var(--muted);
 }
+
+/* ---- Questão em modo referência (prova digitalizada, ex.: ITA) ---- */
+.refSource {
+  margin: 22px 0;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+}
+.refSource .k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 10px;
+}
+.refSource p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0 0 16px;
+}
+.refSource .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -10,12 +10,24 @@ import {
   discipline,
   questionKey,
 } from "@/lib/domain/classify";
+import { ExternalLink } from "lucide-react";
+
 import { fmtSec, shortSec, richText, safeUrl, markdownImageUrls } from "@/lib/format";
 import { questionsForAttempt, finishAttemptInDB } from "@/lib/services/attempts";
 import { saveSnapshot } from "@/lib/idb";
 import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
+
+// Matérias de provas fora da taxonomia do ENEM (ex.: ITA).
+const SUBJECT_LABELS: Record<string, string> = {
+  mathematics: "Matemática",
+  physics: "Física",
+  chemistry: "Química",
+  english: "Inglês",
+  portuguese: "Português",
+};
+
 
 export default function ExamPage() {
   const params = useParams();
@@ -305,6 +317,11 @@ export default function ExamPage() {
     );
 
   const content = classifyContent(q);
+  // A banca vem da procedência da própria questão; sem isso o cabeçalho diria
+  // "ENEM" em prova de outro vestibular.
+  const institution = q.official?.institution ?? "ENEM";
+  const area = discipline(q);
+  const subjectLabel = AREA_LABELS[area] || SUBJECT_LABELS[area] || area;
   const selected = answers[k];
   const needRecall = !!attempt.activeRecall && !attempt.revealedRecall;
 
@@ -391,10 +408,13 @@ export default function ExamPage() {
                 </span>
                 <div style={{ minWidth: 0 }}>
                   <div className="qTitle">
-                    Questão {q.index} • ENEM {q.year}
+                    Questão {q.number ?? q.index} • {institution} {q.year}
                   </div>
                   <div className="qArea">
-                    {AREA_LABELS[discipline(q)] || discipline(q)} • {content}
+                    {subjectLabel}
+                    {/* Classificação de conteúdo é da taxonomia do ENEM: não
+                        faz sentido em prova de outra banca. */}
+                    {q.statementAvailable === false ? "" : ` • ${content}`}
                     {q.language ? ` • ${q.language}` : ""}
                   </div>
                 </div>
@@ -408,6 +428,28 @@ export default function ExamPage() {
                 </div>
               </div>
             </div>
+
+            {/* Provas digitalizadas (ITA) não têm enunciado em texto: em vez
+                de uma questão vazia, mandamos o aluno à fonte oficial. */}
+            {q.statementAvailable === false && q.official && (
+              <div className="refSource">
+                <div className="k">Enunciado na prova oficial</div>
+                <p>
+                  Esta prova do {q.official.institution} é publicada como documento
+                  digitalizado, então o enunciado não é reproduzido aqui. Abra a prova
+                  oficial na questão <b>{q.number ?? q.index}</b> e marque a alternativa
+                  abaixo.
+                </p>
+                <a
+                  className="btn secondary"
+                  href={q.official.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink size={15} /> Abrir prova oficial
+                </a>
+              </div>
+            )}
 
             {q.context && <MathContent className="context" html={richText(q.context)} />}
             {files.length > 0 && (

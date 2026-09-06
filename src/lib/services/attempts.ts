@@ -11,7 +11,8 @@ import {
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
 import { isQuestionUsableForPractice } from "../domain/question-quality";
-import { ENEM_PROVIDER_ID, resolveProviderId } from "../providers";
+import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID, resolveProviderId } from "../providers";
+import { itaQuestionsForAttempt } from "./ita-attempts";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -259,6 +260,12 @@ export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Att
 
 // Recupera as questões de uma tentativa (agrupando por ano) — usar dentro de React Query.
 export async function questionsForAttempt(a: Attempt): Promise<Question[]> {
+  // Provas em modo referência (ITA) montam as questões a partir do gabarito
+  // oficial: não há banco remoto para consultar.
+  if (resolveProviderId(a.providerId) === ITA_PROVIDER_ID) {
+    return itaQuestionsForAttempt(a);
+  }
+
   const groups: Record<number, Attempt["questionRefs"]> = {};
   for (const r of a.questionRefs) {
     const y = r.year || a.year;
