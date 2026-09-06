@@ -44,3 +44,7 @@ next-env.d.ts
 
 # O exemplo deve ser versionado: documenta as variáveis sem trazer valores.
 !.env.example
+
+# Python (script de ingestão)
+__pycache__/
+*.py[cod]
