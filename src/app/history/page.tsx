@@ -40,7 +40,7 @@ export default function HistoryPage() {
       <PageHead
         eyebrow="Módulo · histórico"
         title="Histórico"
-        sub="Tentativas salvas neste navegador, com sessão e resultado."
+        sub="Todas as provas, juntas de propósito: cada linha identifica a banca."
         right={
           <Link className="btn link-btn" href="/practice">
             Novo treino
@@ -51,7 +51,7 @@ export default function HistoryPage() {
       <Card>
         <div className="htitle">
           <h2>Tentativas</h2>
-          <span className="badge2">{db.attempts.length} registradas</span>
+          <span className="badge2">{db.attempts.length} registradas · todas as provas</span>
         </div>
         <div className="tablewrap">
           {db.attempts.length === 0 ? (

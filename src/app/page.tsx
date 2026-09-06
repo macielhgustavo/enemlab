@@ -31,6 +31,7 @@ import DomainMap from "@/components/DomainMap";
 import { AnimatedNumber, Ring } from "@/components/dash";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
 import { examLabel } from "@/lib/providers/label";
+import { sameProvider } from "@/lib/providers";
 
 const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
   ssr: false,
@@ -73,11 +74,17 @@ export default function HomePage() {
   const rollPct = roll.length ? pct(roll.filter((x) => x.isCorrect).length, roll.length) : null;
   const due = dueSRS(db, providerId).length;
   const streak = streakDays(db, providerId);
-  const inProg = db.attempts.find((a) => !a.finishedAt);
+  // Sessões e atividade também são da prova ativa: sem isto o painel do ITA
+  // conta sessões do ENEM e sugere retomar uma prova de outra banca.
+  const inProg = db.attempts.find(
+    (a) => !a.finishedAt && sameProvider(a.providerId, providerId),
+  );
   const stats = areaStats(db, providerId);
   const weak = weakestContents(db, 4, providerId);
   const evo = evolutionSeries(db, undefined, undefined, providerId);
-  const completed = db.attempts.filter((a) => a.result);
+  const completed = db.attempts.filter(
+    (a) => a.result && sameProvider(a.providerId, providerId),
+  );
 
   // ---- Meta diária: fatia da meta semanal ----
   const alvoDia = Math.max(1, Math.round((db.goals.questions || 0) / 7));
