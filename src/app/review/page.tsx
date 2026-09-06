@@ -5,7 +5,8 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { sameProvider } from "@/lib/providers";
-import { AREA_LABELS, REASONS } from "@/lib/domain/constants";
+import { REASONS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import { shortSec } from "@/lib/format";
 import { parseManualTags } from "@/lib/domain/stats";
 import { buildRetryAttempt } from "@/lib/services/attempts";
@@ -104,7 +105,7 @@ export default function ReviewPage() {
                     ENEM {a.year} • questão {r.index}
                   </b>
                   <div className="muted" style={{ fontSize: 12 }}>
-                    {AREA_LABELS[r.area] || r.area} • {r.selected || "—"} → {r.correct} •{" "}
+                    {areaLabel(r.area, providerId)} • {r.selected || "—"} → {r.correct} •{" "}
                     {r.confidence || "sem confiança"} • {shortSec(r.timeSec)}
                   </div>
                   <div className="multiTags">

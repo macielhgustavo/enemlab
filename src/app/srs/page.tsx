@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
-import { AREA_LABELS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import { allSrs, dueSRS } from "@/lib/domain/srs";
 import { buildDueReviewsAttempt, buildActiveRecallAttempt } from "@/lib/services/attempts";
 import { Metric, Empty, Card, PageHead } from "@/components/ui";
@@ -108,7 +108,7 @@ export default function SrsPage() {
                 <span className={`dueDot ${cls}`} />
                 <div>
                   <b>
-                    {x.content || AREA_LABELS[x.area] || x.area} • Q{x.index}
+                    {x.content || areaLabel(x.area, providerId)} • Q{x.index}
                   </b>
                   <div className="muted" style={{ fontSize: 11 }}>
                     ENEM {x.year} • repetições {x.reps || 0} • intervalo {x.interval || 0}d •{" "}

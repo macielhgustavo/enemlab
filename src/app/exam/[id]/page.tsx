@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS, LETTERS } from "@/lib/domain/constants";
+import { LETTERS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import {
   classifyContent,
   discipline,
@@ -18,15 +19,6 @@ import { saveSnapshot } from "@/lib/idb";
 import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
-
-// Matérias de provas fora da taxonomia do ENEM (ex.: ITA).
-const SUBJECT_LABELS: Record<string, string> = {
-  mathematics: "Matemática",
-  physics: "Física",
-  chemistry: "Química",
-  english: "Inglês",
-  portuguese: "Português",
-};
 
 
 export default function ExamPage() {
@@ -321,7 +313,7 @@ export default function ExamPage() {
   // "ENEM" em prova de outro vestibular.
   const institution = q.official?.institution ?? "ENEM";
   const area = discipline(q);
-  const subjectLabel = AREA_LABELS[area] || SUBJECT_LABELS[area] || area;
+  const subjectLabel = areaLabel(area, attempt.providerId);
   const selected = answers[k];
   const needRecall = !!attempt.activeRecall && !attempt.revealedRecall;
 

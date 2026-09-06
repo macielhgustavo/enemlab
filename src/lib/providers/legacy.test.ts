@@ -30,8 +30,8 @@ describe("adaptador legado", () => {
 
   it("alternativa sem texto vira string vazia, não `null`", () => {
     const q = toLegacyQuestion(itaFirstPhaseQuestions(ano)[0]);
-    expect(q.alternatives).toHaveLength(5);
-    for (const a of q.alternatives) expect(a.text).toBe("");
+    expect(q.alternatives ?? []).toHaveLength(5);
+    for (const a of q.alternatives ?? []) expect(a.text).toBe("");
   });
 
   it("questão anulada chega sem gabarito em vez de errado", () => {

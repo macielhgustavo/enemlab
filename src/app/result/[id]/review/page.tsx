@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Flag, XCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
+import { examLabel } from "@/lib/providers/label";
 import { discipline } from "@/lib/domain/classify";
 import { markdownImageUrls, richText, safeUrl, shortSec } from "@/lib/format";
 import { questionsForAttempt } from "@/lib/services/attempts";
@@ -106,7 +107,7 @@ export default function ResultReviewPage() {
   return (
     <div className="resultReviewPage">
       <PageHead
-        eyebrow={`Correção · ENEM ${attempt.year}`}
+        eyebrow={`Correção · ${examLabel(attempt.providerId)} ${attempt.year}`}
         title="Questão por questão"
         sub="Revise resposta, gabarito, confiança, tempo e conteúdo sem perder o contexto da prova."
         right={
@@ -178,6 +179,7 @@ export default function ResultReviewPage() {
             <ReviewQuestion
               row={row}
               question={question}
+              providerId={attempt.providerId}
               position={currentPosition}
               total={filtered.length}
             />
@@ -215,11 +217,14 @@ export default function ResultReviewPage() {
 function ReviewQuestion({
   row,
   question,
+  providerId,
   position,
   total,
 }: {
   row: ResultRow;
   question: Question;
+  /** Banca da tentativa: define em que taxonomia o nome da área é lido. */
+  providerId?: string | null;
   position: number;
   total: number;
 }) {
@@ -239,7 +244,7 @@ function ReviewQuestion({
       <div className="resultReviewQuestionTop">
         <div>
           <span className="resultReviewEyebrow">QUESTÃO {row.index} · {position + 1}/{total}</span>
-          <h2>{AREA_LABELS[row.area] || row.area}</h2>
+          <h2>{areaLabel(row.area, providerId)}</h2>
           <div className="resultReviewPath">{row.content}</div>
         </div>
         <span className={`resultReviewStatus ${status}`}>

@@ -12,13 +12,28 @@ const H = 250;
 const CX = W / 2;
 const CY = H / 2 - 4;
 
-// Posições fixas: topo, esquerda, direita, base.
-const SLOTS = [
-  { x: CX, y: CY - 78, anchor: "middle" as const, dy: -30 },
-  { x: CX - 100, y: CY, anchor: "middle" as const, dy: 40 },
-  { x: CX + 100, y: CY, anchor: "middle" as const, dy: 40 },
-  { x: CX, y: CY + 78, anchor: "middle" as const, dy: 40 },
-];
+/**
+ * Distribui os nós em círculo, começando no topo.
+ *
+ * Antes eram quatro posições fixas, o que servia às quatro áreas do ENEM e
+ * descartava em silêncio a quinta matéria do ITA. Um mapa de domínio que
+ * esconde uma matéria é pior que um mapa apertado.
+ */
+function slotsFor(n: number) {
+  const rx = 100;
+  const ry = 78;
+  return Array.from({ length: n }, (_, i) => {
+    const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const y = CY + ry * Math.sin(ang);
+    return {
+      x: CX + rx * Math.cos(ang),
+      y,
+      anchor: "middle" as const,
+      // Rótulo acima do nó na metade de cima, abaixo na metade de baixo.
+      dy: y < CY - 1 ? -30 : 40,
+    };
+  });
+}
 
 /** Estado por faixa de acerto — a mesma leitura da legenda. */
 function tone(pct: number | null): { fill: string; label: string } {
@@ -29,8 +44,10 @@ function tone(pct: number | null): { fill: string; label: string } {
   return { fill: "var(--bad)", label: "prioridade" };
 }
 
-export default function DomainMap({ areas }: { areas: AreaPoint[] }) {
-  const pts = areas.slice(0, 4);
+export default function DomainMap({ areas, hub }: { areas: AreaPoint[]; hub: string }) {
+  // Todas as áreas da prova entram: o layout se adapta à quantidade.
+  const pts = areas;
+  const slots = slotsFor(pts.length);
 
   return (
     <>
@@ -46,18 +63,18 @@ export default function DomainMap({ areas }: { areas: AreaPoint[] }) {
         <circle className="hubc" cx={CX} cy={CY} r={52} />
 
         {pts.map((a, i) => {
-          const s = SLOTS[i];
+          const s = slots[i];
           if (!s) return null;
           return <line key={`l-${a.id}`} className="link" x1={CX} y1={CY} x2={s.x} y2={s.y} />;
         })}
 
         <circle cx={CX} cy={CY} r={26} fill="var(--panel-solid)" stroke="var(--line-strong)" />
         <text className="hublbl" x={CX} y={CY + 3} textAnchor="middle">
-          ENEM
+          {hub}
         </text>
 
         {pts.map((a, i) => {
-          const s = SLOTS[i];
+          const s = slots[i];
           if (!s) return null;
           const t = tone(a.pct);
           const up = s.dy < 0;

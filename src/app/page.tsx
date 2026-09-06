@@ -17,7 +17,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct, shortSec } from "@/lib/format";
-import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
+import { areasOf } from "@/lib/providers/taxonomy";
 import {
 
   areaStats,
@@ -122,9 +122,12 @@ export default function HomePage() {
   const deltaPP = evo.length >= 2 ? Math.round(evo[evo.length - 1] - evo[0]) : null;
   const tempoTotal = completed.reduce((s, a) => s + (a.elapsed || 0), 0);
 
-  const areasMap = AREA_ORDER.map((k) => {
-    const v = stats[k] || { c: 0, t: 0 };
-    return { id: k, label: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : null, n: v.t };
+  // A divisão de conteúdo é de cada banca: o ENEM tem quatro áreas, o ITA tem
+  // matérias. Ler a taxonomia do provider evita o painel do ITA listar áreas
+  // do ENEM zeradas.
+  const areasMap = areasOf(providerId).map(({ id, label }) => {
+    const v = stats[id] || { c: 0, t: 0 };
+    return { id, label, pct: v.t ? pct(v.c, v.t) : null, n: v.t };
   });
 
   // ---- Próxima missão, derivada do estado real ----
@@ -382,7 +385,7 @@ export default function HomePage() {
               Ver detalhes <ArrowRight size={13} />
             </Link>
           </div>
-          <DomainMap areas={areasMap} />
+          <DomainMap areas={areasMap} hub={examLabel(providerId)} />
         </section>
 
         <section className="hcard">

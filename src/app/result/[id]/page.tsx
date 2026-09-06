@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec, richText } from "@/lib/format";
-import { AREA_LABELS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import { discipline } from "@/lib/domain/classify";
 import { coherenceForAttempt, fatigueForAttempt } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
@@ -78,6 +78,10 @@ export default function ResultPage() {
   const cw = valid.filter((x) => x.isCorrect === false && x.confidence === "certeza").length;
   const lucky = valid.filter((x) => x.isCorrect && x.confidence === "chute").length;
 
+  // A banca desta tentativa, fixada antes dos callbacks: o rótulo da área sai
+  // da taxonomia da prova, e a exportação em imagem também precisa dele.
+  const provaId = a.providerId;
+
   const areas: Record<string, { c: number; t: number }> = {};
   valid.forEach((x) => {
     (areas[x.area] ??= { c: 0, t: 0 }).t++;
@@ -126,7 +130,7 @@ export default function ResultPage() {
     ctx.fillText("ENEM Lab", 64, 96);
     ctx.fillStyle = C.muted;
     ctx.font = "600 26px Inter, system-ui, sans-serif";
-    ctx.fillText(`Resultado • ENEM ${a!.year}`, 64, 134);
+    ctx.fillText(`Resultado • ${examLabel(provaId)} ${a!.year}`, 64, 134);
     // Placar
     ctx.fillStyle = C.text;
     ctx.font = "900 150px Inter, system-ui, sans-serif";
@@ -160,7 +164,7 @@ export default function ResultPage() {
     ctx.fillText("Por área", 64, 660);
     let y = 700;
     Object.entries(areas).forEach(([kk, v]) => {
-      const label = AREA_LABELS[kk] || kk;
+      const label = areaLabel(kk, provaId);
       const pp = pct(v.c, v.t);
       ctx.fillStyle = C.text;
       ctx.font = "700 26px Inter, system-ui, sans-serif";
@@ -186,7 +190,7 @@ export default function ResultPage() {
       const u = URL.createObjectURL(blob);
       const el = document.createElement("a");
       el.href = u;
-      el.download = `resultado_ENEM_${a!.year}.png`;
+      el.download = `resultado_${examLabel(provaId)}_${a!.year}.png`;
       el.click();
       URL.revokeObjectURL(u);
       success("Imagem do resultado exportada.");
@@ -286,7 +290,7 @@ export default function ResultPage() {
         <Card>
           <h2>Por área</h2>
           {Object.entries(areas).map(([kk, v]) => (
-            <AreaBar key={kk} name={AREA_LABELS[kk] || kk} c={v.c} t={v.t} />
+            <AreaBar key={kk} name={areaLabel(kk, provaId)} c={v.c} t={v.t} />
           ))}
         </Card>
         <Card>
@@ -295,7 +299,7 @@ export default function ResultPage() {
             {sortedAreas.length > 0 && (
               <>
                 Prioridade:{" "}
-                <b>{AREA_LABELS[sortedAreas[0][0]] || sortedAreas[0][0]}</b> (
+                <b>{areaLabel(sortedAreas[0][0], provaId)}</b> (
                 {pct(sortedAreas[0][1].c, sortedAreas[0][1].t)}%).{" "}
               </>
             )}

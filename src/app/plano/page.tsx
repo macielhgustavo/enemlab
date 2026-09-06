@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct } from "@/lib/format";
-import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
+import { areasOf } from "@/lib/providers/taxonomy";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import {
@@ -94,11 +94,13 @@ export default function PlanoPage() {
   );
   const progress = Math.min(100, Math.round((plan.signals.minutesToday / Math.max(1, plan.budgetMinutes)) * 100));
 
-  const readiness = AREA_ORDER.map((area) => {
+  // Prontidão é medida na taxonomia da prova ativa, não nas áreas do ENEM.
+  const readiness = areasOf(providerId).map(({ id: area, label }) => {
     const value = stats[area] || { c: 0, t: 0 };
     const ci = wilsonInterval(value.c, value.t);
     return {
       area,
+      label,
       ...value,
       low: ci.low,
       high: ci.high,
@@ -290,7 +292,7 @@ export default function PlanoPage() {
           {readiness.map((item) => (
             <div className="dailyReadinessItem" key={item.area}>
               <div className="row between">
-                <b>{AREA_LABELS[item.area]}</b>
+                <b>{item.label}</b>
                 <span className="muted">{item.p === null ? "sem amostra" : `${item.p}% · n=${item.t}`}</span>
               </div>
               <div className="ciBar" style={{ marginTop: 9 }}>
