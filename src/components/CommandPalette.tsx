@@ -16,9 +16,12 @@ import {
   Moon,
   Search,
   CornerDownLeft,
+  UserRound,
+  GraduationCap,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { normalizeText } from "@/lib/format";
+import { listProviders, resolveProviderId } from "@/lib/providers";
 
 interface Cmd {
   id: string;
@@ -31,6 +34,8 @@ interface Cmd {
 export default function CommandPalette() {
   const router = useRouter();
   const toggleTheme = useStore((s) => s.toggleTheme);
+  const activeProvider = useStore((s) => resolveProviderId(s.db.activeProvider));
+  const setProvider = useStore((s) => s.setActiveProvider);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -47,15 +52,30 @@ export default function CommandPalette() {
       { id: "history", label: "Histórico", icon: Clock, run: () => router.push("/history") },
       { id: "review", label: "Caderno de erros", icon: BookX, run: () => router.push("/review") },
       { id: "data", label: "Dados e backup", icon: Database, run: () => router.push("/data") },
+      { id: "account", label: "Conta e sincronização", icon: UserRound, run: () => router.push("/account") },
+      // Trocar de prova é ação de teclado tanto quanto navegar. A prova
+      // ativa não aparece na lista: mandar "trocar" para onde já se está
+      // seria um comando que não faz nada.
+      ...listProviders()
+        .filter((p) => p.id !== activeProvider)
+        .map((p) => ({
+          id: `provider-${p.id}`,
+          label: `Trocar para ${p.metadata.shortLabel}`,
+          hint: p.metadata.label,
+          icon: GraduationCap,
+          run: () => setProvider(p.id),
+        })),
       { id: "theme", label: "Alternar tema claro/escuro", icon: Moon, run: () => toggleTheme() },
     ],
-    [router, toggleTheme],
+    [router, toggleTheme, activeProvider, setProvider],
   );
 
   const filtered = useMemo(() => {
     const q = normalizeText(query);
     if (!q) return commands;
-    return commands.filter((c) => normalizeText(c.label).includes(q));
+    return commands.filter(
+      (c) => normalizeText(c.label).includes(q) || normalizeText(c.hint ?? "").includes(q),
+    );
   }, [commands, query]);
 
   useEffect(() => {
