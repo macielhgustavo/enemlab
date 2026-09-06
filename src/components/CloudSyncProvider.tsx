@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { rebuildSessions } from "@/lib/domain/stats";
 import { mergeCloudDB } from "@/lib/cloud/merge";
 import {
+  CLOUD_CONFIGURED,
   consumeOAuthRedirect,
   ensureFreshSession,
   fetchCloudState,
@@ -69,7 +70,10 @@ export default function CloudSyncProvider({ children }: { children: React.ReactN
   const syncingRef = useRef(false);
 
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<CloudStatus>("loading");
+  // Sem projeto Supabase configurado o app nunca sai do modo local.
+  const [status, setStatus] = useState<CloudStatus>(
+    CLOUD_CONFIGURED ? "loading" : "signed-out",
+  );
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
@@ -170,6 +174,9 @@ export default function CloudSyncProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     if (!hydrated) return;
+    // Sem projeto configurado o app é local: não tenta rede. O status já
+    // nasce "signed-out" na inicialização do estado, então nada a fazer aqui.
+    if (!CLOUD_CONFIGURED) return;
     let cancelled = false;
     (async () => {
       setStatus("loading");

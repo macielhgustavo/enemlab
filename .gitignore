@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# O exemplo deve ser versionado: documenta as variáveis sem trazer valores.
+!.env.example
