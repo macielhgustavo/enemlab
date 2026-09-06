@@ -120,3 +120,69 @@
     --motion-slow: 0.01ms;
   }
 }
+
+/* ============================================================
+   DENSIDADE
+   ------------------------------------------------------------
+   Na v1.1 densidade era convenção escrita na documentação, e
+   convenção não roda sozinha: cada tela escolhia `padding` e
+   `gap` no olho, e uma lista de 178 itens respirava igual a um
+   painel de três números.
+
+   Agora é um atributo no container. `data-density` redefine dois
+   tokens, e todo componente da camada `el-` lê esses dois — quem
+   escreve tela nova não precisa lembrar de nada.
+   ============================================================ */
+
+:root,
+[data-density="default"] {
+  --density-gap: var(--space-16);
+  --density-pad: var(--space-24);
+}
+
+/* Lista de trabalho: o Banco mostra centenas de linhas e cada
+   pixel de respiro custa uma linha a menos na tela. */
+[data-density="compact"] {
+  --density-gap: var(--space-8);
+  --density-pad: var(--space-16);
+}
+
+/* Abertura de produto: a Home tem poucos blocos e muito peso em
+   cada um. */
+[data-density="spacious"] {
+  --density-gap: var(--space-24);
+  --density-pad: var(--space-32);
+}
+
+/* ============================================================
+   SUPERFÍCIES DE CHROME
+   ------------------------------------------------------------
+   Barra lateral, barra mobile e paleta de comandos usam um
+   fundo translúcido em duas paradas, para o desfoque atrás
+   render sem virar uma chapa opaca.
+
+   Estavam escritas como rgba() literal dentro de globals.css,
+   e por isso o tema claro precisava reescrever cada regra. Como
+   token, quem muda é o valor, não a regra.
+   ============================================================ */
+
+:root,
+:root[data-theme="dark"] {
+  --chrome-top: rgba(10, 17, 20, 0.9);
+  --chrome-bottom: rgba(6, 9, 12, 0.94);
+  --chrome-accent-soft: rgba(0, 229, 160, 0.1);
+  --chrome-accent-glow: rgba(0, 229, 160, 0.22);
+  --chrome-accent-strong: rgba(0, 229, 160, 0.7);
+  --overlay-panel-top: rgba(18, 27, 31, 0.96);
+  --overlay-panel-bottom: rgba(10, 15, 18, 0.97);
+}
+
+:root[data-theme="light"] {
+  --chrome-top: rgba(255, 255, 255, 0.94);
+  --chrome-bottom: rgba(247, 250, 249, 0.92);
+  --chrome-accent-soft: rgba(0, 135, 95, 0.1);
+  --chrome-accent-glow: rgba(0, 135, 95, 0.2);
+  --chrome-accent-strong: rgba(0, 135, 95, 0.7);
+  --overlay-panel-top: rgba(255, 255, 255, 0.98);
+  --overlay-panel-bottom: rgba(255, 255, 255, 0.98);
+}

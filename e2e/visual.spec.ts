@@ -25,14 +25,35 @@ test.describe("capturas de referência", () => {
     await page.clock.setFixedTime(INSTANTE_FIXO);
   });
 
-  const cenarios: { nome: string; arquivo: string; url: string; tema: "dark" | "light" }[] = [
+  /**
+   * Tolerância por tela.
+   *
+   * A tolerância global de 1,2% existe para sobreviver a sub-pixel entre
+   * máquinas, mas ela é uma fração do total: numa página longa, 1,2% dos
+   * pixels é muito espaço para uma mudança real se esconder — a correção de
+   * espaçamento no Resultado, por exemplo, não fez a captura falhar.
+   *
+   * Telas curtas e densas em texto usam uma régua mais apertada; telas
+   * longas mantêm a folga, porque nelas o ruído acumula mais.
+   */
+  const cenarios: {
+    nome: string;
+    arquivo: string;
+    url: string;
+    tema: "dark" | "light";
+    tolerancia?: number;
+  }[] = [
     { nome: "home escuro", arquivo: "home-dark.png", url: "/", tema: "dark" },
     { nome: "home claro", arquivo: "home-light.png", url: "/", tema: "light" },
-    { nome: "banco escuro", arquivo: "bank-dark.png", url: "/bank", tema: "dark" },
-    { nome: "banco claro", arquivo: "bank-light.png", url: "/bank", tema: "light" },
-    { nome: "histórico", arquivo: "history-dark.png", url: "/history", tema: "dark" },
+    // O Banco é uma lista repetitiva: mudança de layout aparece em todas as
+    // linhas de uma vez, então dá para exigir mais.
+    { nome: "banco escuro", arquivo: "bank-dark.png", url: "/bank", tema: "dark", tolerancia: 0.005 },
+    { nome: "banco claro", arquivo: "bank-light.png", url: "/bank", tema: "light", tolerancia: 0.005 },
+    { nome: "histórico", arquivo: "history-dark.png", url: "/history", tema: "dark", tolerancia: 0.006 },
     { nome: "resultado", arquivo: "result-dark.png", url: "/result/a_fixture_enem", tema: "dark" },
     { nome: "plano", arquivo: "plano-dark.png", url: "/plano", tema: "dark" },
+    { nome: "revisões", arquivo: "srs-dark.png", url: "/srs", tema: "dark", tolerancia: 0.006 },
+    { nome: "domínio", arquivo: "mastery-dark.png", url: "/mastery", tema: "dark", tolerancia: 0.006 },
   ];
 
   for (const c of cenarios) {
@@ -41,7 +62,10 @@ test.describe("capturas de referência", () => {
       await page.goto(c.url);
       await aguardarApp(page);
       await prepararCaptura(page);
-      await expect(page).toHaveScreenshot(c.arquivo, { fullPage: true });
+      await expect(page).toHaveScreenshot(c.arquivo, {
+        fullPage: true,
+        ...(c.tolerancia ? { maxDiffPixelRatio: c.tolerancia } : {}),
+      });
     });
   }
 

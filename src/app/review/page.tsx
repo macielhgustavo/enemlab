@@ -10,7 +10,13 @@ import { areaLabel } from "@/lib/providers/taxonomy";
 import { shortSec } from "@/lib/format";
 import { parseManualTags } from "@/lib/domain/stats";
 import { buildRetryAttempt } from "@/lib/services/attempts";
-import { Card, Empty } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { FilterChip } from "@/components/enem-lab/FilterBar";
+import { EmptyState } from "@/components/enem-lab/states";
+import { examLabel } from "@/lib/providers/label";
 import type { KnewChoice } from "@/lib/domain/types";
 
 const KNEW: { v: KnewChoice; label: string }[] = [
@@ -69,27 +75,35 @@ export default function ReviewPage() {
     );
 
   return (
-    <Card>
-      <div className="row between">
-        <div>
-          <h2>Caderno de erros</h2>
-          <div className="muted">
-            Classifique o motivo para o radar aprender onde você perde pontos.
-          </div>
-        </div>
-        <select
-          style={{ maxWidth: 220 }}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="all">Todos</option>
-          <option value="certeza">Erros com certeza</option>
-          <option value="slow">Erros lentos</option>
-        </select>
+    <>
+      <PageHeader
+        eyebrow="Módulo · erros"
+        title="Caderno de erros"
+        context={<Badge variant="accent">{examLabel(providerId)}</Badge>}
+        description="Classifique o motivo para o radar aprender onde você perde pontos."
+        meta={<span>{items.length} erros neste filtro</span>}
+      />
+
+      {/* Três opções cabem como chips à vista; um select as esconderia. */}
+      <div className="el-histfilter" role="group" aria-label="Filtrar erros">
+        {[
+          ["all", "Todos"],
+          ["certeza", "Erros com certeza"],
+          ["slow", "Erros lentos"],
+        ].map(([v, rotulo]) => (
+          <FilterChip key={v} active={filter === v} onClick={() => setFilter(v)}>
+            {rotulo}
+          </FilterChip>
+        ))}
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        {items.length === 0 && <Empty>Nenhum erro neste filtro.</Empty>}
+      <div className="el-stack" style={{ gap: "var(--density-gap)" }}>
+        {items.length === 0 && (
+          <EmptyState
+            title="Nenhum erro neste filtro"
+            description="Erros aparecem aqui depois que você corrige um treino."
+          />
+        )}
         {items.map(({ a, r, nk }) => {
           const note = db.notes[nk] || {};
           const tags = parseManualTags(note).length
@@ -98,11 +112,12 @@ export default function ReviewPage() {
               ? r.tags
               : [r.content];
           return (
-            <div className="card" style={{ boxShadow: "none", margin: "8px 0" }} key={nk}>
+            <Card padding="sm" key={nk}>
               <div className="row between">
                 <div>
-                  <b>
-                    ENEM {a.year} • questão {r.index}
+                  <b className="heading-sm">
+                    {/* A banca vem da tentativa: o caderno mistura provas. */}
+                    {examLabel(a.providerId)} {a.year} • questão {r.index}
                   </b>
                   <div className="muted" style={{ fontSize: 12 }}>
                     {areaLabel(r.area, providerId)} • {r.selected || "—"} → {r.correct} •{" "}
@@ -117,12 +132,12 @@ export default function ReviewPage() {
                   </div>
                 </div>
                 <div className="row">
-                  <a className="btn secondary link-btn" href={`/result/${a.id}`}>
-                    Ver questão
-                  </a>
-                  <button className="btn secondary" onClick={() => retrySingle(a.id, r.key)}>
+                  <Button asChild variant="secondary" size="sm">
+                    <a href={`/result/${a.id}`}>Ver questão</a>
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => retrySingle(a.id, r.key)}>
                     Refazer
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -169,10 +184,10 @@ export default function ReviewPage() {
                   />
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
-    </Card>
+    </>
   );
 }

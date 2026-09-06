@@ -305,13 +305,13 @@ th,
   flex-direction: column;
   gap: 3px;
   padding: 22px 14px 16px;
-  background: linear-gradient(180deg, rgba(10, 17, 20, 0.9), rgba(6, 9, 12, 0.94));
+  background: linear-gradient(180deg, var(--chrome-top), var(--chrome-bottom));
   backdrop-filter: blur(var(--blur));
   border-right: 1px solid var(--line);
   z-index: 40;
 }
 :root[data-theme="light"] .rail {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 249, 0.92));
+  background: linear-gradient(180deg, var(--chrome-top), var(--chrome-bottom));
 }
 .rail::after {
   content: "";
@@ -342,7 +342,7 @@ th,
   font-size: 15px;
   color: var(--void);
   background: linear-gradient(145deg, var(--brand-strong), var(--brand-dim));
-  box-shadow: 0 0 12px rgba(0, 229, 160, 0.22);
+  box-shadow: 0 0 12px var(--chrome-accent-glow);
 }
 .rail .tag {
   font-size: 9px;
@@ -744,7 +744,7 @@ th,
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--brand);
-  background: rgba(0, 229, 160, 0.1);
+  background: var(--chrome-accent-soft);
   border: 1px solid rgba(0, 229, 160, 0.28);
 }
 .strictBadge {
@@ -771,7 +771,7 @@ th,
 }
 .tagMastered {
   color: var(--brand);
-  background: rgba(0, 229, 160, 0.1);
+  background: var(--chrome-accent-soft);
   border-color: rgba(0, 229, 160, 0.28);
 }
 
@@ -827,7 +827,7 @@ th,
   display: grid;
   place-items: center;
   color: var(--brand);
-  background: rgba(0, 229, 160, 0.1);
+  background: var(--chrome-accent-soft);
   border: 1px solid rgba(0, 229, 160, 0.2);
   margin-bottom: 14px;
 }
@@ -1762,7 +1762,7 @@ tbody tr:hover {
 }
 .answer.correctReview {
   border-color: var(--brand);
-  background: rgba(0, 229, 160, 0.1);
+  background: var(--chrome-accent-soft);
   box-shadow: 0 0 26px rgba(0, 229, 160, 0.18);
 }
 .answer.wrongReview {
@@ -1966,13 +1966,13 @@ kbd {
   width: min(640px, 100%);
   border-radius: var(--r-lg);
   border: 1px solid var(--line-strong);
-  background: linear-gradient(180deg, rgba(18, 27, 31, 0.96), rgba(10, 15, 18, 0.97));
+  background: linear-gradient(180deg, var(--overlay-panel-top), var(--overlay-panel-bottom));
   backdrop-filter: blur(24px);
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 229, 160, 0.1), 0 0 80px rgba(0, 229, 160, 0.1);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--chrome-accent-soft),
+    0 0 80px var(--chrome-accent-soft);
   overflow: hidden;
-}
-:root[data-theme="light"] .cmdk {
-  background: rgba(255, 255, 255, 0.98);
 }
 .cmdk-search {
   display: flex;
@@ -2018,7 +2018,7 @@ kbd {
 }
 .cmdk-item.active {
   color: var(--brand-ink);
-  background: rgba(0, 229, 160, 0.1);
+  background: var(--chrome-accent-soft);
   box-shadow: inset 0 0 0 1px rgba(0, 229, 160, 0.2);
 }
 .cmdk-item.active svg {
@@ -2324,12 +2324,12 @@ kbd {
     grid-auto-flow: column;
     gap: 2px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(10, 16, 19, 0.9), rgba(5, 8, 10, 0.98));
+    background: linear-gradient(180deg, var(--chrome-top), var(--chrome-bottom));
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--line);
   }
   :root[data-theme="light"] .mobilebar {
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--chrome-top);
   }
   .mobilebar a {
     display: grid;
@@ -2346,7 +2346,7 @@ kbd {
   }
   .mobilebar a.active {
     color: var(--brand);
-    background: rgba(0, 229, 160, 0.1);
+    background: var(--chrome-accent-soft);
   }
   /* No claro, o verde da marca sobre a pílula clara dava 4,23:1 — abaixo do
      mínimo, justamente no rótulo que diz onde o aluno está. O tom escuro da
@@ -2355,7 +2355,7 @@ kbd {
     color: var(--brand-ink);
   }
   .mobilebar a.active svg {
-    filter: drop-shadow(0 0 6px rgba(0, 229, 160, 0.7));
+    filter: drop-shadow(0 0 6px var(--chrome-accent-strong));
   }
 
   .content {

@@ -233,17 +233,27 @@ npm run test:visual        # só a regressão visual (job `visual` do CI)
 
 ## 12. Densidade
 
-Três níveis, usados internamente. Não são expostos ao usuário — são uma
-decisão de projeto sobre quanto ar cada tela merece.
+Três níveis. Não são preferência do usuário: são decisão de projeto sobre
+quanto ar cada tela merece.
 
-| Nível | Onde | Regra prática |
+Até a v1.1 isto era só convenção escrita aqui — e convenção não roda
+sozinha. Agora é um atributo que redefine dois tokens:
+
+```
+[data-density="compact"]   --density-gap: 8px   --density-pad: 16px
+[data-density="default"]   --density-gap: 16px  --density-pad: 24px
+[data-density="spacious"]  --density-gap: 24px  --density-pad: 32px
+```
+
+O shell escolhe pela rota (`densidadeDaRota`), e `PageShell` aceita
+`density` para casos pontuais. `Card`, `Stack` e as listas leem os dois
+tokens, então componente novo herda sem precisar saber que isto existe.
+
+| Nível | Onde | Por quê |
 |---|---|---|
-| `compact` | Banco | linha de trabalho: `padding="sm"`, gap 8 |
-| `default` | Histórico, Resultado, Plano | `padding="md"`, gap 16 |
-| `spacious` | Home | abertura de produto: `padding="lg"`, gap 24–32 |
-
-Sem isso, tudo acaba com o mesmo espaçamento e uma lista de 178 itens
-respira igual a um painel de três números.
+| `compact` | Banco, Revisões | centenas de linhas: cada pixel de respiro custa uma linha a menos |
+| `default` | o resto | |
+| `spacious` | Home | poucos blocos, muito peso em cada um |
 
 ## 13. Padrões de tela
 
@@ -306,9 +316,21 @@ Reprovado por `src/lib/design/no-raw-colors.test.ts`. Exceções vivem numa
 lista no próprio teste, cada uma com o motivo escrito, e um segundo teste
 falha se a lista crescer sem explicação.
 
-O CSS legado está fora desse escopo de propósito: tem centenas de literais,
-e travá-lo agora só produziria uma lista vermelha que ninguém consegue
-zerar.
+`tokens.css` fica fora: é o único lugar onde um literal é a resposta certa.
+
+### A fatia do legado
+
+O legado inteiro tem centenas de literais, e travá-lo de uma vez produziria
+uma lista que ninguém zera. Em vez disso há uma **fatia vigiada** que só
+cresce: `LEGADO_SOB_REGRA` lista as classes de `globals.css` já migradas
+(`rail`, `railnav`, `railgroup`, `mobilebar`, `cmdk`), e as regras delas
+valem a mesma proibição. Ao migrar um bloco, acrescente a classe à lista.
+
+Há um teste que confere que o scanner **encontra regras**. Ele existe por um
+motivo concreto: a primeira versão montava o regex num template literal, onde
+a sequência barra-b vira o caractere backspace em vez da borda de palavra —
+o scanner varria zero linhas e o teste passava sem olhar nada. Teste que
+passa por não encontrar nada é pior que teste nenhum.
 
 ## 15. Regressão visual
 
@@ -331,9 +353,12 @@ bastante para reprovar tudo.
 | Conta | migrada |
 | Treinar | migrado |
 | Dados | cabeçalho migrado |
-| Revisões, Erros, Domínio, Adaptive | CSS legado |
+| Revisões | migrada |
+| Erros | migrada |
+| Domínio | cabeçalho e estados migrados |
+| Review pós-prova | cabeçalho, filtros e paginação migrados |
+| Adaptive | CSS legado |
 | Exam Runner | preservado por decisão de escopo |
-| Review pós-prova | CSS legado |
 
 CSS: **3208 linhas** legadas contra **1624** do design system. Foram
 removidas 110 linhas de regras que ficaram sem nenhum uso após a migração

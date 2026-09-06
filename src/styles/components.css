@@ -162,11 +162,13 @@
 }
 
 /* ---------------- Card ---------------- */
+/* O padding padrão segue a densidade do container; as variantes `padding`
+   continuam disponíveis para o caso pontual que precisa fugir dela. */
 .el-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--space-24);
+  padding: var(--density-pad);
   color: var(--text-primary);
 }
 .el-card--p0 {
