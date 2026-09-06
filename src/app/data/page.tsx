@@ -11,6 +11,9 @@ import type { Language } from "@/lib/domain/types";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import { parseBackup } from "@/lib/validators/backup";
 import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { buildCurrentCatalog } from "@/lib/catalog/current";
+import { listSources } from "@/lib/sources";
+import { examLabel } from "@/lib/providers/label";
 import { Card, Empty } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
@@ -114,6 +117,10 @@ export default function DataPage() {
     }
   }
 
+  const catalogo = buildCurrentCatalog();
+  const importadorDe = (providerId: string) =>
+    listSources().find((f) => f.providerId === providerId)?.parserVersion ?? "—";
+
   return (
     <>
       {/* A tela abria direto num <h2>, sem <h1>: o documento começava no
@@ -197,6 +204,66 @@ export default function DataPage() {
           </div>
         </Card>
       </div>
+
+      {/* Catálogo por prova (§32). Lê o índice, não as questões: montar
+          esta tabela não pode custar o download do banco inteiro. */}
+      <Card style={{ marginTop: 14 }}>
+        <h2 className="heading-md">Catálogo por prova</h2>
+        <p className="body-sm" style={{ marginTop: 4 }}>
+          Edições registradas, nível de validação e origem do enunciado. Contagem
+          desconhecida aparece como travessão — não como zero.
+        </p>
+        <div className="tablewrap" style={{ marginTop: 12 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Prova</th>
+                <th>Edições</th>
+                <th>Questões</th>
+                <th>Verificadas</th>
+                <th>Revisadas</th>
+                <th>Provisórias</th>
+                <th>Bloqueadas</th>
+                <th>Referência</th>
+                <th>Importador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catalogo.summary().map((s) => (
+                <tr key={s.providerId}>
+                  <td>
+                    <b>{examLabel(s.providerId)}</b>
+                  </td>
+                  <td>{s.editions}</td>
+                  <td>
+                    {s.unknownCount === s.editions ? (
+                      <span className="muted" title="só se sabe carregando a prova">
+                        —
+                      </span>
+                    ) : (
+                      <>
+                        {s.questions}
+                        {s.unknownCount > 0 && (
+                          <span className="muted" title={`${s.unknownCount} edição(ões) sem contagem`}>
+                            {" "}
+                            +{s.unknownCount}?
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </td>
+                  <td>{s.verified}</td>
+                  <td>{s.reviewed}</td>
+                  <td>{s.provisional}</td>
+                  <td>{s.blocked || "—"}</td>
+                  <td>{s.referenceOnly || "—"}</td>
+                  <td className="mono">{importadorDe(s.providerId)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <Card style={{ marginTop: 14 }}>
         <div className="row between" style={{ alignItems: "flex-end" }}>

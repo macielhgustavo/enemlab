@@ -17,7 +17,9 @@
     "test:e2e:ci": "playwright test e2e/smoke.spec.ts e2e/a11y.spec.ts",
     "test:visual": "playwright test e2e/visual.spec.ts",
     "test:a11y": "playwright test e2e/a11y.spec.ts",
-    "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots"
+    "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
+    "ingest": "node scripts/ingest.mjs",
+    "sources:audit": "node scripts/sources-audit.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
