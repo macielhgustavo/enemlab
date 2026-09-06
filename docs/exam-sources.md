@@ -61,7 +61,7 @@ alternativa.
 
 O documento oficial é exibido dentro da sessão, sob demanda, num `iframe` que
 carrega direto do servidor da instituição. Nada é baixado, copiado ou
-reservido pelo nosso domínio — o navegador do aluno busca o arquivo na fonte.
+servido pelo nosso domínio — o navegador do aluno busca o arquivo na fonte.
 
 Antes de implementar, foi medido se o servidor permite:
 
@@ -81,7 +81,7 @@ Regras que valem para qualquer fonte em modo referência:
 - manter sempre o link externo visível: nem todo navegador exibe PDF embutido;
 - usar só parâmetros de exibição do visualizador (`#navpanes=0&view=FitH`),
   nunca alterar o documento;
-- nunca reservir o arquivo a partir do nosso domínio para contornar bloqueio.
+- nunca servir o arquivo a partir do nosso domínio para contornar bloqueio.
 
 ## 5. Como adicionar uma prova nova
 
@@ -128,6 +128,23 @@ Correção errada é pior que ausência de dado.
 |---|---|---|---|---|
 | ENEM | `api.enem.dev` | `structured-api` | no app | 2009–2023 |
 | ITA | `vestibular.ita.br` | `pdf-reference` | na fonte oficial | 2019–2026 |
+
+### Cobertura verificada do arquivo do ITA
+
+Conferido por `HEAD` em 2026-09-06, edição por edição:
+
+| Documento | 2019–2024 | 2025–2026 |
+|---|---|---|
+| 1ª fase (`<ano>_fase1.pdf`) | 200 | 200 |
+| 2ª fase Matemática / Física / Química | 200 | 200 |
+| 2ª fase Português | **404** | 200 |
+
+O ITA só passou a publicar Português da 2ª fase como arquivo próprio em 2025.
+Montar a URL pelo padrão sem checar oferecia link morto em seis das oito
+edições — por isso a lista de matérias da 2ª fase depende do ano.
+
+Ao acrescentar edições, refaça esta conferência antes de anunciar o documento
+na interface. O padrão de nome não é promessa de existência.
 
 Placeholders conceituais para o futuro — **não implementados**: FUVEST, IME,
 AFA, EPCAR, EsPCEx. Cada um exige repetir o passo 2 antes de qualquer estimativa.
