@@ -1,0 +1,58 @@
+name: Capturas de referência (Linux)
+
+# Gera as capturas de regressão visual no mesmo sistema que o CI usa para
+# cobrá-las. Rodar isto é a única forma correta de atualizar a referência:
+# copiar PNG gerado no Windows não funciona, porque fonte e antialiasing
+# diferem o bastante para reprovar todas as telas.
+#
+# O workflow não escreve no repositório. Ele publica as capturas como
+# artefato, e quem estiver atualizando baixa e commita — assim a mudança
+# visual passa por revisão humana, que é o ponto de ter regressão visual.
+#
+# Passo a passo em docs/visual-testing.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: "Por que as capturas estão sendo regeradas"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Mesmo canal do CI e do desenvolvimento: navegador diferente renderiza
+      # texto diferente, e a referência deixaria de valer para quem a cobra.
+      - name: Install Chrome for Playwright
+        run: npx playwright install chrome
+
+      - name: Gerar capturas
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+        env:
+          MOTIVO: ${{ inputs.motivo }}
+
+      - name: Publicar capturas
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-linux
+          path: e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: error

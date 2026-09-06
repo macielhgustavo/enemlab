@@ -13,6 +13,17 @@ const BASE = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  /**
+   * Nome da captura sem o sufixo de plataforma.
+   *
+   * O padrão do Playwright acrescenta `-win32`/`-linux`, o que permitiria
+   * conviver com uma referência por sistema — e foi assim que a regressão
+   * visual ficou fora do CI na versão anterior. Aqui existe uma referência
+   * só por viewport, gerada no Linux pelo mesmo runner que a cobra
+   * (docs/visual-testing.md). `{projectName}` separa desktop de mobile —
+   * sem ele os dois gravariam por cima um do outro.
+   */
+  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}{ext}",
   // Estado é por navegador (localStorage), então testes que mexem na mesma
   // origem não podem correr juntos sem se atrapalhar.
   fullyParallel: false,
