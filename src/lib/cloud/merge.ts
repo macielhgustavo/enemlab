@@ -114,6 +114,9 @@ export function mergeCloudDB(local: DB, cloud: Partial<DB> | null | undefined): 
     sessions: [],
     goals: clone(local.goals || cloud.goals || { questions: 150, essays: 2, reviews: 30 }),
     theme: local.theme || cloud.theme || "dark",
+    // Prova ativa é preferência do aparelho, como o tema: o dispositivo atual
+    // manda. Explícito para não depender da ordem do spread.
+    activeProvider: local.activeProvider || cloud.activeProvider || "enem",
     lastOpened: local.lastOpened || cloud.lastOpened || null,
     lastBackupAt: latestDate(local.lastBackupAt, cloud.lastBackupAt),
   };

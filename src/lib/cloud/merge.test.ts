@@ -86,3 +86,79 @@ describe("mergeCloudDB", () => {
     expect(mergeCloudDB(local, cloud).srs.q1.reps).toBe(4);
   });
 });
+
+describe("merge com várias provas", () => {
+  function tentativa(id: string, providerId: string | undefined, finished: string | null) {
+    return {
+      id,
+      providerId,
+      year: 2026,
+      lang: "ingles",
+      mode: "full",
+      area: "all",
+      minutes: 60,
+      strict: false,
+      questionRefs: [],
+      answers: {},
+      confidence: {},
+      flags: {},
+      timeQ: {},
+      elapsed: 0,
+      startedAt: "2026-09-01T10:00:00.000Z",
+      finishedAt: finished,
+      result: finished ? { rows: [], correct: 0, total: 0, blank: 0 } : null,
+    } as unknown as DB["attempts"][number];
+  }
+
+  const base = (attempts: DB["attempts"], extra: Partial<DB> = {}) =>
+    ({
+      v: 6,
+      schema: 6.6,
+      build: "test",
+      theme: "dark",
+      attempts,
+      notes: {},
+      srs: {},
+      sessions: [],
+      goals: { questions: 150, essays: 2, reviews: 30 },
+      lastOpened: null,
+      lastBackupAt: null,
+      ...extra,
+    }) as DB;
+
+  it("une tentativas de provas diferentes sem perder a origem", () => {
+    const local = base([tentativa("a_enem", undefined, "2026-09-01T11:00:00.000Z")]);
+    const cloud = base([tentativa("a_ita", "ita", "2026-09-02T11:00:00.000Z")]);
+
+    const merged = mergeCloudDB(local, cloud);
+    const ids = merged.attempts.map((a) => a.id).sort();
+    expect(ids).toEqual(["a_enem", "a_ita"]);
+
+    const ita = merged.attempts.find((a) => a.id === "a_ita")!;
+    expect(ita.providerId).toBe("ita");
+    // A tentativa legada continua sem carimbo — e é lida como ENEM depois.
+    const legado = merged.attempts.find((a) => a.id === "a_enem")!;
+    expect(legado.providerId).toBeUndefined();
+  });
+
+  it("a prova ativa é preferência do aparelho", () => {
+    const local = base([], { activeProvider: "ita" });
+    const cloud = base([], { activeProvider: "enem" });
+    expect(mergeCloudDB(local, cloud).activeProvider).toBe("ita");
+    // Sem escolha local, herda a da nuvem em vez de forçar ENEM.
+    expect(mergeCloudDB(base([]), cloud).activeProvider).toBe("enem");
+  });
+
+  it("não deixa SRS do ITA colidir com o do ENEM", () => {
+    const local = base([], {
+      srs: { "2023-1-pt-matematica": { reps: 2, interval: 7, due: "2026-09-10", year: 2023, index: 1, area: "matematica" } },
+    } as Partial<DB>);
+    const cloud = base([], {
+      srs: { "ita-2026-first-1": { reps: 1, interval: 2, due: "2026-09-11", year: 2026, index: 1, area: "mathematics", providerId: "ita" } },
+    } as Partial<DB>);
+
+    const merged = mergeCloudDB(local, cloud);
+    expect(Object.keys(merged.srs).sort()).toEqual(["2023-1-pt-matematica", "ita-2026-first-1"]);
+    expect(merged.srs["ita-2026-first-1"].providerId).toBe("ita");
+  });
+});
