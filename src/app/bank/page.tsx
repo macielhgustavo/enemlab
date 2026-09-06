@@ -7,7 +7,8 @@ import { useHydrated } from "@/lib/hooks";
 import { examYears, contentPath } from "@/lib/domain/constants";
 import { classifyContent, discipline, questionKey } from "@/lib/domain/classify";
 import { historicalQuestionRows, personalDifficulty, difficultyLabel } from "@/lib/domain/stats";
-import { fetchExam } from "@/lib/api/enem";
+import { questionsFor } from "@/lib/providers/access";
+import { ENEM_PROVIDER_ID } from "@/lib/providers";
 import { normalizeText } from "@/lib/format";
 import { attemptFromQuestions } from "@/lib/services/attempts";
 import { Card, Empty, PageHead } from "@/components/ui";
@@ -37,6 +38,9 @@ export default function BankPage() {
   const { info } = useToast();
   const hydrated = useHydrated();
 
+  // Prova de origem. Hoje só o ENEM está registrado; quando houver outra,
+  // isto vira um seletor e o resto da tela não muda.
+  const [providerId] = useState(ENEM_PROVIDER_ID);
   const [year, setYear] = useState(2023);
   const [query, setQuery] = useState("");
   const [area, setArea] = useState("all");
@@ -49,8 +53,8 @@ export default function BankPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["exam", year, "ingles"],
-    queryFn: () => fetchExam(year, "ingles"),
+    queryKey: ["exam", providerId, year, "ingles"],
+    queryFn: () => questionsFor(providerId, { year, language: "ingles" }),
     enabled: hydrated,
     staleTime: Infinity,
   });

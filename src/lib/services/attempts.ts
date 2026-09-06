@@ -11,6 +11,7 @@ import {
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
 import { isQuestionUsableForPractice } from "../domain/question-quality";
+import { ENEM_PROVIDER_ID, resolveProviderId } from "../providers";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -37,6 +38,8 @@ export interface NewTrainingParams {
 function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" | "mode">): Attempt {
   return {
     id: uid(),
+    // Toda tentativa nasce carimbada com a prova de origem.
+    providerId: ENEM_PROVIDER_ID,
     area: "all",
     minutes: 50,
     strict: false,
@@ -61,8 +64,9 @@ function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" |
   };
 }
 
-function refsFrom(qs: Question[], fallbackYear: number) {
+function refsFrom(qs: Question[], fallbackYear: number, providerId = ENEM_PROVIDER_ID) {
   return qs.map((q) => ({
+    providerId,
     index: q.index,
     year: q.year || fallbackYear,
     language: q.language || null,
@@ -218,6 +222,7 @@ export async function buildContentSprintAttempt(content: string, n = 15): Promis
 // Refazer um conjunto de linhas erradas.
 export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
   return baseAttempt({
+    providerId: resolveProviderId(src.providerId),
     year: src.year,
     lang: src.lang,
     mode: "retry",
@@ -294,6 +299,9 @@ export function finishAttemptInDB(db: DB, attemptId: string, questions: Question
     const tags = finalTagRules(q);
     return {
       key: k,
+      // Cada linha corrigida carrega a prova: é o que permite não misturar
+      // estatística entre bancas depois.
+      providerId: resolveProviderId(a.providerId),
       index: q.index,
       year: q.year,
       area: discipline(q),

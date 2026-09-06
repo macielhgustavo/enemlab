@@ -55,11 +55,15 @@ export interface QuestionRef {
   year?: number;
   language?: string | null;
   discipline: string;
+  /** Ausente nos dados anteriores à v8: resolve para ENEM na leitura. */
+  providerId?: string;
 }
 
 // ---- Correção ----
 export interface ResultRow {
   key: string;
+  /** Ausente nos dados anteriores a v8: resolve para ENEM na leitura. */
+  providerId?: string;
   index: number;
   year: number;
   area: string;
@@ -99,6 +103,8 @@ export interface DailyPlanStamp {
 
 export interface Attempt {
   id: string;
+  /** Prova de origem. Ausente nos dados antigos: resolve para ENEM. */
+  providerId?: string;
   year: number;
   lang: Language;
   mode: AttemptMode;
@@ -131,6 +137,7 @@ export interface Attempt {
 
 export interface SrsEntry {
   reps: number;
+  providerId?: string;
   interval: number;
   due: string;
   year: number;

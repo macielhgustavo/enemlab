@@ -3,6 +3,7 @@
 import { pct } from "../format";
 import { contentAllLabels } from "./constants";
 import { classifyContent, discipline, isUnclassifiedContent, questionKey } from "./classify";
+import { filterByProvider, resolveProviderId } from "../providers/registry";
 import type {
   Attempt,
   DB,
@@ -29,8 +30,29 @@ export function officialRows(db: DB): EnrichedRow[] {
   return db.attempts
     .filter((a) => a.result)
     .flatMap((a) =>
-      a.result!.rows.map((r) => ({ ...r, attemptId: a.id, finishedAt: a.finishedAt })),
+      a.result!.rows.map((r) => ({
+        ...r,
+        // Linhas gravadas antes da v8 não têm a prova: herdam a da tentativa,
+        // que por sua vez resolve para ENEM quando também está ausente.
+        providerId: resolveProviderId(r.providerId ?? a.providerId),
+        attemptId: a.id,
+        finishedAt: a.finishedAt,
+      })),
     );
+}
+
+/**
+ * Linhas de uma prova específica. É por aqui que as estatísticas de bancas
+ * diferentes deixam de se misturar: quem quiser um número por prova filtra
+ * antes de agregar.
+ */
+export function officialRowsOf(db: DB, providerId?: string | null): EnrichedRow[] {
+  return filterByProvider(officialRows(db), providerId);
+}
+
+/** Provas que aparecem no histórico, já normalizando os dados antigos. */
+export function providersInHistory(db: DB): string[] {
+  return [...new Set(officialRows(db).map((r) => resolveProviderId(r.providerId)))].sort();
 }
 
 export function parseManualTags(note?: { tags?: string; tag?: string }): string[] {
