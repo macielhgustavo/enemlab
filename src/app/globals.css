@@ -1492,6 +1492,14 @@ tbody tr:hover {
 }
 
 .reasonStats,
+/* O JSX come o espaço entre elementos em linhas separadas, então
+   <strong>Início: 60%</strong><span>5 questões</span> saía grudado como
+   "60%5 questões". Separa no CSS, que é onde o espaçamento mora. */
+.reportBlock strong + span,
+.reportBlock strong + .muted {
+  margin-left: 6px;
+}
+
 .reportBlocks,
 .testGrid {
   display: grid;
