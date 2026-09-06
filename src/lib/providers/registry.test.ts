@@ -67,7 +67,14 @@ describe("registry", () => {
     expect(() => getProvider("fuvest")).toThrow(/não registrado/i);
   });
 
-  it("não traz nenhuma prova externa ainda", () => {
-    expect(listProviders().map((p) => p.id)).toEqual(["enem"]);
+  it("registra apenas ENEM e ITA nesta versão", () => {
+    expect(listProviders().map((p) => p.id).sort()).toEqual(["enem", "ita"]);
+  });
+
+  it("não traz as provas que ficaram para depois", () => {
+    const ids = listProviders().map((p) => p.id);
+    for (const futuro of ["fuvest", "ime", "afa", "epcar", "espcex"]) {
+      expect(ids).not.toContain(futuro);
+    }
   });
 });

@@ -3,6 +3,7 @@
 import { pct } from "../format";
 import { contentAllLabels } from "./constants";
 import { classifyContent, discipline, isUnclassifiedContent, questionKey } from "./classify";
+import { DEFAULT_PROVIDER_ID, filterByProvider, resolveProviderId } from "../providers/registry";
 import type {
   Attempt,
   DB,
@@ -29,8 +30,29 @@ export function officialRows(db: DB): EnrichedRow[] {
   return db.attempts
     .filter((a) => a.result)
     .flatMap((a) =>
-      a.result!.rows.map((r) => ({ ...r, attemptId: a.id, finishedAt: a.finishedAt })),
+      a.result!.rows.map((r) => ({
+        ...r,
+        // Linhas gravadas antes da v8 não têm a prova: herdam a da tentativa,
+        // que por sua vez resolve para ENEM quando também está ausente.
+        providerId: resolveProviderId(r.providerId ?? a.providerId),
+        attemptId: a.id,
+        finishedAt: a.finishedAt,
+      })),
     );
+}
+
+/**
+ * Linhas de uma prova específica. É por aqui que as estatísticas de bancas
+ * diferentes deixam de se misturar: quem quiser um número por prova filtra
+ * antes de agregar.
+ */
+export function officialRowsOf(db: DB, providerId?: string | null): EnrichedRow[] {
+  return filterByProvider(officialRows(db), providerId);
+}
+
+/** Provas que aparecem no histórico, já normalizando os dados antigos. */
+export function providersInHistory(db: DB): string[] {
+  return [...new Set(officialRows(db).map((r) => resolveProviderId(r.providerId)))].sort();
 }
 
 export function parseManualTags(note?: { tags?: string; tag?: string }): string[] {
@@ -112,10 +134,20 @@ export function statisticalConfidence(c: number, n: number): { label: string; cl
 }
 
 // ---- Mastery (multi-tag) ----
-export function masteryStats(db: DB): Record<string, Tally> {
+/**
+ * Domínio por conteúdo. Escopado por prova de propósito: a taxonomia de
+ * conteúdos é do ENEM, e deixar linhas de outra banca entrarem aqui somaria
+ * desempenhos que não se comparam. O padrão é ENEM para preservar todo o
+ * comportamento anterior.
+ */
+export function masteryStats(
+  db: DB,
+  providerId: string | null = DEFAULT_PROVIDER_ID,
+): Record<string, Tally> {
   const out: Record<string, Tally> = {};
   for (const n of contentAllLabels()) out[n] = { c: 0, t: 0 };
-  for (const row of officialRows(db).filter((x) => x.correct)) {
+  const base = providerId === null ? officialRows(db) : officialRowsOf(db, providerId);
+  for (const row of base.filter((x) => x.correct)) {
     for (const tag of questionTagsByRow(db, row)) {
       (out[tag] ??= { c: 0, t: 0 }).t++;
       if (row.isCorrect) out[tag].c++;

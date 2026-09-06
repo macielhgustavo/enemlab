@@ -1,8 +1,27 @@
 // Contratos genéricos de provas. O ENEM é apenas o primeiro provider;
 // nada aqui pode assumir ENEM implicitamente.
 
-/** Fase da aplicação (ENEM tem dois dias; outras provas podem ter uma só). */
-export type ExamPhase = "day1" | "day2" | "single";
+/**
+ * Fase da aplicação. O ENEM aplica em dois dias; o ITA divide em duas fases
+ * (objetiva e discursiva). Os dois vocabulários convivem porque descrevem
+ * coisas diferentes — traduzir um no outro perderia significado.
+ */
+export type ExamPhase = "day1" | "day2" | "single" | "first" | "second";
+
+/** Natureza da resposta esperada. */
+export type QuestionType = "multiple_choice" | "discursive" | "essay";
+
+/**
+ * Procedência oficial. Quando o enunciado não pode ser reproduzido (prova
+ * digitalizada, conteúdo com direitos do organizador), é por aqui que o app
+ * leva o aluno ao documento original em vez de inventar o texto.
+ */
+export interface OfficialSource {
+  official: boolean;
+  institution: string;
+  documentUrl: string;
+  page?: number;
+}
 
 /** Disciplina normalizada, sempre ligada a uma grande área do provider. */
 export interface ExamSubject {
@@ -63,6 +82,21 @@ export interface NormalizedQuestion {
   correctAlternative: string | null;
   files: string[];
   sources: ExamSource[];
+
+  // ---- Campos da v8. Opcionais: o ENEM continua exatamente como estava. ----
+  /** Numeração oficial dentro da prova, quando difere do índice interno. */
+  number?: number;
+  type?: QuestionType;
+  /** Documento oficial de origem. */
+  official?: OfficialSource;
+  /**
+   * false quando o enunciado não está disponível em texto e o aluno precisa
+   * lê-lo no documento oficial. A UI deve deixar isso explícito em vez de
+   * mostrar uma questão vazia.
+   */
+  statementAvailable?: boolean;
+  /** Resposta de referência de questão discursiva, quando o órgão publica. */
+  expectedAnswer?: string | null;
 }
 
 /** Descrição estática de uma prova suportada. */

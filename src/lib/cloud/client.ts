@@ -1,9 +1,23 @@
 import type { DB } from "../domain/types";
 
-export const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://bpmhieqyubpuueoyulee.supabase.co";
+// A chave publishable é pública por design (vai no bundle), então tirá-la do
+// código não é sobre segredo: é para um fork do repositório não sincronizar
+// dentro do projeto Supabase de outra pessoa. Quem protege os dados é o RLS —
+// ver supabase/schema.sql e supabase/VERIFICAR-RLS.md.
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 export const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_c4WpRQ8xT1ylIWwRjh-nUw_xMOxQoMh";
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+
+/** A sincronização só é oferecida quando o projeto está configurado. */
+export const CLOUD_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+function assertConfigured() {
+  if (!CLOUD_CONFIGURED) {
+    throw new Error(
+      "Nuvem não configurada: defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY em .env.local (ver .env.example).",
+    );
+  }
+}
 
 const SESSION_KEY = "enem_lab_cloud_session_v1";
 const CLIENT_KEY = "enem_lab_cloud_client_v1";
@@ -105,6 +119,7 @@ export function getClientId(): string {
 }
 
 export async function signUpWithEmail(email: string, password: string): Promise<AuthSession | null> {
+  assertConfigured();
   const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method: "POST",
     headers: apiHeaders(),
@@ -117,6 +132,7 @@ export async function signUpWithEmail(email: string, password: string): Promise<
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<AuthSession> {
+  assertConfigured();
   const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: apiHeaders(),
@@ -130,6 +146,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }
 
 export function startOAuth(provider: OAuthProvider) {
+  assertConfigured();
   if (typeof window === "undefined") return;
   const redirectTo = `${window.location.origin}/account`;
   const params = new URLSearchParams({ provider, redirect_to: redirectTo });
@@ -154,6 +171,7 @@ export function consumeOAuthRedirect(): AuthSession | null {
 }
 
 export async function refreshSession(session: AuthSession): Promise<AuthSession> {
+  assertConfigured();
   const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
     method: "POST",
     headers: apiHeaders(),
@@ -172,6 +190,7 @@ export async function ensureFreshSession(session: AuthSession): Promise<AuthSess
 }
 
 export async function fetchCurrentUser(token: string): Promise<AuthUser> {
+  assertConfigured();
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: apiHeaders(token),
   });
@@ -192,6 +211,7 @@ export async function signOutRemote(session: AuthSession | null) {
 }
 
 export async function fetchCloudState(token: string, userId: string): Promise<CloudStateRow | null> {
+  assertConfigured();
   const params = new URLSearchParams({
     select: "data,revision,updated_at",
     user_id: `eq.${userId}`,
@@ -210,6 +230,7 @@ export async function syncCloudState(
   baseRevision: number,
   clientId: string,
 ): Promise<CloudSyncResponse> {
+  assertConfigured();
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/sync_user_state`, {
     method: "POST",
     headers: apiHeaders(token),

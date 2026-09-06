@@ -5,8 +5,18 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { examYears } from "@/lib/domain/constants";
 import { buildTrainingAttempt, type NewTrainingParams } from "@/lib/services/attempts";
+import { buildItaFirstPhaseAttempt } from "@/lib/services/ita-attempts";
+import { itaYears, itaAnswerKey } from "@/lib/providers";
 import { Card } from "@/components/ui";
 import type { AttemptMode, AreaId, Language } from "@/lib/domain/types";
+
+const SUBJECT_PT: Record<string, string> = {
+  mathematics: "Matemática",
+  physics: "Física",
+  chemistry: "Química",
+  english: "Inglês",
+  portuguese: "Português",
+};
 
 const MODES: { value: AttemptMode; label: string }[] = [
   { value: "sprint15", label: "Sprint — 15" },
@@ -54,6 +64,8 @@ export default function PracticePage() {
   const [strategy, setStrategy] = useState(false);
   const [alerts, setAlerts] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [itaYear, setItaYear] = useState(() => itaYears()[0] ?? 2026);
+  const [itaSubject, setItaSubject] = useState("");
   const [status, setStatus] = useState<string>("");
 
   const areaDisabled = ["full", "real1", "real2", "adaptive15", "unseen90"].includes(mode);
@@ -63,6 +75,18 @@ export default function PracticePage() {
     setMode(m);
     setMinutes(defaultMinutes(m));
     if (m === "full" || m === "real1" || m === "real2") setArea("all");
+  }
+
+  function startIta() {
+    setBusy(true);
+    try {
+      const a = buildItaFirstPhaseAttempt(itaYear, { subject: itaSubject || null });
+      addAttempt(a);
+      router.push(`/exam/${a.id}`);
+    } catch (e) {
+      setStatus((e as Error).message);
+      setBusy(false);
+    }
   }
 
   async function start() {
@@ -182,6 +206,44 @@ export default function PracticePage() {
           </span>
           <button className="btn" onClick={start} disabled={busy}>
             Começar
+          </button>
+        </div>
+      </Card>
+
+      <Card style={{ marginTop: 14 }}>
+        <div className="htitle">
+          <h2>ITA — 1ª fase</h2>
+          <span className="badge2">gabarito oficial</span>
+        </div>
+        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+          As provas do ITA são publicadas como documento digitalizado, então o enunciado
+          é lido na prova oficial e você marca a alternativa aqui. A correção usa o
+          gabarito oficial, e o desempenho fica separado do ENEM.
+        </p>
+        <div className="row" style={{ alignItems: "flex-end", gap: 12, marginTop: 14 }}>
+          <div style={{ maxWidth: 150 }}>
+            <label>Edição</label>
+            <select value={itaYear} onChange={(e) => setItaYear(Number(e.target.value))}>
+              {itaYears().map((y) => (
+                <option key={y} value={y}>
+                  ITA {y}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ maxWidth: 190 }}>
+            <label>Matéria</label>
+            <select value={itaSubject} onChange={(e) => setItaSubject(e.target.value)}>
+              <option value="">Prova completa</option>
+              {Object.entries(itaAnswerKey(itaYear)?.subjects ?? {}).map(([id]) => (
+                <option key={id} value={id}>
+                  {SUBJECT_PT[id] ?? id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn" onClick={startIta} disabled={busy}>
+            Começar ITA
           </button>
         </div>
       </Card>

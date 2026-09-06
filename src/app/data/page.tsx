@@ -6,7 +6,7 @@ import { FINAL_BUILD, FINAL_SCHEMA, examYears } from "@/lib/domain/constants";
 import { rebuildSessions } from "@/lib/domain/stats";
 import { runSelfTests, type SelfTest } from "@/lib/domain/selftests";
 import { auditQuestionSet, type QuestionBankAudit } from "@/lib/domain/question-quality";
-import { fetchExam } from "@/lib/api/enem";
+import { questionsFor } from "@/lib/providers/access";
 import type { Language } from "@/lib/domain/types";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import { parseBackup } from "@/lib/validators/backup";
@@ -58,7 +58,7 @@ export default function DataPage() {
     setAuditBusy(true);
     setAuditError("");
     try {
-      const questions = await fetchExam(auditYear, auditLang);
+      const questions = await questionsFor(null, { year: auditYear, language: auditLang });
       setBankAudit(auditQuestionSet(questions));
     } catch (err) {
       const message = (err as Error).message || "Falha ao auditar o banco.";

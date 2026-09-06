@@ -1,5 +1,6 @@
 // Revisão espaçada (portada do v6).
 import { SRS_INTERVALS } from "./constants";
+import { resolveProviderId } from "../providers/registry";
 import type { Attempt, DB, ResultRow, SrsEntry } from "./types";
 
 // Atualiza a fila SRS a partir de uma linha corrigida (muta db.srs).
@@ -30,6 +31,7 @@ export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
     old.due = new Date(Date.now() + 6 * 3600000).toISOString();
   }
   old.lastResult = row.isCorrect ? "correct" : "wrong";
+  old.providerId = resolveProviderId(a.providerId);
   old.year = a.year;
   old.index = row.index;
   old.area = row.area;

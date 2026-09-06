@@ -3200,3 +3200,61 @@ kbd {
   font-size: 15px;
   color: var(--muted);
 }
+
+/* ---- Questão em modo referência (prova digitalizada, ex.: ITA) ---- */
+.refSource {
+  margin: 22px 0;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+}
+.refSource .k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 10px;
+}
+.refSource p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0 0 16px;
+}
+.refSource .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Seletor de prova ativa ---- */
+.examswitch {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 3px;
+  padding: 3px;
+  margin: 0 2px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.examswitch button {
+  padding: 7px 4px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  transition: color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.examswitch button:hover {
+  color: var(--text);
+}
+.examswitch button.on {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+}

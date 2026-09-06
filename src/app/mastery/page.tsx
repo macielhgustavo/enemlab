@@ -9,14 +9,21 @@ import {
   wilsonInterval,
 } from "@/lib/domain/stats";
 import { Empty, Card, PageHead } from "@/components/ui";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { getProvider, ENEM_PROVIDER_ID } from "@/lib/providers";
 
 export default function MasteryPage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
-  const st = masteryStats(db);
-  const entries = Object.entries(st);
+  const isEnem = providerId === ENEM_PROVIDER_ID;
+  const label = getProvider(providerId).metadata.shortLabel;
+  const st = masteryStats(db, providerId);
+  // A taxonomia completa de conteúdos é do ENEM. Em outra prova, mostrar a
+  // lista inteira zerada seria ruído: só aparece o que foi medido.
+  const entries = Object.entries(st).filter(([, v]) => (isEnem ? true : v.t > 0));
   const tested = entries.filter(([, v]) => v.t > 0).length;
   const weak = weakestContents(db, 8);
 
@@ -31,8 +38,8 @@ export default function MasteryPage() {
     <>
       <PageHead
         eyebrow="Módulo · domínio"
-        title="Mapa de domínio"
-        sub="Domínio por conteúdo, com amostra, retenção e intervalo de confiança."
+        title={`Mapa de domínio · ${label}`}
+        sub={`Desempenho medido apenas em ${label}: provas diferentes nunca se somam.`}
         right={<span className="badge2">{tested} conteúdos testados</span>}
       />
 
