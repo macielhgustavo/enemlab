@@ -12,27 +12,32 @@ import { ITA_PROVIDER_ID, itaYears, itaAnswerKey, getProvider } from "@/lib/prov
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { normalizeText } from "@/lib/format";
 import { attemptFromQuestions } from "@/lib/services/attempts";
-import { Card, Empty, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import {
+  FilterBar,
+  FilterChip,
+  FilterGroup,
+  QuestionStatusBadge,
+  type QuestionStatus,
+} from "@/components/enem-lab/FilterBar";
+import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
+import { areaLabel } from "@/lib/providers/taxonomy";
+import { examLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
 
-// Rótulos de status com cor própria, como os chips do centro de controle.
-const SUBJECT_PT: Record<string, string> = {
-  mathematics: "Matemática",
-  physics: "Física",
-  chemistry: "Química",
-  english: "Inglês",
-  portuguese: "Português",
-};
+/** Tira imagem markdown do trecho: a lista mostrava a URL crua como texto. */
+function trecho(texto: string): string {
+  return texto
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  unseen: { label: "Nunca vi", cls: "tagUnseen" },
-  wrong: { label: "Já errei", cls: "tagWrong" },
-  correct: { label: "Dominada", cls: "tagMastered" },
-  srs: { label: "No SRS", cls: "tagSrs" },
-};
-
-function bankStatus(db: DB, q: Question): string {
+function bankStatus(db: DB, q: Question): QuestionStatus {
   const k = questionKey(q);
   if (db.srs[k]) return "srs";
   const rr = historicalQuestionRows(db, k);
@@ -65,6 +70,7 @@ export default function BankPage() {
     data: questions,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["exam", providerId, activeYear, "ingles"],
     queryFn: () => questionsFor(providerId, { year: activeYear, language: "ingles" }),
@@ -121,22 +127,65 @@ export default function BankPage() {
 
   return (
     <>
-      <PageHead
+      <PageHeader
         eyebrow="Módulo · acervo"
-        title={`Banco de questões · ${getProvider(providerId).metadata.shortLabel}`}
-        sub="Filtre por ano, área, conteúdo, status e dificuldade pessoal; selecione e monte um treino."
+        title="Banco de questões"
+        context={<Badge variant="accent">{getProvider(providerId).metadata.shortLabel}</Badge>}
+        description="Filtre, selecione e monte um treino com as questões que interessam."
+        meta={
+          isLoading ? undefined : (
+            <>
+              <span>{visible.length} visíveis</span>
+              <span>{selected.size} selecionadas</span>
+            </>
+          )
+        }
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={selectVisible} disabled={!visible.length}>
+              Selecionar visíveis
+            </Button>
+            <Button variant="primary" size="sm" onClick={start} disabled={!selected.size}>
+              Treinar selecionadas
+            </Button>
+          </>
+        }
       />
 
-      <Card>
-        <div className="bankFilters">
+      <FilterBar
+        summary={isLoading ? "carregando banco…" : `${visible.length} de ${(questions || []).length} questões`}
+        onClear={() => {
+          setQuery("");
+          setArea("all");
+          setSubject("all");
+          setStatus("all");
+          setDiff("all");
+        }}
+      >
+        <FilterGroup label="Buscar">
           <input
-            type="text"
+            id="banco-busca"
+            className="el-search"
+            type="search"
+            aria-label="Buscar no enunciado ou conteúdo"
             placeholder="Buscar no enunciado, conteúdo…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+        </FilterGroup>
+
+        <FilterGroup label="Edição">
+          {/* Ano continua em select: quinze opções viram uma parede de chips. */}
+          <label className="el-visually-hidden" htmlFor="banco-ano">
+            Edição da prova
+          </label>
           {isIta ? (
-            <select value={itaYear} onChange={(e) => setItaYear(Number(e.target.value))}>
+            <select
+              id="banco-ano"
+              className="el-select__trigger"
+              value={itaYear}
+              onChange={(e) => setItaYear(Number(e.target.value))}
+            >
               {itaYears().map((y) => (
                 <option key={y} value={y}>
                   ITA {y}
@@ -144,120 +193,160 @@ export default function BankPage() {
               ))}
             </select>
           ) : (
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            <select
+              id="banco-ano"
+              className="el-select__trigger"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+            >
               {examYears().map((y) => (
                 <option key={y} value={y}>
-                  {y}
+                  ENEM {y}
                 </option>
               ))}
             </select>
           )}
-          {isIta ? (
-            <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-              <option value="all">Todas as matérias</option>
-              {Object.keys(itaAnswerKey(itaYear)?.subjects ?? {}).map((id) => (
-                <option key={id} value={id}>
-                  {SUBJECT_PT[id] ?? id}
-                </option>
+        </FilterGroup>
+
+        <FilterGroup label={isIta ? "Matéria" : "Área"}>
+          <FilterChip
+            active={(isIta ? subject : area) === "all"}
+            onClick={() => (isIta ? setSubject("all") : setArea("all"))}
+          >
+            Todas
+          </FilterChip>
+          {isIta
+            ? Object.keys(itaAnswerKey(itaYear)?.subjects ?? {}).map((id) => (
+                <FilterChip key={id} active={subject === id} onClick={() => setSubject(id)}>
+                  {areaLabel(id, providerId)}
+                </FilterChip>
+              ))
+            : ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"].map((id) => (
+                <FilterChip key={id} active={area === id} onClick={() => setArea(id)}>
+                  {areaLabel(id, providerId)}
+                </FilterChip>
               ))}
-            </select>
-          ) : (
-            <select value={area} onChange={(e) => setArea(e.target.value)}>
-              <option value="all">Todas as áreas</option>
-              <option value="matematica">Matemática</option>
-              <option value="ciencias-natureza">Natureza</option>
-              <option value="ciencias-humanas">Humanas</option>
-              <option value="linguagens">Linguagens</option>
-            </select>
-          )}
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Todos os status</option>
-            <option value="unseen">Nunca vi</option>
-            <option value="wrong">Já errei</option>
-            <option value="correct">Já acertei</option>
-            <option value="srs">No SRS</option>
-          </select>
-          <select value={diff} onChange={(e) => setDiff(e.target.value)}>
-            <option value="all">Toda dificuldade</option>
-            <option value="facil">Fácil pessoal</option>
-            <option value="media">Média pessoal</option>
-            <option value="dificil">Difícil pessoal</option>
-          </select>
-        </div>
+        </FilterGroup>
 
-        <div className="row between" style={{ margin: "12px 0" }}>
-          <div className="muted">
-            {isLoading
-              ? "carregando banco…"
-              : `${visible.length} visíveis • ${selected.size} selecionadas`}
-          </div>
-          <div className="row">
-            <button className="btn secondary" onClick={selectVisible}>
-              Selecionar visíveis
-            </button>
-            <button className="btn" onClick={start}>
-              Treinar selecionadas
-            </button>
-          </div>
-        </div>
+        <FilterGroup label="Status">
+          {[
+            ["all", "Todos"],
+            ["unseen", "Nunca vi"],
+            ["wrong", "Já errei"],
+            ["correct", "Já acertei"],
+            ["srs", "No SRS"],
+          ].map(([v, rotulo]) => (
+            <FilterChip key={v} active={status === v} onClick={() => setStatus(v)}>
+              {rotulo}
+            </FilterChip>
+          ))}
+        </FilterGroup>
 
-        <div className="bankList">
-          {isLoading && (
-            <div className="empty">
-              <span className="loader" style={{ display: "inline-block" }} />
-              <br />
-              Carregando banco…
-            </div>
-          )}
-          {error && <Empty>Falha ao carregar: {(error as Error).message}</Empty>}
-          {!isLoading && !error && visible.length === 0 && (
-            <Empty>Nenhuma questão com esses filtros.</Empty>
-          )}
-          {visible.map((q) => {
+        <FilterGroup label="Dificuldade pessoal">
+          {[
+            ["all", "Toda"],
+            ["facil", "Fácil"],
+            ["media", "Média"],
+            ["dificil", "Difícil"],
+          ].map(([v, rotulo]) => (
+            <FilterChip key={v} active={diff === v} onClick={() => setDiff(v)}>
+              {rotulo}
+            </FilterChip>
+          ))}
+        </FilterGroup>
+      </FilterBar>
+
+      <div className="el-banklist" aria-busy={isLoading || undefined}>
+        {isLoading && (
+          <>
+            {/* Esqueleto com a forma da linha que vem, não um spinner: assim
+                a lista não salta de altura quando o banco chega. */}
+            <span className="el-visually-hidden">Carregando o banco de questões</span>
+            {Array.from({ length: 6 }, (_, i) => (
+              <Card key={i} padding="sm" className="el-bankitem">
+                <LoadingState lines={2} label="" />
+              </Card>
+            ))}
+          </>
+        )}
+
+        {error && (
+          <ErrorState
+            title="Não foi possível carregar o banco"
+            description={(error as Error).message}
+            onRetry={() => refetch()}
+          />
+        )}
+
+        {!isLoading && !error && visible.length === 0 && (
+          <EmptyState
+            title="Nenhuma questão com esses filtros"
+            description="Solte um filtro ou troque a edição para ver mais questões."
+          />
+        )}
+
+        {!isLoading &&
+          visible.map((q) => {
             const k = questionKey(q);
             const c = classifyContent(q);
             const d = personalDifficulty(db, q);
             const [dl, dc] = difficultyLabel(d);
             const st = bankStatus(db, q);
+            const marcada = selected.has(k);
+            const semEnunciado = q.statementAvailable === false;
             return (
-              <div className="bankItem" key={k}>
-                <input
-                  type="checkbox"
-                  checked={selected.has(k)}
-                  onChange={(e) => toggle(k, e.target.checked)}
-                />
-                <div>
-                  <b>
-                    Q{q.number ?? q.index} • {q.official?.institution ?? "ENEM"} {q.year}
-                  </b>
-                  {q.statementAvailable === false ? (
-                    <div className="hierarchy">
-                      <span>{SUBJECT_PT[String(discipline(q))] ?? String(discipline(q))}</span>
-                      <span>1ª fase</span>
-                      <span>objetiva</span>
-                    </div>
-                  ) : (
-                    <div className="hierarchy">
-                      {contentPath(c).map((p) => (
-                        <span key={p}>{p}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="excerpt">
-                    {q.statementAvailable === false
-                      ? "Enunciado na prova oficial — abra o PDF do ITA para ler."
-                      : String(q.context || q.alternativesIntroduction || "").replace(/\s+/g, " ")}
+              <Card
+                key={k}
+                padding="sm"
+                variant={marcada ? "success" : "default"}
+                className="el-bankitem"
+              >
+                <label className="el-bankitem__pick">
+                  <input
+                    type="checkbox"
+                    checked={marcada}
+                    onChange={(e) => toggle(k, e.target.checked)}
+                    aria-label={`Selecionar questão ${q.number ?? q.index} de ${examLabel(q.official?.institution ? providerId : providerId)} ${q.year}`}
+                  />
+                </label>
+
+                <div className="el-bankitem__body">
+                  <div className="el-bankitem__title">
+                    <b className="heading-sm">Q{q.number ?? q.index}</b>
+                    <span className="caption">
+                      {q.official?.institution ?? examLabel(providerId)} {q.year}
+                    </span>
                   </div>
+
+                  <div className="el-bankitem__path caption">
+                    {semEnunciado ? (
+                      <>
+                        <span>{areaLabel(String(discipline(q)), providerId)}</span>
+                        <span>1ª fase</span>
+                        <span>objetiva</span>
+                      </>
+                    ) : (
+                      contentPath(c).map((cam) => <span key={cam}>{cam}</span>)
+                    )}
+                  </div>
+
+                  <p className="body-sm el-bankitem__excerpt">
+                    {semEnunciado
+                      ? "Enunciado na prova oficial — abra o PDF do ITA para ler."
+                      : trecho(String(q.context || q.alternativesIntroduction || ""))}
+                  </p>
                 </div>
-                <div style={{ display: "grid", gap: 5, justifyItems: "end" }}>
-                  <span className={`badge2 ${dc}`}>{dl}</span>
-                  <span className={`badge2 ${STATUS[st].cls}`}>{STATUS[st].label}</span>
+
+                <div className="el-bankitem__tags">
+                  <Badge variant={dc === "tagEasy" ? "success" : dc === "tagHard" ? "danger" : "warning"}>
+                    {dl}
+                  </Badge>
+                  <QuestionStatusBadge status={st} />
                 </div>
-              </div>
+              </Card>
             );
           })}
-        </div>
-      </Card>
+      </div>
     </>
   );
 }

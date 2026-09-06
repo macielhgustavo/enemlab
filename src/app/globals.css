@@ -342,7 +342,7 @@ th,
   font-size: 15px;
   color: var(--void);
   background: linear-gradient(145deg, var(--brand-strong), var(--brand-dim));
-  box-shadow: 0 0 24px rgba(0, 229, 160, 0.45);
+  box-shadow: 0 0 12px rgba(0, 229, 160, 0.22);
 }
 .rail .tag {
   font-size: 9px;
@@ -386,25 +386,42 @@ th,
   color: var(--text);
   background: var(--glass);
 }
+/* Ativo é superfície sutil + um indicador sólido. O gradiente com brilho no
+   fundo e o drop-shadow no ícone somavam três sinais para dizer uma coisa
+   só, e o item ativo brilhava mais que a ação principal da página. */
 .railnav a.active {
-  color: var(--brand-ink);
-  background: linear-gradient(90deg, rgba(0, 229, 160, 0.14), rgba(0, 229, 160, 0.02));
-  box-shadow: inset 0 0 0 1px rgba(0, 229, 160, 0.16);
+  color: var(--text-primary);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--border-default);
 }
 .railnav a.active svg {
   opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 160, 0.6));
+  color: var(--accent-primary);
 }
 .railnav a.active::before {
   content: "";
   position: absolute;
   left: -14px;
-  top: 10px;
-  bottom: 10px;
+  top: 9px;
+  bottom: 9px;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--brand);
-  box-shadow: 0 0 10px var(--brand);
+  background: var(--accent-primary);
+}
+
+/* Agrupamento: onze itens em fila viravam uma lista para ler inteira. */
+.railgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.railgroup + .railgroup {
+  margin-top: var(--space-16);
+}
+.railgroup__label {
+  padding: 0 12px 6px;
+  font-size: 9.5px;
+  color: var(--text-faint);
 }
 
 .rail-foot {
@@ -1475,6 +1492,14 @@ tbody tr:hover {
 }
 
 .reasonStats,
+/* O JSX come o espaço entre elementos em linhas separadas, então
+   <strong>Início: 60%</strong><span>5 questões</span> saía grudado como
+   "60%5 questões". Separa no CSS, que é onde o espaçamento mora. */
+.reportBlock strong + span,
+.reportBlock strong + .muted {
+  margin-left: 6px;
+}
+
 .reportBlocks,
 .testGrid {
   display: grid;
@@ -1514,39 +1539,7 @@ tbody tr:hover {
 /* ============================================================
    BANCO
    ============================================================ */
-.bankFilters {
-  display: grid;
-  grid-template-columns: 1.6fr repeat(4, minmax(120px, 0.6fr));
-  gap: 10px;
-}
-.bankList {
-  display: grid;
-  gap: 10px;
-  max-height: 680px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.bankItem {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 14px;
-  align-items: start;
-}
-.bankItem input {
-  width: auto;
-  margin-top: 4px;
-}
-.bankItem .excerpt {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin-top: 7px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+
 .multiTags,
 .reviewMeta,
 .essayStats,
@@ -2271,9 +2264,7 @@ kbd {
   .grid4 {
     grid-template-columns: repeat(2, 1fr);
   }
-  .bankFilters {
-    grid-template-columns: 1fr 1fr;
-  }
+
 }
 
 /* Mobile: navegação própria (bottom bar), não uma redução do desktop */
@@ -2492,24 +2483,6 @@ kbd {
   border-radius: 0 3px 3px 0;
 }
 /* Assinatura vertical no pé da navegação */
-.rail-sign {
-  margin-top: auto;
-  padding: 0 12px 14px;
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  line-height: 1.9;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-.rail-sign i {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: var(--brand);
-  margin-bottom: 12px;
-  font-style: normal;
-}
 
 .content {
   max-width: 1560px;
@@ -2792,46 +2765,7 @@ kbd {
   gap: 6px;
   padding: 10px 18px;
 }
-.statrow {
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 4px;
-}
-.statrow + .statrow {
-  border-top: 1px solid var(--line);
-}
-.statrow .chip {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  color: var(--brand);
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--brand) 7%, transparent);
-}
-.statrow .n {
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.statrow .l {
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-top: 7px;
-  line-height: 1.5;
-}
-.statrow .spark {
-  width: 74px;
-  height: 26px;
-}
+
 .dots5 {
   display: flex;
   gap: 5px;
@@ -3029,9 +2963,7 @@ kbd {
   .layout {
     grid-template-columns: 1fr;
   }
-  .rail-sign {
-    display: none;
-  }
+
   .content {
     padding: 18px 16px 90px;
   }
@@ -3197,23 +3129,6 @@ kbd {
 }
 
 /* Resultado: placar como indicador principal */
-.scoreline {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.scoreline .big {
-  font-size: clamp(46px, 6vw, 78px);
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
-  font-variant-numeric: tabular-nums;
-}
-.scoreline .of {
-  font-size: 15px;
-  color: var(--muted);
-}
 
 /* ---- Questão em modo referência (prova digitalizada, ex.: ITA) ---- */
 .refSource {

@@ -43,6 +43,18 @@ const NAV = [
   { href: "/account", label: "Conta", icon: UserRound, short: "Conta" },
 ];
 
+/**
+ * A nav era uma lista de onze itens sem hierarquia, e "Conta" ficava no fim
+ * dela como se fosse mais uma ferramenta de estudo. Agrupar diz o que é
+ * ação, o que é acompanhamento e o que é configuração — e encurta a busca
+ * visual de onze itens para três blocos.
+ */
+const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
+  { titulo: "Estudar", itens: NAV.filter((n) => ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href)) },
+  { titulo: "Acompanhar", itens: NAV.filter((n) => ["/mastery", "/srs", "/history", "/review"].includes(n.href)) },
+  { titulo: "Sistema", itens: NAV.filter((n) => ["/data", "/account"].includes(n.href)) },
+];
+
 const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
 
 function openPalette() {
@@ -109,34 +121,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <kbd>⌘K</kbd>
         </button>
 
-        <nav className="railnav">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={isActive(pathname, item.href) ? "active" : ""}
-                aria-current={isActive(pathname, item.href) ? "page" : undefined}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="railnav" aria-label="Navegação principal">
+          {GRUPOS.map((grupo) => (
+            <div className="railgroup" key={grupo.titulo}>
+              <span className="railgroup__label label">{grupo.titulo}</span>
+              {grupo.itens.map((item) => {
+                const Icon = item.icon;
+                const on = isActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={on ? "active" : ""}
+                    aria-current={on ? "page" : undefined}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
-
-        <div className="rail-sign">
-          <i />
-          Disciplina
-          <br />
-          hoje
-          <br />
-          <br />
-          Resultados
-          <br />
-          amanhã
-        </div>
 
         <div className="sysline">
           <span className={`sysdot ${sysClass}`} />

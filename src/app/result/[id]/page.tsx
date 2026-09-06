@@ -16,7 +16,12 @@ import {
   questionsForAttempt,
   buildRetryAttempt,
 } from "@/lib/services/attempts";
-import { AreaBar, Metric, Card, PageHead } from "@/components/ui";
+import { AreaBar } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { ResultSummary } from "@/components/enem-lab/ResultSummary";
 import { useToast } from "@/components/Toast";
 import MathContent from "@/components/MathContent";
 import type { ResultRow } from "@/lib/domain/types";
@@ -247,44 +252,62 @@ export default function ResultPage() {
 
   return (
     <>
-      <PageHead
-        eyebrow={`Resultado · ${examLabel(a.providerId)} ${a.year}${a.providerId === "ita" ? " · 1ª fase" : ""}`}
-        title={`${p}% de acerto`}
-        sub={`Acertos brutos; não é TRI.${a.essay ? " Redação salva separadamente." : ""}`}
+      <PageHeader
+        eyebrow="Resultado"
+        title={`${examLabel(a.providerId)} ${a.year}`}
+        context={
+          <>
+            {provaId === "ita" && <Badge variant="info">1ª fase</Badge>}
+            {a.realDay && <Badge variant="outline">real dia {a.realDay}</Badge>}
+          </>
+        }
+        crumbs={[
+          { label: "Histórico", href: "/history" },
+          { label: `${examLabel(a.providerId)} ${a.year}` },
+        ]}
+        actions={
+          <>
+            <Button asChild variant="primary" size="sm">
+              <Link href={`/result/${a.id}/review`}>Revisar questão a questão</Link>
+            </Button>
+            <Button variant="secondary" size="sm" onClick={retryWrong}>
+              Refazer erradas
+            </Button>
+            <Button variant="ghost" size="sm" onClick={exportImage}>
+              Exportar imagem
+            </Button>
+          </>
+        }
       />
 
-      <Card>
-        <div className="scoreline">
-          <span className="big">{r.correct}</span>
-          <span className="of">
-            de {r.total} questões • {r.blank} em branco
-          </span>
-        </div>
-        <div className="row" style={{ marginTop: 18 }}>
-          <button className="btn" onClick={retryWrong}>
-            Refazer erradas
-          </button>
-          <button className="btn secondary" onClick={exportImage}>
-            Exportar imagem
-          </button>
-          <Link className="btn secondary link-btn" href="/adaptive">
-            Adaptive
-          </Link>
-          <Link className="btn secondary link-btn" href="/srs">
-            Revisões
-          </Link>
-          <Link className="btn secondary link-btn" href="/">
-            Início
-          </Link>
-        </div>
-      </Card>
-
-      <div className="grid grid4" style={{ marginTop: 14 }}>
-        <Metric label="Aproveitamento" value={`${p}%`} />
-        <Metric label="Em branco" value={r.blank} />
-        <Metric label="Tempo médio" value={shortSec(avg)} />
-        <Metric label="Erros com certeza" value={cw} />
-      </div>
+      <ResultSummary
+        correct={r.correct}
+        total={r.total}
+        blank={r.blank}
+        items={[
+          { label: "Tempo médio", value: shortSec(avg) },
+          { label: "Erros com certeza", value: cw, hint: "marcou certeza e errou" },
+          { label: "Acertos por chute", value: lucky },
+        ]}
+        note={
+          /* O ENEM tem TRI e este número não é ela; o ITA não tem TRI
+             nenhuma, então citá-la ali seria inventar um conceito que a
+             banca não usa. */
+          provaId === "ita"
+            ? "Contagem simples de acertos, pelo gabarito oficial do ITA."
+            : "Acertos brutos; não é a nota TRI oficial do ENEM."
+        }
+        actions={
+          <>
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/adaptive">Adaptive</Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/srs">Revisões</Link>
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>

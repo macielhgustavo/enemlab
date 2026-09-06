@@ -226,21 +226,129 @@ e diálogo mudam de forma; a informação não some.
 npm run storybook          # catálogo em 6006
 npm run build-storybook    # build estático
 npm run test:e2e           # tudo, inclusive regressão visual
-npm run test:e2e:ci        # fumaça + a11y (o que o CI roda)
-npm run test:e2e:update    # regenera as capturas — confira o diff
+npm run test:e2e:ci        # fumaça + a11y (job `validate` do CI)
+npm run test:a11y          # só o axe
+npm run test:visual        # só a regressão visual (job `visual` do CI)
 ```
 
-## 12. Limites conhecidos
+## 12. Densidade
 
-- **As capturas de regressão visual são do Windows.** O Playwright nomeia o
-  arquivo por plataforma, e o CI roda em Linux, então a regressão visual
-  fica fora do CI até alguém gerar as capturas de lá. Cobrar no CI uma
-  captura que não existe reprovaria todo PR sem nada ter quebrado.
+Três níveis, usados internamente. Não são expostos ao usuário — são uma
+decisão de projeto sobre quanto ar cada tela merece.
+
+| Nível | Onde | Regra prática |
+|---|---|---|
+| `compact` | Banco | linha de trabalho: `padding="sm"`, gap 8 |
+| `default` | Histórico, Resultado, Plano | `padding="md"`, gap 16 |
+| `spacious` | Home | abertura de produto: `padding="lg"`, gap 24–32 |
+
+Sem isso, tudo acaba com o mesmo espaçamento e uma lista de 178 itens
+respira igual a um painel de três números.
+
+## 13. Padrões de tela
+
+### Filtros
+
+`FilterBar` + `FilterGroup` + `FilterChip`.
+
+Escolha curta (até ~6 opções) é **chip**, à vista. Um `<select>` esconde as
+opções até você abrir: com cinco selects em fila, era preciso abrir os cinco
+para saber o que dava para filtrar. `<select>` fica para lista longa —
+edição da prova tem quinze anos e viraria uma parede de chips.
+
+No celular tudo vai para um painel de baixo: filtro em fila espreme o
+conteúdo que o usuário veio ver.
+
+### Listas
+
+`HistoryItem` é o modelo: identidade à esquerda, número no meio, metadados
+depois, ação à direita, e uma faixa de cor na lateral para varrer a coluna
+sem ler número.
+
+Tabela só quando o usuário compara valores em coluna. Seis colunas com um
+único campo numérico viram rolagem horizontal no celular sem ganhar nada.
+
+### Resultado
+
+Ordem fixa: **resultado → diagnóstico → próxima ação.**
+
+`ResultSummary` faz o placar ser o assunto. Quatro cartões de mesmo peso
+fazem "tempo médio" competir com o número que a pessoa veio ver.
+
+A ressalva sobre o número muda com a banca. O ENEM tem TRI e o placar não é
+ela; o ITA não tem TRI nenhuma, então citá-la ali inventa um conceito que a
+prova não usa.
+
+### Gráficos
+
+`ChartContainer` · `ChartTooltip` · `ChartLegend` · `ChartEmpty` ·
+`chartTheme` · `CHART_COLORS`.
+
+Recharts continua. O que os wrappers garantem é que grade, eixo, tooltip e
+cor saem de um lugar só — antes havia uma tabela de hex duplicando os
+tokens, e o eixo do tema claro ainda usava um valor de contraste que já
+tinha sido corrigido.
+
+`ChartContainer` exige `label` (SVG sem descrição é um buraco para quem não
+vê a tela) e altura explícita (o `ResponsiveContainer` colapsa para zero em
+silêncio quando o pai não tem uma).
+
+Gráfico sem dado usa `ChartEmpty`, nunca uma curva reta no chão: uma linha
+em zero afirma que o desempenho foi zero, quando o que houve foi ausência
+de medição.
+
+## 14. Cores literais
+
+Hex, `rgb()` e `hsl()` são **proibidos** em `components/ui`,
+`components/enem-lab`, `styles/components.css` e `styles/enem-lab.css`.
+
+Reprovado por `src/lib/design/no-raw-colors.test.ts`. Exceções vivem numa
+lista no próprio teste, cada uma com o motivo escrito, e um segundo teste
+falha se a lista crescer sem explicação.
+
+O CSS legado está fora desse escopo de propósito: tem centenas de literais,
+e travá-lo agora só produziria uma lista vermelha que ninguém consegue
+zerar.
+
+## 15. Regressão visual
+
+Ver [visual-testing.md](visual-testing.md).
+
+O resumo: as capturas de referência são geradas **no Linux**, pelo mesmo
+runner que as cobra, pelo workflow **Capturas de referência (Linux)**.
+Copiar PNG do Windows não funciona — fonte e antialiasing diferem o
+bastante para reprovar tudo.
+
+## 16. Estado da migração
+
+| Tela | Estado |
+|---|---|
+| Home | migrada (v1.0) |
+| Plano | migrada |
+| Banco | migrada |
+| Histórico | migrada |
+| Resultado | migrado |
+| Conta | migrada |
+| Treinar | migrado |
+| Dados | cabeçalho migrado |
+| Revisões, Erros, Domínio, Adaptive | CSS legado |
+| Exam Runner | preservado por decisão de escopo |
+| Review pós-prova | CSS legado |
+
+CSS: **3208 linhas** legadas contra **1624** do design system. Foram
+removidas 110 linhas de regras que ficaram sem nenhum uso após a migração
+(`bankFilters`, `bankList`, `bankItem`, `scoreline`, `statrow`,
+`rail-sign`), conferidas uma a uma contra o código.
+
+## 17. Limites conhecidos
+
 - **O Chromium empacotado do Playwright não baixa em todo ambiente.** A
   config usa `channel: "chrome"`. Se o download voltar, tirar o channel é
   uma linha.
-- **A migração é parcial.** Home e Plano usam o sistema; as outras telas
-  ainda usam o CSS legado. Os dois convivem de propósito — `el-` não colide
-  com os nomes curtos antigos.
-- **O Exam Runner não foi redesenhado**, por decisão de escopo. Ele recebeu
-  só correções de procedência e o leitor da prova oficial.
+- **A migração é parcial** e a tabela acima diz onde. Os dois sistemas
+  convivem de propósito: `el-` não colide com os nomes curtos antigos.
+- **O Exam Runner e o Review pós-prova não foram redesenhados**, por decisão
+  de escopo.
+- **Rodar a regressão visual no Windows ou no macOS mostra diferenças
+  grandes** — a referência é Linux. Localmente ela serve para ver se a tela
+  monta; o veredito é o do CI.

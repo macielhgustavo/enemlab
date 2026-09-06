@@ -144,8 +144,65 @@ export async function interceptarApi(page: Page) {
   });
 }
 
-/** Espera a hidratação: antes disso a Home devolve esqueleto, não conteúdo. */
+/**
+ * Espera a hidratação: antes disso a Home devolve esqueleto, não conteúdo.
+ *
+ * Não usa `networkidle`: a própria documentação do Playwright desaconselha,
+ * e ele estourou de forma intermitente aqui — "meio segundo sem rede" não é
+ * um fato sobre a tela, é um fato sobre o que sobrou de requisição. O sinal
+ * usado agora é o conteúdo: o cabeçalho da página existe e nenhum esqueleto
+ * continua no lugar dele.
+ */
 export async function aguardarApp(page: Page) {
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await page.locator("main, .content").first().waitFor({ state: "visible" });
+  // Best-effort: nem toda tela tem cabeçalho, e esta função estabiliza a
+  // página — quem afirma o que deve existir é o teste, não a preparação.
+  await page
+    .locator("h1, .el-head, .pagehead")
+    .first()
+    .waitFor({ state: "visible", timeout: 8_000 })
+    .catch(() => {});
+  // Esqueleto some quando os dados chegam. Se a tela legitimamente não tem
+  // esqueleto, a espera resolve na hora.
+  await page
+    .locator(".el-skeleton")
+    .first()
+    .waitFor({ state: "detached", timeout: 15_000 })
+    .catch(() => {});
+}
+
+/**
+ * Instante fixo para captura visual.
+ *
+ * A Home escreve a data no cabeçalho e escolhe a saudação pela hora — "Boa
+ * tarde" às 15h, "Boa madrugada" às 3h. Sem congelar o relógio, a mesma
+ * captura vira diferença todo dia, e um teste que falha sozinho é um teste
+ * que as pessoas aprendem a ignorar.
+ *
+ * Meio-dia evita a virada de dia por fuso entre a máquina local e o runner.
+ */
+export const INSTANTE_FIXO = new Date("2026-03-12T12:00:00.000Z");
+
+/** Prepara a página para uma captura estável e comparável entre máquinas. */
+export async function prepararCaptura(page: Page) {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0s !important;
+        caret-color: transparent !important;
+      }
+      /* A rolagem some da captura: barra de rolagem tem largura diferente
+         entre sistemas e desloca o layout inteiro alguns pixels. */
+      ::-webkit-scrollbar { display: none !important; }
+      html { scrollbar-width: none !important; }
+    `,
+  });
+  // Fonte carregada antes de medir: texto com fonte de fallback muda de
+  // largura e a diferença aparece em cada linha da página.
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(250);
 }

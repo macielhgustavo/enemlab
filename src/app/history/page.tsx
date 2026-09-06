@@ -5,12 +5,19 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { pct, shortSec } from "@/lib/format";
 import { rebuildSessions, coherenceForAttempt } from "@/lib/domain/stats";
-import { Empty, Card, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { HistoryItem } from "@/components/enem-lab/HistoryItem";
+import { EmptyState } from "@/components/enem-lab/states";
+import { FilterChip } from "@/components/enem-lab/FilterBar";
+import { listProviders, resolveProviderId } from "@/lib/providers";
 import { examLabel } from "@/lib/providers/label";
 
 export default function HistoryPage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const [filtro, setFiltro] = useState<string>("all");
   const sessions = useMemo(() => (hydrated ? rebuildSessions(db) : []), [db, hydrated]);
   const completed = db.attempts.filter((a) => a.result);
   const [cmpA, setCmpA] = useState("");
@@ -35,73 +42,73 @@ export default function HistoryPage() {
   const sessionOf = new Map<string, string>();
   sessions.forEach((s) => s.attemptIds.forEach((id) => sessionOf.set(id, s.id)));
 
+  // Bancas que realmente aparecem no histórico — não a lista de providers.
+  const provasNoHistorico = [
+    ...new Set(db.attempts.map((a) => resolveProviderId(a.providerId))),
+  ].filter((id) => listProviders().some((p) => p.id === id));
+
+  const visiveis =
+    filtro === "all"
+      ? db.attempts
+      : db.attempts.filter((a) => resolveProviderId(a.providerId) === filtro);
+
   return (
     <>
-      <PageHead
+      <PageHeader
         eyebrow="Módulo · histórico"
         title="Histórico"
-        sub="Todas as provas, juntas de propósito: cada linha identifica a banca."
-        right={
-          <Link className="btn link-btn" href="/practice">
-            Novo treino
-          </Link>
+        description="Todas as provas, juntas de propósito: cada linha identifica a banca."
+        meta={
+          <>
+            <span>{db.attempts.length} tentativas</span>
+            {provasNoHistorico.length > 1 && <span>{provasNoHistorico.length} provas</span>}
+          </>
+        }
+        actions={
+          <Button asChild variant="primary" size="sm">
+            <Link href="/practice">Novo treino</Link>
+          </Button>
         }
       />
 
-      <Card>
-        <div className="htitle">
-          <h2>Tentativas</h2>
-          <span className="badge2">{db.attempts.length} registradas · todas as provas</span>
+      {/* O filtro só existe quando há mais de uma banca no histórico: com uma
+          prova só, ele seria um controle que não faz nada. */}
+      {provasNoHistorico.length > 1 && (
+        <div className="el-histfilter" role="group" aria-label="Filtrar por prova">
+          <FilterChip active={filtro === "all"} onClick={() => setFiltro("all")}>
+            Todas
+          </FilterChip>
+          {provasNoHistorico.map((id) => (
+            <FilterChip key={id} active={filtro === id} onClick={() => setFiltro(id)}>
+              {examLabel(id)}
+            </FilterChip>
+          ))}
         </div>
-        <div className="tablewrap">
-          {db.attempts.length === 0 ? (
-            <Empty>Nenhuma tentativa.</Empty>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Fonte</th>
-                  <th>Modo</th>
-                  <th>Resultado</th>
-                  <th>Sessão</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {db.attempts.map((a) => (
-                  <tr key={a.id}>
-                    <td>{new Date(a.startedAt).toLocaleString("pt-BR")}</td>
-                    <td>{examLabel(a.providerId)} {a.year}</td>
-                    <td>{a.realDay ? `real dia ${a.realDay}` : a.mode}</td>
-                    <td>
-                      <b>
-                        {a.result
-                          ? `${a.result.correct}/${a.result.total} (${pct(
-                              a.result.correct,
-                              a.result.total,
-                            )}%)`
-                          : "em andamento"}
-                      </b>
-                    </td>
-                    <td>
-                      <span className="sessionChip">{sessionOf.get(a.id) || "—"}</span>
-                    </td>
-                    <td>
-                      <Link
-                        className="btn secondary link-btn"
-                        href={a.result ? `/result/${a.id}` : `/exam/${a.id}`}
-                      >
-                        {a.result ? "Ver" : "Continuar"}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </Card>
+      )}
+
+      <div className="el-histlist">
+        {visiveis.length === 0 ? (
+          <EmptyState
+            title={db.attempts.length === 0 ? "Nenhuma tentativa ainda" : "Nada nesta prova"}
+            description={
+              db.attempts.length === 0
+                ? "Monte um treino: cada sessão corrigida entra aqui com data, desempenho e duração."
+                : "Troque o filtro para ver as tentativas das outras provas."
+            }
+            action={
+              db.attempts.length === 0 ? (
+                <Button asChild variant="primary" size="sm">
+                  <Link href="/practice">Montar treino</Link>
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          visiveis.map((a) => (
+            <HistoryItem key={a.id} attempt={a} sessionId={sessionOf.get(a.id)} />
+          ))
+        )}
+      </div>
 
       <Card style={{ marginTop: 14 }}>
         <div className="row between">
@@ -115,7 +122,12 @@ export default function HistoryPage() {
           <span className="badge2">{sessions.length} sessão(ões)</span>
         </div>
         <div className="sessionCards" style={{ marginTop: 12 }}>
-          {sessions.length === 0 && <Empty>Nenhuma sessão ainda.</Empty>}
+          {sessions.length === 0 && (
+            <EmptyState
+              title="Nenhuma sessão ainda"
+              description="Sessões agrupam blocos de estudo do mesmo dia."
+            />
+          )}
           {[...sessions]
             .reverse()
             .slice(0, 9)

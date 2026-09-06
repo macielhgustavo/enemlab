@@ -75,7 +75,7 @@ export function ChartTooltip({
  * O ResponsiveContainer do Recharts colapsa para zero quando o pai não tem
  * altura definida — e um gráfico de altura zero não avisa que sumiu.
  */
-export function ChartFrame({
+export function ChartContainer({
   height = 220,
   className,
   children,
@@ -93,5 +93,51 @@ export function ChartFrame({
         {children}
       </ResponsiveContainer>
     </div>
+  );
+}
+
+/**
+ * Estado vazio de um gráfico.
+ *
+ * Gráfico sem dado não é gráfico com zero: uma curva reta no chão afirma que
+ * o desempenho foi zero, quando o que houve foi ausência de medição.
+ */
+export function ChartEmpty({
+  icon,
+  children,
+  height = 220,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  height?: number;
+}) {
+  return (
+    <div className="el-chart__empty" style={{ minHeight: height }}>
+      {icon && (
+        <span className="el-chart__emptyicon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      <p className="body-sm">{children}</p>
+    </div>
+  );
+}
+
+/**
+ * Legenda fora do SVG.
+ *
+ * Texto em `<text>` do SVG não herda a tipografia da página e não quebra
+ * linha sozinho; em HTML, herda e quebra.
+ */
+export function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
+  return (
+    <ul className="el-chart__legend">
+      {items.map((i) => (
+        <li key={i.label}>
+          <span className="el-chart__dot" style={{ background: i.color }} aria-hidden="true" />
+          {i.label}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -7,6 +7,9 @@ import { examYears } from "@/lib/domain/constants";
 import { buildTrainingAttempt, type NewTrainingParams } from "@/lib/services/attempts";
 import { buildItaFirstPhaseAttempt } from "@/lib/services/ita-attempts";
 import { itaYears, itaAnswerKey } from "@/lib/providers";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { Button } from "@/components/ui/button";
+import { InlineNotice, LoadingState } from "@/components/enem-lab/states";
 import { Card } from "@/components/ui";
 import type { AttemptMode, AreaId, Language } from "@/lib/domain/types";
 
@@ -103,21 +106,26 @@ export default function PracticePage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <LoadingState lines={4} label="Carregando as opções de treino" />
+      </Card>
+    );
 
   return (
     <>
-      <Card>
-        <div className="row between">
-          <div>
-            <h2>Novo treino</h2>
-            <div className="muted">
-              Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API.
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        eyebrow="Módulo · treino"
+        title="Novo treino"
+        description="Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API."
+      />
 
-        <div className="grid grid3" style={{ marginTop: 15 }}>
+      <Card>
+        {/* A configuração vem em três blocos nomeados em vez de uma parede de
+            campos: prova, formato e regras respondem perguntas diferentes. */}
+        <div className="label el-fieldset__label">A prova</div>
+        <div className="grid grid3" style={{ marginTop: 12 }}>
           <div>
             <label htmlFor="treino-ano">Ano</label>
             <select id="treino-ano" value={year} onChange={(e) => setYear(Number(e.target.value))}>
@@ -176,7 +184,10 @@ export default function PracticePage() {
           </div>
         </div>
 
-        <label className="toggle" style={{ marginTop: 13 }}>
+        <div className="label el-fieldset__label" style={{ marginTop: 24 }}>
+          Regras da sessão
+        </div>
+        <label className="toggle" style={{ marginTop: 12 }}>
           <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />{" "}
           Modo rígido: o relógio continua mesmo se fechar a prova.
         </label>
@@ -194,19 +205,16 @@ export default function PracticePage() {
         </label>
 
         {status && (
-          <div className="notice" style={{ marginTop: 14 }}>
-            {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
-            {status}
+          <div style={{ marginTop: 16 }}>
+            <InlineNotice tone="warning">{status}</InlineNotice>
           </div>
         )}
 
-        <div className="row between" style={{ marginTop: 15 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Banco estruturado: 2009–2023
-          </span>
-          <button className="btn" onClick={start} disabled={busy}>
+        <div className="row between" style={{ marginTop: 20 }}>
+          <span className="caption">Banco estruturado: 2009–2023</span>
+          <Button variant="primary" onClick={start} loading={busy}>
             Começar
-          </button>
+          </Button>
         </div>
       </Card>
 
@@ -242,9 +250,9 @@ export default function PracticePage() {
               ))}
             </select>
           </div>
-          <button className="btn" onClick={startIta} disabled={busy}>
+          <Button variant="primary" onClick={startIta} loading={busy}>
             Começar ITA
-          </button>
+          </Button>
         </div>
       </Card>
 

@@ -5,7 +5,10 @@ import { Cloud, LogOut, Mail, RefreshCw, ShieldCheck, UserRound } from "lucide-r
 import { useCloudSync } from "@/components/CloudSyncProvider";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { Card, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { LoadingState, InlineNotice } from "@/components/enem-lab/states";
 
 function statusLabel(status: ReturnType<typeof useCloudSync>["status"]) {
   if (status === "syncing") return "Sincronizando";
@@ -34,7 +37,11 @@ export default function AccountPage() {
   }, [cloud.user]);
 
   if (!hydrated || cloud.status === "loading") {
-    return <Card><span className="muted">Carregando sua conta…</span></Card>;
+    return (
+      <Card>
+        <LoadingState lines={3} label="Carregando sua conta" />
+      </Card>
+    );
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -57,7 +64,11 @@ export default function AccountPage() {
 
   return (
     <section className="accountPage">
-      <PageHead eyebrow="Identidade e continuidade" title="Conta e nuvem" sub="Seu histórico continua localmente e pode acompanhar você entre computador e celular." />
+      <PageHeader
+        eyebrow="Identidade e continuidade"
+        title="Conta e nuvem"
+        description="Seu histórico continua localmente e pode acompanhar você entre computador e celular."
+      />
 
       {!cloud.user ? (
         <div className="accountAuthGrid">
@@ -82,13 +93,20 @@ export default function AccountPage() {
               <div className="accountInput"><Mail size={16} /><input id="account-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" /></div>
               <label htmlFor="account-password">Senha</label>
               <div className="accountInput"><ShieldCheck size={16} /><input id="account-password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="mínimo 6 caracteres" /></div>
-              <button className="btn accountPrimary" disabled={busy} type="submit">{busy ? "Aguarde…" : mode === "login" ? "Entrar com e-mail" : "Criar conta"}</button>
+              <Button variant="primary" loading={busy} type="submit">
+                {mode === "login" ? "Entrar com e-mail" : "Criar conta"}
+              </Button>
             </form>
 
             <button className="accountMode" type="button" onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(null); }}>
               {mode === "login" ? "Ainda não tenho conta" : "Já tenho uma conta"}
             </button>
-            {(cloud.error || message) && <div className="accountError">{message || cloud.error}</div>}
+            {/* `role="alert"` vem do InlineNotice: erro de login que aparece
+                calado deixa quem não vê a tela achando que o botão não
+                funcionou. */}
+            {(cloud.error || message) && (
+              <InlineNotice tone="danger">{message || cloud.error}</InlineNotice>
+            )}
           </Card>
 
           <Card className="accountPromiseCard">
@@ -124,8 +142,18 @@ export default function AccountPage() {
               <div><span>SRS</span><b>{Object.keys(db.srs).length} itens</b></div>
             </div>
             <div className="row accountActions">
-              <button className="btn secondary" onClick={() => void cloud.syncNow()} disabled={cloud.status === "syncing" || cloud.status === "needs-merge"}><RefreshCw size={14} /> Sincronizar agora</button>
-              <button className="btn secondary" onClick={() => void cloud.signOut()}><LogOut size={14} /> Sair</button>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={cloud.status === "syncing"}
+                disabled={cloud.status === "needs-merge"}
+                onClick={() => void cloud.syncNow()}
+              >
+                <RefreshCw size={14} /> Sincronizar agora
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => void cloud.signOut()}>
+                <LogOut size={14} /> Sair
+              </Button>
             </div>
             {cloud.error && <div className="accountError">{cloud.error}</div>}
           </Card>
@@ -137,7 +165,9 @@ export default function AccountPage() {
                 <h2>Mesclar este navegador com sua nuvem</h2>
                 <p className="muted">Este é o primeiro vínculo desta conta neste navegador. O ENEM Lab vai unir tentativas, notas e revisões antes de ativar o sync automático.</p>
                 <div className="mergeSummary"><span>{db.attempts.length} tentativas locais</span><span>{cloud.cloudExists ? "Há dados na nuvem" : "Nuvem ainda vazia"}</span></div>
-                <button className="btn accountPrimary" onClick={() => void cloud.mergeAndEnable()}>Mesclar e ativar sincronização</button>
+                <Button variant="primary" onClick={() => void cloud.mergeAndEnable()}>
+                  Mesclar e ativar sincronização
+                </Button>
                 <p className="mergeFine">Nada é substituído silenciosamente. Em conflitos de histórico, a versão com mais progresso é preservada.</p>
               </>
             ) : (
