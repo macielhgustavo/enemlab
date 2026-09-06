@@ -101,7 +101,10 @@ Nada em Banco, Adaptive, Plano ou Domínio precisa mudar.
 
 ## 6. Checklist de direitos
 
-`reuseStatus` é **metadata operacional, não parecer jurídico**.
+`rightsStatus` é **metadata operacional, não parecer jurídico**.
+
+"Disponível na internet" não significa "liberado para republicação", e
+"oficial" também não. Na dúvida: `permission-required` e modo referência.
 
 - [ ] A prova é publicada oficialmente pela instituição?
 - [ ] Estamos **referenciando** o documento ou **copiando** conteúdo?

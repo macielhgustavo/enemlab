@@ -19,14 +19,25 @@ export type SourceType =
 export type StatementMode = "structured" | "reference-only" | "mixed";
 
 /**
- * Situação operacional de reuso. **Não é parecer jurídico** — é um marcador
- * para sabermos o que ainda precisa ser checado antes de distribuir conteúdo.
+ * Situação de reuso do conteúdo.
+ *
+ * **Não é parecer jurídico.** É um marcador operacional do que ainda precisa
+ * ser checado antes de distribuir conteúdo — "disponível na internet" não
+ * significa "liberado para republicação", e "oficial" também não.
+ *
+ * Na dúvida: `permission-required` e modo referência.
  */
-export type ReuseStatus =
+export type RightsStatus =
   | "allowed"
   | "official-reference"
   | "permission-required"
   | "unknown";
+
+/**
+ * Nome anterior do mesmo tipo, mantido porque `reuseStatus` aparece em
+ * código e documentação já escritos. O nome canônico é `RightsStatus`.
+ */
+export type ReuseStatus = RightsStatus;
 
 /** Como o conteúdo foi extraído da fonte. */
 export type ExtractionMethod =
@@ -46,7 +57,11 @@ export interface ExamSourceDefinition {
   sourceType: SourceType;
   statementMode: StatementMode;
   extractionMethod: ExtractionMethod;
-  reuseStatus: ReuseStatus;
+  /**
+   * Direitos de reuso. Ver `RightsStatus`: é metadata operacional, não
+   * parecer jurídico.
+   */
+  rightsStatus: RightsStatus;
 
   /** Edições que a ingestão validou — não as que a fonte publica. */
   years: number[];
@@ -63,7 +78,44 @@ export interface ExamSourceDefinition {
   confidence: "alta" | "media" | "baixa";
   /** O que um leitor precisa saber antes de confiar nestes dados. */
   notes?: string;
+
+  // ---- v8.5: plataforma de ingestão em massa ----
+
+  /**
+   * Família da prova, para a interface agrupar dez ou mais opções.
+   *
+   * É metadata de apresentação e **nunca** chave de histórico: agrupar ITA e
+   * IME sob "engenharias" na tela não pode fazer o desempenho de um contar
+   * para o outro.
+   */
+  family?: ExamFamilyId;
+
+  /**
+   * Como as edições são descobertas.
+   *
+   * `manual` significa lista escrita à mão — honesto para arquivo pequeno e
+   * estável, insuficiente para instituição que publica todo ano.
+   */
+  discovery?: "manual" | "automatic";
+
+  /** Última varredura de saúde da fonte (`npm run sources:audit`). */
+  lastAuditedAt?: string;
 }
+
+/**
+ * Família de prova. Só serve para organizar a interface (§21).
+ *
+ * O comentário existe porque a tentação é usar isto como agregador de
+ * estatística — e aí o isolamento entre provas, que custou uma versão
+ * inteira para ser construído, cai por uma conveniência de UI.
+ */
+export type ExamFamilyId =
+  | "general"
+  | "engineering"
+  | "university"
+  | "air-force"
+  | "army"
+  | "navy";
 
 /** Procedência de um item: responde "de onde veio isto?". */
 export interface Provenance {

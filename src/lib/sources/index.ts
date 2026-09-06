@@ -19,7 +19,8 @@ export const enemSource: ExamSourceDefinition = {
   sourceType: "structured-api",
   statementMode: "structured",
   extractionMethod: "api",
-  reuseStatus: "allowed",
+  rightsStatus: "allowed",
+  family: "general",
   years: examYears(),
   phases: ["day1", "day2"],
   subjects: ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"],
@@ -28,6 +29,7 @@ export const enemSource: ExamSourceDefinition = {
   parserVersion: ENEM_PARSER,
   lastVerifiedAt: "2026-09-05",
   confidence: "alta",
+  discovery: "manual",
   notes: "Provas do INEP são de acesso público e a API entrega conteúdo estruturado.",
 };
 
@@ -44,7 +46,8 @@ export const itaSource: ExamSourceDefinition = {
   sourceType: "pdf-reference",
   statementMode: "reference-only",
   extractionMethod: "pdf-text-layer",
-  reuseStatus: "official-reference",
+  rightsStatus: "official-reference",
+  family: "engineering",
   years: itaYears(),
   phases: ["first", "second"],
   subjects: ["mathematics", "physics", "chemistry", "portuguese", "english"],
@@ -54,6 +57,7 @@ export const itaSource: ExamSourceDefinition = {
   parserVersion: ITA_PARSER,
   lastVerifiedAt: "2026-09-05",
   confidence: "alta",
+  discovery: "manual",
   notes:
     "Enunciado não é reproduzido: é consultado no PDF oficial. Edições até 2018 " +
     "numeram por matéria e foram recusadas pela ingestão.",
@@ -84,7 +88,7 @@ function provenance(src: ExamSourceDefinition, documentUrl: string, page?: numbe
     providerId: src.providerId,
     sourceId: src.id,
     institution: src.institution,
-    official: src.reuseStatus !== "unknown",
+    official: src.rightsStatus !== "unknown",
     documentUrl,
     page,
     parserVersion: src.parserVersion,
