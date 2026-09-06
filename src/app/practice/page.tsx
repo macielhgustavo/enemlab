@@ -119,8 +119,8 @@ export default function PracticePage() {
 
         <div className="grid grid3" style={{ marginTop: 15 }}>
           <div>
-            <label>Ano</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            <label htmlFor="treino-ano">Ano</label>
+            <select id="treino-ano" value={year} onChange={(e) => setYear(Number(e.target.value))}>
               {examYears().map((y) => (
                 <option key={y} value={y}>
                   {y}
@@ -130,15 +130,15 @@ export default function PracticePage() {
             </select>
           </div>
           <div>
-            <label>Idioma</label>
-            <select value={lang} onChange={(e) => setLang(e.target.value as Language)}>
+            <label htmlFor="treino-idioma">Idioma</label>
+            <select id="treino-idioma" value={lang} onChange={(e) => setLang(e.target.value as Language)}>
               <option value="ingles">Inglês</option>
               <option value="espanhol">Espanhol</option>
             </select>
           </div>
           <div>
-            <label>Modo</label>
-            <select value={mode} onChange={(e) => changeMode(e.target.value as AttemptMode)}>
+            <label htmlFor="treino-modo">Modo</label>
+            <select id="treino-modo" value={mode} onChange={(e) => changeMode(e.target.value as AttemptMode)}>
               {MODES.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
@@ -150,8 +150,8 @@ export default function PracticePage() {
 
         <div className="grid grid2" style={{ marginTop: 12 }}>
           <div>
-            <label>Área</label>
-            <select
+            <label htmlFor="treino-area">Área</label>
+            <select id="treino-area"
               value={area}
               disabled={areaDisabled}
               onChange={(e) => setArea(e.target.value as AreaId | "all")}
@@ -164,8 +164,8 @@ export default function PracticePage() {
             </select>
           </div>
           <div>
-            <label>Tempo máximo (min)</label>
-            <input
+            <label htmlFor="treino-minutos">Tempo máximo (min)</label>
+            <input id="treino-minutos"
               type="number"
               min={10}
               max={700}
@@ -222,8 +222,8 @@ export default function PracticePage() {
         </p>
         <div className="row" style={{ alignItems: "flex-end", gap: 12, marginTop: 14 }}>
           <div style={{ maxWidth: 150 }}>
-            <label>Edição</label>
-            <select value={itaYear} onChange={(e) => setItaYear(Number(e.target.value))}>
+            <label htmlFor="ita-edicao">Edição</label>
+            <select id="ita-edicao" value={itaYear} onChange={(e) => setItaYear(Number(e.target.value))}>
               {itaYears().map((y) => (
                 <option key={y} value={y}>
                   ITA {y}
@@ -232,8 +232,8 @@ export default function PracticePage() {
             </select>
           </div>
           <div style={{ maxWidth: 190 }}>
-            <label>Matéria</label>
-            <select value={itaSubject} onChange={(e) => setItaSubject(e.target.value)}>
+            <label htmlFor="ita-materia">Matéria</label>
+            <select id="ita-materia" value={itaSubject} onChange={(e) => setItaSubject(e.target.value)}>
               <option value="">Prova completa</option>
               {Object.entries(itaAnswerKey(itaYear)?.subjects ?? {}).map(([id]) => (
                 <option key={id} value={id}>

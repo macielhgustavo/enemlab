@@ -1,0 +1,117 @@
+/* ============================================================
+   ENEM LAB — TOKENS SEMÂNTICOS
+   ------------------------------------------------------------
+   Vocabulário único para código novo. Um token diz o PAPEL da
+   cor ("superfície elevada"), não a aparência ("cinza 800").
+
+   Estes tokens são, em sua maioria, alias dos tokens originais
+   do mission control: os valores continuam vindo de globals.css
+   e nada do CSS existente muda de cor. A migração é progressiva
+   — componente novo usa só o nome semântico; com o tempo os
+   valores brutos sobem para cá e os nomes antigos saem.
+
+   Só há valor literal aqui onde não existia equivalente antes.
+   ============================================================ */
+
+:root,
+:root[data-theme="dark"] {
+  /* ---- Superfícies, do fundo para a frente ---- */
+  --bg-canvas: var(--bg);
+  --bg-subtle: var(--bg-deep);
+  --bg-surface: var(--surface-1);
+  --bg-raised: var(--surface-2);
+  --bg-overlay: var(--panel);
+
+  /* ---- Texto, do mais forte ao mais apagado ---- */
+  --text-primary: var(--text);
+  --text-secondary: var(--text-dim);
+  --text-muted: var(--muted);
+  /* --text-faint já existe e mantém o valor original. */
+
+  /* ---- Bordas ---- */
+  --border-subtle: var(--line);
+  --border-default: rgba(255, 255, 255, 0.11);
+  --border-strong: var(--line-strong);
+  --border-active: var(--accent-primary);
+
+  /* ---- Acentos ---- */
+  --accent-primary: var(--brand);
+  --accent-info: var(--cyan);
+  --accent-violet: var(--violet);
+
+  /* ---- Estados ---- */
+  --success: var(--ok);
+  --warning: var(--warn);
+  --danger: var(--bad);
+  /* --info já existe e mantém o valor original. */
+
+  /* ---- Espaçamento (escala fechada: nada fora dela) ---- */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* ---- Raio ---- */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+  /* ---- Elevação ---- */
+  --shadow-md: var(--shadow);
+  /* --shadow-sm e --shadow-lg já existem. */
+  --shadow-focus: 0 0 0 2px var(--bg-canvas), 0 0 0 4px var(--accent-primary);
+
+  /* ---- Movimento ----
+     Faixas curtas de propósito: microinteração some antes de o
+     usuário perceber; nada aqui atrasa uma ação. */
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-theme="light"] {
+  /* O claro não é o escuro invertido: a hierarquia se inverte.
+     No escuro, a superfície sobe clareando; no claro, o fundo é
+     que é acinzentado e o cartão é branco puro. */
+  --bg-canvas: var(--bg);
+  --bg-subtle: var(--bg-deep);
+  --bg-surface: var(--surface-1);
+  --bg-raised: var(--surface-2);
+  --bg-overlay: var(--panel);
+
+  --text-primary: var(--text);
+  --text-secondary: var(--text-dim);
+  --text-muted: var(--muted);
+
+  --border-subtle: var(--line);
+  /* Borda mais presente que no escuro: sobre branco, uma linha a
+     7% simplesmente some. */
+  --border-default: rgba(6, 40, 34, 0.16);
+  --border-strong: var(--line-strong);
+  --border-active: var(--accent-primary);
+
+  --accent-primary: var(--brand);
+  --accent-info: var(--cyan);
+  --accent-violet: var(--violet);
+
+  --success: var(--ok);
+  --warning: var(--warn);
+  --danger: var(--bad);
+}
+
+/* Quem pediu menos movimento recebe menos movimento — inclusive
+   nos tokens, para que nem componente novo escape disso. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0.01ms;
+    --motion-normal: 0.01ms;
+    --motion-slow: 0.01ms;
+  }
+}

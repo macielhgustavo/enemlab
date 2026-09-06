@@ -9,6 +9,8 @@ import { useHydrated } from "@/lib/hooks";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct } from "@/lib/format";
 import { areasOf } from "@/lib/providers/taxonomy";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/enem-lab/states";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import {
@@ -85,7 +87,12 @@ export default function PlanoPage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando plano…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <LoadingState lines={4} label="Carregando o plano de hoje" />
+      </Card>
+    );
 
   const plan = buildDailyPlan(db, budget, now, providerId);
   const stats = areaStats(db, providerId);
@@ -115,9 +122,9 @@ export default function PlanoPage() {
         title="Seu estudo de hoje, já priorizado."
         sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
         right={
-          <Link className="btn secondary link-btn" href="/adaptive">
-            Abrir Adaptive
-          </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/adaptive">Abrir Adaptive</Link>
+          </Button>
         }
       />
 
@@ -129,9 +136,11 @@ export default function PlanoPage() {
               Você já iniciou um bloco hoje. Termine ou retome antes de abrir outro para manter o diagnóstico limpo.
             </span>
           </div>
-          <Link className="btn link-btn" href={`/exam/${activePlan.id}`}>
-            Continuar <ArrowRight size={15} />
-          </Link>
+          <Button asChild variant="primary">
+            <Link href={`/exam/${activePlan.id}`}>
+              Continuar <ArrowRight size={15} />
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -148,7 +157,7 @@ export default function PlanoPage() {
             </div>
           </div>
 
-          <div className="dailyBudgetPresets" aria-label="Tempo disponível para estudar hoje">
+          <div className="dailyBudgetPresets" role="group" aria-label="Tempo disponível para estudar hoje">
             {BUDGET_PRESETS.map((value) => (
               <button
                 key={value}
@@ -167,7 +176,14 @@ export default function PlanoPage() {
               <span>tempo estudado hoje</span>
               <b>{plan.signals.minutesToday}/{plan.budgetMinutes} min</b>
             </div>
-            <div className="dailyPlanProgressTrack" aria-label={`${progress}% do tempo diário usado`}>
+            <div
+              className="dailyPlanProgressTrack"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${progress}% do tempo diário usado`}
+            >
               <span style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -199,7 +215,7 @@ export default function PlanoPage() {
         </Card>
       </div>
 
-      <div className="dailySignalGrid" aria-label="Sinais usados pelo plano">
+      <div className="dailySignalGrid" role="group" aria-label="Sinais usados pelo plano">
         <div className="dailySignal">
           <RotateCcw size={15} />
           <small>retenção</small>
@@ -253,18 +269,14 @@ export default function PlanoPage() {
                   </div>
                 </div>
                 <div className="dailyPlanAction">
-                  <button
-                    type="button"
-                    className="btn"
+                  <Button
+                    variant="primary"
                     disabled={!!busyBlock || !!activePlan}
+                    loading={busyBlock === block.id}
                     onClick={() => startBlock(block)}
                   >
-                    {busyBlock === block.id ? (
-                      <><span className="loader" /> montando</>
-                    ) : (
-                      <>{block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} /></>
-                    )}
-                  </button>
+                    {block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} />
+                  </Button>
                 </div>
               </div>
             ))}

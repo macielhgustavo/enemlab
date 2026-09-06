@@ -62,7 +62,9 @@ export function EvolutionArea({ values }: { values: number[] }) {
   return (
     <div className="chartwrap" style={{ height: 230 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 6, left: -22, bottom: 0 }}>
+        {/* `left` era -22 e empurrava o eixo para fora da área desenhada:
+            "100%" e "75%" apareciam cortados como "0%" e "5%". */}
+        <AreaChart data={data} margin={{ top: 8, right: 6, left: -4, bottom: 0 }}>
           <defs>
             <linearGradient id="evoFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={c.brand} stopOpacity={0.42} />

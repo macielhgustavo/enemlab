@@ -24,7 +24,7 @@ import { dueSRS } from "@/lib/domain/srs";
 import { resolveProviderId } from "@/lib/providers";
 import { useCloudSync } from "@/components/CloudSyncProvider";
 import CommandPalette from "@/components/CommandPalette";
-import ExamSwitch from "@/components/ExamSwitch";
+import ProviderSwitcher from "@/components/enem-lab/ProviderSwitcher";
 import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 import ExamExperienceHost from "@/components/ExamExperienceHost";
@@ -100,7 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span className="mark">E</span>
           <span className="name">ENEM Lab</span>
         </div>
-        <ExamSwitch />
+        <ProviderSwitcher />
         <div className="tag">Mission Control</div>
 
         <button className="cmdk-trigger" onClick={openPalette}>
