@@ -26,7 +26,7 @@ describe("taxonomia por prova", () => {
   });
 
   it("prova desconhecida devolve lista vazia em vez de áreas de outra banca", () => {
-    expect(areasOf("fuvest")).toEqual([]);
+    expect(areasOf("ufpr")).toEqual([]);
   });
 });
 

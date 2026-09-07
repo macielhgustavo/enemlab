@@ -1,6 +1,7 @@
 // Registry de fontes de prova.
 import { itaYears, itaFirstPhaseUrl, itaSecondPhaseUrls } from "../providers/ita";
 import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../providers/ime";
+import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/fuvest";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -9,6 +10,7 @@ export * from "./types";
 const ITA_PARSER = "ita-answer-key@1.0.0";
 const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
+const FUVEST_PARSER = "fuvest-answer-key@1.0.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -158,11 +160,55 @@ export const imeSource: ExamSourceDefinition = {
     "Discursiva e línguas ficam como referência.",
 };
 
+/**
+ * FUVEST: acervo oficial do vestibular.
+ *
+ * Primeira prova do catálogo com **variantes**. A FUVEST aplica a mesma
+ * prova em várias versões reordenadas e publica um gabarito único com todas
+ * em colunas — quatro versões em 2025 (V1..V4), cinco em 2024 (V, K, Q, X,
+ * Z). O importador lê os nomes do documento; fixá-los no código faria o
+ * parser recusar todo ano em que a banca mudasse a nomenclatura, ou pior,
+ * atribuir a resposta à versão errada.
+ *
+ * `years` traz só as edições que o importador leu inteiras. Das 27
+ * descobertas no acervo, 23 são recusadas: as mais antigas usam layout
+ * diferente ou não publicam o gabarito da 1ª fase como documento próprio.
+ * Recusar é o comportamento correto — meia leitura corrige errado.
+ */
+export const fuvestSource: ExamSourceDefinition = {
+  id: "fuvest-archive",
+  providerId: "fuvest",
+  institution: "FUVEST",
+  archiveUrl: "https://www.fuvest.br/acervo-vestibular",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  family: "university",
+  discovery: "automatic",
+  years: fuvestYears(),
+  // A 2ª fase é discursiva: registrada, não executável.
+  phases: ["first", "second"],
+  subjects: ["conhecimentos-gerais"],
+  answerKeyAvailable: true,
+  // A FUVEST publica respostas esperadas da 2ª fase, mas não há corretor
+  // discursivo — declarar disponibilidade prometeria correção que não existe.
+  expectedAnswersAvailable: false,
+  parserVersion: FUVEST_PARSER,
+  lastVerifiedAt: "2026-09-07",
+  confidence: "alta",
+  notes:
+    "1ª fase com 90 questões. Só as edições cujo gabarito foi lido por " +
+    "inteiro entram; o acervo tem 27 edições e 23 são recusadas por formato " +
+    "antigo. Versões são reordenação: só a canônica vira questão.",
+};
+
 const SOURCES = new Map<string, ExamSourceDefinition>([
   [enemSource.id, enemSource],
   [itaSource.id, itaSource],
   [imeSource.id, imeSource],
   [enemOfficialSource.id, enemOfficialSource],
+  [fuvestSource.id, fuvestSource],
 ]);
 
 export function listSources(): ExamSourceDefinition[] {
@@ -228,9 +274,21 @@ export const imeImporter: ExamImporter = {
   },
 };
 
+export const fuvestImporter: ExamImporter = {
+  sourceId: fuvestSource.id,
+  availableYears: () => fuvestYears(),
+  provenanceFor(year, phase = "first", page) {
+    const url =
+      (phase === "first" ? fuvestExamUrl(year) : fuvestSecondPhaseUrls(year)[0]) ??
+      fuvestSource.archiveUrl;
+    return provenance(fuvestSource, url, page);
+  },
+};
+
 export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
   if (providerId === "ime") return imeImporter;
+  if (providerId === "fuvest") return fuvestImporter;
   return null;
 }

@@ -4,10 +4,12 @@ import { registerProvider } from "./registry";
 import { enemProvider } from "./enem";
 import { itaProvider } from "./ita";
 import { imeProvider } from "./ime";
+import { fuvestProvider } from "./fuvest";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
 registerProvider(imeProvider);
+registerProvider(fuvestProvider);
 
 export * from "./types";
 export * from "./registry";
@@ -36,3 +38,15 @@ export {
   imeObjectiveQuestions,
   imeQuestionKey,
 } from "./ime";
+export {
+  fuvestProvider,
+  fuvestMetadata,
+  FUVEST_PROVIDER_ID,
+  fuvestYears,
+  fuvestAnswerKey,
+  fuvestVariants,
+  fuvestExamUrl,
+  fuvestSecondPhaseUrls,
+  fuvestFirstPhaseQuestions,
+  fuvestQuestionKey,
+} from "./fuvest";

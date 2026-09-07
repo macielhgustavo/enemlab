@@ -11,9 +11,10 @@ import {
 } from "./index";
 
 describe("registry de fontes", () => {
-  it("registra as quatro fontes desta versão, e nada além", () => {
+  it("registra as cinco fontes desta versão, e nada além", () => {
     expect(listSources().map((s) => s.id).sort()).toEqual([
       "enem-dev",
+      "fuvest-archive",
       "ime-cfg-archive",
       "inep-official-archive",
       "ita-official-archive",
@@ -28,7 +29,7 @@ describe("registry de fontes", () => {
   it("liga fonte ao provider que a consome", () => {
     expect(sourcesForProvider("ita").map((s) => s.id)).toEqual(["ita-official-archive"]);
     expect(sourcesForProvider("ime").map((s) => s.id)).toEqual(["ime-cfg-archive"]);
-    expect(sourcesForProvider("fuvest")).toEqual([]);
+    expect(sourcesForProvider("fuvest").map((s) => s.id)).toEqual(["fuvest-archive"]);
   });
 
   it("um provider pode ter mais de uma fonte", () => {
@@ -106,8 +107,9 @@ describe("procedência", () => {
   it("importador é resolvido pelo provider", () => {
     expect(importerForProvider("ita")?.sourceId).toBe("ita-official-archive");
     expect(importerForProvider("enem")?.sourceId).toBe("enem-dev");
+    expect(importerForProvider("fuvest")?.sourceId).toBe("fuvest-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
-    expect(importerForProvider("fuvest")).toBeNull();
+    expect(importerForProvider("ufpr")).toBeNull();
   });
 
   it("anos do importador batem com os da fonte", () => {
