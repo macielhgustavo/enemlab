@@ -203,20 +203,61 @@ significa edição nova por ingerir.
 8. Registrar a fonte no audit e testes de isolamento contra as provas já
    existentes.
 
-## Estado (v8.5.0)
+## Quando um PDF com texto não serve
 
-Esta versão entrega a **plataforma**. Nenhum provider novo entrou.
+O critério para decidir entre catálogo estruturado e modo referência **não é**
+"o PDF tem camada de texto". É se o texto **preserva o significado**.
 
-`IMPORTADORES` na CLI está vazio de propósito: cada prova entra na sua PR
-depois de conferida. Uma CLI que aceita qualquer nome e não faz nada é pior
-que uma que recusa.
+Os dois casos já vividos:
 
-| Prova | Edições | Questões | Nível | Enunciado |
-|---|---|---|---|---|
-| ITA | 8 (1ª fase) | 456 | `reviewed` | referência |
-| ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app |
+| Prova | Camada de texto | Decisão | Por quê |
+|---|---|---|---|
+| ITA | nenhuma (0 caractere) | referência | não há o que extrair |
+| IME | sim (23 mil caracteres) | referência | a extração quebra a matemática |
 
-`reviewed` e não `verified`: as duas foram conferidas contra a fonte nas
-versões anteriores, mas não passaram pelo pipeline determinístico que esta
-versão acabou de criar. Chamá-las de `verified` daria ao pipeline um crédito
-que ele ainda não recebeu.
+No IME, 67 frações da edição 2025-2026 saem quebradas em três linhas e os
+expoentes viram dígitos comuns. A questão 20 extrai como
+
+```
+y = x2
+2b − b
+2
+```
+
+quando a fórmula é y = x²/(2b) − b/2. Reproduzir isso mostraria ao aluno uma
+equação diferente da que caiu na prova.
+
+**Meça antes de decidir**, e olhe o texto extraído — não só a contagem de
+caracteres.
+
+## Estado (v8.5.1)
+
+| Prova | Edições | Questões | Nível | Enunciado | Fonte |
+|---|---|---|---|---|---|
+| ITA | 8 (1ª fase) | 456 | `reviewed` | referência | `ita-official-archive` |
+| IME | 8 (objetiva) | 320 | `reviewed` | referência | `ime-cfg-archive` |
+| ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
+
+O IME tem 40 questões por edição em todas as oito — 15 matemática, 15 física,
+10 química. Conferido à mão em 2025-2026, 2021-2022 e 2018-2019.
+
+### Fontes registradas e não ingeridas
+
+`inep-official-archive` cobre 1998–2025 e é o **único** caminho para 2024 e
+2025 — a API estruturada para em 2023, verificado. Está registrada com
+`years: []` porque declarar 1998–2025 faria o app prometer prova que não tem.
+
+Duas coisas precisam existir antes de importá-la:
+
+1. **Variante de caderno.** O ENEM aplica Azul, Amarelo, Branco e Rosa por
+   dia — a mesma prova em ordem diferente. São 95 documentos só em 2025.
+   Importar sem modelar variante criaria quatro cópias de cada questão, e o
+   gabarito de um caderno corrigiria outro.
+2. **Descoberta.** A página do INEP monta a lista por JavaScript; o HTML
+   servido tem zero link de PDF. As URLs seguem
+   `{ano}_{PV|GB}_impresso_D{dia}_CD{caderno}.pdf` — conferido em 2023, 2024
+   e 2025 —, mas §14 pede verificar existência, não inferir padrão.
+
+Este é também o caso que prova o suporte a **múltiplas fontes por provider**:
+o ENEM tem duas, e a regra é não trocar fonte boa por PDF pior — a
+estruturada segue sendo a origem de 2009–2023.

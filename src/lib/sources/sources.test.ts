@@ -11,8 +11,13 @@ import {
 } from "./index";
 
 describe("registry de fontes", () => {
-  it("registra ENEM e ITA, e nada além", () => {
-    expect(listSources().map((s) => s.id).sort()).toEqual(["enem-dev", "ita-official-archive"]);
+  it("registra as quatro fontes desta versão, e nada além", () => {
+    expect(listSources().map((s) => s.id).sort()).toEqual([
+      "enem-dev",
+      "ime-cfg-archive",
+      "inep-official-archive",
+      "ita-official-archive",
+    ]);
   });
 
   it("resolve fonte por id e falha alto no desconhecido", () => {
@@ -22,8 +27,25 @@ describe("registry de fontes", () => {
 
   it("liga fonte ao provider que a consome", () => {
     expect(sourcesForProvider("ita").map((s) => s.id)).toEqual(["ita-official-archive"]);
-    expect(sourcesForProvider("enem").map((s) => s.id)).toEqual(["enem-dev"]);
+    expect(sourcesForProvider("ime").map((s) => s.id)).toEqual(["ime-cfg-archive"]);
     expect(sourcesForProvider("fuvest")).toEqual([]);
+  });
+
+  it("um provider pode ter mais de uma fonte", () => {
+    // §15: o ENEM tem a API estruturada (2009–2023, com enunciado) e o
+    // arquivo do INEP (1998–2025, em PDF). São origens diferentes da mesma
+    // prova, e o registry precisa suportar as duas.
+    expect(sourcesForProvider("enem").map((s) => s.id).sort()).toEqual([
+      "enem-dev",
+      "inep-official-archive",
+    ]);
+  });
+
+  it("fonte registrada mas não ingerida não promete edição", () => {
+    // Declarar 1998–2025 aqui faria o app oferecer prova que não tem.
+    const inep = listSources().find((s) => s.id === "inep-official-archive")!;
+    expect(inep.years).toEqual([]);
+    expect(inep.parserVersion).toContain("nao-ingerido");
   });
 
   it("descreve a diferença real entre as duas fontes", () => {

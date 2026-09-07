@@ -1,5 +1,6 @@
 // Registry de fontes de prova.
 import { itaYears, itaFirstPhaseUrl, itaSecondPhaseUrls } from "../providers/ita";
+import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../providers/ime";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -7,6 +8,7 @@ export * from "./types";
 
 const ITA_PARSER = "ita-answer-key@1.0.0";
 const ENEM_PARSER = "enem-dev-api@1.0.0";
+const IME_PARSER = "ime-answer-key@1.0.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -63,9 +65,104 @@ export const itaSource: ExamSourceDefinition = {
     "numeram por matéria e foram recusadas pela ingestão.",
 };
 
+/**
+ * ENEM, arquivo oficial do INEP — **segunda fonte da mesma prova**.
+ *
+ * É o caso que o §15 pede provar: um provider com mais de uma fonte. A API
+ * estruturada entrega enunciado em texto e vai de 2009 a 2023; o arquivo do
+ * INEP cobre 1998 a 2025, mas em PDF.
+ *
+ * A regra é não trocar fonte boa por PDF pior. A estruturada continua sendo
+ * a origem de 2009–2023; o INEP entra para o que ela não tem.
+ *
+ * Ainda **não ingerida**, e o motivo é concreto: o ENEM aplica vários
+ * cadernos por dia (Azul, Amarelo, Branco, Rosa), que são a mesma prova em
+ * ordem diferente. São 95 documentos só em 2025. Importar isso sem modelar
+ * variante criaria quatro cópias de cada questão e um gabarito corrigindo o
+ * caderno errado — o problema de `ExamVariant` que o escopo levanta no §19.
+ *
+ * A descoberta também não é trivial: a página do INEP monta a lista por
+ * JavaScript, e o HTML servido tem zero link de PDF. As URLs seguem
+ * `{ano}_{PV|GB}_impresso_D{dia}_CD{caderno}.pdf` — conferido em 2023, 2024
+ * e 2025 —, mas §14 é explícito: não inferir arquivo por padrão de URL sem
+ * verificar existência.
+ */
+export const enemOfficialSource: ExamSourceDefinition = {
+  id: "inep-official-archive",
+  providerId: "enem",
+  institution: "INEP",
+  archiveUrl:
+    "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  family: "general",
+  // A página exige JavaScript para listar; descoberta automática por HTTP
+  // simples não funciona aqui.
+  discovery: "manual",
+  // Vazio de propósito: nenhuma edição foi ingerida por esta fonte ainda.
+  // Declarar 1998–2025 aqui faria o app prometer prova que não tem.
+  years: [],
+  phases: ["day1", "day2"],
+  subjects: ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: "inep-archive@0.0.0-nao-ingerido",
+  lastVerifiedAt: "2026-09-06",
+  confidence: "media",
+  notes:
+    "Registrada, não ingerida. Cobre 1998–2025 e é o único caminho para 2024 " +
+    "e 2025, que a API estruturada não tem. Exige modelar caderno como " +
+    "variante antes de qualquer importação.",
+};
+
+/**
+ * IME: arquivo oficial do Concurso de Admissão ao CFG.
+ *
+ * `reference-only` por um motivo diferente do ITA, e a diferença importa
+ * para quem adicionar a próxima prova. O ITA é digitalizado — não há texto.
+ * O IME **tem** camada de texto, mas ela quebra a matemática: 67 frações
+ * saem em três linhas e expoentes viram dígitos comuns, então a fórmula
+ * mostrada seria diferente da que caiu na prova.
+ *
+ * "O PDF tem texto" não basta para decidir. O que decide é se o texto
+ * preserva o significado.
+ */
+export const imeSource: ExamSourceDefinition = {
+  id: "ime-cfg-archive",
+  providerId: "ime",
+  institution: "IME",
+  archiveUrl:
+    "https://www.ime.eb.mil.br/vestibular-e-concursos/cfg-ensino-medio/provas-anteriores-cfg",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  family: "engineering",
+  discovery: "automatic",
+  years: imeYears(),
+  // A discursiva e a prova de línguas existem no arquivo e estão declaradas
+  // aqui, mas não são executáveis: não há correção de discursiva, e
+  // inventar uma seria pior que não ter.
+  phases: ["first", "second"],
+  subjects: ["mathematics", "physics", "chemistry"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: IME_PARSER,
+  lastVerifiedAt: "2026-09-06",
+  confidence: "alta",
+  notes:
+    "Objetiva com 40 questões (15 matemática, 15 física, 10 química) em todas " +
+    "as oito edições ingeridas. O gabarito publicado é o final/definitivo. " +
+    "Discursiva e línguas ficam como referência.",
+};
+
 const SOURCES = new Map<string, ExamSourceDefinition>([
   [enemSource.id, enemSource],
   [itaSource.id, itaSource],
+  [imeSource.id, imeSource],
+  [enemOfficialSource.id, enemOfficialSource],
 ]);
 
 export function listSources(): ExamSourceDefinition[] {
@@ -117,8 +214,23 @@ export const enemImporter: ExamImporter = {
   },
 };
 
+export const imeImporter: ExamImporter = {
+  sourceId: imeSource.id,
+  availableYears: () => imeYears(),
+  provenanceFor(year, phase = "first", page) {
+    const edicao = imeEditionOfYear(year);
+    // Sem edição conhecida, a procedência aponta o arquivo da instituição —
+    // nunca uma URL montada por padrão, que daria 404 ou o documento errado.
+    const url =
+      (edicao && (phase === "first" ? imeExamUrl(edicao) : imeAnswerKeyUrl(edicao))) ??
+      imeSource.archiveUrl;
+    return provenance(imeSource, url, page);
+  },
+};
+
 export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
+  if (providerId === "ime") return imeImporter;
   return null;
 }

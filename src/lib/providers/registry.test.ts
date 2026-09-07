@@ -67,13 +67,16 @@ describe("registry", () => {
     expect(() => getProvider("fuvest")).toThrow(/não registrado/i);
   });
 
-  it("registra apenas ENEM e ITA nesta versão", () => {
-    expect(listProviders().map((p) => p.id).sort()).toEqual(["enem", "ita"]);
+  it("registra ENEM, ITA e IME nesta versão", () => {
+    // A lista é explícita de propósito: provider entra por decisão, não por
+    // alguém importar um módulo sem querer. Este teste reprovou quando o
+    // IME foi registrado, que é exatamente o trabalho dele.
+    expect(listProviders().map((p) => p.id).sort()).toEqual(["enem", "ime", "ita"]);
   });
 
   it("não traz as provas que ficaram para depois", () => {
     const ids = listProviders().map((p) => p.id);
-    for (const futuro of ["fuvest", "ime", "afa", "epcar", "espcex"]) {
+    for (const futuro of ["fuvest", "ufpr", "afa", "epcar", "eear", "espcex", "esa"]) {
       expect(ids).not.toContain(futuro);
     }
   });
