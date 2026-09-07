@@ -25,6 +25,7 @@ import {
 } from "@/components/enem-lab/FilterBar";
 import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
 import { areaLabel } from "@/lib/providers/taxonomy";
+import { buildCurrentCatalog } from "@/lib/catalog/current";
 import { examLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
@@ -65,6 +66,22 @@ export default function BankPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const activeYear = isIta ? itaYear : year;
+
+  /**
+   * O índice responde antes de qualquer questão ser carregada (§29, §30).
+   *
+   * Antes, para saber quais anos existem e quantas questões havia, o Banco
+   * precisava baixar a edição inteira. Com três provas isso ainda passava;
+   * com dezenas, montar um filtro viraria download de megabytes.
+   *
+   * O índice é uma linha por edição, não por questão.
+   */
+  const catalogo = useMemo(() => buildCurrentCatalog(), []);
+  const anosDisponiveis = catalogo.yearsOf(providerId);
+  const totalNoCatalogo = catalogo.countQuestions({ providerId });
+  const edicaoNoCatalogo = catalogo
+    .query({ providerId, year: activeYear })
+    .at(0);
 
   const {
     data: questions,
@@ -133,12 +150,16 @@ export default function BankPage() {
         context={<Badge variant="accent">{getProvider(providerId).metadata.shortLabel}</Badge>}
         description="Filtre, selecione e monte um treino com as questões que interessam."
         meta={
-          isLoading ? undefined : (
-            <>
-              <span>{visible.length} visíveis</span>
-              <span>{selected.size} selecionadas</span>
-            </>
-          )
+          <>
+            {!isLoading && <span>{visible.length} visíveis</span>}
+            {!isLoading && <span>{selected.size} selecionadas</span>}
+            {/* Vem do índice: não custa carregar nenhuma questão. */}
+            <span>
+              {totalNoCatalogo.known > 0
+                ? `${totalNoCatalogo.known} no catálogo`
+                : `${anosDisponiveis.length} edições no catálogo`}
+            </span>
+          </>
         }
         actions={
           <>
@@ -153,7 +174,14 @@ export default function BankPage() {
       />
 
       <FilterBar
-        summary={isLoading ? "carregando banco…" : `${visible.length} de ${(questions || []).length} questões`}
+        summary={
+          isLoading
+            ? // O índice já sabe o tamanho da edição antes de ela chegar.
+              edicaoNoCatalogo?.questionCount
+              ? `carregando ${edicaoNoCatalogo.questionCount} questões…`
+              : "carregando banco…"
+            : `${visible.length} de ${(questions || []).length} questões`
+        }
         onClear={() => {
           setQuery("");
           setArea("all");
@@ -199,9 +227,13 @@ export default function BankPage() {
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
             >
-              {examYears().map((y) => (
+              {/* O rótulo vem da prova ativa. Estava fixo em "ENEM" e, com
+                  uma terceira prova registrada, o IME passou a listar
+                  "ENEM 2026" — o tipo de leak que só aparece quando o
+                  segundo caso deixa de ser o único. */}
+              {(anosDisponiveis.length ? anosDisponiveis : examYears()).map((y) => (
                 <option key={y} value={y}>
-                  ENEM {y}
+                  {examLabel(providerId)} {y}
                 </option>
               ))}
             </select>
