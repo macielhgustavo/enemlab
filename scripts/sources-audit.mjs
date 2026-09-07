@@ -53,9 +53,78 @@ const FONTES = [
       { url: "https://www.vestibular.ita.br/provas/portugues_2024_2f.pdf", role: "subject-exam", esperado404: true },
     ],
   },
+  {
+    providerId: "ime",
+    sourceId: "ime-cfg-archive",
+    archiveUrl:
+      "https://www.ime.eb.mil.br/vestibular-e-concursos/cfg-ensino-medio/provas-anteriores-cfg",
+    documentos: [
+      // A página de arquivo é o que a descoberta lê. Se ela mudar de
+      // endereço, o importador para de achar edição — e é isso que este
+      // audit precisa avisar antes de alguém notar pela ausência.
+      {
+        role: "archive-page",
+        url: "https://www.ime.eb.mil.br/vestibular-e-concursos/cfg-ensino-medio/provas-anteriores-cfg",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Gabarito_FINAL_2025-2026OBJETIVA.pdf",
+      },
+      {
+        role: "objective-exam",
+        url: "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2018-2019/CFG_Gabarito_Objetiva_2018_2019.pdf",
+      },
+    ],
+  },
+  {
+    providerId: "enem",
+    sourceId: "inep-official-archive",
+    archiveUrl:
+      "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos",
+    documentos: [
+      // Registrada e ainda não ingerida. O audit acompanha os documentos que
+      // uma futura importação vai usar, para a wave seguinte não descobrir
+      // link morto só na hora de escrever o parser.
+      {
+        role: "answer-key",
+        url: "https://download.inep.gov.br/enem/provas_e_gabaritos/2025_GB_impresso_D1_CD1.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://download.inep.gov.br/enem/provas_e_gabaritos/2024_GB_impresso_D1_CD1.pdf",
+      },
+      {
+        role: "objective-exam",
+        url: "https://download.inep.gov.br/enem/provas_e_gabaritos/2024_PV_impresso_D1_CD1.pdf",
+      },
+    ],
+  },
 ];
 
+/**
+ * Confere um documento, com uma segunda tentativa.
+ *
+ * Falha de rede transitória acontece — numa execução, um gabarito do INEP
+ * deu "fetch failed" e respondeu 200 no retry segundos depois. Sem a
+ * segunda tentativa, o audit produz alarme falso, e alarme falso ensina a
+ * ignorar o vermelho. Uma tentativa extra basta: erro que persiste nas duas
+ * é notícia de verdade.
+ */
 async function checar(url) {
+  const primeira = await tentar(url);
+  if (primeira.ok || primeira.status === 404) return primeira;
+  await new Promise((r) => setTimeout(r, 1500));
+  const segunda = await tentar(url);
+  return segunda.ok || segunda.status === 404
+    ? segunda
+    : { ...segunda, erro: `${segunda.erro ?? segunda.status} (falhou em duas tentativas)` };
+}
+
+async function tentar(url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {

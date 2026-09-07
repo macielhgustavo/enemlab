@@ -10,7 +10,7 @@
 // ter um índice.
 
 import { CatalogIndex, type CatalogEntry } from "./index";
-import { listProviders, itaAnswerKey, ITA_PROVIDER_ID } from "../providers";
+import { listProviders, itaAnswerKey, ITA_PROVIDER_ID, imeAnswerKey, imeEditionOfYear, IME_PROVIDER_ID } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
 
@@ -29,6 +29,46 @@ function familiaDe(providerId: string): ExamFamilyId {
   return listSources().find((s) => s.providerId === providerId)?.family ?? "general";
 }
 
+/**
+ * Quantas questões uma edição tem, quando isso é sabido sem carregá-la.
+ *
+ * Providers em modo referência guardam o gabarito, e o gabarito diz o
+ * tamanho da prova. Fonte estruturada só sabe depois de buscar — e aí a
+ * resposta honesta é `null`.
+ */
+function medirEdicao(
+  providerId: string,
+  ano: number,
+): { total: number; subjects: Record<string, number> } | null {
+  if (providerId === ITA_PROVIDER_ID) {
+    const k = itaAnswerKey(ano);
+    if (!k) return null;
+    return {
+      total: k.total,
+      subjects: Object.fromEntries(
+        Object.entries(k.subjects ?? {}).map(([nome, faixa]) => [
+          nome,
+          Array.isArray(faixa) ? faixa.length : Number(faixa) || 0,
+        ]),
+      ),
+    };
+  }
+
+  if (providerId === IME_PROVIDER_ID) {
+    const edicao = imeEditionOfYear(ano);
+    const k = edicao ? imeAnswerKey(edicao) : null;
+    if (!k) return null;
+    return {
+      total: k.total,
+      subjects: Object.fromEntries(
+        Object.entries(k.subjects).map(([nome, nums]) => [nome, nums.length]),
+      ),
+    };
+  }
+
+  return null;
+}
+
 /** Monta o índice a partir dos providers registrados. */
 export function buildCurrentCatalog(): CatalogIndex {
   const entradas: CatalogEntry[] = [];
@@ -37,26 +77,19 @@ export function buildCurrentCatalog(): CatalogIndex {
     const fonte = listSources().find((s) => s.providerId === p.id);
     if (!fonte) continue;
 
-    // Só entram as fases cujas questões o app realmente tem. O ITA publica
-    // 2ª fase, mas ela é discursiva e não foi ingerida — listá-la aqui com a
-    // contagem da 1ª inflaria o catálogo com questões que não existem no
-    // banco. Fase publicada não é fase ingerida.
-    const fasesIngeridas =
-      p.id === ITA_PROVIDER_ID
-        ? p.metadata.phases.filter((f) => f === "first")
-        : p.metadata.phases;
+    // Só entram as fases cujas questões o app realmente tem. Fase publicada
+    // não é fase ingerida: o ITA e o IME publicam discursiva, e listá-la com
+    // a contagem da objetiva inflaria o catálogo com questões inexistentes.
+    const fasesIngeridas = p.metadata.phases.filter((f) =>
+      p.id === ITA_PROVIDER_ID || p.id === IME_PROVIDER_ID ? f === "first" : true,
+    );
 
     for (const ano of p.metadata.years) {
-      const chave = p.id === ITA_PROVIDER_ID ? itaAnswerKey(ano) : null;
-      const contagem = chave?.total ?? null;
-      const materias = chave
-        ? Object.fromEntries(
-            Object.entries(chave.subjects ?? {}).map(([nome, faixa]) => [
-              nome,
-              Array.isArray(faixa) ? faixa.length : Number(faixa) || 0,
-            ]),
-          )
-        : {};
+      // Contagem por edição, onde o gabarito já ingerido a conhece. Quem não
+      // sabe informa `null` — nunca zero.
+      const medida = medirEdicao(p.id, ano);
+      const contagem = medida?.total ?? null;
+      const materias = medida?.subjects ?? {};
 
       for (const fase of fasesIngeridas) {
         entradas.push({

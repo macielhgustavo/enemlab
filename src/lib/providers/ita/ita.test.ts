@@ -14,8 +14,8 @@ import { questionKey as enemQuestionKey } from "../../domain/classify";
 import type { Question } from "../../domain/types";
 
 describe("registry com duas provas", () => {
-  it("tem ENEM e ITA registrados, e nada além disso", () => {
-    expect(listProviders().map((p) => p.id).sort()).toEqual(["enem", "ita"]);
+  it("tem ENEM, ITA e IME registrados, e nada além disso", () => {
+    expect(listProviders().map((p) => p.id).sort()).toEqual(["enem", "ime", "ita"]);
   });
 
   it("resolve cada provider pelo id", () => {
