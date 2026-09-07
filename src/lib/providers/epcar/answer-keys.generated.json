@@ -1,0 +1,62 @@
+{
+  "2025": {
+    "edition": "2025",
+    "year": 2025,
+    "total": 48,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "D C B B B A D B C A A C B C D D | C B A A B B A A D A C D D D C C | C C B D D C C A B A A D B D A C",
+    "annulled": [],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/PROVA_CPCAR_2025_versao_A.pdf" },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/cpcar2025_gab_oficial.pdf",
+    "examUrl": "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/PROVA_CPCAR_2025_versao_A.pdf",
+    "archivePage": "https://www.fab.mil.br/ingresso/cpcar/cpcar2025.html",
+    "subjects": { "english": [1, 16], "mathematics": [17, 32], "portuguese": [33, 48] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2023": {
+    "edition": "2023",
+    "year": 2023,
+    "total": 48,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "C D D D B B C A B C A D C A C B | C B C A A D B D C A C D D B B C | A B A D C D B D C A B D A B D C",
+    "annulled": [],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2022/cpcar/cpcar2023_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/cpcar/cpcar2023.html",
+    "subjects": { "english": [1, 16], "mathematics": [17, 32], "portuguese": [33, 48] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2020": {
+    "edition": "2020",
+    "year": 2020,
+    "total": 48,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "D A A C D B A C D C B B C C D A | C A B B A B C A X D A D A X A C | D A D C X D B C C D A C A D B A",
+    "annulled": [25, 30, 37],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/provas/cpcar2020_gab_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/cpcar/cpcar2020.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  }
+}

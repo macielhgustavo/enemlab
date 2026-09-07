@@ -76,6 +76,8 @@ export interface ExamSourceDefinition {
   lastVerifiedAt: string;
   /** Confiança na ingestão, do que foi de fato conferido. */
   confidence: "alta" | "media" | "baixa";
+  /** Estado operacional da fonte: apenas fontes ativas alimentam providers. */
+  status?: "active" | "research" | "blocked";
   /** O que um leitor precisa saber antes de confiar nestes dados. */
   notes?: string;
 

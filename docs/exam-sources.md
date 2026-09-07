@@ -131,6 +131,46 @@ Correção errada é pior que ausência de dado.
 |---|---|---|---|---|
 | ENEM | `api.enem.dev` | `structured-api` | no app | 2009–2023 |
 | ITA | `vestibular.ita.br` | `pdf-reference` | na fonte oficial | 2019–2026 |
+| IME | `ime.eb.mil.br` | `pdf-reference` | na fonte oficial | 2018–2025 |
+| FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | edições validadas |
+| AFA | `fab.mil.br` | `pdf-reference` | na fonte oficial | 2019–2026 |
+| EPCAR | `fab.mil.br` | `pdf-reference` | na fonte oficial | 2020, 2023, 2025 |
+
+### v8.5.3 — FAB
+
+A página oficial da [FAB — provas anteriores](https://www.fab.mil.br/ingresso/provas.html)
+é a fonte de descoberta para AFA e EPCAR. Os dois providers são separados:
+AFA tem 64 questões objetivas e EPCAR tem 48; ambos mantêm apenas a versão A
+como canônica porque as versões A/B/C são reordenações. As demais versões
+ficam registradas como referência, sem gerar cópias nem novas chaves de SRS.
+
+O enunciado e as alternativas ficam no PDF oficial. O catálogo mantém somente
+numeração, matéria, procedência, gabarito final da versão A e anulações. A
+extração de uma edição só é aceita com cobertura contígua, letras A–D válidas,
+matérias cobrindo toda a prova e publicação final; preliminar, retificação
+não resolvida, número duplicado ou arquivo incompleto falham fechado.
+
+| Provider | Edições normalizadas | Questões por edição | Anuladas registradas |
+|---|---:|---:|---|
+| AFA | 2019–2026 (8) | 64 | conforme gabarito final de cada edição |
+| EPCAR | 2020, 2023, 2025 (3) | 48 | conforme gabarito final de cada edição |
+
+As edições FAB foram mantidas como `reviewed` no índice herdado: o conteúdo
+não é afirmado como `verified` pelo pipeline sem uma conferência humana do
+arquivo baixado. O audit acompanha a página oficial e chaves recentes,
+intermediárias e antigas; bloqueio HTTP da origem é reportado como falha
+operacional, nunca convertido em aprovação.
+
+### Pesquisa sem provider
+
+- **UFPR:** PS 2018–PS 2026 foram investigados no [Portal NC da UFPR](https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026).
+  Há versões e documentos preliminares/definitivos, mas a associação final
+  consistente entre prova, versão e gabarito não foi demonstrada. Permanece
+  `research`/bloqueada, sem parser executável.
+- **EEAR:** o [arquivo oficial de provas anteriores](https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25)
+  reúne cursos, ciclos, códigos e opções diferentes. A associação prova↔chave
+  final não foi fechada com segurança nesta wave; fica documentada para
+  v8.5.4, sem provider.
 
 ### Cobertura verificada do arquivo do ITA
 
@@ -149,5 +189,6 @@ edições — por isso a lista de matérias da 2ª fase depende do ano.
 Ao acrescentar edições, refaça esta conferência antes de anunciar o documento
 na interface. O padrão de nome não é promessa de existência.
 
-Placeholders conceituais para o futuro — **não implementados**: FUVEST, IME,
-AFA, EPCAR, EsPCEx. Cada um exige repetir o passo 2 antes de qualquer estimativa.
+Placeholders conceituais para o futuro — **não implementados**: EEAR,
+UFPR, EsPCEx, ESA. Cada um exige repetir o passo 2 antes de qualquer
+estimativa.

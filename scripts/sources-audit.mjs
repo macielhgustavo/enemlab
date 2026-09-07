@@ -15,13 +15,16 @@
 // problema não é do nosso código, e vermelho que não é culpa nossa ensina a
 // ignorar o vermelho.
 
+import { existsSync, readFileSync } from "node:fs";
+
 const TIMEOUT_MS = 20_000;
 
 function parseArgs(argv) {
-  const args = { provider: null, json: false };
+  const args = { provider: null, json: false, baseline: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--provider") args.provider = argv[++i] ?? null;
     else if (argv[i] === "--json") args.json = true;
+    else if (argv[i] === "--baseline") args.baseline = argv[++i] ?? null;
   }
   return args;
 }
@@ -39,6 +42,75 @@ const FONTES = [
     sourceId: "enem-dev",
     archiveUrl: "https://api.enem.dev",
     documentos: [{ role: "structured-api", url: "https://api.enem.dev/v1/exams" }],
+  },
+  {
+    providerId: "afa",
+    sourceId: "afa-official-archive",
+    archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    documentos: [
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html" },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2025/afa/afa2026-P1-gabarito-oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2021/afa/afa2022_gab_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/provas/afa2019_gab_oficial.pdf",
+      },
+    ],
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
+    editionPattern: /afa(?:20\d{2})/gi,
+    requiredRoles: ["archive-page", "answer-key"],
+  },
+  {
+    providerId: "epcar",
+    sourceId: "epcar-official-archive",
+    archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    documentos: [
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html" },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/cpcar2025_gab_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2022/cpcar/cpcar2023_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/provas/cpcar2020_gab_oficial.pdf",
+      },
+    ],
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
+    editionPattern: /cpcar(?:20\d{2})/gi,
+    requiredRoles: ["archive-page", "answer-key"],
+  },
+  {
+    providerId: "ufpr",
+    sourceId: "ufpr-research",
+    archiveUrl: "https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026",
+    documentos: [
+      { role: "archive-page", url: "https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026" },
+      {
+        role: "notice",
+        url: "https://servicos.nc.ufpr.br/documentos/ps2026/provas/definitivo/relatorio-anuladas-alteradas.pdf",
+      },
+    ],
+  },
+  {
+    providerId: "eear",
+    sourceId: "eear-research",
+    archiveUrl: "https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25",
+    documentos: [
+      {
+        role: "archive-page",
+        url: "https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25",
+      },
+    ],
   },
   {
     providerId: "ita",
@@ -161,8 +233,72 @@ async function tentar(url) {
   }
 }
 
+async function tentarTexto(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { "user-agent": "enemlab-sources-audit/1.0" },
+      signal: ctrl.signal,
+      redirect: "follow",
+    });
+    return { status: res.status, ok: res.ok, text: res.ok ? await res.text() : "" };
+  } catch (e) {
+    return {
+      status: 0,
+      ok: false,
+      text: "",
+      erro: e.name === "AbortError" ? "timeout" : e.message,
+    };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function carregarBaseline(path) {
+  if (!path || !existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (e) {
+    console.error("baseline ilegível: " + e.message);
+    process.exit(1);
+  }
+}
+
+function documentoMudou(previous, current) {
+  if (!previous) return false;
+  if (previous.finalUrl && current.finalUrl && previous.finalUrl !== current.finalUrl) return true;
+  if (previous.etag && current.etag && previous.etag !== current.etag) return true;
+  return (
+    previous.contentLength !== null &&
+    current.contentLength !== null &&
+    previous.contentLength !== current.contentLength
+  );
+}
+
+async function auditarNovasEdicoes(fonte) {
+  if (!fonte.editionPattern || !fonte.knownEditions) return null;
+  const response = await tentarTexto(fonte.archiveUrl);
+  if (!response.ok) {
+    return {
+      status: response.status,
+      novas: [],
+      ok: false,
+      erro: response.erro ?? "arquivo respondeu " + response.status + "; descoberta não verificável",
+    };
+  }
+
+  fonte.editionPattern.lastIndex = 0;
+  const encontrados = [...response.text.matchAll(fonte.editionPattern)]
+    .map((match) => Number((match[0].match(/20\d{2}/) ?? [])[0]))
+    .filter(Number.isInteger);
+  const novas = [...new Set(encontrados)].filter((year) => !fonte.knownEditions.includes(year));
+  return { status: response.status, novas, ok: true, erro: null };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const baseline = carregarBaseline(args.baseline);
   const fontes = args.provider
     ? FONTES.filter((f) => f.providerId === args.provider)
     : FONTES;
@@ -178,11 +314,13 @@ async function main() {
   for (const f of fontes) {
     for (const d of f.documentos) {
       const r = await checar(d.url);
+      const anterior = baseline?.resultados?.find((item) => item.url === d.url);
+      const mudou = documentoMudou(anterior, r);
       // Um 404 previsto não é problema: é conhecimento sobre o arquivo. O
       // que assusta é ele **deixar** de dar 404 — significa que a banca
       // publicou algo que ainda não foi ingerido.
       const esperado = d.esperado404 === true;
-      const okEsperado = esperado ? r.status === 404 : r.ok;
+      const okEsperado = esperado ? r.status === 404 : r.ok && !mudou;
       if (!okEsperado) problemas++;
 
       resultados.push({
@@ -191,6 +329,8 @@ async function main() {
         role: d.role,
         url: d.url,
         status: r.status,
+        finalUrl: r.finalUrl ?? null,
+        changed: mudou,
         esperado404: esperado,
         ok: okEsperado,
         redirected: r.redirected ?? false,
@@ -200,6 +340,49 @@ async function main() {
         erro: r.erro ?? null,
       });
     }
+
+    for (const role of f.requiredRoles ?? []) {
+      if (f.documentos.some((documento) => documento.role === role)) continue;
+      problemas++;
+      resultados.push({
+        provider: f.providerId,
+        source: f.sourceId,
+        role: "manifest",
+        url: f.archiveUrl,
+        status: 0,
+        esperado404: false,
+        ok: false,
+        redirected: false,
+        changed: false,
+        novasEdicoes: [],
+        contentLength: null,
+        lastModified: null,
+        etag: null,
+        erro: "documento obrigatório ausente no manifesto: " + role,
+      });
+    }
+
+    const discovery = await auditarNovasEdicoes(f);
+    if (discovery) {
+      const hasNewEditions = discovery.novas.length > 0;
+      if (hasNewEditions || !discovery.ok) problemas++;
+      resultados.push({
+        provider: f.providerId,
+        source: f.sourceId,
+        role: "discovery",
+        url: f.archiveUrl,
+        status: discovery.status,
+        esperado404: false,
+        ok: !hasNewEditions && discovery.ok,
+        redirected: false,
+        changed: false,
+        novasEdicoes: discovery.novas,
+        contentLength: null,
+        lastModified: null,
+        etag: null,
+        erro: discovery.erro ?? null,
+      });
+    }
   }
 
   if (args.json) {
@@ -207,7 +390,15 @@ async function main() {
   } else {
     for (const r of resultados) {
       const marca = r.ok ? "ok  " : "FALHA";
-      const nota = r.esperado404 ? " (404 esperado)" : r.redirected ? " (redirecionado)" : "";
+      const nota = r.esperado404
+        ? " (404 esperado)"
+        : r.changed
+          ? " (documento alterado)"
+          : r.novasEdicoes?.length
+            ? " (nova(s): " + r.novasEdicoes.join(", ") + ")"
+            : r.redirected
+              ? " (redirecionado)"
+              : "";
       console.log(`${marca} ${String(r.status).padStart(3)} ${r.provider}/${r.role}${nota}`);
       console.log(`      ${r.url}`);
       if (r.erro) console.log(`      erro: ${r.erro}`);

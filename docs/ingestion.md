@@ -250,13 +250,15 @@ A variante só entra na chave da questão quando é conteúdo diferente.
 V, K, Q, X, Z em 2024 — parser com a lista fixa recusaria o segundo ano, ou
 pior, atribuiria a resposta à versão errada.
 
-## Estado (v8.5.2)
+## Estado (v8.5.3)
 
 | Prova | Edições | Questões | Nível | Enunciado | Fonte |
 |---|---|---|---|---|---|
 | ITA | 8 (1ª fase) | 456 | `reviewed` | referência | `ita-official-archive` |
 | IME | 8 (objetiva) | 320 | `reviewed` | referência | `ime-cfg-archive` |
 | FUVEST | 4 (1ª fase) | 360 | `reviewed` | referência | `fuvest-archive` |
+| AFA | 8 (1ª fase) | 512 | `reviewed` | referência | `afa-official-archive` |
+| EPCAR | 3 (1ª fase) | 144 | `reviewed` | referência | `epcar-official-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
 
 O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
@@ -266,6 +268,20 @@ A FUVEST tem 90 por edição. **Das 27 edições do acervo, 23 são recusadas**:
 as antigas usam layout diferente ou não publicam o gabarito da 1ª fase como
 documento próprio. Recusar é o comportamento correto — meia leitura corrige
 errado. As quatro aceitas são 2025, 2024, 2021 e 2020.
+
+### FAB
+
+AFA e EPCAR usam importador compartilhado apenas na normalização comum: cada
+provider tem identidade, catálogo, histórico e chaves próprias. A versão A é
+canônica; B e C ficam como referência por serem reordenações. O script
+`npm run ingest:fab -- --dry-run` revalida os JSON gerados sem rede e recusa
+sequência incompleta, letra inválida, anulação inconsistente, matéria com
+buraco ou gabarito que não seja final.
+
+As provas oficiais da FAB retornam 403 ao audit HTTP automatizado neste
+ambiente. Isso não é tratado como aprovação: a página e as chaves seguem
+monitoradas, mas o bloqueio é uma pendência operacional da próxima execução do
+audit.
 
 ### Fontes registradas e não ingeridas
 

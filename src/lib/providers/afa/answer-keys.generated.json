@@ -1,0 +1,162 @@
+{
+  "2026": {
+    "edition": "2026",
+    "year": 2026,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "C C A D C B A B C B C D D B D C | D D A C A C B B B A C A B C D D | B C B C D D D C A A C D C A D B | X D C D C C B B D A A X D B B A",
+    "annulled": [49, 60],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2025/afa/afa2026-P1-gabarito-oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2026.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2025": {
+    "edition": "2025",
+    "year": 2025,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "B B C D D C C A D A X D B B B A | C C B D B A C A B D A A B B D X | B D B A D C D C X A B B B D C A | A C X D B B C B C A D C B A A B",
+    "annulled": [11, 32, 41, 51],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2024/afa/afa2025_gab_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2025.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2024": {
+    "edition": "2024",
+    "year": 2024,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "B C C A A D B B C D D C A D A D | A B A D C B D B B D D A C C C B | B C D A D A D A B C C A C D D C | C D B D B B B A D C C X A X A B",
+    "annulled": [60, 62],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2023/afa/afa2024_gabarito_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2024.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2023": {
+    "edition": "2023",
+    "year": 2023,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "B B D D C A C B C A A B D B C A | C B C D A D D A C D B D C B B C | B B D D C A C B C A A B D B C A | C B C D A D D A C D B D C B A A",
+    "annulled": [],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2022/afa2023_gab_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2023.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2022": {
+    "edition": "2022",
+    "year": 2022,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "C B A C A A D D C D B D B C A B | D C B A X D C C A C A D B A B D | B A D B D B C B A D A D C B C D | C D B C C A D A B A B D D B C A",
+    "annulled": [21],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/2021/afa/afa2022_gab_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2022.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2021": {
+    "edition": "2021",
+    "year": 2021,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "B X D C A D D C D B B A B C A A | B B D C C D B A D A C A D C C D | B D C X X A D C D A B D B C B A | D B C A A B A C B D A B C B D C",
+    "annulled": [2, 36, 37],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/provas/afa2021_gabarito_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2021.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2020": {
+    "edition": "2020",
+    "year": 2020,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "B D A C D C A D D C B A C B B B | B A C C B D B B A C C A D A B D | D A C C B A D X B C C D A B A A | A D X B A C C X A B D B A D C C",
+    "annulled": [40, 51, 56],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/provas/afa2020_gabarito_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2020.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  },
+  "2019": {
+    "edition": "2019",
+    "year": 2019,
+    "total": 64,
+    "canonicalVariant": "a",
+    "variantRelation": "reordered",
+    "revision": "final",
+    "sequence": "D C D D C A C C A D A B D C D B | A D B C D A C D A D B D B A C C | A B B D C D D C B X C B C B B C | A B C A D B X A C C D D B C B D",
+    "annulled": [42, 55],
+    "variants": [
+      { "id": "a", "label": "Versão A", "examUrl": null },
+      { "id": "b", "label": "Versão B", "examUrl": null },
+      { "id": "c", "label": "Versão C", "examUrl": null }
+    ],
+    "answerKeyUrl": "https://www.fab.mil.br/ingresso/arquivos/provas/afa2019_gab_oficial.pdf",
+    "examUrl": null,
+    "archivePage": "https://www.fab.mil.br/ingresso/afa/afa2019.html",
+    "subjects": { "portuguese": [1, 16], "mathematics": [17, 32], "english": [33, 48], "physics": [49, 64] },
+    "parserVersion": "fab-answer-key@1.0.0"
+  }
+}

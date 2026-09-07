@@ -8,16 +8,24 @@ import {
   itaSource,
   listSources,
   sourcesForProvider,
+  afaImporter,
+  afaSource,
+  epcarImporter,
+  epcarSource,
 } from "./index";
 
 describe("registry de fontes", () => {
-  it("registra as cinco fontes desta versão, e nada além", () => {
+  it("registra as nove fontes desta versão, e nada além", () => {
     expect(listSources().map((s) => s.id).sort()).toEqual([
+      "afa-official-archive",
+      "eear-research",
       "enem-dev",
+      "epcar-official-archive",
       "fuvest-archive",
       "ime-cfg-archive",
       "inep-official-archive",
       "ita-official-archive",
+      "ufpr-research",
     ]);
   });
 
@@ -30,6 +38,8 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("ita").map((s) => s.id)).toEqual(["ita-official-archive"]);
     expect(sourcesForProvider("ime").map((s) => s.id)).toEqual(["ime-cfg-archive"]);
     expect(sourcesForProvider("fuvest").map((s) => s.id)).toEqual(["fuvest-archive"]);
+    expect(sourcesForProvider("afa").map((s) => s.id)).toEqual(["afa-official-archive"]);
+    expect(sourcesForProvider("epcar").map((s) => s.id)).toEqual(["epcar-official-archive"]);
   });
 
   it("um provider pode ter mais de uma fonte", () => {
@@ -70,6 +80,30 @@ describe("registry de fontes", () => {
     // Formato antigo foi recusado: não pode aparecer como disponível.
     expect(itaSource.years).not.toContain(2018);
   });
+
+  it("mantém pesquisa bloqueada fora dos providers executáveis", () => {
+    for (const id of ["ufpr-research", "eear-research"]) {
+      const source = getSource(id);
+      expect(source.status).toBe("blocked");
+      expect(source.years).toEqual([]);
+      expect(source.answerKeyAvailable).toBe(false);
+    }
+  });
+
+  it("descreve as fontes FAB como referência oficial", () => {
+    expect(afaSource).toMatchObject({
+      institution: "FAB",
+      statementMode: "reference-only",
+      family: "air-force",
+      status: "active",
+    });
+    expect(epcarSource).toMatchObject({
+      institution: "FAB",
+      statementMode: "reference-only",
+      family: "air-force",
+      status: "active",
+    });
+  });
 });
 
 describe("procedência", () => {
@@ -108,11 +142,20 @@ describe("procedência", () => {
     expect(importerForProvider("ita")?.sourceId).toBe("ita-official-archive");
     expect(importerForProvider("enem")?.sourceId).toBe("enem-dev");
     expect(importerForProvider("fuvest")?.sourceId).toBe("fuvest-archive");
+    expect(importerForProvider("afa")?.sourceId).toBe("afa-official-archive");
+    expect(importerForProvider("epcar")?.sourceId).toBe("epcar-official-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
     expect(importerForProvider("ufpr")).toBeNull();
   });
 
   it("anos do importador batem com os da fonte", () => {
     expect(itaImporter.availableYears()).toEqual(itaSource.years);
+    expect(afaImporter.availableYears()).toEqual(afaSource.years);
+    expect(epcarImporter.availableYears()).toEqual(epcarSource.years);
+  });
+
+  it("aponta a chave final oficial para cada provider FAB", () => {
+    expect(afaImporter.provenanceFor(2026).documentUrl).toContain("afa2026-P1-gabarito-oficial.pdf");
+    expect(epcarImporter.provenanceFor(2025).documentUrl).toContain("PROVA_CPCAR_2025_versao_A.pdf");
   });
 });
