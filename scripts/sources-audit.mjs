@@ -15,16 +15,18 @@
 // problema não é do nosso código, e vermelho que não é culpa nossa ensina a
 // ignorar o vermelho.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { auditArchivedDocument, discoverFabEditions } from "./fab-source-audit.mjs";
 
 const TIMEOUT_MS = 20_000;
 
 function parseArgs(argv) {
-  const args = { provider: null, json: false, baseline: null };
+  const args = { provider: null, json: false, baseline: null, output: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--provider") args.provider = argv[++i] ?? null;
     else if (argv[i] === "--json") args.json = true;
     else if (argv[i] === "--baseline") args.baseline = argv[++i] ?? null;
+    else if (argv[i] === "--output") args.output = argv[++i] ?? null;
   }
   return args;
 }
@@ -208,6 +210,17 @@ const FONTES = [
   },
 ];
 
+for (const fonte of FONTES.filter((entry) => entry.viaArquivo)) {
+  const dataset = JSON.parse(readFileSync(new URL(
+    `../src/lib/providers/${fonte.providerId}/answer-keys.generated.json`, import.meta.url,
+  ), "utf8"));
+  fonte.documentos = [fonte.documentos[0], ...Object.values(dataset).map((entry) => ({
+    role: "answer-key", year: entry.year, url: entry.answerKeyUrl,
+    archiveUrl: entry.retrieval.retrievedFrom,
+    sha256: entry.retrieval.sha256, bytes: entry.retrieval.bytes,
+  }))];
+}
+
 /**
  * Confere um documento, com uma segunda tentativa.
  *
@@ -255,28 +268,9 @@ async function tentar(url) {
  * responde 403 por desenho, e o que a ingestão de fato lê é a cópia. Um 403
  * na FAB é rotina; a cópia sumir é que quebraria a reimportação.
  */
-async function checarArquivo(url) {
-  const consulta = `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`;
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(consulta, { signal: ctrl.signal, redirect: "follow" });
-    if (!res.ok) return { arquivado: false, erro: `arquivo respondeu ${res.status}` };
-    const dados = await res.json();
-    const snap = dados?.archived_snapshots?.closest;
-    return snap?.available
-      ? { arquivado: true, timestamp: snap.timestamp ?? null, erro: null }
-      : { arquivado: false, erro: "sem cópia arquivada" };
-  } catch (e) {
-    return { arquivado: false, erro: e.name === "AbortError" ? "timeout" : e.message };
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 async function tentarTexto(url) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const t = setTimeout(() => ctrl.abort(), 60_000);
   try {
     const res = await fetch(url, {
       headers: { "user-agent": "enemlab-sources-audit/1.0" },
@@ -318,12 +312,10 @@ function documentoMudou(previous, current) {
 }
 
 /** Índice do arquivo público — a mesma varredura que `ingest-fab.py` usa. */
-function urlDescobertaArquivo(fonte) {
-  const prefixo = encodeURIComponent("fab.mil.br/ingresso/arquivos*");
-  return (
-    `https://web.archive.org/cdx/search/cdx?url=${prefixo}` +
-    "&output=text&fl=original&filter=statuscode:200&collapse=urlkey&limit=30000" +
-    `&filter=original:.*${fonte.providerId === "afa" ? "afa" : "cpcar"}.*`
+function urlsDescobertaArquivo() {
+  return ["fab.mil.br/ingresso/arquivos*", "fab.mil.br/ingresso*"].map((pattern) =>
+    `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(pattern)}` +
+    "&output=json&filter=statuscode:200&collapse=urlkey&limit=30000",
   );
 }
 
@@ -331,24 +323,36 @@ async function auditarNovasEdicoes(fonte) {
   if (!fonte.editionPattern || !fonte.knownEditions) return null;
   // Numa fonte lida pelo arquivo, raspar a página da instituição só devolve
   // o 403. A descoberta precisa olhar onde a ingestão olha.
-  const alvo = fonte.viaArquivo ? urlDescobertaArquivo(fonte) : fonte.archiveUrl;
-  const response = await tentarTexto(alvo);
+  const alvos = fonte.viaArquivo ? urlsDescobertaArquivo() : [fonte.archiveUrl];
+  const responses = await Promise.all(alvos.map(async (url) => {
+    if (!discoveryCache.has(url)) discoveryCache.set(url, tentarTexto(url));
+    return discoveryCache.get(url);
+  }));
+  const response = responses.find((item) => !item.ok) ?? {
+    ok: true, status: 200, text: responses.map((item) => item.text).join("\n"),
+  };
   if (!response.ok) {
     return {
       status: response.status,
       novas: [],
       ok: false,
       erro: response.erro ?? "arquivo respondeu " + response.status + "; descoberta não verificável",
+      urls: alvos,
     };
   }
 
-  fonte.editionPattern.lastIndex = 0;
-  const encontrados = [...response.text.matchAll(fonte.editionPattern)]
-    .map((match) => Number((match[0].match(/20\d{2}/) ?? [])[0]))
-    .filter(Number.isInteger);
+  let encontrados;
+  try {
+    encontrados = responses.flatMap((item) => discoverFabEditions(item.text, fonte.providerId));
+    if (!encontrados.length) throw new Error("índice não retornou edições reconhecíveis");
+  } catch (error) {
+    return { status: response.status, novas: [], ok: false, erro: error.message, urls: alvos };
+  }
   const novas = [...new Set(encontrados)].filter((year) => !fonte.knownEditions.includes(year));
-  return { status: response.status, novas, ok: true, erro: null };
+  return { status: response.status, novas, encontradas: [...new Set(encontrados)].sort(), ok: true, erro: null, urls: alvos };
 }
+
+const discoveryCache = new Map();
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -367,6 +371,16 @@ async function main() {
 
   for (const f of fontes) {
     for (const d of f.documentos) {
+      if (f.viaArquivo && !d.informativo) {
+        const audit = await auditArchivedDocument(d);
+        if (!audit.ok) problemas++;
+        resultados.push({ provider: f.providerId, source: f.sourceId, role: d.role,
+          year: d.year, url: d.url, archiveUrl: d.archiveUrl,
+          status: audit.origin.status, ...audit,
+          erro: audit.ok ? null : audit.archive.error,
+        });
+        continue;
+      }
       const r = await checar(d.url);
       const anterior = baseline?.resultados?.find((item) => item.url === d.url);
       const mudou = documentoMudou(anterior, r);
@@ -377,16 +391,11 @@ async function main() {
 
       // Fonte lida pelo arquivo: o que reprova é a cópia sumir, não a
       // instituição recusar o cliente automatizado.
-      let arquivo = null;
-      if (f.viaArquivo) arquivo = await checarArquivo(d.url);
-
       const okEsperado = d.informativo
-        ? true
+        ? r.ok || r.status === 403
         : esperado
           ? r.status === 404
-          : f.viaArquivo
-            ? arquivo.arquivado
-            : r.ok && !mudou;
+          : r.ok && !mudou;
       if (!okEsperado) problemas++;
 
       resultados.push({
@@ -398,14 +407,14 @@ async function main() {
         finalUrl: r.finalUrl ?? null,
         changed: mudou,
         esperado404: esperado,
-        arquivado: arquivo ? arquivo.arquivado : null,
-        arquivadoEm: arquivo?.timestamp ?? null,
-        ok: okEsperado,
+        informational: d.informativo ?? false,
+        originState: d.informativo && r.status === 403 ? "blocked-expected" : undefined,
+        ok: d.informativo && r.status === 403 ? null : okEsperado,
         redirected: r.redirected ?? false,
         contentLength: r.contentLength ?? null,
         lastModified: r.lastModified ?? null,
         etag: r.etag ?? null,
-        erro: arquivo && !arquivo.arquivado ? arquivo.erro : (r.erro ?? null),
+        erro: r.erro ?? null,
       });
     }
 
@@ -438,13 +447,15 @@ async function main() {
         provider: f.providerId,
         source: f.sourceId,
         role: "discovery",
-        url: f.archiveUrl,
+        url: discovery.urls[0],
+        discoveryUrls: discovery.urls,
         status: discovery.status,
         esperado404: false,
         ok: !hasNewEditions && discovery.ok,
         redirected: false,
         changed: false,
         novasEdicoes: discovery.novas,
+        discoveredEditions: discovery.encontradas ?? [],
         contentLength: null,
         lastModified: null,
         etag: null,
@@ -453,11 +464,13 @@ async function main() {
     }
   }
 
+  const report = JSON.stringify({ verificadoEm: new Date().toISOString(), resultados }, null, 2);
+  if (args.output) writeFileSync(args.output, report + "\n");
   if (args.json) {
-    console.log(JSON.stringify({ verificadoEm: new Date().toISOString(), resultados }, null, 2));
+    console.log(report);
   } else {
     for (const r of resultados) {
-      const marca = r.ok ? "ok  " : "FALHA";
+      const marca = r.ok === null ? "INFO " : r.ok ? "ok  " : "FALHA";
       const nota = r.esperado404
         ? " (404 esperado)"
         : r.changed
@@ -469,6 +482,7 @@ async function main() {
               : "";
       console.log(`${marca} ${String(r.status).padStart(3)} ${r.provider}/${r.role}${nota}`);
       console.log(`      ${r.url}`);
+      if (r.archive) console.log(`      origin=${r.origin.state}; archive=${r.archive.state}: ${r.archiveUrl}`);
       if (r.erro) console.log(`      erro: ${r.erro}`);
     }
     console.log(`\n${resultados.length} documento(s), ${problemas} problema(s).`);

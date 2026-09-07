@@ -74,11 +74,11 @@ import time
 import unicodedata
 import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-PARSER_VERSION = "fab-answer-key@2.0.0"
+PARSER_VERSION = "fab-answer-key@2.1.0"
 AGENTE = "Mozilla/5.0 (compatible; ENEMLab-ingest/1.0)"
 CDX = "https://web.archive.org/cdx/search/cdx"
 
@@ -195,7 +195,7 @@ def baixar_pdf(url: str, tentativas: int = 3) -> tuple[bytes, str, str] | None:
     """
     try:
         dados = _abrir(url, 60)
-        if dados.rstrip().endswith(b"%%EOF"):
+        if dados.startswith(b"%PDF-") and dados.rstrip().endswith(b"%%EOF"):
             return dados, "live", url
     except Exception:  # noqa: BLE001 — 403 da verificação de bot é o esperado
         pass
@@ -207,7 +207,7 @@ def baixar_pdf(url: str, tentativas: int = 3) -> tuple[bytes, str, str] | None:
         except Exception:  # noqa: BLE001
             time.sleep(4)
             continue
-        if dados.rstrip().endswith(b"%%EOF"):
+        if dados.startswith(b"%PDF-") and dados.rstrip().endswith(b"%%EOF"):
             return dados, "web-archive", origem
         time.sleep(2)
     return None
@@ -326,8 +326,14 @@ def ler_colunas(texto: str) -> dict[str, dict[int, str]]:
     for linha in plano.split("\n"):
         pares = re.findall(r"(?<!\d)(\d{1,3})\s+(ANULADA|[A-E])(?![A-Z])", linha)
         if len(pares) != len(ordem):
+            if pares:
+                raise ValueError("linha incompleta ou emenda de coluna")
             continue
+        if len({int(numero) for numero, _ in pares}) != 1:
+            raise ValueError("numeração desalinhada: emenda de coluna")
         for (numero, valor), versao in zip(pares, ordem):
+            if int(numero) in colunas[versao]:
+                raise ValueError(f"número duplicado na versão {versao}: {numero}")
             colunas[versao][int(numero)] = valor
     return colunas
 
@@ -392,9 +398,25 @@ def montar(prova: str, ano: int, url: str, dados: bytes, rota: str, origem: str,
     problemas: list[str] = []
 
     texto = texto_do_pdf(dados)
-    colunas = ler_colunas(texto)
+    plano = achatar(texto)
+    if "GABARITO OFICIAL" not in plano or re.search(r"PROVISORIO|PRELIMINAR", plano):
+        return None, ["documento não confirma gabarito final"]
+    identificador = r"CFOAV/CFOINT/CFOINF" if prova == "afa" else r"CPCAR"
+    if not re.search(rf"{identificador}\s+{ano}\b", plano):
+        return None, ["documento não confirma instituição/edição"]
+    try:
+        colunas = ler_colunas(texto)
+    except ValueError as erro:
+        return None, [str(erro)]
     if not colunas:
         return None, ["nenhuma coluna VERSÃO encontrada no documento"]
+    if set(colunas) != {"A", "B", "C"}:
+        return None, ["documento não cobre versões A/B/C"]
+    for versao, valores in colunas.items():
+        if set(valores) != set(range(1, total + 1)):
+            problemas.append(f"versão {versao} não cobre 1..{total} exatamente")
+        if any(valor not in LETRAS | {"ANULADA"} for valor in valores.values()):
+            problemas.append(f"letra inválida na versão {versao}")
 
     canonica = sorted(colunas)[0]
     respostas = colunas[canonica]
@@ -444,7 +466,7 @@ def montar(prova: str, ano: int, url: str, dados: bytes, rota: str, origem: str,
             ]
             if divergencias:
                 problemas.extend(divergencias)
-            elif fronteiras:
+            elif set(fronteiras) == set(materias):
                 conferidas = True
 
     if problemas:
@@ -462,7 +484,7 @@ def montar(prova: str, ano: int, url: str, dados: bytes, rota: str, origem: str,
         "total": total,
         "canonicalVariant": canonica.lower(),
         "variantRelation": "reordered",
-        "revision": "final",
+        "revision": "rectified" if "RETIFICADO" in plano else "final",
         "sequence": sequencia,
         "annulled": anuladas,
         "variants": [
@@ -554,13 +576,18 @@ def executar(prova: str, dry_run: bool, com_caderno: bool, anos: list[int] | Non
         return 1
 
     destino = RAIZ / "src" / "lib" / "providers" / prova / "answer-keys.generated.json"
+    if recusadas:
+        print(f"  {len(recusadas)} edições recusadas: {[a for a, _ in recusadas]}; nada escrito")
+        return 1
     if dry_run:
         print(f"  (dry-run) {len(aceitas)} edições prontas para {destino.name}")
     else:
         destino.parent.mkdir(parents=True, exist_ok=True)
-        destino.write_text(
-            json.dumps(aceitas, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        anteriores = json.loads(destino.read_text(encoding="utf-8")) if destino.exists() else {}
+        anteriores.update(aceitas)
+        temporario = destino.with_suffix(".tmp")
+        temporario.write_text(json.dumps(anteriores, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporario.replace(destino)
         print(f"  escrito: {destino.relative_to(RAIZ)} ({len(aceitas)} edições)")
 
     if recusadas:
@@ -573,15 +600,110 @@ def main() -> int:
     p.add_argument("--provider", choices=sorted(PROVAS), action="append")
     p.add_argument("--year", type=int, action="append")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--verify-manifest", action="store_true")
+    p.add_argument("--evidence-output", type=Path)
+    p.add_argument("--cache-dir", type=Path)
     p.add_argument("--no-booklets", action="store_true",
                    help="não confere as fronteiras de matéria contra o caderno")
     args = p.parse_args()
+
+    if args.verify_manifest:
+        return verificar_manifesto(args.provider or sorted(PROVAS), args.year,
+                                   args.evidence_output, args.cache_dir)
 
     provas = args.provider or sorted(PROVAS)
     codigo = 0
     for prova in provas:
         codigo |= executar(prova, args.dry_run, not args.no_booklets, args.year)
     return codigo
+
+
+def verificar_documento(prova: str, entrada: dict, dados: bytes) -> dict:
+    retrieval = entrada["retrieval"]
+    if not dados.startswith(b"%PDF-") or not dados.rstrip().endswith(b"%%EOF"):
+        raise ValueError("resposta não é PDF íntegro")
+    if hashlib.sha256(dados).hexdigest() != retrieval["sha256"] or len(dados) != retrieval["bytes"]:
+        raise ValueError("checksum/tamanho difere do documento ingerido")
+    nova, problemas = montar(prova, entrada["year"], entrada["answerKeyUrl"], dados,
+                            retrieval["route"], retrieval["retrievedFrom"], None)
+    if problemas or nova is None:
+        raise ValueError("; ".join(problemas))
+    for campo in ("year", "total", "canonicalVariant", "revision", "annulled", "variantAnswers", "subjects"):
+        if entrada[campo] != nova[campo]:
+            raise ValueError(f"documento diverge do dataset: {campo}")
+    if entrada["sequence"].replace("|", " ").split() != nova["sequence"].replace("|", " ").split():
+        raise ValueError("documento diverge do dataset: sequence")
+    return nova
+
+
+def verificar_manifesto(provas: list[str], anos: list[int] | None,
+                       destino: Path | None, cache: Path | None) -> int:
+    from concurrent.futures import ThreadPoolExecutor
+
+    tarefas = []
+    for prova in provas:
+        arquivo = RAIZ / "src/lib/providers" / prova / "answer-keys.generated.json"
+        for entrada in json.loads(arquivo.read_text(encoding="utf-8")).values():
+            if not anos or entrada["year"] in anos:
+                tarefas.append((prova, entrada))
+
+    def conferir(tarefa):
+        prova, entrada = tarefa
+        retrieval = entrada["retrieval"]
+        url = retrieval["retrievedFrom"]
+        evidence = {
+            "provider": prova, "year": entrada["year"],
+            "originalUrl": entrada["answerKeyUrl"], "effectiveSourceUrl": url,
+            "sourceType": "archived-official" if retrieval["route"] == "web-archive" else "official",
+            "fetchedAt": None, "sha256": retrieval["sha256"], "bytes": retrieval["bytes"],
+            "parserVersion": PARSER_VERSION, "revision": entrada["revision"],
+            "validationLevel": "provisional", "validationEvidence": [],
+        }
+        try:
+            if retrieval["route"] == "web-archive":
+                expected = r"https://web\.archive\.org/web/\d{14}id_/" + re.escape(entrada["answerKeyUrl"])
+                if not re.fullmatch(expected, url):
+                    raise ValueError("snapshot não corresponde à URL oficial")
+            elif url != entrada["answerKeyUrl"]:
+                raise ValueError("origem não corresponde à URL oficial")
+            dados = _abrir(url, 90)
+            evidence["fetchedAt"] = datetime.now(timezone.utc).isoformat()
+            nova = verificar_documento(prova, entrada, dados)
+            evidence["datasetSignature"] = assinatura(entrada)
+            evidence["validationLevel"] = "reviewed"
+            evidence["validationEvidence"] = [
+                "PDF completo, SHA-256 e tamanho iguais ao documento ingerido",
+                f"{nova['total']}/{nova['total']} respostas em cada versão A/B/C comparadas ao PDF",
+                "Edição, revisão final, anuladas e ordem das matérias conferidas no texto",
+                "Escopo: gabarito; limites das matérias e permutação A/B/C não comprovados por esta conferência",
+            ]
+            if cache:
+                cache.mkdir(parents=True, exist_ok=True)
+                (cache / f"{prova}-{entrada['year']}.pdf").write_bytes(dados)
+        except ValueError as erro:
+            evidence["validationLevel"] = "blocked"
+            evidence["validationEvidence"] = [str(erro)]
+        except Exception as erro:
+            evidence["validationEvidence"] = [f"Documento não pôde ser conferido nesta execução: {erro}"]
+        print(f"{prova} {entrada['year']}: {evidence['validationLevel']}", flush=True)
+        return f"{prova}-{entrada['year']}", evidence
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        registros = dict(executor.map(conferir, tarefas))
+    if destino:
+        if anos or set(provas) != set(PROVAS):
+            raise ValueError("escrita de evidências exige todas as edições e providers")
+        destino.write_text(json.dumps(registros, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    else:
+        print(json.dumps(registros, ensure_ascii=False, indent=2))
+    return int(any(item["validationLevel"] != "reviewed" for item in registros.values()))
+
+
+def assinatura(entrada: dict) -> str:
+    campos = ("year", "total", "canonicalVariant", "revision", "sequence", "annulled",
+              "variantAnswers", "subjects", "variantRelation", "subjectBoundariesVerified")
+    return json.dumps({campo: entrada[campo] for campo in campos},
+                      sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ const ITA_PARSER = "ita-answer-key@1.0.0";
 const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
 const FUVEST_PARSER = "fuvest-answer-key@1.0.0";
-const FAB_PARSER = "fab-answer-key@1.0.0";
+const FAB_PARSER = "fab-answer-key@2.1.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -224,7 +224,7 @@ export const afaSource: ExamSourceDefinition = {
   rightsStatus: "official-reference",
   status: "active",
   family: "air-force",
-  discovery: "automatic",
+  discovery: "manual",
   years: afaYears(),
   phases: ["first"],
   subjects: ["portuguese", "mathematics", "english", "physics"],
@@ -241,7 +241,7 @@ export const afaSource: ExamSourceDefinition = {
     "começam por Inglês, as demais por Português —, e a divisão em blocos de 16 " +
     "foi conferida contra o caderno de prova em 2023, 2024 e 2025. " +
     "AFA 2026 fica de fora: a FAB a publica, mas nenhuma cópia do gabarito " +
-    "final está acessível para leitura, e ingerir sem ler o documento foi o " +
+    "final foi encontrada na verificação registrada, e ingerir sem ler o documento foi o " +
     "defeito que esta fonte passou a evitar.",
 };
 
@@ -257,7 +257,7 @@ export const epcarSource: ExamSourceDefinition = {
   rightsStatus: "official-reference",
   status: "active",
   family: "air-force",
-  discovery: "automatic",
+  discovery: "manual",
   years: epcarYears(),
   phases: ["first"],
   subjects: ["english", "mathematics", "portuguese"],
@@ -275,8 +275,8 @@ export const epcarSource: ExamSourceDefinition = {
     "por isso ela nunca é assumida. Nenhuma edição teve a divisão em blocos de " +
     "16 confirmada contra o caderno de prova: os cadernos da EPCAR não estão " +
     "acessíveis, e as edições entram com `subjectBoundariesVerified: false`. " +
-    "EPCAR 2026 fica de fora: só o gabarito provisório está publicado, e " +
-    "provisório pode ser retificado (§9).",
+    "EPCAR 2026 fica de fora: esta ingestão não comprovou uma cópia final " +
+    "oficial acessível. Isso não demonstra ausência de publicação.",
 };
 
 /** UFPR pesquisada, mas deliberadamente não executável nesta wave. */

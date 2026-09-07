@@ -57,3 +57,5 @@ __pycache__/
 
 # Storybook
 /storybook-static/
+# Local document verification cache
+.cache/

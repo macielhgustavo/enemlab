@@ -26,6 +26,10 @@ import {
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
+import { fabValidationLevel } from "../providers/fab/evidence";
+import afaRaw from "../providers/afa/answer-keys.generated.json";
+import epcarRaw from "../providers/epcar/answer-keys.generated.json";
+import type { FabAnswerKeyRaw } from "../providers/fab";
 
 /**
  * Nível de validação das provas que já estavam no app.
@@ -139,6 +143,8 @@ export function buildCurrentCatalog(): CatalogIndex {
       const medida = medirEdicao(p.id, ano);
       const contagem = medida?.total ?? null;
       const materias = medida?.subjects ?? {};
+      const fabDataset = p.id === AFA_PROVIDER_ID ? afaRaw : p.id === EPCAR_PROVIDER_ID ? epcarRaw : null;
+      const fabRaw = fabDataset ? (fabDataset as unknown as Record<string, FabAnswerKeyRaw>)[String(ano)] : null;
 
       for (const fase of fasesIngeridas) {
         entradas.push({
@@ -151,7 +157,7 @@ export function buildCurrentCatalog(): CatalogIndex {
           // que a prova não tem questão.
           questionCount: contagem,
           subjects: materias,
-          validation: NIVEL_HERDADO,
+          validation: fabRaw ? fabValidationLevel(p.id, fabRaw) : NIVEL_HERDADO,
           sourceId: fonte.id,
           statementAvailable: fonte.statementMode !== "reference-only",
           importerVersion: fonte.parserVersion,

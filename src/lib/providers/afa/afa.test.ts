@@ -199,7 +199,7 @@ describe("fonte", () => {
     // A FAB responde 403 a cliente automatizado. Declarar `live` faria o
     // audit reportar quebra a cada rodada, e esconderia de onde os dados vêm.
     expect(afaSource.retrievalRoute).toBe("web-archive");
-    expect(afaSource.discovery).toBe("automatic");
+    expect(afaSource.discovery).toBe("manual");
   });
 
   it("os anos da fonte são os que a ingestão validou", () => {
