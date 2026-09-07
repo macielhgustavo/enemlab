@@ -10,11 +10,14 @@ describe("catálogo FAB", () => {
     expect(afa.every((entry) => entry.questionCount === 64)).toBe(true);
     expect(afa.every((entry) => entry.statementAvailable === false)).toBe(true);
     expect(catalog.query({ providerId: "afa", family: "air-force" })).toHaveLength(8);
-    expect(epcar).toHaveLength(3);
+    // Oito, e não três: as outras cinco estavam declaradas como bloqueadas
+    // sem que nenhum documento tivesse sido aberto. Os gabaritos oficiais de
+    // 2018 a 2025 estão publicados e são legíveis.
+    expect(epcar).toHaveLength(8);
     expect(epcar.every((entry) => entry.questionCount === 48)).toBe(true);
     expect(epcar.every((entry) => entry.statementAvailable === false)).toBe(true);
     expect(catalog.countQuestions({ providerIds: ["afa", "epcar"] })).toEqual({
-      known: 656,
+      known: 896,
       unknownEditions: 0,
     });
   });

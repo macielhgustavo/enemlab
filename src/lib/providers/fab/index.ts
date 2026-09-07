@@ -15,6 +15,26 @@ export interface FabVariantRaw {
   examUrl: string | null;
 }
 
+/**
+ * De onde a ingestão leu o documento.
+ *
+ * `answerKeyUrl` e isto são coisas diferentes, e confundi-las foi o defeito
+ * que este bloco existe para impedir. `answerKeyUrl` é a URL oficial da FAB —
+ * o que o aluno cita e abre. `retrievedFrom` é o endereço de onde o
+ * importador de fato baixou os bytes que geraram estas letras.
+ *
+ * Hoje as duas divergem porque o site da FAB responde 403 a qualquer cliente
+ * que não seja navegador interativo, e a leitura vem da cópia datada no
+ * Internet Archive. `route` registra isso em vez de deixar implícito.
+ */
+export interface FabRetrieval {
+  route: "live" | "web-archive";
+  retrievedFrom: string;
+  sha256: string;
+  bytes: number;
+  importedAt: string;
+}
+
 export interface FabAnswerKeyRaw {
   edition: string;
   year: number;
@@ -25,10 +45,33 @@ export interface FabAnswerKeyRaw {
   sequence: string;
   annulled: number[];
   variants: FabVariantRaw[];
+  /**
+   * Gabarito de cada versão, como lido do documento.
+   *
+   * Só a canônica vira questão (`variantsToIngest`). As outras existem para
+   * conferência: numa prova reordenada elas **precisam** divergir, e a
+   * igualdade denuncia parser que leu a mesma coluna duas vezes.
+   */
+  variantAnswers: Record<string, Record<string, string>>;
   answerKeyUrl: string;
   examUrl: string | null;
   archivePage: string;
   subjects: Record<string, [number, number]>;
+  /**
+   * O gabarito da FAB não marca onde cada matéria começa — só lista a ordem
+   * no cabeçalho, e **essa ordem muda de ano para ano**. Registrar a origem
+   * deixa explícito que a divisão é derivada, não transcrita.
+   */
+  subjectsDerivedFrom: "answer-key-header";
+  /**
+   * A divisão em blocos iguais foi confirmada contra o caderno de prova?
+   *
+   * Quando o caderno está disponível, o importador lê onde cada seção começa
+   * e recusa a edição se discordar. Quando não está, a edição entra com
+   * `false` — que é uma afirmação honesta, não uma reprovação.
+   */
+  subjectBoundariesVerified: boolean;
+  retrieval: FabRetrieval;
   parserVersion: string;
 }
 
@@ -125,7 +168,71 @@ export function normalizeFabAnswerKey(raw: FabAnswerKeyRaw): FabAnswerKey {
     throw new Error(`matérias FAB ${raw.edition} não cobrem 1..${raw.total} exatamente`);
   }
 
+  checkVariantAnswers(raw, answers);
+
   return { ...raw, answers, subjects };
+}
+
+/**
+ * Confere os gabaritos das versões contra a sequência canônica.
+ *
+ * Isto existe porque a checagem óbvia — comparar as questões geradas com o
+ * gabarito de onde elas saíram — não prova nada: os dois lados vêm do mesmo
+ * campo. O que um dado inventado dificilmente satisfaz é a relação **entre**
+ * as colunas: numa prova reordenada as versões precisam cobrir as mesmas
+ * questões e discordar na maioria delas.
+ */
+function checkVariantAnswers(raw: FabAnswerKeyRaw, answers: Record<string, string>): void {
+  const errors: string[] = [];
+
+  // Ausência do bloco inteiro é edição de antes do importador que lê o
+  // documento. Recusar com nome, e não estourar em undefined.
+  if (!raw.variantAnswers) {
+    throw new Error(
+      `FAB ${raw.edition}: sem gabarito por versão — reingerir com scripts/ingest-fab.py`,
+    );
+  }
+
+  const canonica = raw.variantAnswers[raw.canonicalVariant];
+  if (!canonica) {
+    throw new Error(`FAB ${raw.edition}: versão canônica sem gabarito lido`);
+  }
+
+  for (const variant of raw.variants) {
+    const lidas = raw.variantAnswers[variant.id];
+    if (!lidas) {
+      errors.push(`versão ${variant.id} declarada sem gabarito lido`);
+      continue;
+    }
+    for (let number = 1; number <= raw.total; number++) {
+      if (lidas[String(number)] === undefined) {
+        errors.push(`versão ${variant.id} não cobre a questão ${number}`);
+        break;
+      }
+    }
+  }
+
+  // A canônica precisa dizer exatamente o que a sequência diz. Divergência
+  // aqui significa que a sequência foi editada sem o documento.
+  for (let number = 1; number <= raw.total; number++) {
+    const naColuna = canonica[String(number)];
+    const naSequencia = raw.annulled.includes(number) ? "X" : answers[String(number)];
+    if (naColuna !== naSequencia) {
+      errors.push(`questão ${number}: sequência diz ${naSequencia}, versão canônica diz ${naColuna}`);
+    }
+  }
+
+  // Prova reordenada com duas versões idênticas é leitura repetida da mesma
+  // coluna — o mesmo defeito que `compareVariantKeys` cobre no catálogo.
+  for (const [id, lidas] of Object.entries(raw.variantAnswers)) {
+    if (id === raw.canonicalVariant) continue;
+    const comuns = Object.keys(canonica).filter((n) => lidas[n] !== undefined);
+    if (comuns.length > 0 && comuns.every((n) => canonica[n] === lidas[n])) {
+      errors.push(`versões ${raw.canonicalVariant} e ${id} têm gabarito idêntico`);
+    }
+  }
+
+  if (errors.length) throw new Error(`gabarito FAB ${raw.edition} inválido: ${errors.join("; ")}`);
 }
 
 export function fabVariants(key: FabAnswerKey): EditionVariants {

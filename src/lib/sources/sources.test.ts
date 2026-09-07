@@ -155,7 +155,22 @@ describe("procedência", () => {
   });
 
   it("aponta a chave final oficial para cada provider FAB", () => {
-    expect(afaImporter.provenanceFor(2026).documentUrl).toContain("afa2026-P1-gabarito-oficial.pdf");
-    expect(epcarImporter.provenanceFor(2025).documentUrl).toContain("PROVA_CPCAR_2025_versao_A.pdf");
+    expect(afaImporter.provenanceFor(2025).documentUrl).toContain("afa2025_gab_oficial.pdf");
+    expect(epcarImporter.provenanceFor(2025).documentUrl).toContain("cpcar2025_gab_oficial.pdf");
+  });
+
+  it("ano sem edição aponta o arquivo da instituição, não uma URL montada", () => {
+    // 2026 é o caso concreto: a AFA aplicou a prova, mas o gabarito final não
+    // está acessível para leitura. A versão anterior declarava uma URL para
+    // ela mesmo assim.
+    expect(afaImporter.provenanceFor(2026).documentUrl).toBe(afaSource.archiveUrl);
+  });
+
+  it("as fontes FAB declaram que a leitura passa pelo arquivo público", () => {
+    // A FAB responde 403 a cliente automatizado, e a ingestão lê a cópia
+    // datada. Sem este campo o audit trataria o 403 como quebra — foi o que
+    // deixou a varredura anterior terminando em falha externa.
+    expect(afaSource.retrievalRoute).toBe("web-archive");
+    expect(epcarSource.retrievalRoute).toBe("web-archive");
   });
 });

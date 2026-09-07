@@ -43,35 +43,48 @@ const FONTES = [
     archiveUrl: "https://api.enem.dev",
     documentos: [{ role: "structured-api", url: "https://api.enem.dev/v1/exams" }],
   },
+  // As duas fontes da FAB são o caso `viaArquivo`: a instituição publica os
+  // documentos mas responde 403 a qualquer cliente automatizado, então a
+  // ingestão lê a cópia datada no Internet Archive. O audit acompanha isso
+  // como é, em vez de reportar quebra a cada rodada — vermelho permanente
+  // que não é culpa nossa ensina a ignorar o vermelho.
   {
     providerId: "afa",
     sourceId: "afa-official-archive",
     archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    viaArquivo: true,
     documentos: [
-      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html" },
+      // Informativa: é a página que um humano abre, não a que a descoberta
+      // lê. Quem descobre edição é a linha `discovery`, contra o índice do
+      // arquivo. Registrada para não sumir do manifesto, sem reprovar.
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html", informativo: true },
       {
         role: "answer-key",
-        url: "https://www.fab.mil.br/ingresso/arquivos/2025/afa/afa2026-P1-gabarito-oficial.pdf",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2024/afa/afa2025_gab_oficial.pdf",
       },
       {
         role: "answer-key",
-        url: "https://www.fab.mil.br/ingresso/arquivos/2021/afa/afa2022_gab_oficial.pdf",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2023/afa2024_gabarito_oficial.pdf",
       },
       {
         role: "answer-key",
         url: "https://www.fab.mil.br/ingresso/arquivos/provas/afa2019_gab_oficial.pdf",
       },
     ],
-    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
-    editionPattern: /afa(?:20\d{2})/gi,
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    // Casa só gabarito **oficial**: `afa2021_aviso_tacf` e
+    // `afa2024_resultado_inspsau_gabrielle` casam com "gab" sem ser gabarito,
+    // e provisório nunca termina em "oficial".
+    editionPattern: /afa(20\d{2})[-_](?:[a-z0-9]+[-_])?gab(?:arito)?[-_]oficial/gi,
     requiredRoles: ["archive-page", "answer-key"],
   },
   {
     providerId: "epcar",
     sourceId: "epcar-official-archive",
     archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    viaArquivo: true,
     documentos: [
-      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html" },
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html", informativo: true },
       {
         role: "answer-key",
         url: "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/cpcar2025_gab_oficial.pdf",
@@ -85,8 +98,10 @@ const FONTES = [
         url: "https://www.fab.mil.br/ingresso/arquivos/provas/cpcar2020_gab_oficial.pdf",
       },
     ],
-    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026],
-    editionPattern: /cpcar(?:20\d{2})/gi,
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    // 2023 é `cpcar2023_oficial.pdf`, sem "gab" no nome — por isso o grupo
+    // do gabarito é opcional aqui.
+    editionPattern: /cpcar[-_]?(20\d{2})[-_](?:[a-z0-9]+[-_])?(?:gab(?:arito)?[-_])?oficial/gi,
     requiredRoles: ["archive-page", "answer-key"],
   },
   {
@@ -233,6 +248,32 @@ async function tentar(url) {
   }
 }
 
+/**
+ * Existe cópia datada deste documento no arquivo público?
+ *
+ * Para as fontes `viaArquivo`, é **esta** a pergunta que importa: a URL viva
+ * responde 403 por desenho, e o que a ingestão de fato lê é a cópia. Um 403
+ * na FAB é rotina; a cópia sumir é que quebraria a reimportação.
+ */
+async function checarArquivo(url) {
+  const consulta = `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(consulta, { signal: ctrl.signal, redirect: "follow" });
+    if (!res.ok) return { arquivado: false, erro: `arquivo respondeu ${res.status}` };
+    const dados = await res.json();
+    const snap = dados?.archived_snapshots?.closest;
+    return snap?.available
+      ? { arquivado: true, timestamp: snap.timestamp ?? null, erro: null }
+      : { arquivado: false, erro: "sem cópia arquivada" };
+  } catch (e) {
+    return { arquivado: false, erro: e.name === "AbortError" ? "timeout" : e.message };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 async function tentarTexto(url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -276,9 +317,22 @@ function documentoMudou(previous, current) {
   );
 }
 
+/** Índice do arquivo público — a mesma varredura que `ingest-fab.py` usa. */
+function urlDescobertaArquivo(fonte) {
+  const prefixo = encodeURIComponent("fab.mil.br/ingresso/arquivos*");
+  return (
+    `https://web.archive.org/cdx/search/cdx?url=${prefixo}` +
+    "&output=text&fl=original&filter=statuscode:200&collapse=urlkey&limit=30000" +
+    `&filter=original:.*${fonte.providerId === "afa" ? "afa" : "cpcar"}.*`
+  );
+}
+
 async function auditarNovasEdicoes(fonte) {
   if (!fonte.editionPattern || !fonte.knownEditions) return null;
-  const response = await tentarTexto(fonte.archiveUrl);
+  // Numa fonte lida pelo arquivo, raspar a página da instituição só devolve
+  // o 403. A descoberta precisa olhar onde a ingestão olha.
+  const alvo = fonte.viaArquivo ? urlDescobertaArquivo(fonte) : fonte.archiveUrl;
+  const response = await tentarTexto(alvo);
   if (!response.ok) {
     return {
       status: response.status,
@@ -320,7 +374,19 @@ async function main() {
       // que assusta é ele **deixar** de dar 404 — significa que a banca
       // publicou algo que ainda não foi ingerido.
       const esperado = d.esperado404 === true;
-      const okEsperado = esperado ? r.status === 404 : r.ok && !mudou;
+
+      // Fonte lida pelo arquivo: o que reprova é a cópia sumir, não a
+      // instituição recusar o cliente automatizado.
+      let arquivo = null;
+      if (f.viaArquivo) arquivo = await checarArquivo(d.url);
+
+      const okEsperado = d.informativo
+        ? true
+        : esperado
+          ? r.status === 404
+          : f.viaArquivo
+            ? arquivo.arquivado
+            : r.ok && !mudou;
       if (!okEsperado) problemas++;
 
       resultados.push({
@@ -332,12 +398,14 @@ async function main() {
         finalUrl: r.finalUrl ?? null,
         changed: mudou,
         esperado404: esperado,
+        arquivado: arquivo ? arquivo.arquivado : null,
+        arquivadoEm: arquivo?.timestamp ?? null,
         ok: okEsperado,
         redirected: r.redirected ?? false,
         contentLength: r.contentLength ?? null,
         lastModified: r.lastModified ?? null,
         etag: r.etag ?? null,
-        erro: r.erro ?? null,
+        erro: arquivo && !arquivo.arquivado ? arquivo.erro : (r.erro ?? null),
       });
     }
 

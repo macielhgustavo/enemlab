@@ -232,11 +232,17 @@ export const afaSource: ExamSourceDefinition = {
   expectedAnswersAvailable: false,
   parserVersion: FAB_PARSER,
   lastVerifiedAt: "2026-09-07",
+  retrievalRoute: "web-archive",
   confidence: "media",
   notes:
-    "A FAB publica AFA 2018–2026. Entram somente 2019–2026, com gabarito final " +
-    "completo da versão A; 2018 permanece bloqueada por extração incompleta. " +
-    "A prova tem 64 questões, versões A/B/C e anuladas preservadas.",
+    "Entram 2018–2025: oito edições, cada uma lida do gabarito oficial em PDF, " +
+    "com 64 questões, versões A/B/C e anuladas preservadas. A ordem das matérias " +
+    "sai do cabeçalho de cada documento e muda de ano para ano — 2021–2023 " +
+    "começam por Inglês, as demais por Português —, e a divisão em blocos de 16 " +
+    "foi conferida contra o caderno de prova em 2023, 2024 e 2025. " +
+    "AFA 2026 fica de fora: a FAB a publica, mas nenhuma cópia do gabarito " +
+    "final está acessível para leitura, e ingerir sem ler o documento foi o " +
+    "defeito que esta fonte passou a evitar.",
 };
 
 /** EPCAR: arquivo oficial da FAB, em modo referência. */
@@ -259,11 +265,18 @@ export const epcarSource: ExamSourceDefinition = {
   expectedAnswersAvailable: false,
   parserVersion: FAB_PARSER,
   lastVerifiedAt: "2026-09-07",
+  retrievalRoute: "web-archive",
   confidence: "media",
   notes:
-    "A FAB publica EPCAR 2018–2026. Entram somente 2020, 2023 e 2025, " +
-    "com gabarito final completo da versão A; as demais ficam bloqueadas até " +
-    "a associação prova↔gabarito final ser comprovada sem inferência.",
+    "Entram 2018–2025: oito edições, cada uma lida do gabarito oficial em PDF, " +
+    "com 48 questões, versões A/B/C e anuladas preservadas. A ordem das matérias " +
+    "sai do cabeçalho de cada documento e não segue regra — 2021 aplica " +
+    "Inglês/Português/Matemática, 2024 volta a Português/Matemática/Inglês —, " +
+    "por isso ela nunca é assumida. Nenhuma edição teve a divisão em blocos de " +
+    "16 confirmada contra o caderno de prova: os cadernos da EPCAR não estão " +
+    "acessíveis, e as edições entram com `subjectBoundariesVerified: false`. " +
+    "EPCAR 2026 fica de fora: só o gabarito provisório está publicado, e " +
+    "provisório pode ser retificado (§9).",
 };
 
 /** UFPR pesquisada, mas deliberadamente não executável nesta wave. */

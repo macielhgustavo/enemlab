@@ -102,6 +102,24 @@ export interface ExamSourceDefinition {
 
   /** Última varredura de saúde da fonte (`npm run sources:audit`). */
   lastAuditedAt?: string;
+
+  /**
+   * Por onde a ingestão lê os documentos.
+   *
+   * `live` é o normal: o importador baixa da própria URL oficial.
+   *
+   * `web-archive` significa que a instituição publica os documentos mas não
+   * os entrega a um cliente automatizado — a FAB responde 403 a tudo que não
+   * seja navegador interativo —, e a leitura vem da cópia datada no Internet
+   * Archive. A URL oficial continua sendo a citada ao aluno; muda só de onde
+   * os bytes foram lidos, e cada edição registra isso em `retrieval`.
+   *
+   * O campo existe por dois motivos práticos. Primeiro, honestidade: sem ele
+   * a fonte parece dizer que lê da instituição. Segundo, o audit
+   * (`npm run sources:audit`) precisa saber que 403 na URL viva é o estado
+   * esperado destas fontes, e não uma quebra a reportar.
+   */
+  retrievalRoute?: "live" | "web-archive";
 }
 
 /**
