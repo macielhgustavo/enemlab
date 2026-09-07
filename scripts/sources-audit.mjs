@@ -103,6 +103,22 @@ const FONTES = [
       },
     ],
   },
+  {
+    providerId: "fuvest",
+    sourceId: "fuvest-archive",
+    archiveUrl: "https://www.fuvest.br/acervo-vestibular",
+    documentos: [
+      { role: "archive-page", url: "https://www.fuvest.br/acervo-vestibular" },
+      {
+        role: "answer-key",
+        url: "https://www.fuvest.br/wp-content/uploads/fuvest2025_gabarito_primeira_fase.pdf",
+      },
+      {
+        role: "objective-exam",
+        url: "https://www.fuvest.br/wp-content/uploads/fuvest2025_primeira_fase_prova_V1.pdf",
+      },
+    ],
+  },
 ];
 
 /**

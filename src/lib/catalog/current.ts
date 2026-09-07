@@ -10,7 +10,16 @@
 // ter um índice.
 
 import { CatalogIndex, type CatalogEntry } from "./index";
-import { listProviders, itaAnswerKey, ITA_PROVIDER_ID, imeAnswerKey, imeEditionOfYear, IME_PROVIDER_ID } from "../providers";
+import {
+  listProviders,
+  itaAnswerKey,
+  ITA_PROVIDER_ID,
+  imeAnswerKey,
+  imeEditionOfYear,
+  IME_PROVIDER_ID,
+  fuvestAnswerKey,
+  FUVEST_PROVIDER_ID,
+} from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
 
@@ -66,6 +75,14 @@ function medirEdicao(
     };
   }
 
+  if (providerId === FUVEST_PROVIDER_ID) {
+    const k = fuvestAnswerKey(ano);
+    if (!k) return null;
+    // A 1ª fase é de conhecimentos gerais: o gabarito não separa por
+    // matéria, e inventar uma divisão seria classificação falsa.
+    return { total: k.total, subjects: { "conhecimentos-gerais": k.total } };
+  }
+
   return null;
 }
 
@@ -80,8 +97,10 @@ export function buildCurrentCatalog(): CatalogIndex {
     // Só entram as fases cujas questões o app realmente tem. Fase publicada
     // não é fase ingerida: o ITA e o IME publicam discursiva, e listá-la com
     // a contagem da objetiva inflaria o catálogo com questões inexistentes.
+    const soPrimeiraFase =
+      p.id === ITA_PROVIDER_ID || p.id === IME_PROVIDER_ID || p.id === FUVEST_PROVIDER_ID;
     const fasesIngeridas = p.metadata.phases.filter((f) =>
-      p.id === ITA_PROVIDER_ID || p.id === IME_PROVIDER_ID ? f === "first" : true,
+      soPrimeiraFase ? f === "first" : true,
     );
 
     for (const ano of p.metadata.years) {

@@ -230,16 +230,42 @@ equação diferente da que caiu na prova.
 **Meça antes de decidir**, e olhe o texto extraído — não só a contagem de
 caracteres.
 
-## Estado (v8.5.1)
+## Variantes de prova
+
+Uma banca pode aplicar a mesma prova em versões com as questões em ordem
+diferente. Ignorar isso produz dois estragos ao mesmo tempo: a mesma questão
+vira N no banco, e **o gabarito de uma versão corrige outra**.
+
+A relação é declarada, nunca inferida:
+
+| Relação | Ingere | Por quê |
+|---|---|---|
+| `reordered` | só a canônica | as questões são as mesmas |
+| `distinct` | todas | é conteúdo diferente |
+| `unknown` | só uma | duplicar o banco é pior que deixar conteúdo de fora |
+
+A variante só entra na chave da questão quando é conteúdo diferente.
+
+**Leia os nomes das versões do documento.** A FUVEST usou V1..V4 em 2025 e
+V, K, Q, X, Z em 2024 — parser com a lista fixa recusaria o segundo ano, ou
+pior, atribuiria a resposta à versão errada.
+
+## Estado (v8.5.2)
 
 | Prova | Edições | Questões | Nível | Enunciado | Fonte |
 |---|---|---|---|---|---|
 | ITA | 8 (1ª fase) | 456 | `reviewed` | referência | `ita-official-archive` |
 | IME | 8 (objetiva) | 320 | `reviewed` | referência | `ime-cfg-archive` |
+| FUVEST | 4 (1ª fase) | 360 | `reviewed` | referência | `fuvest-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
 
-O IME tem 40 questões por edição em todas as oito — 15 matemática, 15 física,
-10 química. Conferido à mão em 2025-2026, 2021-2022 e 2018-2019.
+O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
+química. Conferido à mão em 2025-2026, 2021-2022 e 2018-2019.
+
+A FUVEST tem 90 por edição. **Das 27 edições do acervo, 23 são recusadas**:
+as antigas usam layout diferente ou não publicam o gabarito da 1ª fase como
+documento próprio. Recusar é o comportamento correto — meia leitura corrige
+errado. As quatro aceitas são 2025, 2024, 2021 e 2020.
 
 ### Fontes registradas e não ingeridas
 
