@@ -69,6 +69,7 @@
      conteúdo de trás compete mais com o de cima. */
   --overlay-veil: rgba(2, 6, 8, 0.66);
   --text-on-accent: #04120d;
+  --action-hover: var(--brand-strong);
   --control-hover: var(--surface-3);
   --control-pressed: var(--panel-2);
 
@@ -113,6 +114,7 @@
 
   --overlay-veil: rgba(18, 32, 28, 0.38);
   --text-on-accent: #ffffff;
+  --action-hover: var(--brand-dim);
 }
 
 /* Quem pediu menos movimento recebe menos movimento — inclusive

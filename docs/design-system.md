@@ -145,9 +145,9 @@ a pessoa errou tudo. Passe `null` quando não há amostra.
 
 | Uso | Duração |
 |---|---|
-| Microinteração (hover, foco) | `--motion-fast` (140ms) |
-| Transição padrão | `--motion-normal` (220ms) |
-| Modal, drawer | `--motion-slow` (320ms) |
+| Microinteração (hover, foco) | `--motion-fast` (120ms) |
+| Transição padrão | `--motion-normal` (160ms) |
+| Modal, drawer | `--motion-slow` (200ms) |
 
 Nada anima só porque dá. Animação serve para explicar de onde uma coisa veio
 ou para onde foi.

@@ -47,6 +47,9 @@ jobs:
       - name: E2E (fumaça + acessibilidade)
         run: npm run test:e2e:ci
 
+      - name: Composição responsiva e teclado (cinco larguras)
+        run: npx playwright test e2e/refinement.spec.ts --project desktop
+
       - name: Guardar relatório do Playwright
         if: failure()
         uses: actions/upload-artifact@v4

@@ -296,7 +296,7 @@ textarea:disabled,
   height: 16px;
 }
 .el-btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: color-mix(in srgb, var(--accent-primary) 90%, var(--text-on-accent));
+  background: var(--action-hover);
 }
 .el-chip__check {
   visibility: hidden;
