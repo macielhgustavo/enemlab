@@ -5,6 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/cn";
+import { cva } from "class-variance-authority";
+
+const chipVariants = cva("el-chip", {
+  variants: { active: { true: "el-chip--on", false: "" } },
+});
 
 /**
  * Barra de filtros.
@@ -22,6 +27,7 @@ export function FilterChip({
   active,
   children,
   count,
+  className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   active?: boolean;
@@ -33,10 +39,10 @@ export function FilterChip({
       // `aria-pressed` em vez de só uma classe: sem isso, quem não vê a tela
       // não sabe qual filtro está ligado.
       aria-pressed={active}
-      className={cn("el-chip", active && "el-chip--on")}
+      className={cn(chipVariants({ active }), className)}
       {...props}
     >
-      {active && <Check size={13} aria-hidden="true" />}
+      <Check size={13} aria-hidden="true" className="el-chip__check" />
       {children}
       {count !== undefined && <span className="el-chip__count">{count}</span>}
     </button>
@@ -117,7 +123,10 @@ export function FilterBar({
  */
 export type QuestionStatus = "unseen" | "wrong" | "correct" | "srs";
 
-const STATUS_BADGE: Record<QuestionStatus, { label: string; variant: "neutral" | "danger" | "success" | "info" }> = {
+const STATUS_BADGE: Record<
+  QuestionStatus,
+  { label: string; variant: "neutral" | "danger" | "success" | "info" }
+> = {
   unseen: { label: "Nunca vi", variant: "neutral" },
   wrong: { label: "Já errei", variant: "danger" },
   correct: { label: "Já acertei", variant: "success" },

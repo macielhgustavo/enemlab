@@ -73,7 +73,12 @@ export default function DataPage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <span className="muted">Carregando…</span>
+      </Card>
+    );
 
   const raw = JSON.stringify(db);
   const sessions = rebuildSessions(db);
@@ -135,8 +140,8 @@ export default function DataPage() {
         <Card>
           <h2>Backup e sincronização manual</h2>
           <p className="muted">
-            Exporte um pacote completo ou faça merge com outro navegador sem apagar o
-            histórico atual.
+            Exporte um pacote completo ou faça merge com outro navegador sem apagar o histórico
+            atual.
           </p>
           <div className="row">
             <button className="btn" onClick={exportDB}>
@@ -186,9 +191,7 @@ export default function DataPage() {
             <div className="healthItem">
               <small>Último backup</small>
               <b style={{ fontSize: 13 }}>
-                {db.lastBackupAt
-                  ? new Date(db.lastBackupAt).toLocaleString("pt-BR")
-                  : "nunca"}
+                {db.lastBackupAt ? new Date(db.lastBackupAt).toLocaleString("pt-BR") : "nunca"}
               </b>
             </div>
             <div className="healthItem">
@@ -210,10 +213,16 @@ export default function DataPage() {
       <Card style={{ marginTop: 14 }}>
         <h2 className="heading-md">Catálogo por prova</h2>
         <p className="body-sm" style={{ marginTop: 4 }}>
-          Edições registradas, nível de validação e origem do enunciado. Contagem
-          desconhecida aparece como travessão — não como zero.
+          Edições registradas, nível de validação e origem do enunciado. Contagem desconhecida
+          aparece como travessão — não como zero.
         </p>
-        <div className="tablewrap" style={{ marginTop: 12 }}>
+        <div
+          className="tablewrap"
+          role="region"
+          aria-label="Catálogo de provas, role horizontalmente para mais colunas"
+          tabIndex={0}
+          style={{ marginTop: 12 }}
+        >
           <table>
             <thead>
               <tr>
@@ -244,7 +253,10 @@ export default function DataPage() {
                       <>
                         {s.questions}
                         {s.unknownCount > 0 && (
-                          <span className="muted" title={`${s.unknownCount} edição(ões) sem contagem`}>
+                          <span
+                            className="muted"
+                            title={`${s.unknownCount} edição(ões) sem contagem`}
+                          >
                             {" "}
                             +{s.unknownCount}?
                           </span>
@@ -270,21 +282,32 @@ export default function DataPage() {
           <div>
             <h2>Qualidade do banco de questões</h2>
             <div className="muted">
-              Audita estrutura, gabarito, alternativas, mídia, codificação, fórmulas e confiança da classificação.
+              Audita estrutura, gabarito, alternativas, mídia, codificação, fórmulas e confiança
+              da classificação.
             </div>
           </div>
           <div className="row" style={{ alignItems: "flex-end" }}>
             <div>
-              <label>Ano</label>
-              <select value={auditYear} onChange={(e) => setAuditYear(Number(e.target.value))}>
+              <label htmlFor="audit-year">Ano</label>
+              <select
+                id="audit-year"
+                value={auditYear}
+                onChange={(e) => setAuditYear(Number(e.target.value))}
+              >
                 {examYears().map((year) => (
-                  <option value={year} key={year}>{year}</option>
+                  <option value={year} key={year}>
+                    {year}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label>Idioma</label>
-              <select value={auditLang} onChange={(e) => setAuditLang(e.target.value as Language)}>
+              <label htmlFor="audit-language">Idioma</label>
+              <select
+                id="audit-language"
+                value={auditLang}
+                onChange={(e) => setAuditLang(e.target.value as Language)}
+              >
                 <option value="ingles">Inglês</option>
                 <option value="espanhol">Espanhol</option>
               </select>
@@ -297,10 +320,15 @@ export default function DataPage() {
 
         {!bankAudit && !auditError && (
           <div className="notice" style={{ marginTop: 14 }}>
-            A auditoria não altera questões. Treinos livres já evitam itens bloqueados; provas reais preservam a estrutura oficial e apenas sinalizam problemas.
+            A auditoria não altera questões. Treinos livres já evitam itens bloqueados; provas
+            reais preservam a estrutura oficial e apenas sinalizam problemas.
           </div>
         )}
-        {auditError && <div className="notice" style={{ marginTop: 14 }}>{auditError}</div>}
+        {auditError && (
+          <div className="notice" style={{ marginTop: 14 }}>
+            {auditError}
+          </div>
+        )}
 
         {bankAudit && (
           <>
@@ -333,12 +361,16 @@ export default function DataPage() {
               <div className="healthItem">
                 <small>Classificação</small>
                 <b>{bankAudit.lowClassification}</b>
-                <div className="muted">com baixa confiança • {bankAudit.unclassified} sem classe</div>
+                <div className="muted">
+                  com baixa confiança • {bankAudit.unclassified} sem classe
+                </div>
               </div>
             </div>
 
             <div className="testGrid" style={{ marginTop: 14 }}>
-              {bankAudit.issueCounts.length === 0 && <div className="muted">Nenhum problema detectado.</div>}
+              {bankAudit.issueCounts.length === 0 && (
+                <div className="muted">Nenhum problema detectado.</div>
+              )}
               {bankAudit.issueCounts.slice(0, 8).map((item) => (
                 <div className="testRow" key={item.code}>
                   <span
@@ -346,7 +378,9 @@ export default function DataPage() {
                   />
                   <div>
                     <b>{item.label}</b>
-                    <div className="muted" style={{ fontSize: 11 }}>{item.code}</div>
+                    <div className="muted" style={{ fontSize: 11 }}>
+                      {item.code}
+                    </div>
                   </div>
                   <span className="badge2">{item.count}</span>
                 </div>
@@ -368,7 +402,9 @@ export default function DataPage() {
             </button>
           </div>
           <div className="testGrid" style={{ marginTop: 12 }}>
-            {!selfTests && <div className="muted">Rode o autoteste para ver os resultados.</div>}
+            {!selfTests && (
+              <div className="muted">Rode o autoteste para ver os resultados.</div>
+            )}
             {selfTests?.map((t) => (
               <div className="testRow" key={t.name}>
                 <span className={`testDot ${t.ok ? "" : t.warn ? "warn" : "bad"}`} />
@@ -420,7 +456,10 @@ export default function DataPage() {
       <Card style={{ marginTop: 14 }}>
         <h2>Privacidade e armazenamento</h2>
         <p className="muted">
-          O ENEM Lab mantém uma cópia completa do histórico, SRS e notas neste navegador. Se você entrar em uma conta e ativar a sincronização, uma cópia também é salva na nuvem para continuidade entre dispositivos, protegida por autenticação e políticas RLS da sua conta. Backups JSON e snapshots locais continuam disponíveis.
+          O ENEM Lab mantém uma cópia completa do histórico, SRS e notas neste navegador. Se
+          você entrar em uma conta e ativar a sincronização, uma cópia também é salva na nuvem
+          para continuidade entre dispositivos, protegida por autenticação e políticas RLS da
+          sua conta. Backups JSON e snapshots locais continuam disponíveis.
         </p>
         <div className="row">
           <button

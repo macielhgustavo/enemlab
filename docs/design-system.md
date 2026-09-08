@@ -1,5 +1,9 @@
 # ENEM Lab — Design System v1
 
+> Acabamento vigente: [v8.7 — Refining UI Edition](ui-refinement-v8.7.md).
+> As notas históricas abaixo documentam a migração; a v8.7 remove glow de
+> controles, contagem decorativa e movimento de entrada das páginas.
+
 Este documento existe para a próxima tela não ser inventada do zero.
 
 ## 1. Filosofia
@@ -141,9 +145,9 @@ a pessoa errou tudo. Passe `null` quando não há amostra.
 
 | Uso | Duração |
 |---|---|
-| Microinteração (hover, foco) | `--motion-fast` (140ms) |
-| Transição padrão | `--motion-normal` (220ms) |
-| Modal, drawer | `--motion-slow` (320ms) |
+| Microinteração (hover, foco) | `--motion-fast` (120ms) |
+| Transição padrão | `--motion-normal` (160ms) |
+| Modal, drawer | `--motion-slow` (200ms) |
 
 Nada anima só porque dá. Animação serve para explicar de onde uma coisa veio
 ou para onde foi.
