@@ -38,10 +38,10 @@ function slotsFor(n: number) {
 /** Estado por faixa de acerto — a mesma leitura da legenda. */
 function tone(pct: number | null): { fill: string; label: string } {
   if (pct === null) return { fill: "var(--line-strong)", label: "sem amostra" };
-  if (pct >= 75) return { fill: "var(--brand)", label: "forte" };
-  if (pct >= 65) return { fill: "var(--info)", label: "em evolução" };
-  if (pct >= 50) return { fill: "var(--warn)", label: "atenção" };
-  return { fill: "var(--bad)", label: "prioridade" };
+  if (pct >= 75) return { fill: "var(--success)", label: "forte" };
+  if (pct >= 65) return { fill: "var(--accent-info)", label: "em evolução" };
+  if (pct >= 50) return { fill: "var(--warning)", label: "atenção" };
+  return { fill: "var(--danger)", label: "prioridade" };
 }
 
 export default function DomainMap({ areas, hub }: { areas: AreaPoint[]; hub: string }) {
@@ -79,10 +79,9 @@ export default function DomainMap({ areas, hub }: { areas: AreaPoint[]; hub: str
           const t = tone(a.pct);
           const up = s.dy < 0;
           return (
-            <g key={a.id} className="in" style={{ animationDelay: `${120 + i * 90}ms` }}>
-              <circle cx={s.x} cy={s.y} r={19} fill={t.fill} fillOpacity={0.18} />
-              <circle cx={s.x} cy={s.y} r={12} fill={t.fill} />
-              <circle cx={s.x - 3.5} cy={s.y - 4} r={3.6} fill="#fff" fillOpacity={0.42} />
+            <g key={a.id}>
+              <title>{`${a.label}: ${t.label}, ${a.n} questões`}</title>
+              <circle cx={s.x} cy={s.y} r={8} fill={t.fill} />
               <text className="anm" x={s.x} y={s.y + (up ? -32 : 34)} textAnchor={s.anchor}>
                 {a.label}
               </text>
@@ -91,7 +90,7 @@ export default function DomainMap({ areas, hub }: { areas: AreaPoint[]; hub: str
                 x={s.x}
                 y={s.y + (up ? -14 : 52)}
                 textAnchor={s.anchor}
-                fill={t.fill}
+                fill="var(--text-primary)"
               >
                 {a.pct === null ? "—" : `${a.pct}%`}
               </text>
@@ -102,16 +101,16 @@ export default function DomainMap({ areas, hub }: { areas: AreaPoint[]; hub: str
 
       <div className="dlegend">
         <span>
-          <i style={{ background: "var(--brand)" }} /> Forte
+          <i style={{ background: "var(--success)" }} /> Forte
         </span>
         <span>
-          <i style={{ background: "var(--info)" }} /> Em evolução
+          <i style={{ background: "var(--accent-info)" }} /> Em evolução
         </span>
         <span>
-          <i style={{ background: "var(--warn)" }} /> Atenção
+          <i style={{ background: "var(--warning)" }} /> Atenção
         </span>
         <span>
-          <i style={{ background: "var(--bad)" }} /> Prioridade
+          <i style={{ background: "var(--danger)" }} /> Prioridade
         </span>
       </div>
     </>

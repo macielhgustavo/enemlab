@@ -58,4 +58,7 @@ __pycache__/
 # Storybook
 /storybook-static/
 # Local document verification cache
-.cache/
+/ui-review/
+/ui-review-results.json
+/test-results-refinement/
+/.cache/

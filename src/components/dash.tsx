@@ -25,6 +25,7 @@ function useTween(from: number, to: number, seconds: number): number {
   const [progresso, setProgresso] = useState<number | null>(null);
 
   useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const ms = Math.max(0, seconds * 1000);
     let raf = 0;
     let t0 = 0;
@@ -73,12 +74,19 @@ export function Ring({
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const pctv = value === null ? 0 : Math.max(0, Math.min(100, value));
-  const offset = useTween(circ, circ - (circ * pctv) / 100, 1);
+  const offset = circ - (circ * pctv) / 100;
 
   return (
     <div className="ring-wrap" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--line)"
+          strokeWidth={stroke}
+        />
         <circle
           cx={size / 2}
           cy={size / 2}

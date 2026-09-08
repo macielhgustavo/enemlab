@@ -5,10 +5,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
 /**
- * Botão do ENEM Lab.
+ * Botão do produto.
  *
- * Glow é reservado para a ação principal — se todo botão brilha, nenhum
- * chama atenção. `secondary`, `outline` e `ghost` usam borda e superfície.
+ * Cor sólida destaca a ação principal; `secondary`, `outline` e `ghost`
+ * compartilham estados discretos de borda e superfície.
  */
 const buttonVariants = cva("el-btn", {
   variants: {
@@ -30,8 +30,7 @@ const buttonVariants = cva("el-btn", {
 });
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   /** Renderiza no elemento filho (ex.: um <Link>) em vez de num <button>. */
   asChild?: boolean;
   /** Bloqueia o clique e anuncia a espera a leitores de tela. */
@@ -39,7 +38,7 @@ export interface ButtonProps
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant, size, asChild, loading, disabled, children, ...props },
+  { className, variant, size, asChild, loading, disabled, children, onClickCapture, ...props },
   ref,
 ) {
   const Comp = asChild ? Slot.Root : "button";
@@ -53,6 +52,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       aria-disabled={asChild && (disabled || loading) ? true : undefined}
       data-loading={loading ? "" : undefined}
       {...props}
+      onClickCapture={(event) => {
+        if (disabled || loading) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        onClickCapture?.(event);
+      }}
     >
       {children}
     </Comp>

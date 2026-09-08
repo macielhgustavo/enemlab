@@ -103,7 +103,7 @@ export default function SrsPage() {
         </div>
       )}
 
-      <div className="el-grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(min(180px,100%),1fr))", gap: "var(--density-gap)" }}>
+      <div className="el-metrics-strip">
         <MetricCard label="Vencidas" value={due.length} tone={due.length > 0 ? "warning" : "default"} />
         <MetricCard label="Próx. 3 dias" value={soon.length} />
         <MetricCard label="No sistema" value={all.length} />

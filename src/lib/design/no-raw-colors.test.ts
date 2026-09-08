@@ -24,6 +24,7 @@ const ALVOS = [
   "styles/components.css",
   "styles/enem-lab.css",
   "styles/typography.css",
+  "styles/refinement.css",
 ];
 
 // `tokens.css` fica fora de propósito: é o único lugar onde um valor de cor

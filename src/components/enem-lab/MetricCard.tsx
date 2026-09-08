@@ -1,7 +1,22 @@
 import * as React from "react";
 import { Card } from "@/components/ui/card";
-import { AnimatedNumber } from "@/components/dash";
+import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
+
+const metricVariants = cva("el-metric", {
+  variants: { presentation: { surface: "", plain: "el-metric--plain" } },
+  defaultVariants: { presentation: "surface" },
+});
+const iconVariants = cva("el-metric__icon", {
+  variants: {
+    tone: {
+      default: "",
+      accent: "el-metric__icon--accent",
+      warning: "el-metric__icon--warning",
+      danger: "el-metric__icon--danger",
+    },
+  },
+});
 
 /**
  * Indicador numérico.
@@ -19,6 +34,7 @@ export function MetricCard({
   icon,
   aside,
   tone = "default",
+  presentation = "surface",
   className,
 }: {
   label: string;
@@ -31,16 +47,17 @@ export function MetricCard({
   /** Faixa à direita do número: sparkline, pontinhos de sequência. */
   aside?: React.ReactNode;
   tone?: "default" | "accent" | "warning" | "danger";
+  presentation?: "surface" | "plain";
   className?: string;
 }) {
   const semDado = value === null;
 
   return (
-    <Card variant="raised" padding="sm" className={cn("el-metric", className)}>
+    <Card padding="sm" className={cn(metricVariants({ presentation }), className)}>
       <div className="el-metric__top">
         <span className="label">{label}</span>
         {icon && (
-          <span className={cn("el-metric__icon", `el-metric__icon--${tone}`)} aria-hidden="true">
+          <span className={iconVariants({ tone })} aria-hidden="true">
             {icon}
           </span>
         )}
@@ -54,7 +71,7 @@ export function MetricCard({
             </span>
           ) : (
             <>
-              <AnimatedNumber value={value} format={format} />
+              <span>{format ? format(value) : value.toLocaleString("pt-BR")}</span>
               {unit && <span className="el-metric__unit">{unit}</span>}
             </>
           )}

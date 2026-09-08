@@ -17,7 +17,10 @@ import {
   Search,
   UserRound,
   Cloud,
+  Menu,
 } from "lucide-react";
+import { Brand } from "@/components/Brand";
+import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
@@ -50,15 +53,25 @@ const NAV = [
  * visual de onze itens para três blocos.
  */
 const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
-  { titulo: "Estudar", itens: NAV.filter((n) => ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href)) },
-  { titulo: "Acompanhar", itens: NAV.filter((n) => ["/mastery", "/srs", "/history", "/review"].includes(n.href)) },
+  {
+    titulo: "Estudar",
+    itens: NAV.filter((n) =>
+      ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href),
+    ),
+  },
+  {
+    titulo: "Acompanhar",
+    itens: NAV.filter((n) => ["/mastery", "/srs", "/history", "/review"].includes(n.href)),
+  },
   { titulo: "Sistema", itens: NAV.filter((n) => ["/data", "/account"].includes(n.href)) },
 ];
 
-const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
+const MOBILE = [NAV[0], NAV[1], NAV[2], NAV[6]];
 
 function openPalette() {
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }),
+  );
 }
 
 /**
@@ -95,13 +108,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
 
-  const cloudLabel = cloud.status === "syncing"
-    ? "sincronizando"
-    : cloud.status === "needs-merge"
-      ? "mesclar conta"
-      : cloud.user
-        ? cloud.status === "idle" ? "nuvem em dia" : "nuvem offline"
-        : "somente local";
+  const cloudLabel =
+    cloud.status === "syncing"
+      ? "sincronizando"
+      : cloud.status === "needs-merge"
+        ? "mesclar conta"
+        : cloud.user
+          ? cloud.status === "idle"
+            ? "nuvem em dia"
+            : "nuvem offline"
+          : "somente local";
 
   const isExam = pathname.startsWith("/exam/");
   const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
@@ -120,15 +136,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="layout">
+      <a className="skip-link" href="#main-content">
+        Ir para o conteúdo
+      </a>
       <aside className="rail">
-        <div className="brand">
-          <span className="mark">E</span>
-          <span className="name">ENEM Lab</span>
-        </div>
+        <Brand />
         <ProviderSwitcher />
         <div className="tag">Mission Control</div>
 
-        <button className="cmdk-trigger" onClick={openPalette}>
+        <button
+          className="cmdk-trigger"
+          onClick={openPalette}
+          aria-label="Buscar páginas e ações"
+        >
           <Search size={14} />
           <span>Buscar</span>
           <kbd>⌘K</kbd>
@@ -164,7 +184,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="rail-foot">
-          <Link href="/account" className="tele" style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+          <Link href="/account" className="tele">
             <Cloud size={12} /> {cloudLabel}
           </Link>
           <button
@@ -180,7 +200,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
           poucos blocos com muito peso. Antes as duas respiravam igual, porque
           densidade só existia na documentação. */}
-      <main className="content" data-density={densidadeDaRota(pathname)}>
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="content"
+        data-density={densidadeDaRota(pathname)}
+        data-page={pathname.split("/")[1] || "home"}
+      >
         {children}
       </main>
 
@@ -205,6 +231,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className={!MOBILE.some((item) => isActive(pathname, item.href)) ? "active" : ""}
+            >
+              <Menu size={18} aria-hidden="true" />
+              <span>Mais</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent title="Navegação" side="bottom" className="el-navigation-sheet">
+            <nav aria-label="Todas as páginas" className="el-mobile-nav">
+              {GRUPOS.map((grupo) => (
+                <div key={grupo.titulo}>
+                  <p className="label">{grupo.titulo}</p>
+                  {grupo.itens.map((item) => (
+                    <SheetClose asChild key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={isActive(pathname, item.href) ? "page" : undefined}
+                      >
+                        <item.icon size={16} aria-hidden="true" />
+                        {item.label}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                </div>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </nav>
 
       {isResultReview && <ImageZoomHost />}
