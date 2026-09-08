@@ -2,6 +2,9 @@ import * as React from "react";
 import type { Decorator, Preview } from "@storybook/nextjs-vite";
 import { TooltipProvider } from "../src/components/ui/tooltip";
 import "../src/app/globals.css";
+import "../src/app/daily-plan.css";
+import "../src/app/account.css";
+import "../src/styles/refinement.css";
 
 /**
  * O tema do app é dirigido por `data-theme` no <html>, e não por classe no

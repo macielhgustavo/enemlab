@@ -25,13 +25,13 @@ import { cn } from "@/lib/cn";
 export const CHART_COLORS = [
   "var(--accent-primary)",
   "var(--accent-info)",
-  "var(--accent-violet)",
+  "var(--text-secondary)",
 ] as const;
 
 export const chartTheme = {
   grid: {
     stroke: "var(--border-subtle)",
-    strokeDasharray: "3 6",
+    strokeDasharray: "2 4",
     vertical: false,
   },
   axis: {
@@ -52,12 +52,13 @@ export function ChartTooltip({
 }) {
   return (
     <Tooltip
+      isAnimationActive={false}
       cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
       contentStyle={{
         background: "var(--bg-raised)",
         border: "1px solid var(--border-default)",
         borderRadius: "var(--radius-sm)",
-        boxShadow: "var(--shadow-lg)",
+        boxShadow: "var(--shadow-sm)",
         fontSize: 12.5,
         padding: "8px 10px",
       }}

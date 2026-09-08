@@ -57,15 +57,20 @@ export default function ReviewPage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <span className="muted">Carregando…</span>
+      </Card>
+    );
 
   // Caderno de erros respeita a prova ativa: um erro do ITA nunca aparece
   // como se fosse do ENEM.
   const items = db.attempts
     .filter((a) => a.result && sameProvider(a.providerId, providerId))
     .flatMap((a) =>
-      a.result!.rows
-        .filter((r) => r.isCorrect === false)
+      a
+        .result!.rows.filter((r) => r.isCorrect === false)
         .filter((r) => {
           if (filter === "certeza") return r.confidence === "certeza";
           if (filter === "slow") return r.timeSec > 180;
@@ -135,7 +140,11 @@ export default function ReviewPage() {
                   <Button asChild variant="secondary" size="sm">
                     <a href={`/result/${a.id}`}>Ver questão</a>
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => retrySingle(a.id, r.key)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => retrySingle(a.id, r.key)}
+                  >
                     Refazer
                   </Button>
                 </div>
@@ -145,6 +154,7 @@ export default function ReviewPage() {
                 {KNEW.map((c) => (
                   <button
                     key={c.v}
+                    aria-pressed={note.knew === c.v}
                     className={note.knew === c.v ? "selected" : ""}
                     onClick={() => saveNote(nk, "knew", c.v)}
                   >
@@ -155,8 +165,9 @@ export default function ReviewPage() {
 
               <div className="grid grid3" style={{ marginTop: 10 }}>
                 <div>
-                  <label>Motivo</label>
+                  <label htmlFor={`reason-${nk}`}>Motivo</label>
                   <select
+                    id={`reason-${nk}`}
                     value={note.reason || ""}
                     onChange={(e) => saveNote(nk, "reason", e.target.value)}
                   >
@@ -169,15 +180,17 @@ export default function ReviewPage() {
                   </select>
                 </div>
                 <div>
-                  <label>Conteúdos (separe por ;)</label>
+                  <label htmlFor={`tags-${nk}`}>Conteúdos (separe por ;)</label>
                   <input
+                    id={`tags-${nk}`}
                     defaultValue={note.tags || note.tag || tags.join("; ")}
                     onBlur={(e) => saveNote(nk, "tags", e.target.value)}
                   />
                 </div>
                 <div>
-                  <label>Nota</label>
+                  <label htmlFor={`note-${nk}`}>Nota</label>
                   <input
+                    id={`note-${nk}`}
                     defaultValue={note.text || ""}
                     placeholder="O que revisar?"
                     onBlur={(e) => saveNote(nk, "text", e.target.value)}

@@ -11,13 +11,31 @@ export default meta;
 type Story = StoryObj<typeof MetricCard>;
 
 export const Padrao: Story = {};
+export const SemMoldura: Story = { args: { presentation: "plain", value: 1284 } };
+export const SemMolduraClaro: Story = { ...SemMoldura, globals: { theme: "light" } };
 
 export const Grade: Story = {
   render: () => (
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}>
-      <MetricCard label="Sessões realizadas" value={12} icon={<TrendingUp size={14} />} tone="accent" />
+    <div
+      style={{
+        display: "grid",
+        gap: 16,
+        gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+      }}
+    >
+      <MetricCard
+        label="Sessões realizadas"
+        value={12}
+        icon={<TrendingUp size={14} />}
+        tone="accent"
+      />
       <MetricCard label="Taxa de acerto" value={67} unit="%" icon={<Target size={14} />} />
-      <MetricCard label="Dias em sequência" value={4} icon={<Flame size={14} />} tone="warning" />
+      <MetricCard
+        label="Dias em sequência"
+        value={4}
+        icon={<Flame size={14} />}
+        tone="warning"
+      />
     </div>
   ),
 };
@@ -30,8 +48,19 @@ export const Grade: Story = {
  */
 export const SemAmostra: Story = {
   render: () => (
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}>
-      <MetricCard label="Taxa de acerto" value={null} unit="%" hint="Corrija um treino para calcular" />
+    <div
+      style={{
+        display: "grid",
+        gap: 16,
+        gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+      }}
+    >
+      <MetricCard
+        label="Taxa de acerto"
+        value={null}
+        unit="%"
+        hint="Corrija um treino para calcular"
+      />
       <MetricCard label="Taxa de acerto" value={0} unit="%" hint="Zero de verdade: 0 de 20" />
     </div>
   ),

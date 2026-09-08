@@ -68,13 +68,16 @@
   /* Véu atrás de diálogo e painel. É mais opaco no escuro porque ali o
      conteúdo de trás compete mais com o de cima. */
   --overlay-veil: rgba(2, 6, 8, 0.66);
+  --text-on-accent: #04120d;
+  --control-hover: var(--surface-3);
+  --control-pressed: var(--panel-2);
 
   /* ---- Movimento ----
      Faixas curtas de propósito: microinteração some antes de o
      usuário perceber; nada aqui atrasa uma ação. */
-  --motion-fast: 140ms;
-  --motion-normal: 220ms;
-  --motion-slow: 320ms;
+  --motion-fast: 120ms;
+  --motion-normal: 160ms;
+  --motion-slow: 200ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -101,14 +104,15 @@
   --border-active: var(--accent-primary);
 
   --accent-primary: var(--brand);
-  --accent-info: var(--cyan);
+  --accent-info: #096b80;
   --accent-violet: var(--violet);
 
   --success: var(--ok);
-  --warning: var(--warn);
+  --warning: #805800;
   --danger: var(--bad);
 
   --overlay-veil: rgba(18, 32, 28, 0.38);
+  --text-on-accent: #ffffff;
 }
 
 /* Quem pediu menos movimento recebe menos movimento — inclusive

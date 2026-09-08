@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { aguardarApp, prepare } from "./fixtures";
+import { UI_SCREENS } from "./ui-screens";
 
 /**
  * Acessibilidade automatizada.
@@ -13,26 +14,21 @@ import { aguardarApp, prepare } from "./fixtures";
 
 const REGRAS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
-const TELAS = [
-  { url: "/", nome: "Início" },
-  { url: "/plano", nome: "Plano" },
-  { url: "/practice", nome: "Treinar" },
-  { url: "/history", nome: "Histórico" },
-];
-
-for (const tela of TELAS) {
-  test(`${tela.nome} sem violação séria de a11y`, async ({ page }) => {
-    await prepare(page, { comHistorico: true });
-    await page.goto(tela.url);
-    await aguardarApp(page);
-
-    const r = await new AxeBuilder({ page }).withTags(REGRAS).analyze();
-    const serias = r.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
-
-    expect(
-      serias.map((v) => `${v.id} (${v.impact}) em ${v.nodes.length} nó(s): ${v.help}`),
-    ).toEqual([]);
-  });
+for (const theme of ["dark", "light"] as const) {
+  for (const tela of UI_SCREENS) {
+    test(`${tela.name} ${theme} sem violação séria de a11y`, async ({ page }) => {
+      await prepare(page, { theme, comHistorico: true });
+      await page.goto(tela.url);
+      await aguardarApp(page);
+      const r = await new AxeBuilder({ page }).withTags(REGRAS).analyze();
+      const serias = r.violations.filter(
+        (v) => v.impact === "critical" || v.impact === "serious",
+      );
+      expect(
+        serias.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`),
+      ).toEqual([]);
+    });
+  }
 }
 
 test("tema claro mantém o contraste", async ({ page }) => {
