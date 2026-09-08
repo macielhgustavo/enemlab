@@ -1,10 +1,13 @@
 import * as React from "react";
 import type { Decorator, Preview } from "@storybook/nextjs-vite";
+import { Inter } from "next/font/google";
 import { TooltipProvider } from "../src/components/ui/tooltip";
 import "../src/app/globals.css";
 import "../src/app/daily-plan.css";
 import "../src/app/account.css";
 import "../src/styles/refinement.css";
+
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 
 /**
  * O tema do app é dirigido por `data-theme` no <html>, e não por classe no
@@ -14,6 +17,8 @@ import "../src/styles/refinement.css";
 function MolduraDeTema({ tema, children }: { tema: string; children: React.ReactNode }) {
   React.useEffect(() => {
     document.documentElement.dataset.theme = tema;
+    document.documentElement.classList.add(inter.variable);
+    return () => document.documentElement.classList.remove(inter.variable);
   }, [tema]);
 
   return (

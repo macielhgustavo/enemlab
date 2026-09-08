@@ -809,6 +809,24 @@ textarea:disabled,
   border: 0;
   background: transparent;
 }
+.accountPage .accountInput {
+  height: auto;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+.accountPage .accountInput input[type] {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.accountPage .accountInput:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
+}
 [data-page="account"] .accountLocalStats > div {
   background: transparent;
   border: 0;
