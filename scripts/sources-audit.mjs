@@ -15,13 +15,18 @@
 // problema não é do nosso código, e vermelho que não é culpa nossa ensina a
 // ignorar o vermelho.
 
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { auditArchivedDocument, discoverFabEditions } from "./fab-source-audit.mjs";
+
 const TIMEOUT_MS = 20_000;
 
 function parseArgs(argv) {
-  const args = { provider: null, json: false };
+  const args = { provider: null, json: false, baseline: null, output: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--provider") args.provider = argv[++i] ?? null;
     else if (argv[i] === "--json") args.json = true;
+    else if (argv[i] === "--baseline") args.baseline = argv[++i] ?? null;
+    else if (argv[i] === "--output") args.output = argv[++i] ?? null;
   }
   return args;
 }
@@ -39,6 +44,90 @@ const FONTES = [
     sourceId: "enem-dev",
     archiveUrl: "https://api.enem.dev",
     documentos: [{ role: "structured-api", url: "https://api.enem.dev/v1/exams" }],
+  },
+  // As duas fontes da FAB são o caso `viaArquivo`: a instituição publica os
+  // documentos mas responde 403 a qualquer cliente automatizado, então a
+  // ingestão lê a cópia datada no Internet Archive. O audit acompanha isso
+  // como é, em vez de reportar quebra a cada rodada — vermelho permanente
+  // que não é culpa nossa ensina a ignorar o vermelho.
+  {
+    providerId: "afa",
+    sourceId: "afa-official-archive",
+    archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    viaArquivo: true,
+    documentos: [
+      // Informativa: é a página que um humano abre, não a que a descoberta
+      // lê. Quem descobre edição é a linha `discovery`, contra o índice do
+      // arquivo. Registrada para não sumir do manifesto, sem reprovar.
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html", informativo: true },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2024/afa/afa2025_gab_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2023/afa2024_gabarito_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/provas/afa2019_gab_oficial.pdf",
+      },
+    ],
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    // Casa só gabarito **oficial**: `afa2021_aviso_tacf` e
+    // `afa2024_resultado_inspsau_gabrielle` casam com "gab" sem ser gabarito,
+    // e provisório nunca termina em "oficial".
+    editionPattern: /afa(20\d{2})[-_](?:[a-z0-9]+[-_])?gab(?:arito)?[-_]oficial/gi,
+    requiredRoles: ["archive-page", "answer-key"],
+  },
+  {
+    providerId: "epcar",
+    sourceId: "epcar-official-archive",
+    archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+    viaArquivo: true,
+    documentos: [
+      { role: "archive-page", url: "https://www.fab.mil.br/ingresso/provas.html", informativo: true },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2024/cpcar/cpcar2025_gab_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/2022/cpcar/cpcar2023_oficial.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.fab.mil.br/ingresso/arquivos/provas/cpcar2020_gab_oficial.pdf",
+      },
+    ],
+    knownEditions: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    // 2023 é `cpcar2023_oficial.pdf`, sem "gab" no nome — por isso o grupo
+    // do gabarito é opcional aqui.
+    editionPattern: /cpcar[-_]?(20\d{2})[-_](?:[a-z0-9]+[-_])?(?:gab(?:arito)?[-_])?oficial/gi,
+    requiredRoles: ["archive-page", "answer-key"],
+  },
+  {
+    providerId: "ufpr",
+    sourceId: "ufpr-research",
+    archiveUrl: "https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026",
+    documentos: [
+      { role: "archive-page", url: "https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026" },
+      {
+        role: "notice",
+        url: "https://servicos.nc.ufpr.br/documentos/ps2026/provas/definitivo/relatorio-anuladas-alteradas.pdf",
+      },
+    ],
+  },
+  {
+    providerId: "eear",
+    sourceId: "eear-research",
+    archiveUrl: "https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25",
+    documentos: [
+      {
+        role: "archive-page",
+        url: "https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25",
+      },
+    ],
   },
   {
     providerId: "ita",
@@ -121,6 +210,17 @@ const FONTES = [
   },
 ];
 
+for (const fonte of FONTES.filter((entry) => entry.viaArquivo)) {
+  const dataset = JSON.parse(readFileSync(new URL(
+    `../src/lib/providers/${fonte.providerId}/answer-keys.generated.json`, import.meta.url,
+  ), "utf8"));
+  fonte.documentos = [fonte.documentos[0], ...Object.values(dataset).map((entry) => ({
+    role: "answer-key", year: entry.year, url: entry.answerKeyUrl,
+    archiveUrl: entry.retrieval.retrievedFrom,
+    sha256: entry.retrieval.sha256, bytes: entry.retrieval.bytes,
+  }))];
+}
+
 /**
  * Confere um documento, com uma segunda tentativa.
  *
@@ -161,8 +261,102 @@ async function tentar(url) {
   }
 }
 
+/**
+ * Existe cópia datada deste documento no arquivo público?
+ *
+ * Para as fontes `viaArquivo`, é **esta** a pergunta que importa: a URL viva
+ * responde 403 por desenho, e o que a ingestão de fato lê é a cópia. Um 403
+ * na FAB é rotina; a cópia sumir é que quebraria a reimportação.
+ */
+async function tentarTexto(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 60_000);
+  try {
+    const res = await fetch(url, {
+      headers: { "user-agent": "enemlab-sources-audit/1.0" },
+      signal: ctrl.signal,
+      redirect: "follow",
+    });
+    return { status: res.status, ok: res.ok, text: res.ok ? await res.text() : "" };
+  } catch (e) {
+    return {
+      status: 0,
+      ok: false,
+      text: "",
+      erro: e.name === "AbortError" ? "timeout" : e.message,
+    };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function carregarBaseline(path) {
+  if (!path || !existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (e) {
+    console.error("baseline ilegível: " + e.message);
+    process.exit(1);
+  }
+}
+
+function documentoMudou(previous, current) {
+  if (!previous) return false;
+  if (previous.finalUrl && current.finalUrl && previous.finalUrl !== current.finalUrl) return true;
+  if (previous.etag && current.etag && previous.etag !== current.etag) return true;
+  return (
+    previous.contentLength !== null &&
+    current.contentLength !== null &&
+    previous.contentLength !== current.contentLength
+  );
+}
+
+/** Índice do arquivo público — a mesma varredura que `ingest-fab.py` usa. */
+function urlsDescobertaArquivo() {
+  return ["fab.mil.br/ingresso/arquivos*", "fab.mil.br/ingresso*"].map((pattern) =>
+    `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(pattern)}` +
+    "&output=json&filter=statuscode:200&collapse=urlkey&limit=30000",
+  );
+}
+
+async function auditarNovasEdicoes(fonte) {
+  if (!fonte.editionPattern || !fonte.knownEditions) return null;
+  // Numa fonte lida pelo arquivo, raspar a página da instituição só devolve
+  // o 403. A descoberta precisa olhar onde a ingestão olha.
+  const alvos = fonte.viaArquivo ? urlsDescobertaArquivo() : [fonte.archiveUrl];
+  const responses = await Promise.all(alvos.map(async (url) => {
+    if (!discoveryCache.has(url)) discoveryCache.set(url, tentarTexto(url));
+    return discoveryCache.get(url);
+  }));
+  const response = responses.find((item) => !item.ok) ?? {
+    ok: true, status: 200, text: responses.map((item) => item.text).join("\n"),
+  };
+  if (!response.ok) {
+    return {
+      status: response.status,
+      novas: [],
+      ok: false,
+      erro: response.erro ?? "arquivo respondeu " + response.status + "; descoberta não verificável",
+      urls: alvos,
+    };
+  }
+
+  let encontrados;
+  try {
+    encontrados = responses.flatMap((item) => discoverFabEditions(item.text, fonte.providerId));
+    if (!encontrados.length) throw new Error("índice não retornou edições reconhecíveis");
+  } catch (error) {
+    return { status: response.status, novas: [], ok: false, erro: error.message, urls: alvos };
+  }
+  const novas = [...new Set(encontrados)].filter((year) => !fonte.knownEditions.includes(year));
+  return { status: response.status, novas, encontradas: [...new Set(encontrados)].sort(), ok: true, erro: null, urls: alvos };
+}
+
+const discoveryCache = new Map();
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const baseline = carregarBaseline(args.baseline);
   const fontes = args.provider
     ? FONTES.filter((f) => f.providerId === args.provider)
     : FONTES;
@@ -177,12 +371,31 @@ async function main() {
 
   for (const f of fontes) {
     for (const d of f.documentos) {
+      if (f.viaArquivo && !d.informativo) {
+        const audit = await auditArchivedDocument(d);
+        if (!audit.ok) problemas++;
+        resultados.push({ provider: f.providerId, source: f.sourceId, role: d.role,
+          year: d.year, url: d.url, archiveUrl: d.archiveUrl,
+          status: audit.origin.status, ...audit,
+          erro: audit.ok ? null : audit.archive.error,
+        });
+        continue;
+      }
       const r = await checar(d.url);
+      const anterior = baseline?.resultados?.find((item) => item.url === d.url);
+      const mudou = documentoMudou(anterior, r);
       // Um 404 previsto não é problema: é conhecimento sobre o arquivo. O
       // que assusta é ele **deixar** de dar 404 — significa que a banca
       // publicou algo que ainda não foi ingerido.
       const esperado = d.esperado404 === true;
-      const okEsperado = esperado ? r.status === 404 : r.ok;
+
+      // Fonte lida pelo arquivo: o que reprova é a cópia sumir, não a
+      // instituição recusar o cliente automatizado.
+      const okEsperado = d.informativo
+        ? r.ok || r.status === 403
+        : esperado
+          ? r.status === 404
+          : r.ok && !mudou;
       if (!okEsperado) problemas++;
 
       resultados.push({
@@ -191,8 +404,12 @@ async function main() {
         role: d.role,
         url: d.url,
         status: r.status,
+        finalUrl: r.finalUrl ?? null,
+        changed: mudou,
         esperado404: esperado,
-        ok: okEsperado,
+        informational: d.informativo ?? false,
+        originState: d.informativo && r.status === 403 ? "blocked-expected" : undefined,
+        ok: d.informativo && r.status === 403 ? null : okEsperado,
         redirected: r.redirected ?? false,
         contentLength: r.contentLength ?? null,
         lastModified: r.lastModified ?? null,
@@ -200,16 +417,72 @@ async function main() {
         erro: r.erro ?? null,
       });
     }
+
+    for (const role of f.requiredRoles ?? []) {
+      if (f.documentos.some((documento) => documento.role === role)) continue;
+      problemas++;
+      resultados.push({
+        provider: f.providerId,
+        source: f.sourceId,
+        role: "manifest",
+        url: f.archiveUrl,
+        status: 0,
+        esperado404: false,
+        ok: false,
+        redirected: false,
+        changed: false,
+        novasEdicoes: [],
+        contentLength: null,
+        lastModified: null,
+        etag: null,
+        erro: "documento obrigatório ausente no manifesto: " + role,
+      });
+    }
+
+    const discovery = await auditarNovasEdicoes(f);
+    if (discovery) {
+      const hasNewEditions = discovery.novas.length > 0;
+      if (hasNewEditions || !discovery.ok) problemas++;
+      resultados.push({
+        provider: f.providerId,
+        source: f.sourceId,
+        role: "discovery",
+        url: discovery.urls[0],
+        discoveryUrls: discovery.urls,
+        status: discovery.status,
+        esperado404: false,
+        ok: !hasNewEditions && discovery.ok,
+        redirected: false,
+        changed: false,
+        novasEdicoes: discovery.novas,
+        discoveredEditions: discovery.encontradas ?? [],
+        contentLength: null,
+        lastModified: null,
+        etag: null,
+        erro: discovery.erro ?? null,
+      });
+    }
   }
 
+  const report = JSON.stringify({ verificadoEm: new Date().toISOString(), resultados }, null, 2);
+  if (args.output) writeFileSync(args.output, report + "\n");
   if (args.json) {
-    console.log(JSON.stringify({ verificadoEm: new Date().toISOString(), resultados }, null, 2));
+    console.log(report);
   } else {
     for (const r of resultados) {
-      const marca = r.ok ? "ok  " : "FALHA";
-      const nota = r.esperado404 ? " (404 esperado)" : r.redirected ? " (redirecionado)" : "";
+      const marca = r.ok === null ? "INFO " : r.ok ? "ok  " : "FALHA";
+      const nota = r.esperado404
+        ? " (404 esperado)"
+        : r.changed
+          ? " (documento alterado)"
+          : r.novasEdicoes?.length
+            ? " (nova(s): " + r.novasEdicoes.join(", ") + ")"
+            : r.redirected
+              ? " (redirecionado)"
+              : "";
       console.log(`${marca} ${String(r.status).padStart(3)} ${r.provider}/${r.role}${nota}`);
       console.log(`      ${r.url}`);
+      if (r.archive) console.log(`      origin=${r.origin.state}; archive=${r.archive.state}: ${r.archiveUrl}`);
       if (r.erro) console.log(`      erro: ${r.erro}`);
     }
     console.log(`\n${resultados.length} documento(s), ${problemas} problema(s).`);

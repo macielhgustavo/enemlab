@@ -2,6 +2,8 @@
 import { itaYears, itaFirstPhaseUrl, itaSecondPhaseUrls } from "../providers/ita";
 import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../providers/ime";
 import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/fuvest";
+import { afaAnswerKey, afaYears } from "../providers/afa";
+import { epcarAnswerKey, epcarYears } from "../providers/epcar";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -11,6 +13,7 @@ const ITA_PARSER = "ita-answer-key@1.0.0";
 const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
 const FUVEST_PARSER = "fuvest-answer-key@1.0.0";
+const FAB_PARSER = "fab-answer-key@2.1.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -203,12 +206,143 @@ export const fuvestSource: ExamSourceDefinition = {
     "antigo. Versões são reordenação: só a canônica vira questão.",
 };
 
+/**
+ * AFA: arquivo oficial da FAB, em modo referência.
+ *
+ * O gabarito final da versão A é dado factual e foi conferido por edição.
+ * Os PDFs da prova permanecem na FAB: a extração não é distribuída como
+ * texto porque fórmulas, diagramas e paginação não foram validados para cópia.
+ */
+export const afaSource: ExamSourceDefinition = {
+  id: "afa-official-archive",
+  providerId: "afa",
+  institution: "FAB",
+  archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "air-force",
+  discovery: "manual",
+  years: afaYears(),
+  phases: ["first"],
+  subjects: ["portuguese", "mathematics", "english", "physics"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: FAB_PARSER,
+  lastVerifiedAt: "2026-09-07",
+  retrievalRoute: "web-archive",
+  confidence: "media",
+  notes:
+    "Entram 2018–2025: oito edições, cada uma lida do gabarito oficial em PDF, " +
+    "com 64 questões, versões A/B/C e anuladas preservadas. A ordem das matérias " +
+    "sai do cabeçalho de cada documento e muda de ano para ano — 2021–2023 " +
+    "começam por Inglês, as demais por Português —, e a divisão em blocos de 16 " +
+    "foi conferida contra o caderno de prova em 2023, 2024 e 2025. " +
+    "AFA 2026 fica de fora: a FAB a publica, mas nenhuma cópia do gabarito " +
+    "final foi encontrada na verificação registrada, e ingerir sem ler o documento foi o " +
+    "defeito que esta fonte passou a evitar.",
+};
+
+/** EPCAR: arquivo oficial da FAB, em modo referência. */
+export const epcarSource: ExamSourceDefinition = {
+  id: "epcar-official-archive",
+  providerId: "epcar",
+  institution: "FAB",
+  archiveUrl: "https://www.fab.mil.br/ingresso/provas.html",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "air-force",
+  discovery: "manual",
+  years: epcarYears(),
+  phases: ["first"],
+  subjects: ["english", "mathematics", "portuguese"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: FAB_PARSER,
+  lastVerifiedAt: "2026-09-07",
+  retrievalRoute: "web-archive",
+  confidence: "media",
+  notes:
+    "Entram 2018–2025: oito edições, cada uma lida do gabarito oficial em PDF, " +
+    "com 48 questões, versões A/B/C e anuladas preservadas. A ordem das matérias " +
+    "sai do cabeçalho de cada documento e não segue regra — 2021 aplica " +
+    "Inglês/Português/Matemática, 2024 volta a Português/Matemática/Inglês —, " +
+    "por isso ela nunca é assumida. Nenhuma edição teve a divisão em blocos de " +
+    "16 confirmada contra o caderno de prova: os cadernos da EPCAR não estão " +
+    "acessíveis, e as edições entram com `subjectBoundariesVerified: false`. " +
+    "EPCAR 2026 fica de fora: esta ingestão não comprovou uma cópia final " +
+    "oficial acessível. Isso não demonstra ausência de publicação.",
+};
+
+/** UFPR pesquisada, mas deliberadamente não executável nesta wave. */
+export const ufprResearchSource: ExamSourceDefinition = {
+  id: "ufpr-research",
+  providerId: "ufpr",
+  institution: "UFPR",
+  archiveUrl: "https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["first", "second"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "ufpr-research@0.1.0",
+  lastVerifiedAt: "2026-09-07",
+  confidence: "baixa",
+  notes:
+    "PS 2018–PS 2026 foram investigados. Há provas, versões e documentos " +
+    "preliminares/definitivos, mas não foi encontrada uma associação final " +
+    "consistente para ingestão segura; não há parser nem provider.",
+};
+
+/** EEAR pesquisada e adiada por códigos e cursos múltiplos. */
+export const eearResearchSource: ExamSourceDefinition = {
+  id: "eear-research",
+  providerId: "eear",
+  institution: "FAB",
+  archiveUrl: "https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "air-force",
+  discovery: "automatic",
+  years: [],
+  phases: ["first"],
+  subjects: ["portuguese", "mathematics", "english"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "eear-research@0.1.0",
+  lastVerifiedAt: "2026-09-07",
+  confidence: "baixa",
+  notes:
+    "O arquivo oficial tem vários cursos, anos, códigos e opções de prova. " +
+    "A associação determinística entre cada prova e seu gabarito final não " +
+    "foi concluída; provider adiado para v8.5.4.",
+};
+
 const SOURCES = new Map<string, ExamSourceDefinition>([
   [enemSource.id, enemSource],
   [itaSource.id, itaSource],
   [imeSource.id, imeSource],
   [enemOfficialSource.id, enemOfficialSource],
   [fuvestSource.id, fuvestSource],
+  [afaSource.id, afaSource],
+  [epcarSource.id, epcarSource],
+  [ufprResearchSource.id, ufprResearchSource],
+  [eearResearchSource.id, eearResearchSource],
 ]);
 
 export function listSources(): ExamSourceDefinition[] {
@@ -285,10 +419,32 @@ export const fuvestImporter: ExamImporter = {
   },
 };
 
+export const afaImporter: ExamImporter = {
+  sourceId: afaSource.id,
+  availableYears: () => afaYears(),
+  provenanceFor(year, phase = "first", page) {
+    const key = afaAnswerKey(year);
+    const url = phase === "first" ? key?.examUrl ?? key?.answerKeyUrl : afaSource.archiveUrl;
+    return provenance(afaSource, url ?? afaSource.archiveUrl, page);
+  },
+};
+
+export const epcarImporter: ExamImporter = {
+  sourceId: epcarSource.id,
+  availableYears: () => epcarYears(),
+  provenanceFor(year, phase = "first", page) {
+    const key = epcarAnswerKey(year);
+    const url = phase === "first" ? key?.examUrl ?? key?.answerKeyUrl : epcarSource.archiveUrl;
+    return provenance(epcarSource, url ?? epcarSource.archiveUrl, page);
+  },
+};
+
 export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
   if (providerId === "ime") return imeImporter;
   if (providerId === "fuvest") return fuvestImporter;
+  if (providerId === "afa") return afaImporter;
+  if (providerId === "epcar") return epcarImporter;
   return null;
 }

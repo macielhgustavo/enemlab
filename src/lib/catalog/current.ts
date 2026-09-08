@@ -1,7 +1,7 @@
 // Índice do catálogo do estado atual.
 //
-// A v8.5.0 entrega a plataforma; nenhum provider novo entrou ainda. Este
-// arquivo constrói o índice a partir do que já existe — ENEM e ITA — para
+// A v8.5 entrega a plataforma e providers de referência. Este arquivo
+// constrói o índice a partir do que já existe — ENEM, ITA, IME, FUVEST, AFA e EPCAR — para
 // que o Data Quality e o seletor de prova já leiam do índice, e não da
 // forma antiga.
 //
@@ -19,9 +19,17 @@ import {
   IME_PROVIDER_ID,
   fuvestAnswerKey,
   FUVEST_PROVIDER_ID,
+  afaAnswerKey,
+  AFA_PROVIDER_ID,
+  epcarAnswerKey,
+  EPCAR_PROVIDER_ID,
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
+import { fabValidationLevel } from "../providers/fab/evidence";
+import afaRaw from "../providers/afa/answer-keys.generated.json";
+import epcarRaw from "../providers/epcar/answer-keys.generated.json";
+import type { FabAnswerKeyRaw } from "../providers/fab";
 
 /**
  * Nível de validação das provas que já estavam no app.
@@ -83,6 +91,28 @@ function medirEdicao(
     return { total: k.total, subjects: { "conhecimentos-gerais": k.total } };
   }
 
+  if (providerId === AFA_PROVIDER_ID) {
+    const k = afaAnswerKey(ano);
+    if (!k) return null;
+    return {
+      total: k.total,
+      subjects: Object.fromEntries(
+        Object.entries(k.subjects).map(([nome, numeros]) => [nome, numeros.length]),
+      ),
+    };
+  }
+
+  if (providerId === EPCAR_PROVIDER_ID) {
+    const k = epcarAnswerKey(ano);
+    if (!k) return null;
+    return {
+      total: k.total,
+      subjects: Object.fromEntries(
+        Object.entries(k.subjects).map(([nome, numeros]) => [nome, numeros.length]),
+      ),
+    };
+  }
+
   return null;
 }
 
@@ -98,7 +128,11 @@ export function buildCurrentCatalog(): CatalogIndex {
     // não é fase ingerida: o ITA e o IME publicam discursiva, e listá-la com
     // a contagem da objetiva inflaria o catálogo com questões inexistentes.
     const soPrimeiraFase =
-      p.id === ITA_PROVIDER_ID || p.id === IME_PROVIDER_ID || p.id === FUVEST_PROVIDER_ID;
+      p.id === ITA_PROVIDER_ID ||
+      p.id === IME_PROVIDER_ID ||
+      p.id === FUVEST_PROVIDER_ID ||
+      p.id === AFA_PROVIDER_ID ||
+      p.id === EPCAR_PROVIDER_ID;
     const fasesIngeridas = p.metadata.phases.filter((f) =>
       soPrimeiraFase ? f === "first" : true,
     );
@@ -109,6 +143,8 @@ export function buildCurrentCatalog(): CatalogIndex {
       const medida = medirEdicao(p.id, ano);
       const contagem = medida?.total ?? null;
       const materias = medida?.subjects ?? {};
+      const fabDataset = p.id === AFA_PROVIDER_ID ? afaRaw : p.id === EPCAR_PROVIDER_ID ? epcarRaw : null;
+      const fabRaw = fabDataset ? (fabDataset as unknown as Record<string, FabAnswerKeyRaw>)[String(ano)] : null;
 
       for (const fase of fasesIngeridas) {
         entradas.push({
@@ -121,7 +157,7 @@ export function buildCurrentCatalog(): CatalogIndex {
           // que a prova não tem questão.
           questionCount: contagem,
           subjects: materias,
-          validation: NIVEL_HERDADO,
+          validation: fabRaw ? fabValidationLevel(p.id, fabRaw) : NIVEL_HERDADO,
           sourceId: fonte.id,
           statementAvailable: fonte.statementMode !== "reference-only",
           importerVersion: fonte.parserVersion,

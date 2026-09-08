@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
+    "test": "vitest run && python -m unittest discover -s scripts/tests -p test_*.py",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -19,6 +19,7 @@
     "test:a11y": "playwright test e2e/a11y.spec.ts",
     "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
     "ingest": "node scripts/ingest.mjs",
+    "ingest:fab": "python scripts/ingest-fab.py",
     "sources:audit": "node scripts/sources-audit.mjs"
   },
   "dependencies": {

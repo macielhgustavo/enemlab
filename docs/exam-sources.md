@@ -131,6 +131,94 @@ Correção errada é pior que ausência de dado.
 |---|---|---|---|---|
 | ENEM | `api.enem.dev` | `structured-api` | no app | 2009–2023 |
 | ITA | `vestibular.ita.br` | `pdf-reference` | na fonte oficial | 2019–2026 |
+| IME | `ime.eb.mil.br` | `pdf-reference` | na fonte oficial | 2018–2025 |
+| FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | edições validadas |
+| AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
+| EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
+
+### v8.5.3 — FAB
+
+A [página oficial](https://www.fab.mil.br/ingresso/provas.html) retorna 403
+neste ambiente. Não contornamos a proteção. `ingest-fab.py` pode descobrir
+documentos nos índices CDX `fab.mil.br/ingresso/arquivos*` e
+`fab.mil.br/ingresso*`, tentar a fonte viva e então uma cópia datada do
+Internet Archive. O registro do app permanece `discovery: manual`: esta
+entrega reconferiu um manifesto conhecido; não promete atualização automática
+nem ingestão automática direta do site da FAB.
+
+O comando `python scripts/ingest-fab.py --verify-manifest` baixa os **bytes dos
+16 PDFs registrados**, confere SHA-256/tamanho, extrai o texto com `pypdf` e
+compara edição, revisão final, respostas A/B/C, anuladas e ordem das matérias
+com o dataset. Não lê JSON para gerar uma cópia do mesmo JSON. Falha de rede,
+PDF diferente, coluna emendada, preliminar e divergência impedem aprovação.
+Os testes de parser usam fixtures independentes e não acessam a rede.
+
+| Provider | Edições com gabarito conferido | Questões canônicas | Anuladas (A) |
+|---|---|---:|---:|
+| AFA | 2018–2025 (8 reviewed) | 512 | 20 |
+| EPCAR | 2018–2025 (8 reviewed) | 384 | 11 |
+
+São 896 registros canônicos, dos quais 31 anulados ficam sem resposta correta
+(865 não anulados). B/C são preservadas para conferência, não duplicadas no
+banco ou no SRS. A relação `reordered` é a política herdada; **a permutação
+questão a questão entre cadernos não foi demonstrada por esta verificação**.
+
+`reviewed` agora depende da evidência individual e da assinatura do dataset,
+não do nível herdado. Sem evidência, fica `provisional`; divergência fica
+`blocked`. Ambos são excluídos do banco padrão. A verificação tem escopo de
+**gabarito**, não de enunciado, permutação ou direitos de republicação.
+
+Os limites das matérias são inferidos em blocos de 16. O trabalho preservado
+declara comparação com cadernos AFA 2023–2025, mas não guardou seus
+fingerprints: esta entrega **não reconfirma essa evidência**. Nas outras
+cinco AFA e em todas as EPCAR, os limites estão explicitamente não verificados.
+As URLs de caderno continuam ausentes: o modo referência ainda pode abrir
+o gabarito, não o enunciado. Não anunciar experiência completa de prova.
+
+AFA 2026 permanece excluída: em 2026-09-07 a URL anteriormente declarada
+retornou 403 e a consulta de disponibilidade Wayback não encontrou snapshot.
+Isso justifica não ingerir; **não prova inexistência de publicação**. EPCAR
+2026 também não foi ingerida; retiramos a alegação sem evidência de que apenas
+o preliminar existia.
+
+O audit lê todos os snapshots efetivamente usados, não apenas a API que diz
+que uma cópia existe. `origin: blocked-expected` continua não saudável;
+`archive: healthy` exige PDF íntegro e checksum/tamanho iguais. Arquivo quebrado
+reprova mesmo se a origem responder 200. Se a origem voltar, também é
+verificada e seu estado não invalida automaticamente uma cópia histórica.
+A descoberta audita os mesmos dois índices CDX e falha se eles não puderem
+ser lidos. Os resultados de rede são separados da revisão histórica.
+
+Fontes, snapshots, anuladas por versão, hashes e limitações por edição:
+[relatório de validação FAB](fab-validation.md). Evidência legível por máquina:
+`src/lib/providers/fab/evidence.generated.json`. Parser/verificador atual:
+`fab-answer-key@2.1.0`; dataset preservado foi produzido pelo `2.0.0`.
+
+Reprodução (Python com `pypdf`, Node e dependências npm):
+
+```sh
+npm test
+npm run lint
+npm run build
+python scripts/ingest-fab.py --verify-manifest
+npm run sources:audit -- --output .cache/sources-audit.json
+```
+
+`--evidence-output src/lib/providers/fab/evidence.generated.json` grava um novo
+relatório apenas após leitura real; exige os dois providers e todas as edições.
+Não executar esse modo só para renovar datas. A ingestão com `--year` conserva
+as outras edições; qualquer edição recusada impede a escrita daquele provider.
+
+### Pesquisa sem provider
+
+- **UFPR:** PS 2018–PS 2026 foram investigados no [Portal NC da UFPR](https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026).
+  Há versões e documentos preliminares/definitivos, mas a associação final
+  consistente entre prova, versão e gabarito não foi demonstrada. Permanece
+  `research`/bloqueada, sem parser executável.
+- **EEAR:** o [arquivo oficial de provas anteriores](https://ingresso.eear.fab.mil.br/SOO/home/provas_anteriores.php?sigla_conc=%25)
+  reúne cursos, ciclos, códigos e opções diferentes. A associação prova↔chave
+  final não foi fechada com segurança nesta wave; fica documentada para
+  v8.5.4, sem provider.
 
 ### Cobertura verificada do arquivo do ITA
 
@@ -149,5 +237,6 @@ edições — por isso a lista de matérias da 2ª fase depende do ano.
 Ao acrescentar edições, refaça esta conferência antes de anunciar o documento
 na interface. O padrão de nome não é promessa de existência.
 
-Placeholders conceituais para o futuro — **não implementados**: FUVEST, IME,
-AFA, EPCAR, EsPCEx. Cada um exige repetir o passo 2 antes de qualquer estimativa.
+Placeholders conceituais para o futuro — **não implementados**: EEAR,
+UFPR, EsPCEx, ESA. Cada um exige repetir o passo 2 antes de qualquer
+estimativa.
