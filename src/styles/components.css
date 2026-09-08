@@ -129,7 +129,7 @@
   color: var(--danger);
 }
 .el-btn--danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 26%, transparent);
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
   border-color: var(--danger);
 }
 

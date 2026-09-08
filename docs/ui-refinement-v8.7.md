@@ -88,6 +88,9 @@ observadas, incluindo as verificações executadas no CI.
 ## Evidência e limites
 
 - Unitários: 291 testes em 26 arquivos aprovados.
+- Storybook: 30 stories auditadas com axe e fonte Inter; variantes de botão
+  verificadas em repouso e hover nos dois temas. Os contrastes identificados
+  foram corrigidos e as variantes afetadas passaram na nova verificação.
 - Execução local completa de `npm run test:e2e`: 54 testes de acessibilidade,
   26 smoke e 14 de composição/teclado aprovados; dez casos de composição são
   ignorados no projeto mobile porque a mesma matriz já define seus viewports.
