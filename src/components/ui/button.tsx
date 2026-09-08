@@ -5,10 +5,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
 /**
- * Botão do ENEM Lab.
+ * Botão do produto.
  *
- * Glow é reservado para a ação principal — se todo botão brilha, nenhum
- * chama atenção. `secondary`, `outline` e `ghost` usam borda e superfície.
+ * Cor sólida destaca a ação principal; `secondary`, `outline` e `ghost`
+ * compartilham estados discretos de borda e superfície.
  */
 const buttonVariants = cva("el-btn", {
   variants: {

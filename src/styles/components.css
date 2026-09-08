@@ -277,7 +277,8 @@
   border-color: color-mix(in srgb, var(--danger) 36%, transparent);
   background: color-mix(in srgb, var(--danger) 11%, transparent);
 }
-[data-theme="light"] .el-badge--danger {
+[data-theme="light"] .el-badge--danger,
+[data-theme="light"] .el-btn--danger {
   color: color-mix(in srgb, var(--danger) 80%, var(--text-primary));
 }
 .el-badge--info {

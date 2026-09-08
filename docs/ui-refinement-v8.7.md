@@ -64,6 +64,8 @@ de zero, sem sacrificar a leitura do rótulo.
 Números e gráficos aparecem imediatamente. O anel recebe o valor corrente.
 Motion é mantido na entrada discreta da paleta, respeitando reduced motion.
 Skeletons estáticos seguem a composição do conteúdo da Home.
+Storybook carrega a mesma Inter por `next/font`, incluindo a variável usada
+pelos estilos do aplicativo; as stories de controles também cobrem o tema claro.
 
 ## Verificação reproduzível
 
@@ -82,3 +84,20 @@ ganho percentual de performance.
 
 O relatório da PR registra os resultados efetivos dos comandos e limitações
 observadas, incluindo as verificações executadas no CI.
+
+## Evidência e limites
+
+- Unitários: 291 testes em 26 arquivos aprovados.
+- Execução local completa de `npm run test:e2e`: 54 testes de acessibilidade,
+  26 smoke e 14 de composição/teclado aprovados; dez casos de composição são
+  ignorados no projeto mobile porque a mesma matriz já define seus viewports.
+  A execução antecedeu a atualização das referências e apontou 51 diferenças
+  ou ausências de snapshots, sem falha funcional. A comparação final das 52
+  capturas usa o mesmo Chrome/Linux que gera as referências.
+- Os testes axe impedem violações sérias/críticas WCAG A/AA; não constituem
+  certificação completa nem substituem revisão humana com tecnologia assistiva.
+- O build do Storybook mantém o aviso de chunks acima de 500 kB no iframe e
+  axe. Esse aviso pertence à ferramenta de documentação, não ao bundle do app.
+- A folha de integração com telas legadas permanece necessária. Continuar
+  essa migração é manutenção futura; providers, ingestão, SRS e dados ficaram
+  fora desta alteração.
