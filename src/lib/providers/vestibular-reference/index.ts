@@ -49,6 +49,10 @@ export interface ReferenceAnswerKeyRaw {
   revision: "preliminary" | "final" | "rectified";
   answers: Record<string, string>;
   annulled: number[];
+  variantAnswerKeys?: Record<string, {
+    answers: Record<string, string>;
+    annulled: number[];
+  }>;
   variants: ReferenceVariantRaw[];
   answerKeyUrl: string;
   examUrl: string | null;
@@ -76,6 +80,7 @@ export interface ReferenceProviderConfig {
   metadata: ExamMetadata;
   keys: Record<string, ReferenceAnswerKey>;
   defaultLanguage?: string | null;
+  useNamedEditionId?: boolean;
 }
 
 function expandSubject(subject: ReferenceSubjectRaw): ReferenceSubject {
@@ -115,6 +120,31 @@ function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceA
   for (const [number, answer] of Object.entries(raw.answers)) {
     if (!LETTERS.includes(answer as (typeof LETTERS)[number])) {
       errors.push(`q${number} tem alternativa inválida: ${answer}`);
+    }
+  }
+
+  for (const [variantId, variantKey] of Object.entries(raw.variantAnswerKeys ?? {})) {
+    if (!raw.variants.some((variant) => variant.id === variantId)) {
+      errors.push(`gabarito de variante desconhecida: ${variantId}`);
+      continue;
+    }
+    const variantAnswered = new Set(Object.keys(variantKey.answers).map(Number));
+    const variantAnnulled = new Set(variantKey.annulled);
+    for (const number of expected) {
+      if (!variantAnswered.has(number) && !variantAnnulled.has(number)) {
+        errors.push(`${variantId}: questão faltante: ${number}`);
+      }
+    }
+    for (const number of [...variantAnswered, ...variantAnnulled]) {
+      if (!expected.has(number)) errors.push(`${variantId}: questão fora do intervalo: ${number}`);
+    }
+    for (const number of variantAnnulled) {
+      if (variantAnswered.has(number)) errors.push(`${variantId}: questão anulada com resposta: ${number}`);
+    }
+    for (const [number, answer] of Object.entries(variantKey.answers)) {
+      if (!LETTERS.includes(answer as (typeof LETTERS)[number])) {
+        errors.push(`${variantId} q${number} tem alternativa inválida: ${answer}`);
+      }
     }
   }
 
@@ -172,7 +202,7 @@ export function referenceVariants(key: ReferenceAnswerKey): EditionVariants {
 export function referenceQuestionKey(providerId: string, q: NormalizedQuestion): string {
   return buildQuestionKey({
     providerId,
-    editionId: String(q.year),
+    editionId: q.editionId ?? String(q.year),
     phase: q.phase,
     language: q.language,
     number: q.number ?? q.index,
@@ -211,6 +241,7 @@ export function referenceQuestionsForKey(
     return {
       providerId: config.id,
       examId: `${config.id}-${key.edition}-${key.phase}`,
+      editionId: config.useNamedEditionId ? key.edition : undefined,
       year: key.year,
       index: number,
       number,

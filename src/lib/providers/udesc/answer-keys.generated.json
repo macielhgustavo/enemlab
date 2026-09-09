@@ -1,0 +1,5962 @@
+{
+  "2026.2-morning": {
+    "edition": "2026.2",
+    "year": 2026,
+    "label": "Vestibular UDESC 2026.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "2": "B",
+      "3": "A",
+      "4": "B",
+      "5": "E",
+      "6": "D",
+      "7": "C",
+      "8": "A",
+      "10": "E",
+      "11": "A",
+      "12": "B",
+      "13": "C",
+      "14": "D",
+      "15": "B",
+      "16": "B",
+      "17": "C",
+      "18": "D",
+      "19": "A",
+      "20": "A",
+      "21": "C",
+      "22": "E",
+      "23": "E",
+      "24": "C",
+      "25": "E",
+      "26": "B",
+      "27": "D",
+      "28": "A",
+      "29": "B",
+      "30": "C",
+      "31": "D",
+      "32": "B",
+      "33": "C",
+      "34": "A",
+      "35": "E",
+      "36": "A",
+      "37": "E",
+      "38": "C",
+      "39": "A",
+      "40": "C",
+      "41": "A",
+      "42": "D",
+      "43": "D",
+      "44": "C",
+      "45": "D",
+      "46": "E",
+      "47": "B",
+      "48": "B",
+      "49": "A",
+      "50": "B"
+    },
+    "annulled": [
+      9
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Matutino_2026_2_17814818713136_22463.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Matutino_2026_2_17814818713136_22463.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Matutino_2026_2_17814818713136_22463.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "779e3f653454eeb0143f93c76adaa4ec28afcd591e2a352a97bcdd49473e2846",
+      "bytes": 463940,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "D",
+          "2": "B",
+          "3": "A",
+          "4": "B",
+          "5": "E",
+          "6": "D",
+          "7": "C",
+          "8": "A",
+          "10": "E",
+          "11": "A",
+          "12": "B",
+          "13": "C",
+          "14": "D",
+          "15": "B",
+          "16": "B",
+          "17": "C",
+          "18": "D",
+          "19": "A",
+          "20": "A",
+          "21": "C",
+          "22": "E",
+          "23": "E",
+          "24": "C",
+          "25": "E",
+          "26": "B",
+          "27": "D",
+          "28": "A",
+          "29": "D",
+          "30": "A",
+          "31": "B",
+          "32": "E",
+          "33": "C",
+          "34": "B",
+          "35": "C",
+          "36": "A",
+          "37": "E",
+          "38": "C",
+          "39": "A",
+          "40": "C",
+          "41": "A",
+          "42": "D",
+          "43": "D",
+          "44": "C",
+          "45": "D",
+          "46": "E",
+          "47": "B",
+          "48": "B",
+          "49": "A",
+          "50": "B"
+        },
+        "annulled": [
+          9
+        ]
+      }
+    }
+  },
+  "2026.2-afternoon": {
+    "edition": "2026.2",
+    "year": 2026,
+    "label": "Vestibular UDESC 2026.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "15": "A",
+      "29": "A",
+      "40": "C",
+      "2": "C",
+      "16": "B",
+      "30": "C",
+      "41": "A",
+      "3": "B",
+      "17": "C",
+      "31": "B",
+      "42": "A",
+      "4": "C",
+      "18": "E",
+      "32": "D",
+      "43": "E",
+      "5": "E",
+      "19": "A",
+      "33": "E",
+      "44": "D",
+      "6": "D",
+      "20": "E",
+      "34": "D",
+      "45": "E",
+      "7": "B",
+      "21": "D",
+      "35": "A",
+      "46": "B",
+      "8": "E",
+      "22": "B",
+      "36": "B",
+      "47": "B",
+      "9": "A",
+      "23": "D",
+      "37": "C",
+      "48": "C",
+      "10": "A",
+      "24": "E",
+      "11": "C",
+      "25": "B",
+      "12": "D",
+      "26": "C",
+      "13": "B",
+      "27": "C",
+      "38": "E",
+      "49": "D",
+      "28": "A",
+      "39": "A",
+      "50": "A"
+    },
+    "annulled": [
+      14
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Vespertino_2026_2_1781481892914_22463.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Vespertino_2026_2_1781481892914_22463.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          37
+        ]
+      },
+      {
+        "id": "filosofia",
+        "label": "Filosofia",
+        "area": "ciencias-humanas",
+        "range": [
+          38,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          48
+        ]
+      },
+      {
+        "id": "sociologia",
+        "label": "Sociologia",
+        "area": "ciencias-humanas",
+        "range": [
+          49,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "779e3f653454eeb0143f93c76adaa4ec28afcd591e2a352a97bcdd49473e2846",
+      "bytes": 463940,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2026.1-morning": {
+    "edition": "2026.1",
+    "year": 2026,
+    "label": "Vestibular UDESC 2026.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "E",
+      "3": "B",
+      "4": "D",
+      "5": "C",
+      "6": "A",
+      "7": "B",
+      "8": "E",
+      "9": "D",
+      "10": "E",
+      "11": "B",
+      "13": "A",
+      "14": "C",
+      "15": "C",
+      "16": "D",
+      "17": "B",
+      "18": "A",
+      "19": "E",
+      "20": "D",
+      "21": "D",
+      "22": "A",
+      "23": "B",
+      "24": "E",
+      "25": "C",
+      "26": "C",
+      "27": "B",
+      "28": "A",
+      "29": "E",
+      "30": "D",
+      "31": "B",
+      "32": "D",
+      "33": "C",
+      "34": "E",
+      "35": "A",
+      "36": "D",
+      "37": "D",
+      "38": "C",
+      "39": "E",
+      "40": "D",
+      "41": "A",
+      "42": "B",
+      "43": "B",
+      "44": "D",
+      "45": "A",
+      "46": "C",
+      "47": "B",
+      "48": "C",
+      "49": "E",
+      "50": "A"
+    },
+    "annulled": [
+      12
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Matutino_2026_01_1764546991821_21194.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Matutino_2026_01_1764546991821_21194.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Matutino_2026_01_1764546991821_21194.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "26e69110d8cf229f7b12af964c1848296e8751c24f23f6d29a93a99b762daf73",
+      "bytes": 503685,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "E",
+          "3": "B",
+          "4": "D",
+          "5": "C",
+          "6": "A",
+          "7": "B",
+          "8": "E",
+          "9": "D",
+          "10": "E",
+          "11": "B",
+          "13": "A",
+          "14": "C",
+          "15": "C",
+          "16": "D",
+          "17": "B",
+          "18": "A",
+          "19": "E",
+          "20": "D",
+          "21": "D",
+          "22": "A",
+          "23": "B",
+          "24": "E",
+          "25": "C",
+          "26": "C",
+          "27": "B",
+          "28": "A",
+          "29": "B",
+          "30": "C",
+          "31": "A",
+          "32": "E",
+          "33": "A",
+          "34": "C",
+          "35": "D",
+          "36": "D",
+          "37": "D",
+          "38": "C",
+          "39": "E",
+          "40": "D",
+          "41": "A",
+          "42": "B",
+          "43": "B",
+          "44": "D",
+          "45": "A",
+          "46": "C",
+          "47": "B",
+          "48": "C",
+          "49": "E",
+          "50": "A"
+        },
+        "annulled": [
+          12
+        ]
+      }
+    }
+  },
+  "2026.1-afternoon": {
+    "edition": "2026.1",
+    "year": 2026,
+    "label": "Vestibular UDESC 2026.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "15": "C",
+      "29": "A",
+      "40": "A",
+      "2": "C",
+      "16": "A",
+      "30": "C",
+      "41": "B",
+      "3": "E",
+      "31": "E",
+      "42": "E",
+      "4": "A",
+      "18": "D",
+      "32": "C",
+      "43": "E",
+      "5": "B",
+      "19": "A",
+      "33": "B",
+      "44": "D",
+      "6": "E",
+      "20": "B",
+      "34": "A",
+      "45": "C",
+      "7": "A",
+      "21": "D",
+      "35": "B",
+      "46": "B",
+      "8": "C",
+      "22": "C",
+      "36": "D",
+      "47": "E",
+      "9": "B",
+      "23": "B",
+      "37": "E",
+      "48": "B",
+      "10": "D",
+      "24": "A",
+      "11": "B",
+      "25": "E",
+      "12": "D",
+      "26": "E",
+      "13": "A",
+      "27": "B",
+      "38": "C",
+      "49": "A",
+      "14": "C",
+      "28": "D",
+      "39": "B",
+      "50": "D"
+    },
+    "annulled": [
+      17
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Vespertino_2026_01_17645470086405_21194.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Vespertino_2026_01_17645470086405_21194.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          37
+        ]
+      },
+      {
+        "id": "filosofia",
+        "label": "Filosofia",
+        "area": "ciencias-humanas",
+        "range": [
+          38,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          48
+        ]
+      },
+      {
+        "id": "sociologia",
+        "label": "Sociologia",
+        "area": "ciencias-humanas",
+        "range": [
+          49,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "26e69110d8cf229f7b12af964c1848296e8751c24f23f6d29a93a99b762daf73",
+      "bytes": 503685,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2025.2-morning": {
+    "edition": "2025.2",
+    "year": 2025,
+    "label": "Vestibular UDESC 2025.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "C",
+      "3": "A",
+      "4": "E",
+      "5": "D",
+      "6": "B",
+      "7": "A",
+      "8": "D",
+      "9": "B",
+      "10": "E",
+      "11": "E",
+      "13": "B",
+      "14": "D",
+      "15": "A",
+      "16": "C",
+      "17": "A",
+      "18": "E",
+      "19": "C",
+      "20": "E",
+      "21": "C",
+      "22": "D",
+      "23": "D",
+      "24": "B",
+      "25": "A",
+      "26": "D",
+      "27": "B",
+      "28": "B",
+      "29": "C",
+      "30": "B",
+      "31": "C",
+      "32": "A",
+      "33": "A",
+      "34": "E",
+      "35": "D",
+      "36": "B",
+      "37": "C",
+      "38": "D",
+      "40": "A",
+      "41": "D",
+      "42": "B",
+      "43": "C",
+      "44": "D",
+      "45": "D",
+      "46": "A",
+      "47": "E",
+      "48": "B",
+      "49": "C",
+      "50": "E"
+    },
+    "annulled": [
+      12,
+      39
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Matutino_2025_2___site_17500321187953_20080.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Matutino_2025_2___site_17500321187953_20080.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Matutino_2025_2___site_17500321187953_20080.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a313df2141524b2ca236476134354f0e0b6863bf11e39c9e3087c8daf8bb28a6",
+      "bytes": 222123,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "C",
+          "2": "C",
+          "3": "A",
+          "4": "E",
+          "5": "D",
+          "6": "B",
+          "7": "A",
+          "8": "D",
+          "9": "B",
+          "10": "E",
+          "11": "E",
+          "13": "B",
+          "14": "D",
+          "15": "A",
+          "16": "C",
+          "17": "A",
+          "18": "E",
+          "19": "C",
+          "20": "E",
+          "21": "C",
+          "22": "D",
+          "23": "D",
+          "24": "B",
+          "25": "A",
+          "26": "D",
+          "27": "B",
+          "28": "B",
+          "29": "A",
+          "30": "E",
+          "31": "C",
+          "32": "B",
+          "33": "B",
+          "34": "C",
+          "35": "D",
+          "36": "A",
+          "37": "C",
+          "38": "D",
+          "40": "A",
+          "41": "D",
+          "42": "B",
+          "43": "C",
+          "44": "D",
+          "45": "D",
+          "46": "A",
+          "47": "E",
+          "48": "B",
+          "49": "C",
+          "50": "E"
+        },
+        "annulled": [
+          12,
+          39
+        ]
+      }
+    }
+  },
+  "2025.2-afternoon": {
+    "edition": "2025.2",
+    "year": 2025,
+    "label": "Vestibular UDESC 2025.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "15": "B",
+      "29": "E",
+      "40": "A",
+      "2": "D",
+      "16": "D",
+      "30": "D",
+      "41": "D",
+      "3": "A",
+      "17": "B",
+      "31": "D",
+      "42": "E",
+      "4": "E",
+      "18": "E",
+      "32": "A",
+      "43": "C",
+      "5": "A",
+      "19": "C",
+      "33": "C",
+      "44": "A",
+      "6": "B",
+      "20": "A",
+      "34": "E",
+      "45": "B",
+      "7": "D",
+      "35": "A",
+      "46": "E",
+      "8": "E",
+      "22": "B",
+      "36": "A",
+      "47": "C",
+      "9": "C",
+      "23": "A",
+      "37": "C",
+      "48": "B",
+      "24": "A",
+      "38": "B",
+      "49": "C",
+      "11": "E",
+      "25": "D",
+      "39": "B",
+      "50": "D",
+      "12": "C",
+      "26": "C",
+      "13": "B",
+      "27": "E",
+      "14": "B",
+      "28": "E"
+    },
+    "annulled": [
+      10,
+      21
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Vespertino_2025_2___site_17500321870438_20080.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Vespertino_2025_2___site_17500321870438_20080.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a313df2141524b2ca236476134354f0e0b6863bf11e39c9e3087c8daf8bb28a6",
+      "bytes": 222123,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2025.1-morning": {
+    "edition": "2025.1",
+    "year": 2025,
+    "label": "Vestibular UDESC 2025.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "A",
+      "3": "B",
+      "4": "D",
+      "5": "B",
+      "6": "E",
+      "7": "C",
+      "8": "C",
+      "9": "D",
+      "10": "D",
+      "11": "E",
+      "12": "C",
+      "13": "A",
+      "14": "E",
+      "15": "D",
+      "16": "A",
+      "17": "A",
+      "18": "E",
+      "19": "C",
+      "20": "B",
+      "21": "E",
+      "22": "B",
+      "23": "C",
+      "24": "D",
+      "25": "E",
+      "26": "C",
+      "27": "B",
+      "28": "D",
+      "29": "B",
+      "30": "C",
+      "31": "A",
+      "32": "E",
+      "33": "A",
+      "34": "D",
+      "35": "C",
+      "36": "B",
+      "37": "C",
+      "38": "D",
+      "39": "A",
+      "40": "A",
+      "41": "E",
+      "42": "B",
+      "43": "C",
+      "44": "B",
+      "45": "D",
+      "46": "D",
+      "47": "E",
+      "48": "A",
+      "49": "A",
+      "50": "B"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Prova_Matutino_2025_17406859895959_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Prova_Matutino_2025_17406859895959_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Prova_Matutino_2025_17406859895959_17918.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "4d1ea5b16b767c661f90a7ccbe39428cc3c1f04b35390d8766847c452e7e7570",
+      "bytes": 489524,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "A",
+          "3": "B",
+          "4": "D",
+          "5": "B",
+          "6": "E",
+          "7": "C",
+          "8": "C",
+          "9": "D",
+          "10": "D",
+          "11": "E",
+          "12": "C",
+          "13": "A",
+          "14": "E",
+          "15": "D",
+          "16": "A",
+          "17": "A",
+          "18": "E",
+          "19": "C",
+          "20": "B",
+          "21": "E",
+          "22": "B",
+          "23": "C",
+          "24": "D",
+          "25": "E",
+          "26": "C",
+          "27": "B",
+          "28": "D",
+          "29": "A",
+          "30": "C",
+          "31": "B",
+          "32": "C",
+          "33": "B",
+          "34": "D",
+          "35": "A",
+          "36": "E",
+          "37": "C",
+          "38": "D",
+          "39": "A",
+          "40": "A",
+          "41": "E",
+          "42": "B",
+          "43": "C",
+          "44": "B",
+          "45": "D",
+          "46": "D",
+          "47": "E",
+          "48": "A",
+          "49": "A",
+          "50": "B"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2025.1-afternoon": {
+    "edition": "2025.1",
+    "year": 2025,
+    "label": "Vestibular UDESC 2025.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "15": "E",
+      "29": "A",
+      "40": "E",
+      "2": "C",
+      "16": "B",
+      "30": "B",
+      "41": "C",
+      "3": "B",
+      "17": "B",
+      "31": "A",
+      "42": "E",
+      "4": "A",
+      "18": "A",
+      "43": "A",
+      "5": "D",
+      "19": "E",
+      "33": "D",
+      "44": "B",
+      "6": "C",
+      "20": "B",
+      "34": "E",
+      "45": "A",
+      "7": "C",
+      "21": "C",
+      "35": "C",
+      "46": "E",
+      "8": "D",
+      "22": "C",
+      "36": "E",
+      "47": "E",
+      "9": "E",
+      "37": "C",
+      "48": "B",
+      "10": "B",
+      "24": "A",
+      "38": "A",
+      "49": "E",
+      "11": "B",
+      "25": "D",
+      "39": "B",
+      "50": "B",
+      "12": "C",
+      "26": "C",
+      "13": "D",
+      "27": "A",
+      "14": "B",
+      "28": "E"
+    },
+    "annulled": [
+      23,
+      32
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Caderno_de_Prova_2025_1___Vespertino_17406860472788_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Caderno_de_Prova_2025_1___Vespertino_17406860472788_17918.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "4d1ea5b16b767c661f90a7ccbe39428cc3c1f04b35390d8766847c452e7e7570",
+      "bytes": 489524,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2024.2-morning": {
+    "edition": "2024.2",
+    "year": 2024,
+    "label": "Vestibular UDESC 2024.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "D",
+      "3": "D",
+      "4": "C",
+      "6": "E",
+      "7": "B",
+      "8": "B",
+      "9": "E",
+      "10": "C",
+      "11": "D",
+      "13": "A",
+      "14": "A",
+      "15": "C",
+      "16": "B",
+      "17": "E",
+      "18": "B",
+      "19": "C",
+      "20": "E",
+      "21": "A",
+      "22": "D",
+      "23": "D",
+      "24": "A",
+      "25": "B",
+      "27": "E",
+      "28": "A",
+      "29": "D",
+      "30": "E",
+      "31": "C",
+      "32": "B",
+      "33": "A",
+      "34": "B",
+      "35": "C",
+      "36": "A",
+      "37": "C",
+      "38": "B",
+      "39": "D",
+      "40": "A",
+      "41": "D",
+      "42": "A",
+      "43": "E",
+      "44": "C",
+      "45": "D",
+      "46": "B",
+      "47": "E",
+      "48": "B",
+      "49": "D",
+      "50": "C"
+    },
+    "annulled": [
+      5,
+      12,
+      26
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/3___Caderno_de_Prova_2024_2___Per_odo_Matutino_pb_17249513205108_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/3___Caderno_de_Prova_2024_2___Per_odo_Matutino_pb_17249513205108_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/3___Caderno_de_Prova_2024_2___Per_odo_Matutino_pb_17249513205108_17918.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "ae96345f3e1d785755066e93612d7e8d52441b6e149962d2b97f0a0e297afd68",
+      "bytes": 120870,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "D",
+          "3": "D",
+          "4": "C",
+          "6": "E",
+          "7": "B",
+          "8": "B",
+          "9": "E",
+          "10": "C",
+          "11": "D",
+          "13": "A",
+          "14": "A",
+          "15": "C",
+          "16": "B",
+          "17": "E",
+          "18": "B",
+          "19": "C",
+          "20": "E",
+          "21": "A",
+          "22": "D",
+          "23": "D",
+          "24": "A",
+          "25": "B",
+          "27": "E",
+          "28": "A",
+          "29": "A",
+          "30": "D",
+          "31": "E",
+          "32": "A",
+          "33": "C",
+          "34": "C",
+          "35": "B",
+          "36": "B",
+          "37": "C",
+          "38": "B",
+          "39": "D",
+          "40": "A",
+          "41": "D",
+          "42": "A",
+          "43": "E",
+          "44": "C",
+          "45": "D",
+          "46": "B",
+          "47": "E",
+          "48": "B",
+          "49": "D",
+          "50": "C"
+        },
+        "annulled": [
+          5,
+          12,
+          26
+        ]
+      }
+    }
+  },
+  "2024.2-afternoon": {
+    "edition": "2024.2",
+    "year": 2024,
+    "label": "Vestibular UDESC 2024.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "15": "E",
+      "29": "A",
+      "40": "B",
+      "2": "D",
+      "16": "C",
+      "30": "C",
+      "41": "C",
+      "3": "B",
+      "17": "A",
+      "31": "B",
+      "42": "E",
+      "4": "A",
+      "18": "B",
+      "32": "A",
+      "43": "A",
+      "5": "C",
+      "19": "E",
+      "33": "D",
+      "44": "D",
+      "6": "C",
+      "34": "B",
+      "45": "B",
+      "7": "A",
+      "21": "C",
+      "35": "D",
+      "46": "D",
+      "8": "C",
+      "22": "D",
+      "47": "A",
+      "9": "E",
+      "23": "A",
+      "37": "C",
+      "48": "E",
+      "24": "B",
+      "38": "D",
+      "49": "C",
+      "11": "D",
+      "25": "B",
+      "39": "E",
+      "50": "E",
+      "12": "B",
+      "26": "D",
+      "13": "D",
+      "27": "A",
+      "14": "E",
+      "28": "D"
+    },
+    "annulled": [
+      10,
+      20,
+      36
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/4___Caderno_de_Prova_2024_2___Per_odo_Vespertino_pb_17249514263672_17918.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/4___Caderno_de_Prova_2024_2___Per_odo_Vespertino_pb_17249514263672_17918.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "ae96345f3e1d785755066e93612d7e8d52441b6e149962d2b97f0a0e297afd68",
+      "bytes": 120870,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2024.1-morning": {
+    "edition": "2024.1",
+    "year": 2024,
+    "label": "Vestibular UDESC 2024.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "D",
+      "3": "E",
+      "4": "A",
+      "5": "A",
+      "6": "B",
+      "7": "E",
+      "8": "A",
+      "9": "A",
+      "10": "D",
+      "11": "B",
+      "12": "C",
+      "13": "B",
+      "14": "A",
+      "15": "E",
+      "16": "D",
+      "17": "B",
+      "18": "A",
+      "19": "D",
+      "20": "C",
+      "21": "E",
+      "22": "A",
+      "23": "B",
+      "24": "D",
+      "25": "D",
+      "26": "C",
+      "27": "E",
+      "28": "B",
+      "29": "A",
+      "30": "C",
+      "31": "C",
+      "32": "B",
+      "33": "E",
+      "34": "E",
+      "35": "D",
+      "36": "A",
+      "37": "C",
+      "38": "E",
+      "40": "B",
+      "41": "C",
+      "42": "A",
+      "43": "E",
+      "44": "D",
+      "45": "B",
+      "46": "E",
+      "47": "B",
+      "48": "C",
+      "49": "E",
+      "50": "A"
+    },
+    "annulled": [
+      39
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Matutino_17133860755826_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Matutino_17133860755826_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Matutino_17133860755826_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "49f4395f74439b0489a68a9a946786c5e816ee430cfebbb292095eaa01dca90c",
+      "bytes": 168565,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "C",
+          "2": "D",
+          "3": "E",
+          "4": "A",
+          "5": "A",
+          "6": "B",
+          "7": "E",
+          "8": "A",
+          "9": "A",
+          "10": "D",
+          "11": "B",
+          "12": "C",
+          "13": "B",
+          "14": "A",
+          "15": "E",
+          "16": "D",
+          "17": "B",
+          "18": "A",
+          "19": "D",
+          "20": "C",
+          "21": "E",
+          "22": "A",
+          "23": "B",
+          "24": "D",
+          "25": "D",
+          "26": "C",
+          "27": "E",
+          "28": "B",
+          "29": "B",
+          "30": "D",
+          "31": "E",
+          "32": "A",
+          "33": "D",
+          "34": "C",
+          "35": "A",
+          "36": "B",
+          "37": "C",
+          "38": "E",
+          "40": "B",
+          "41": "C",
+          "42": "A",
+          "43": "E",
+          "44": "D",
+          "45": "B",
+          "46": "E",
+          "47": "B",
+          "48": "C",
+          "49": "E",
+          "50": "A"
+        },
+        "annulled": [
+          39
+        ]
+      }
+    }
+  },
+  "2024.1-afternoon": {
+    "edition": "2024.1",
+    "year": 2024,
+    "label": "Vestibular UDESC 2024.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "15": "C",
+      "29": "A",
+      "40": "E",
+      "2": "D",
+      "16": "D",
+      "30": "E",
+      "41": "C",
+      "3": "E",
+      "17": "A",
+      "31": "C",
+      "42": "B",
+      "4": "A",
+      "18": "E",
+      "32": "A",
+      "43": "A",
+      "5": "E",
+      "19": "B",
+      "33": "B",
+      "44": "E",
+      "6": "B",
+      "20": "A",
+      "34": "E",
+      "45": "C",
+      "7": "E",
+      "21": "D",
+      "35": "B",
+      "46": "B",
+      "8": "D",
+      "22": "E",
+      "36": "D",
+      "47": "D",
+      "9": "D",
+      "23": "C",
+      "37": "A",
+      "48": "E",
+      "10": "C",
+      "24": "B",
+      "38": "C",
+      "49": "C",
+      "11": "B",
+      "25": "B",
+      "39": "A",
+      "50": "D",
+      "26": "C",
+      "13": "A",
+      "27": "D",
+      "14": "B",
+      "28": "D"
+    },
+    "annulled": [
+      12
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Vespertino_17133860756063_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Vespertino_17133860756063_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "49f4395f74439b0489a68a9a946786c5e816ee430cfebbb292095eaa01dca90c",
+      "bytes": 168565,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2023.2-morning": {
+    "edition": "2023.2",
+    "year": 2023,
+    "label": "Vestibular UDESC 2023.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "D",
+      "3": "B",
+      "4": "E",
+      "5": "C",
+      "6": "A",
+      "7": "A",
+      "8": "C",
+      "9": "E",
+      "10": "D",
+      "11": "A",
+      "12": "B",
+      "13": "B",
+      "14": "D",
+      "15": "A",
+      "16": "B",
+      "17": "E",
+      "18": "D",
+      "19": "C",
+      "20": "C",
+      "21": "A",
+      "22": "B",
+      "23": "D",
+      "24": "D",
+      "25": "E",
+      "26": "A",
+      "27": "D",
+      "28": "C",
+      "29": "C",
+      "30": "A",
+      "31": "E",
+      "32": "E",
+      "33": "B",
+      "34": "A",
+      "35": "C",
+      "36": "D",
+      "37": "E",
+      "38": "A",
+      "39": "A",
+      "40": "C",
+      "41": "A",
+      "42": "B",
+      "43": "C",
+      "44": "C",
+      "45": "E",
+      "46": "B",
+      "47": "D",
+      "48": "E",
+      "49": "B",
+      "50": "B"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Matutino_17134616047708_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Matutino_17134616047708_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Matutino_17134616047708_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "2bb8b7f313331b8eca0371d7686e1fc5a78d6a4b68c7eb44c7781658d6c7863d",
+      "bytes": 168041,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "C",
+          "2": "D",
+          "3": "B",
+          "4": "E",
+          "5": "C",
+          "6": "A",
+          "7": "A",
+          "8": "C",
+          "9": "E",
+          "10": "D",
+          "11": "A",
+          "12": "B",
+          "13": "B",
+          "14": "D",
+          "15": "A",
+          "16": "B",
+          "17": "E",
+          "18": "D",
+          "19": "C",
+          "20": "C",
+          "21": "A",
+          "22": "B",
+          "23": "D",
+          "24": "D",
+          "25": "E",
+          "26": "A",
+          "27": "D",
+          "28": "C",
+          "29": "D",
+          "30": "E",
+          "31": "B",
+          "32": "A",
+          "33": "A",
+          "34": "C",
+          "35": "D",
+          "36": "D",
+          "37": "E",
+          "38": "A",
+          "39": "A",
+          "40": "C",
+          "41": "A",
+          "42": "B",
+          "43": "C",
+          "44": "C",
+          "45": "E",
+          "46": "B",
+          "47": "D",
+          "48": "E",
+          "49": "B",
+          "50": "B"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2023.2-afternoon": {
+    "edition": "2023.2",
+    "year": 2023,
+    "label": "Vestibular UDESC 2023.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "15": "C",
+      "29": "E",
+      "40": "C",
+      "2": "A",
+      "16": "A",
+      "30": "D",
+      "41": "B",
+      "3": "C",
+      "17": "C",
+      "31": "B",
+      "42": "A",
+      "4": "C",
+      "18": "A",
+      "32": "B",
+      "43": "A",
+      "5": "A",
+      "19": "D",
+      "44": "C",
+      "6": "B",
+      "20": "B",
+      "34": "D",
+      "45": "C",
+      "7": "D",
+      "21": "D",
+      "35": "E",
+      "46": "C",
+      "8": "E",
+      "22": "C",
+      "36": "B",
+      "47": "B",
+      "9": "A",
+      "23": "E",
+      "37": "A",
+      "10": "C",
+      "24": "E",
+      "38": "D",
+      "49": "D",
+      "11": "E",
+      "25": "C",
+      "39": "C",
+      "50": "C",
+      "12": "D",
+      "26": "B",
+      "13": "A",
+      "27": "A",
+      "14": "B",
+      "28": "A"
+    },
+    "annulled": [
+      33,
+      48
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Vespertino_17134616047721_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Vespertino_17134616047721_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "2bb8b7f313331b8eca0371d7686e1fc5a78d6a4b68c7eb44c7781658d6c7863d",
+      "bytes": 168041,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2020.1-morning": {
+    "edition": "2020.1",
+    "year": 2020,
+    "label": "Vestibular UDESC 2020.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "B",
+      "3": "C",
+      "4": "A",
+      "5": "B",
+      "6": "B",
+      "7": "E",
+      "8": "A",
+      "9": "A",
+      "10": "D",
+      "11": "B",
+      "12": "C",
+      "13": "C",
+      "14": "A",
+      "15": "A",
+      "16": "C",
+      "17": "C",
+      "18": "E",
+      "19": "E",
+      "20": "D",
+      "21": "B",
+      "22": "B",
+      "23": "A",
+      "24": "C",
+      "25": "A",
+      "26": "A",
+      "27": "A",
+      "28": "D",
+      "29": "B",
+      "30": "E",
+      "31": "D",
+      "32": "A",
+      "33": "A",
+      "34": "C",
+      "35": "E",
+      "36": "E",
+      "37": "A",
+      "38": "B",
+      "39": "C",
+      "40": "C",
+      "41": "D",
+      "42": "D",
+      "43": "E",
+      "44": "B",
+      "45": "A",
+      "46": "E",
+      "47": "B",
+      "48": "B",
+      "49": "A",
+      "50": "C"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_matutino_17134616792436_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_matutino_17134616792436_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_matutino_17134616792436_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "fd9931652bc5b506eb4d0d06b5f142a20c6943f3215ac8c19d591646e39ba4da",
+      "bytes": 385255,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "E",
+          "2": "B",
+          "3": "C",
+          "4": "A",
+          "5": "B",
+          "6": "B",
+          "7": "E",
+          "8": "A",
+          "9": "A",
+          "10": "D",
+          "11": "B",
+          "12": "C",
+          "13": "C",
+          "14": "A",
+          "15": "A",
+          "16": "C",
+          "17": "C",
+          "18": "E",
+          "19": "E",
+          "20": "D",
+          "21": "B",
+          "22": "B",
+          "23": "A",
+          "24": "C",
+          "25": "A",
+          "26": "A",
+          "27": "A",
+          "28": "D",
+          "29": "B",
+          "30": "B",
+          "31": "C",
+          "32": "C",
+          "33": "A",
+          "34": "E",
+          "35": "E",
+          "36": "B",
+          "37": "A",
+          "38": "B",
+          "39": "C",
+          "40": "C",
+          "41": "D",
+          "42": "D",
+          "43": "E",
+          "44": "B",
+          "45": "A",
+          "46": "E",
+          "47": "B",
+          "48": "B",
+          "49": "A",
+          "50": "C"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2020.1-afternoon": {
+    "edition": "2020.1",
+    "year": 2020,
+    "label": "Vestibular UDESC 2020.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "A",
+      "3": "E",
+      "4": "B",
+      "5": "B",
+      "6": "C",
+      "7": "A",
+      "8": "B",
+      "9": "C",
+      "10": "E",
+      "11": "D",
+      "12": "E",
+      "13": "B",
+      "14": "B",
+      "15": "B",
+      "16": "B",
+      "17": "A",
+      "18": "A",
+      "19": "C",
+      "20": "C",
+      "21": "E",
+      "22": "E",
+      "23": "D",
+      "24": "C",
+      "25": "B",
+      "26": "A",
+      "27": "B",
+      "28": "D",
+      "29": "B",
+      "30": "B",
+      "31": "C",
+      "32": "A",
+      "33": "E",
+      "34": "E",
+      "35": "A",
+      "36": "C",
+      "37": "C",
+      "38": "B",
+      "39": "A",
+      "40": "A",
+      "41": "A",
+      "42": "E",
+      "43": "E",
+      "44": "C",
+      "45": "B",
+      "46": "C",
+      "48": "E",
+      "49": "E",
+      "50": "E"
+    },
+    "annulled": [
+      47
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_Vespertino_1713461679245_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_Vespertino_1713461679245_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "fd9931652bc5b506eb4d0d06b5f142a20c6943f3215ac8c19d591646e39ba4da",
+      "bytes": 385255,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2019.2-morning": {
+    "edition": "2019.2",
+    "year": 2019,
+    "label": "Vestibular UDESC 2019.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "B",
+      "3": "A",
+      "4": "B",
+      "5": "E",
+      "6": "D",
+      "7": "C",
+      "9": "A",
+      "10": "A",
+      "11": "E",
+      "12": "E",
+      "13": "B",
+      "14": "A",
+      "15": "E",
+      "16": "C",
+      "17": "A",
+      "18": "B",
+      "19": "B",
+      "20": "D",
+      "21": "C",
+      "22": "A",
+      "23": "B",
+      "24": "A",
+      "25": "A",
+      "26": "E",
+      "27": "E",
+      "28": "D",
+      "29": "B",
+      "30": "E",
+      "31": "A",
+      "32": "C",
+      "33": "A",
+      "34": "B",
+      "35": "E",
+      "36": "A",
+      "37": "B",
+      "38": "A",
+      "39": "E",
+      "40": "C",
+      "41": "C",
+      "42": "E",
+      "44": "B",
+      "45": "B",
+      "46": "D",
+      "47": "D",
+      "48": "A",
+      "49": "E",
+      "50": "A"
+    },
+    "annulled": [
+      8,
+      43
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Matutino_17134618294506_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Matutino_17134618294506_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Matutino_17134618294506_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "4f15160e97c95f7efa3065a268eea8b81bd527f4b554af1cfd31ca85ed1ef799",
+      "bytes": 387818,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "E",
+          "2": "B",
+          "3": "A",
+          "4": "B",
+          "5": "E",
+          "6": "D",
+          "7": "C",
+          "9": "A",
+          "10": "A",
+          "11": "E",
+          "12": "E",
+          "13": "B",
+          "14": "A",
+          "15": "E",
+          "16": "C",
+          "17": "A",
+          "18": "B",
+          "19": "B",
+          "20": "D",
+          "21": "C",
+          "22": "A",
+          "23": "B",
+          "24": "A",
+          "25": "A",
+          "26": "E",
+          "27": "E",
+          "28": "D",
+          "29": "C",
+          "30": "E",
+          "31": "E",
+          "32": "D",
+          "33": "A",
+          "34": "E",
+          "35": "B",
+          "36": "B",
+          "37": "B",
+          "38": "A",
+          "39": "E",
+          "40": "C",
+          "41": "C",
+          "42": "E",
+          "44": "B",
+          "45": "B",
+          "46": "D",
+          "47": "D",
+          "48": "A",
+          "49": "E",
+          "50": "A"
+        },
+        "annulled": [
+          8,
+          43
+        ]
+      }
+    }
+  },
+  "2019.2-afternoon": {
+    "edition": "2019.2",
+    "year": 2019,
+    "label": "Vestibular UDESC 2019.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "E",
+      "3": "D",
+      "4": "D",
+      "5": "A",
+      "6": "C",
+      "7": "C",
+      "8": "E",
+      "9": "B",
+      "10": "A",
+      "11": "C",
+      "12": "D",
+      "13": "A",
+      "14": "A",
+      "15": "E",
+      "16": "E",
+      "17": "B",
+      "18": "D",
+      "19": "A",
+      "20": "E",
+      "21": "E",
+      "22": "C",
+      "23": "E",
+      "24": "B",
+      "25": "B",
+      "26": "A",
+      "27": "B",
+      "28": "A",
+      "29": "A",
+      "30": "B",
+      "31": "C",
+      "32": "E",
+      "33": "D",
+      "34": "E",
+      "35": "A",
+      "36": "A",
+      "37": "C",
+      "38": "B",
+      "39": "B",
+      "40": "D",
+      "41": "A",
+      "42": "C",
+      "43": "A",
+      "44": "E",
+      "45": "E",
+      "46": "D",
+      "47": "A",
+      "48": "C",
+      "49": "C",
+      "50": "B"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Vespertino_17134618294521_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Vespertino_17134618294521_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "4f15160e97c95f7efa3065a268eea8b81bd527f4b554af1cfd31ca85ed1ef799",
+      "bytes": 387818,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2019.1-morning": {
+    "edition": "2019.1",
+    "year": 2019,
+    "label": "Vestibular UDESC 2019.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "B",
+      "3": "E",
+      "5": "C",
+      "6": "E",
+      "8": "D",
+      "9": "E",
+      "10": "B",
+      "11": "D",
+      "12": "A",
+      "13": "B",
+      "14": "C",
+      "15": "E",
+      "16": "C",
+      "17": "E",
+      "18": "B",
+      "19": "A",
+      "20": "D",
+      "21": "A",
+      "22": "E",
+      "23": "B",
+      "24": "C",
+      "25": "C",
+      "26": "A",
+      "27": "D",
+      "28": "D",
+      "29": "B",
+      "30": "E",
+      "31": "C",
+      "32": "A",
+      "33": "B",
+      "35": "C",
+      "36": "D",
+      "37": "C",
+      "38": "B",
+      "39": "D",
+      "40": "D",
+      "41": "D",
+      "42": "C",
+      "43": "A",
+      "44": "B",
+      "45": "D",
+      "46": "A",
+      "47": "C",
+      "48": "E",
+      "49": "A",
+      "50": "B"
+    },
+    "annulled": [
+      4,
+      7,
+      34
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Matutino_17134619012318_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Matutino_17134619012318_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Matutino_17134619012318_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "663f09d3f7bad3279e38d6a86b01b471291e5dfbc9dbc9381ad950c6707850ab",
+      "bytes": 494203,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "E",
+          "2": "B",
+          "3": "E",
+          "5": "C",
+          "6": "E",
+          "8": "D",
+          "9": "E",
+          "10": "B",
+          "11": "D",
+          "12": "A",
+          "13": "B",
+          "14": "C",
+          "15": "E",
+          "16": "C",
+          "17": "E",
+          "18": "B",
+          "19": "A",
+          "20": "D",
+          "21": "A",
+          "22": "E",
+          "23": "B",
+          "24": "C",
+          "25": "C",
+          "26": "A",
+          "27": "D",
+          "28": "D",
+          "30": "D",
+          "31": "B",
+          "32": "E",
+          "33": "C",
+          "34": "D",
+          "35": "C",
+          "36": "A",
+          "37": "C",
+          "38": "B",
+          "39": "D",
+          "40": "D",
+          "41": "D",
+          "42": "C",
+          "43": "A",
+          "44": "B",
+          "45": "D",
+          "46": "A",
+          "47": "C",
+          "48": "E",
+          "49": "A",
+          "50": "B"
+        },
+        "annulled": [
+          4,
+          7,
+          29
+        ]
+      }
+    }
+  },
+  "2019.1-afternoon": {
+    "edition": "2019.1",
+    "year": 2019,
+    "label": "Vestibular UDESC 2019.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "2": "D",
+      "3": "E",
+      "4": "B",
+      "5": "A",
+      "6": "B",
+      "7": "D",
+      "8": "A",
+      "10": "E",
+      "11": "D",
+      "12": "E",
+      "13": "B",
+      "14": "C",
+      "15": "A",
+      "16": "D",
+      "17": "A",
+      "18": "E",
+      "19": "C",
+      "20": "B",
+      "21": "E",
+      "22": "A",
+      "23": "D",
+      "24": "B",
+      "25": "C",
+      "26": "E",
+      "27": "A",
+      "28": "D",
+      "29": "E",
+      "30": "B",
+      "31": "E",
+      "32": "D",
+      "33": "C",
+      "34": "C",
+      "35": "A",
+      "36": "B",
+      "37": "B",
+      "38": "B",
+      "39": "C",
+      "40": "D",
+      "41": "A",
+      "42": "E",
+      "43": "B",
+      "44": "E",
+      "45": "E",
+      "46": "A",
+      "47": "D",
+      "48": "E",
+      "49": "B",
+      "50": "E"
+    },
+    "annulled": [
+      1,
+      9
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Vespertino_17134619012333_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Vespertino_17134619012333_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "663f09d3f7bad3279e38d6a86b01b471291e5dfbc9dbc9381ad950c6707850ab",
+      "bytes": 494203,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2018.2-morning": {
+    "edition": "2018.2",
+    "year": 2018,
+    "label": "Vestibular UDESC 2018.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "A",
+      "3": "C",
+      "4": "B",
+      "5": "C",
+      "6": "D",
+      "7": "D",
+      "8": "A",
+      "9": "A",
+      "10": "B",
+      "11": "D",
+      "12": "E",
+      "13": "E",
+      "14": "A",
+      "15": "A",
+      "16": "B",
+      "17": "B",
+      "18": "D",
+      "19": "E",
+      "20": "E",
+      "21": "E",
+      "22": "B",
+      "23": "A",
+      "24": "A",
+      "25": "E",
+      "27": "C",
+      "28": "E",
+      "29": "A",
+      "30": "C",
+      "31": "D",
+      "32": "B",
+      "33": "A",
+      "34": "B",
+      "35": "D",
+      "36": "E",
+      "37": "C",
+      "38": "D",
+      "39": "A",
+      "40": "C",
+      "41": "A",
+      "42": "B",
+      "43": "D",
+      "44": "C",
+      "45": "B",
+      "46": "A",
+      "47": "D",
+      "48": "D",
+      "49": "A",
+      "50": "C"
+    },
+    "annulled": [
+      26
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Matutino_17134619632193_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Matutino_17134619632193_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Matutino_17134619632193_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "78f841477c142ad4bbf816e2b7174717c1c35ab9189b8b880ad3149cd9279cd6",
+      "bytes": 307557,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "A",
+          "3": "C",
+          "4": "B",
+          "5": "C",
+          "6": "D",
+          "7": "D",
+          "8": "A",
+          "9": "A",
+          "10": "B",
+          "11": "D",
+          "12": "E",
+          "13": "E",
+          "14": "A",
+          "15": "A",
+          "16": "B",
+          "17": "B",
+          "18": "D",
+          "19": "E",
+          "20": "E",
+          "21": "E",
+          "22": "B",
+          "23": "A",
+          "24": "A",
+          "25": "E",
+          "27": "C",
+          "28": "E",
+          "29": "C",
+          "30": "D",
+          "31": "A",
+          "32": "E",
+          "33": "A",
+          "34": "A",
+          "35": "B",
+          "36": "C",
+          "37": "C",
+          "38": "D",
+          "39": "A",
+          "40": "C",
+          "41": "A",
+          "42": "B",
+          "43": "D",
+          "44": "C",
+          "45": "B",
+          "46": "A",
+          "47": "D",
+          "48": "D",
+          "49": "A",
+          "50": "C"
+        },
+        "annulled": [
+          26
+        ]
+      }
+    }
+  },
+  "2018.2-afternoon": {
+    "edition": "2018.2",
+    "year": 2018,
+    "label": "Vestibular UDESC 2018.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "2": "A",
+      "3": "E",
+      "4": "B",
+      "5": "C",
+      "6": "A",
+      "7": "C",
+      "8": "E",
+      "9": "D",
+      "10": "C",
+      "11": "D",
+      "12": "B",
+      "13": "B",
+      "14": "A",
+      "15": "D",
+      "16": "A",
+      "17": "B",
+      "18": "A",
+      "19": "A",
+      "20": "C",
+      "21": "D",
+      "23": "E",
+      "24": "C",
+      "25": "A",
+      "26": "E",
+      "27": "D",
+      "28": "D",
+      "29": "C",
+      "30": "B",
+      "31": "B",
+      "32": "C",
+      "33": "C",
+      "34": "A",
+      "35": "D",
+      "36": "D",
+      "37": "E",
+      "38": "A",
+      "39": "E",
+      "40": "A",
+      "41": "D",
+      "42": "B",
+      "43": "E",
+      "44": "A",
+      "45": "B",
+      "46": "C",
+      "47": "A",
+      "48": "B",
+      "49": "C",
+      "50": "E"
+    },
+    "annulled": [
+      1,
+      22
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Vespertino_17134619632214_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Vespertino_17134619632214_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "78f841477c142ad4bbf816e2b7174717c1c35ab9189b8b880ad3149cd9279cd6",
+      "bytes": 307557,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2018.1-morning": {
+    "edition": "2018.1",
+    "year": 2018,
+    "label": "Vestibular UDESC 2018.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "D",
+      "3": "E",
+      "4": "A",
+      "5": "B",
+      "6": "A",
+      "7": "C",
+      "8": "E",
+      "9": "C",
+      "10": "D",
+      "11": "B",
+      "12": "A",
+      "13": "D",
+      "14": "C",
+      "16": "D",
+      "17": "A",
+      "18": "D",
+      "20": "C",
+      "21": "E",
+      "22": "A",
+      "23": "D",
+      "24": "A",
+      "25": "C",
+      "26": "B",
+      "27": "B",
+      "28": "E",
+      "29": "D",
+      "30": "D",
+      "31": "A",
+      "32": "C",
+      "33": "E",
+      "34": "C",
+      "35": "A",
+      "36": "B",
+      "38": "C",
+      "39": "D",
+      "40": "A",
+      "41": "D",
+      "42": "C",
+      "43": "B",
+      "45": "A",
+      "46": "C",
+      "47": "D",
+      "48": "A",
+      "49": "B",
+      "50": "B"
+    },
+    "annulled": [
+      15,
+      19,
+      37,
+      44
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_matutina_17134620755178_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_matutina_17134620755178_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_matutina_17134620755178_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "af960f27e5e1e7289d12a252746ccc897c16dbaf2acb426118640e93405aa272",
+      "bytes": 527813,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "C",
+          "2": "D",
+          "3": "E",
+          "4": "A",
+          "5": "B",
+          "6": "A",
+          "7": "C",
+          "8": "E",
+          "9": "C",
+          "10": "D",
+          "11": "B",
+          "12": "A",
+          "13": "D",
+          "14": "C",
+          "16": "D",
+          "17": "A",
+          "18": "D",
+          "20": "C",
+          "21": "E",
+          "22": "A",
+          "23": "D",
+          "24": "A",
+          "25": "C",
+          "26": "B",
+          "27": "B",
+          "28": "E",
+          "29": "B",
+          "30": "C",
+          "31": "E",
+          "32": "D",
+          "33": "C",
+          "34": "C",
+          "35": "A",
+          "36": "A",
+          "38": "C",
+          "39": "D",
+          "40": "A",
+          "41": "D",
+          "42": "C",
+          "43": "B",
+          "45": "A",
+          "46": "C",
+          "47": "D",
+          "48": "A",
+          "49": "B",
+          "50": "B"
+        },
+        "annulled": [
+          15,
+          19,
+          37,
+          44
+        ]
+      }
+    }
+  },
+  "2018.1-afternoon": {
+    "edition": "2018.1",
+    "year": 2018,
+    "label": "Vestibular UDESC 2018.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "C",
+      "3": "A",
+      "4": "D",
+      "5": "E",
+      "6": "E",
+      "7": "A",
+      "8": "B",
+      "9": "C",
+      "10": "E",
+      "11": "C",
+      "12": "C",
+      "13": "A",
+      "14": "B",
+      "15": "A",
+      "16": "B",
+      "17": "D",
+      "18": "E",
+      "19": "C",
+      "20": "A",
+      "21": "E",
+      "22": "C",
+      "23": "C",
+      "24": "B",
+      "25": "A",
+      "26": "D",
+      "27": "E",
+      "28": "A",
+      "29": "E",
+      "30": "D",
+      "31": "A",
+      "32": "A",
+      "33": "B",
+      "34": "E",
+      "35": "C",
+      "36": "C",
+      "37": "D",
+      "38": "A",
+      "39": "A",
+      "40": "A",
+      "41": "C",
+      "42": "C",
+      "43": "A",
+      "44": "B",
+      "45": "B",
+      "46": "E",
+      "47": "E",
+      "48": "D",
+      "49": "E",
+      "50": "A"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_vespertina_17134620755199_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_vespertina_17134620755199_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "af960f27e5e1e7289d12a252746ccc897c16dbaf2acb426118640e93405aa272",
+      "bytes": 527813,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2017.2-morning": {
+    "edition": "2017.2",
+    "year": 2017,
+    "label": "Vestibular UDESC 2017.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "D",
+      "3": "A",
+      "4": "C",
+      "5": "A",
+      "6": "D",
+      "7": "B",
+      "8": "E",
+      "9": "C",
+      "10": "C",
+      "11": "A",
+      "12": "C",
+      "13": "D",
+      "14": "E",
+      "15": "D",
+      "16": "B",
+      "17": "C",
+      "18": "C",
+      "19": "A",
+      "20": "B",
+      "21": "C",
+      "22": "D",
+      "23": "E",
+      "24": "C",
+      "25": "D",
+      "26": "D",
+      "27": "B",
+      "28": "B",
+      "29": "D",
+      "30": "A",
+      "31": "C",
+      "32": "A",
+      "33": "E",
+      "34": "E",
+      "35": "B",
+      "36": "B",
+      "37": "A",
+      "38": "D",
+      "39": "C",
+      "40": "D",
+      "41": "D",
+      "42": "A",
+      "43": "C",
+      "44": "B",
+      "45": "B",
+      "46": "E",
+      "47": "D",
+      "48": "A",
+      "49": "C",
+      "50": "D"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Matutina_17134623321135_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Matutina_17134623321135_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Matutina_17134623321135_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "6c1b8b43a1592a683938cc35ce800b3456e111b1e5c80a5bfa107a9bf98dea48",
+      "bytes": 306483,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "E",
+          "2": "D",
+          "3": "A",
+          "4": "C",
+          "5": "A",
+          "6": "D",
+          "7": "B",
+          "8": "E",
+          "9": "C",
+          "10": "C",
+          "11": "A",
+          "12": "C",
+          "13": "D",
+          "14": "E",
+          "15": "D",
+          "16": "B",
+          "17": "C",
+          "18": "C",
+          "19": "A",
+          "20": "B",
+          "21": "C",
+          "22": "D",
+          "23": "E",
+          "24": "C",
+          "25": "D",
+          "26": "D",
+          "27": "B",
+          "28": "B",
+          "29": "A",
+          "30": "D",
+          "31": "E",
+          "32": "C",
+          "33": "D",
+          "34": "E",
+          "35": "C",
+          "36": "A",
+          "37": "A",
+          "38": "D",
+          "39": "C",
+          "40": "D",
+          "41": "D",
+          "42": "A",
+          "43": "C",
+          "44": "B",
+          "45": "B",
+          "46": "E",
+          "47": "D",
+          "48": "A",
+          "49": "C",
+          "50": "D"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2017.2-afternoon": {
+    "edition": "2017.2",
+    "year": 2017,
+    "label": "Vestibular UDESC 2017.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "A",
+      "3": "D",
+      "4": "E",
+      "5": "A",
+      "6": "A",
+      "7": "D",
+      "8": "E",
+      "9": "C",
+      "10": "B",
+      "11": "A",
+      "12": "A",
+      "13": "C",
+      "14": "B",
+      "15": "D",
+      "16": "D",
+      "17": "B",
+      "18": "E",
+      "19": "D",
+      "20": "B",
+      "22": "C",
+      "23": "A",
+      "26": "E",
+      "27": "E",
+      "28": "A",
+      "30": "C",
+      "31": "B",
+      "32": "D",
+      "33": "A",
+      "34": "E",
+      "35": "C",
+      "36": "E",
+      "37": "B",
+      "38": "A",
+      "39": "D",
+      "40": "D",
+      "41": "C",
+      "42": "A",
+      "43": "A",
+      "44": "C",
+      "45": "C",
+      "46": "D",
+      "47": "E",
+      "48": "B",
+      "49": "B",
+      "50": "E"
+    },
+    "annulled": [
+      21,
+      24,
+      25,
+      29
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Vespertina_17134623321151_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Vespertina_17134623321151_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "6c1b8b43a1592a683938cc35ce800b3456e111b1e5c80a5bfa107a9bf98dea48",
+      "bytes": 306483,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2017.1-morning": {
+    "edition": "2017.1",
+    "year": 2017,
+    "label": "Vestibular UDESC 2017.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "E",
+      "3": "D",
+      "4": "D",
+      "5": "B",
+      "6": "B",
+      "7": "E",
+      "8": "A",
+      "9": "A",
+      "10": "B",
+      "11": "D",
+      "12": "E",
+      "13": "A",
+      "14": "D",
+      "15": "B",
+      "16": "E",
+      "17": "B",
+      "18": "D",
+      "19": "D",
+      "20": "A",
+      "21": "B",
+      "22": "C",
+      "23": "A",
+      "24": "E",
+      "25": "E",
+      "26": "B",
+      "27": "C",
+      "28": "C",
+      "29": "A",
+      "30": "E",
+      "31": "B",
+      "32": "D",
+      "33": "C",
+      "34": "A",
+      "35": "D",
+      "36": "A",
+      "37": "E",
+      "38": "B",
+      "39": "A",
+      "40": "B",
+      "41": "C",
+      "42": "A",
+      "43": "E",
+      "44": "E",
+      "45": "C",
+      "46": "B",
+      "47": "B",
+      "48": "C",
+      "49": "D",
+      "50": "D"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Matutina_17134624077686_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Matutina_17134624077686_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Matutina_17134624077686_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "6f472aaad2a9322d4af3e1052ed49e91f065061394c143eeb480700bfd94bd3a",
+      "bytes": 238104,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "E",
+          "3": "D",
+          "4": "D",
+          "5": "B",
+          "6": "B",
+          "7": "E",
+          "8": "A",
+          "9": "A",
+          "10": "B",
+          "11": "D",
+          "12": "E",
+          "13": "A",
+          "14": "D",
+          "15": "B",
+          "16": "E",
+          "17": "B",
+          "18": "D",
+          "19": "D",
+          "20": "A",
+          "21": "B",
+          "22": "C",
+          "23": "A",
+          "24": "E",
+          "25": "E",
+          "26": "B",
+          "27": "C",
+          "28": "C",
+          "29": "E",
+          "30": "C",
+          "31": "D",
+          "32": "A",
+          "33": "A",
+          "34": "B",
+          "35": "B",
+          "36": "D",
+          "37": "E",
+          "38": "B",
+          "39": "A",
+          "40": "B",
+          "41": "C",
+          "42": "A",
+          "43": "E",
+          "44": "E",
+          "45": "C",
+          "46": "B",
+          "47": "B",
+          "48": "C",
+          "49": "D",
+          "50": "D"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2017.1-afternoon": {
+    "edition": "2017.1",
+    "year": 2017,
+    "label": "Vestibular UDESC 2017.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "C",
+      "3": "E",
+      "4": "E",
+      "5": "B",
+      "6": "B",
+      "7": "C",
+      "8": "D",
+      "9": "A",
+      "10": "C",
+      "11": "E",
+      "12": "A",
+      "13": "B",
+      "14": "C",
+      "15": "C",
+      "16": "C",
+      "17": "D",
+      "18": "C",
+      "19": "A",
+      "20": "D",
+      "21": "E",
+      "22": "B",
+      "23": "A",
+      "24": "B",
+      "25": "C",
+      "26": "E",
+      "27": "A",
+      "28": "D",
+      "29": "C",
+      "30": "B",
+      "31": "C",
+      "32": "A",
+      "33": "E",
+      "34": "C",
+      "35": "B",
+      "36": "E",
+      "37": "D",
+      "38": "D",
+      "39": "A",
+      "40": "A",
+      "41": "B",
+      "42": "E",
+      "43": "D",
+      "44": "A",
+      "45": "B",
+      "46": "C",
+      "47": "A",
+      "48": "E",
+      "49": "D",
+      "50": "A"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Vespertina_17134624077702_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Vespertina_17134624077702_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "6f472aaad2a9322d4af3e1052ed49e91f065061394c143eeb480700bfd94bd3a",
+      "bytes": 238104,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2016.2-morning": {
+    "edition": "2016.2",
+    "year": 2016,
+    "label": "Vestibular UDESC 2016.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "2": "A",
+      "3": "C",
+      "5": "A",
+      "6": "A",
+      "7": "D",
+      "8": "B",
+      "9": "C",
+      "10": "C",
+      "11": "B",
+      "12": "A",
+      "13": "E",
+      "14": "C",
+      "15": "A",
+      "16": "D",
+      "17": "A",
+      "18": "E",
+      "19": "C",
+      "20": "B",
+      "21": "C",
+      "22": "E",
+      "23": "E",
+      "24": "D",
+      "25": "B",
+      "26": "A",
+      "27": "C",
+      "28": "E",
+      "30": "D",
+      "31": "C",
+      "32": "A",
+      "33": "B",
+      "34": "B",
+      "35": "C",
+      "36": "C",
+      "37": "B",
+      "38": "D",
+      "39": "C",
+      "40": "A",
+      "41": "B",
+      "42": "E",
+      "43": "E",
+      "44": "A",
+      "45": "B",
+      "46": "E",
+      "47": "D",
+      "48": "A",
+      "49": "A",
+      "50": "B"
+    },
+    "annulled": [
+      4,
+      29
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Matutina_17134624709013_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Matutina_17134624709013_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Matutina_17134624709013_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a46feb9138f308f47105f24042cbca8088e42f03830822131e303f1e41d45bb1",
+      "bytes": 237907,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "D",
+          "2": "A",
+          "3": "C",
+          "5": "A",
+          "6": "A",
+          "7": "D",
+          "8": "B",
+          "9": "C",
+          "10": "C",
+          "11": "B",
+          "12": "A",
+          "13": "E",
+          "14": "C",
+          "15": "A",
+          "16": "D",
+          "17": "A",
+          "18": "E",
+          "19": "C",
+          "20": "B",
+          "21": "C",
+          "22": "E",
+          "23": "E",
+          "24": "D",
+          "25": "B",
+          "26": "A",
+          "27": "C",
+          "28": "E",
+          "29": "D",
+          "30": "E",
+          "31": "B",
+          "32": "C",
+          "33": "E",
+          "34": "E",
+          "35": "A",
+          "36": "B",
+          "37": "B",
+          "38": "D",
+          "39": "C",
+          "40": "A",
+          "41": "B",
+          "42": "E",
+          "43": "E",
+          "44": "A",
+          "45": "B",
+          "46": "E",
+          "47": "D",
+          "48": "A",
+          "49": "A",
+          "50": "B"
+        },
+        "annulled": [
+          4
+        ]
+      }
+    }
+  },
+  "2016.2-afternoon": {
+    "edition": "2016.2",
+    "year": 2016,
+    "label": "Vestibular UDESC 2016.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "B",
+      "3": "B",
+      "4": "A",
+      "5": "D",
+      "6": "E",
+      "7": "A",
+      "8": "C",
+      "9": "D",
+      "10": "B",
+      "11": "A",
+      "12": "C",
+      "13": "D",
+      "14": "E",
+      "15": "E",
+      "16": "B",
+      "17": "A",
+      "18": "D",
+      "19": "B",
+      "20": "C",
+      "21": "A",
+      "22": "C",
+      "23": "E",
+      "24": "D",
+      "26": "A",
+      "27": "B",
+      "28": "B",
+      "29": "E",
+      "30": "C",
+      "31": "A",
+      "32": "D",
+      "33": "D",
+      "34": "B",
+      "35": "E",
+      "36": "A",
+      "37": "B",
+      "38": "C",
+      "39": "B",
+      "40": "E",
+      "41": "E",
+      "42": "A",
+      "43": "B",
+      "44": "C",
+      "45": "E",
+      "46": "A",
+      "47": "C",
+      "48": "D",
+      "49": "D",
+      "50": "B"
+    },
+    "annulled": [
+      25
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Vespertina_17134624709027_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Vespertina_17134624709027_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a46feb9138f308f47105f24042cbca8088e42f03830822131e303f1e41d45bb1",
+      "bytes": 237907,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2016.1-morning": {
+    "edition": "2016.1",
+    "year": 2016,
+    "label": "Vestibular UDESC 2016.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "D",
+      "3": "D",
+      "4": "C",
+      "5": "C",
+      "6": "D",
+      "7": "E",
+      "8": "A",
+      "9": "A",
+      "10": "B",
+      "11": "A",
+      "12": "B",
+      "13": "D",
+      "14": "B",
+      "15": "D",
+      "16": "E",
+      "17": "C",
+      "18": "D",
+      "19": "A",
+      "20": "A",
+      "21": "B",
+      "22": "C",
+      "23": "B",
+      "24": "A",
+      "25": "D",
+      "26": "C",
+      "27": "D",
+      "28": "E",
+      "29": "C",
+      "30": "A",
+      "31": "B",
+      "32": "D",
+      "33": "E",
+      "34": "A",
+      "35": "D",
+      "36": "A",
+      "37": "C",
+      "38": "C",
+      "39": "E",
+      "40": "D",
+      "41": "E",
+      "42": "D",
+      "43": "A",
+      "44": "D",
+      "45": "C",
+      "46": "B",
+      "47": "B",
+      "48": "B",
+      "49": "E",
+      "50": "C"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Matutina_17134625467761_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Matutina_17134625467761_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Matutina_17134625467761_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a987daa1ca21182c84385e71d93bf7c87ff4b3b95a4250a6f2964275bd60739e",
+      "bytes": 388096,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "D",
+          "3": "D",
+          "4": "C",
+          "5": "C",
+          "6": "D",
+          "7": "E",
+          "8": "A",
+          "9": "A",
+          "10": "B",
+          "11": "A",
+          "12": "B",
+          "13": "D",
+          "14": "B",
+          "15": "D",
+          "16": "E",
+          "17": "C",
+          "18": "D",
+          "19": "A",
+          "20": "A",
+          "21": "B",
+          "22": "C",
+          "23": "B",
+          "24": "A",
+          "25": "D",
+          "26": "C",
+          "27": "D",
+          "28": "E",
+          "29": "A",
+          "30": "D",
+          "31": "C",
+          "32": "E",
+          "33": "A",
+          "34": "D",
+          "35": "B",
+          "36": "B",
+          "37": "C",
+          "38": "C",
+          "39": "E",
+          "40": "D",
+          "41": "E",
+          "42": "D",
+          "43": "A",
+          "44": "D",
+          "45": "C",
+          "46": "B",
+          "47": "B",
+          "48": "B",
+          "49": "E",
+          "50": "C"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2016.1-afternoon": {
+    "edition": "2016.1",
+    "year": 2016,
+    "label": "Vestibular UDESC 2016.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "E",
+      "3": "C",
+      "4": "C",
+      "5": "E",
+      "6": "A",
+      "7": "D",
+      "8": "B",
+      "9": "B",
+      "10": "C",
+      "11": "D",
+      "12": "D",
+      "13": "E",
+      "14": "A",
+      "15": "C",
+      "16": "E",
+      "17": "E",
+      "18": "A",
+      "19": "E",
+      "20": "D",
+      "21": "D",
+      "22": "A",
+      "23": "B",
+      "24": "D",
+      "25": "C",
+      "26": "E",
+      "27": "A",
+      "29": "E",
+      "30": "D",
+      "31": "C",
+      "32": "C",
+      "33": "A",
+      "34": "C",
+      "35": "A",
+      "36": "E",
+      "37": "C",
+      "38": "B",
+      "39": "C",
+      "40": "D",
+      "41": "D",
+      "42": "E",
+      "43": "A",
+      "44": "A",
+      "45": "B",
+      "46": "C",
+      "47": "D",
+      "48": "B",
+      "49": "B",
+      "50": "A"
+    },
+    "annulled": [
+      28
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Vespertina_17134625467776_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Vespertina_17134625467776_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a987daa1ca21182c84385e71d93bf7c87ff4b3b95a4250a6f2964275bd60739e",
+      "bytes": 388096,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2015.2-morning": {
+    "edition": "2015.2",
+    "year": 2015,
+    "label": "Vestibular UDESC 2015.2 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "E",
+      "3": "A",
+      "4": "A",
+      "5": "D",
+      "6": "C",
+      "7": "B",
+      "8": "C",
+      "9": "C",
+      "10": "E",
+      "11": "D",
+      "12": "E",
+      "13": "A",
+      "14": "D",
+      "16": "A",
+      "17": "D",
+      "18": "C",
+      "19": "D",
+      "20": "C",
+      "21": "E",
+      "22": "B",
+      "23": "D",
+      "24": "E",
+      "25": "A",
+      "26": "A",
+      "27": "E",
+      "28": "B",
+      "29": "E",
+      "30": "B",
+      "31": "D",
+      "32": "C",
+      "33": "B",
+      "34": "C",
+      "35": "A",
+      "36": "E",
+      "37": "A",
+      "38": "E",
+      "39": "C",
+      "40": "E",
+      "41": "C",
+      "42": "E",
+      "43": "D",
+      "44": "B",
+      "45": "B",
+      "46": "D",
+      "47": "D",
+      "48": "E",
+      "49": "A",
+      "50": "B"
+    },
+    "annulled": [
+      15
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Matutina_17134626186509_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Matutina_17134626186509_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Matutina_17134626186509_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "1dbab51eedfe37869ad62074e627ac944abed05de271bc763d79edec9aa0b7e7",
+      "bytes": 516123,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "E",
+          "3": "A",
+          "4": "A",
+          "5": "D",
+          "6": "C",
+          "7": "B",
+          "8": "C",
+          "9": "C",
+          "10": "E",
+          "11": "D",
+          "12": "E",
+          "13": "A",
+          "14": "D",
+          "16": "A",
+          "17": "D",
+          "18": "C",
+          "19": "D",
+          "20": "C",
+          "21": "E",
+          "22": "B",
+          "23": "D",
+          "24": "E",
+          "25": "A",
+          "26": "A",
+          "27": "E",
+          "28": "B",
+          "29": "E",
+          "30": "A",
+          "31": "B",
+          "32": "B",
+          "33": "E",
+          "34": "A",
+          "35": "D",
+          "36": "C",
+          "37": "A",
+          "38": "E",
+          "39": "C",
+          "40": "E",
+          "41": "C",
+          "42": "E",
+          "43": "D",
+          "44": "B",
+          "45": "B",
+          "46": "D",
+          "47": "D",
+          "48": "E",
+          "49": "A",
+          "50": "B"
+        },
+        "annulled": [
+          15
+        ]
+      }
+    }
+  },
+  "2015.2-afternoon": {
+    "edition": "2015.2",
+    "year": 2015,
+    "label": "Vestibular UDESC 2015.2 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "D",
+      "6": "B",
+      "7": "C",
+      "8": "A",
+      "9": "E",
+      "10": "A",
+      "11": "B",
+      "12": "B",
+      "13": "D",
+      "14": "C",
+      "15": "A",
+      "16": "A",
+      "17": "D",
+      "18": "C",
+      "19": "D",
+      "20": "B",
+      "22": "E",
+      "23": "C",
+      "24": "E",
+      "25": "B",
+      "26": "B",
+      "27": "B",
+      "28": "C",
+      "29": "B",
+      "30": "C",
+      "31": "A",
+      "33": "D",
+      "34": "B",
+      "35": "C",
+      "36": "D",
+      "37": "E",
+      "38": "E",
+      "39": "B",
+      "40": "A",
+      "41": "C",
+      "42": "D",
+      "43": "E",
+      "44": "E",
+      "45": "A",
+      "46": "B",
+      "47": "D",
+      "48": "C",
+      "49": "D",
+      "50": "B"
+    },
+    "annulled": [
+      21,
+      32
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Vespertina_17134626186524_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Vespertina_17134626186524_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "1dbab51eedfe37869ad62074e627ac944abed05de271bc763d79edec9aa0b7e7",
+      "bytes": 516123,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  },
+  "2015.1-morning": {
+    "edition": "2015.1",
+    "year": 2015,
+    "label": "Vestibular UDESC 2015.1 - período matutino",
+    "phase": "morning",
+    "total": 50,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "D",
+      "3": "D",
+      "4": "A",
+      "5": "B",
+      "6": "A",
+      "7": "E",
+      "8": "E",
+      "9": "A",
+      "10": "E",
+      "11": "C",
+      "12": "B",
+      "13": "D",
+      "14": "C",
+      "15": "E",
+      "16": "A",
+      "17": "C",
+      "18": "A",
+      "19": "E",
+      "20": "C",
+      "21": "B",
+      "22": "C",
+      "23": "D",
+      "24": "B",
+      "25": "D",
+      "26": "D",
+      "27": "B",
+      "28": "A",
+      "29": "C",
+      "30": "E",
+      "31": "D",
+      "32": "A",
+      "33": "C",
+      "34": "B",
+      "36": "A",
+      "37": "E",
+      "38": "D",
+      "39": "A",
+      "40": "A",
+      "41": "C",
+      "42": "E",
+      "43": "A",
+      "44": "A",
+      "45": "B",
+      "46": "C",
+      "47": "C",
+      "48": "C",
+      "49": "D",
+      "50": "C"
+    },
+    "annulled": [
+      35
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Matutino_17134626766615_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Matutino_17134626766615_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Matutino_17134626766615_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          29,
+          36
+        ]
+      },
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa e Literatura",
+        "area": "linguagens",
+        "range": [
+          37,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período matutino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "aa227ae18594d09bdb9ec26e84787e107673d498b5332ebecacfb838dbf2de0f",
+      "bytes": 370521,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "D",
+          "3": "D",
+          "4": "A",
+          "5": "B",
+          "6": "A",
+          "7": "E",
+          "8": "E",
+          "9": "A",
+          "10": "E",
+          "11": "C",
+          "12": "B",
+          "13": "D",
+          "14": "C",
+          "15": "E",
+          "16": "A",
+          "17": "C",
+          "18": "A",
+          "19": "E",
+          "20": "C",
+          "21": "B",
+          "22": "C",
+          "23": "D",
+          "24": "B",
+          "25": "D",
+          "26": "D",
+          "27": "B",
+          "28": "A",
+          "29": "D",
+          "30": "A",
+          "31": "C",
+          "32": "B",
+          "33": "E",
+          "34": "C",
+          "35": "C",
+          "36": "E",
+          "37": "E",
+          "38": "D",
+          "39": "A",
+          "40": "A",
+          "41": "C",
+          "42": "E",
+          "43": "A",
+          "44": "A",
+          "45": "B",
+          "46": "C",
+          "47": "C",
+          "48": "C",
+          "49": "D",
+          "50": "C"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2015.1-afternoon": {
+    "edition": "2015.1",
+    "year": 2015,
+    "label": "Vestibular UDESC 2015.1 - período vespertino",
+    "phase": "afternoon",
+    "total": 50,
+    "canonicalVariant": "unica",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "A",
+      "3": "A",
+      "4": "E",
+      "5": "D",
+      "6": "B",
+      "7": "C",
+      "8": "A",
+      "9": "B",
+      "10": "B",
+      "11": "D",
+      "12": "E",
+      "13": "D",
+      "14": "C",
+      "16": "C",
+      "17": "C",
+      "18": "D",
+      "19": "A",
+      "20": "A",
+      "21": "E",
+      "22": "C",
+      "23": "B",
+      "24": "A",
+      "25": "C",
+      "26": "E",
+      "27": "D",
+      "28": "E",
+      "29": "A",
+      "31": "C",
+      "32": "B",
+      "33": "B",
+      "34": "D",
+      "35": "E",
+      "37": "A",
+      "38": "C",
+      "39": "B",
+      "40": "E",
+      "41": "A",
+      "42": "E",
+      "43": "A",
+      "44": "C",
+      "45": "B",
+      "46": "B",
+      "47": "A",
+      "48": "E",
+      "49": "E",
+      "50": "C"
+    },
+    "annulled": [
+      15,
+      30,
+      36
+    ],
+    "variants": [
+      {
+        "id": "unica",
+        "label": "Prova única",
+        "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Vespertino_17134626766622_17802.pdf",
+        "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+    "examUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Vespertino_17134626766622_17802.pdf",
+    "archivePage": "https://www.udesc.br/vestibular/provasanteriores",
+    "subjects": [
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          1,
+          14
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          15,
+          28
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          29,
+          39
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          40,
+          50
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+      "Período vespertino cobre exatamente 50 questões objetivas.",
+      "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+      "effectiveSourceUrl": "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "aa227ae18594d09bdb9ec26e84787e107673d498b5332ebecacfb838dbf2de0f",
+      "bytes": 370521,
+      "parserVersion": "udesc-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "udesc-answer-key@1.0.0"
+  }
+}

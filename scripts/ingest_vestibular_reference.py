@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ingestão de vestibulares em modo referência para a v8.8.
+Ingestão de vestibulares em modo referência para as waves v8.8+.
 
 Este script usa rede de propósito: baixa páginas/PDFs oficiais, extrai apenas
 gabaritos objetivos A-E e grava manifests pequenos em `src/lib/providers/*`.
@@ -16,6 +16,7 @@ import json
 import re
 import ssl
 import sys
+import unicodedata
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -24,8 +25,8 @@ from pathlib import Path
 from typing import Callable
 
 RAIZ = Path(__file__).resolve().parents[1]
-FETCHED_AT = "2026-09-08"
-HTTP_HEADERS = {"User-Agent": "enemlab-v8.8-source-ingestion/1.0"}
+FETCHED_AT = "2026-09-09"
+HTTP_HEADERS = {"User-Agent": "enemlab-source-ingestion/1.1"}
 LETTERS = {"A", "B", "C", "D", "E"}
 
 
@@ -50,7 +51,7 @@ class PdfDocument:
 
 def fetch_bytes(url: str) -> bytes:
     req = urllib.request.Request(url, headers=HTTP_HEADERS)
-    context = ssl._create_unverified_context()
+    context = ssl.create_default_context()
     with urllib.request.urlopen(req, context=context, timeout=60) as response:
         data = response.read()
     if not data.lstrip().startswith(b"%PDF"):
@@ -60,7 +61,7 @@ def fetch_bytes(url: str) -> bytes:
 
 def fetch_text(url: str) -> str:
     req = urllib.request.Request(url, headers=HTTP_HEADERS)
-    context = ssl._create_unverified_context()
+    context = ssl.create_default_context()
     with urllib.request.urlopen(req, context=context, timeout=60) as response:
         return response.read().decode("utf-8", "replace")
 
@@ -143,6 +144,128 @@ def parse_pucsp_answer_key(text: str, total: int = 50) -> tuple[dict[str, str], 
         if match:
             pairs.append(match.groups())
     return pairs_to_answers(pairs, total)
+
+
+def ascii_upper(text: str) -> str:
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().upper()
+
+
+def parse_udesc_answer_key(
+    text: str,
+) -> tuple[
+    tuple[dict[str, str], list[int]],
+    tuple[dict[str, str], list[int]],
+    tuple[dict[str, str], list[int]],
+]:
+    normalized = ascii_upper(text)
+    if (
+        "GABARITO OFICIAL" not in normalized
+        or ("MATUTIN" not in normalized and "PROVA MANHA" not in normalized)
+        or ("VESPERTIN" not in normalized and "PROVA TARDE" not in normalized)
+    ):
+        raise IngestionError("documento não é gabarito oficial UDESC")
+    header = normalized.split("MATUTIN", 1)[0]
+    if re.search(r"GABARITO(?:\s+OFICIAL)?\s+(?:PRELIMINAR|PROVISORIO)", header):
+        raise IngestionError("gabarito UDESC não é final")
+
+    pattern = re.compile(
+        r"(?<!\d)0?([1-9]|[1-4][0-9]|50)\s*"
+        r"(?:(?:A|O)?\s*QUESTAO\s*)?"
+        r"(?:[.:-]\s*|\(\s*|\s+)"
+        r"(ANULADA|ANULADO|[A-E])\b\s*\)?"
+    )
+    pairs = [(match.group(1), match.group(2)) for match in pattern.finditer(normalized)]
+    first_positions = [index for index, (number, _) in enumerate(pairs) if number == "1"]
+    if len(first_positions) != 2:
+        raise IngestionError(
+            f"gabarito UDESC deveria ter duas sessões; q1 apareceu {len(first_positions)} vezes em {first_positions}"
+        )
+
+    morning_pairs = pairs[first_positions[0] : first_positions[1]]
+    afternoon_pairs = pairs[first_positions[1] :]
+    morning_by_number: dict[int, list[str]] = {}
+    for raw_number, answer in morning_pairs:
+        morning_by_number.setdefault(int(raw_number), []).append(answer)
+
+    language_numbers = set(range(29, 37))
+    for number in range(1, 51):
+        expected_occurrences = 2 if number in language_numbers else 1
+        actual = len(morning_by_number.get(number, []))
+        if actual != expected_occurrences:
+            raise IngestionError(
+                f"UDESC matutino q{number}: esperadas {expected_occurrences} ocorrências, recebidas {actual}"
+            )
+
+    english_pairs = [
+        (str(number), answers[0]) for number, answers in sorted(morning_by_number.items())
+    ]
+    spanish_pairs = [
+        (str(number), answers[1] if number in language_numbers else answers[0])
+        for number, answers in sorted(morning_by_number.items())
+    ]
+    return (
+        pairs_to_answers(english_pairs, 50),
+        pairs_to_answers(spanish_pairs, 50),
+        pairs_to_answers(afternoon_pairs, 50),
+    )
+
+
+def parse_acafe_answer_key(
+    text: str,
+) -> tuple[
+    tuple[dict[str, str], list[int]],
+    tuple[dict[str, str], list[int]],
+]:
+    normalized = ascii_upper(text)
+    if "ACAFE" not in normalized or "GABARITO OFICIAL" not in normalized:
+        raise IngestionError("documento não é gabarito oficial ACAFE")
+    header = normalized.split("LINGUA PORTUGUESA", 1)[0]
+    if "PRELIMINAR" in header or "PROVISORIO" in header:
+        raise IngestionError("gabarito ACAFE não é final")
+
+    pattern = re.compile(
+        r"(?<!\d)0?([1-9]|[1-5][0-9]|6[0-3])\s*"
+        r"(?:[.:-]\s*|\s+)"
+        r"(ANULADA|ANULADO|[A-EX])\b"
+    )
+    grouped: dict[int, list[str]] = {}
+    for match in pattern.finditer(normalized):
+        grouped.setdefault(int(match.group(1)), []).append(match.group(2))
+
+    language_numbers = set(range(15, 22))
+    for number in range(1, 64):
+        expected_occurrences = 2 if number in language_numbers else 1
+        actual = len(grouped.get(number, []))
+        if actual != expected_occurrences:
+            raise IngestionError(
+                f"ACAFE q{number}: esperadas {expected_occurrences} ocorrências, recebidas {actual}"
+            )
+
+    language_markers = {
+        "espanhol": normalized.find("ESPANHOL"),
+        "ingles": normalized.find("INGLES"),
+    }
+    if any(position < 0 for position in language_markers.values()):
+        raise IngestionError("ACAFE não identifica Inglês e Espanhol")
+    language_order = [
+        language
+        for language, _ in sorted(language_markers.items(), key=lambda item: item[1])
+    ]
+    language_index = {language: index for index, language in enumerate(language_order)}
+
+    def pairs_for(language: str) -> list[tuple[str, str]]:
+        return [
+            (
+                str(number),
+                answers[language_index[language]] if number in language_numbers else answers[0],
+            )
+            for number, answers in sorted(grouped.items())
+        ]
+
+    return (
+        pairs_to_answers(pairs_for("ingles"), 63),
+        pairs_to_answers(pairs_for("espanhol"), 63),
+    )
 
 
 def pairs_to_answers(pairs: list[tuple[str, str]], total: int) -> tuple[dict[str, str], list[int]]:
@@ -236,18 +359,21 @@ def write_provider(provider_id: str, data: dict[str, object]) -> None:
     destination = RAIZ / "src" / "lib" / "providers" / provider_id / "answer-keys.generated.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"{provider_id}: {len(data)} edição(ões) -> {destination.relative_to(RAIZ)}")
+    print(f"{provider_id}: {len(data)} entrada(s) -> {destination.relative_to(RAIZ)}")
 
 
 def discover_page_contains(page_url: str, expected_urls: list[str]) -> None:
     text = fetch_text(page_url)
-    missing = []
-    for url in expected_urls:
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path.lstrip("/")
-        candidates = {url, urllib.parse.unquote(url), path, urllib.parse.unquote(path)}
-        if not any(candidate and candidate in text for candidate in candidates):
-            missing.append(url)
+    hrefs = re.findall(r"href\s*=\s*[\"']([^\"']+)[\"']", text, re.IGNORECASE)
+    discovered = {
+        urllib.parse.unquote(urllib.parse.urljoin(page_url, html.unescape(href)))
+        for href in hrefs
+    }
+    missing = [
+        url
+        for url in expected_urls
+        if urllib.parse.unquote(url) not in discovered
+    ]
     if missing:
         raise IngestionError(f"página oficial não contém URLs esperadas: {missing[:2]}")
 
@@ -330,6 +456,203 @@ PUCSP = {
         "revision": "final",
     },
 }
+
+
+UDESC_ARCHIVE = "https://www.udesc.br/vestibular/provasanteriores"
+UDESC = [
+    (
+        "2015.1",
+        2015,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Gabarito_1713462676661_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Matutino_17134626766615_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_1___Prova_Vespertino_17134626766622_17802.pdf",
+    ),
+    (
+        "2015.2",
+        2015,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Gabarito_17134626186501_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Matutina_17134626186509_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2015_2___Prova_Vespertina_17134626186524_17802.pdf",
+    ),
+    (
+        "2016.1",
+        2016,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Gabarito_17134625467754_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Matutina_17134625467761_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_1___Prova_Vespertina_17134625467776_17802.pdf",
+    ),
+    (
+        "2016.2",
+        2016,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Gabarito_17134624709009_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Matutina_17134624709013_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2016_2_Prova_Vespertina_17134624709027_17802.pdf",
+    ),
+    (
+        "2017.1",
+        2017,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1___Gabarito_17134624077682_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Matutina_17134624077686_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_1_Prova_Vespertina_17134624077702_17802.pdf",
+    ),
+    (
+        "2017.2",
+        2017,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Gabarito_17134623321131_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Matutina_17134623321135_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2017_2___Prova_Vespertina_17134623321151_17802.pdf",
+    ),
+    (
+        "2018.1",
+        2018,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/GABARITO_OFICAL_2018_1_doc_17134620755224_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_matutina_17134620755178_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_1___Prova_vespertina_17134620755199_17802.pdf",
+    ),
+    (
+        "2018.2",
+        2018,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Gabarito_17134619632189_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Matutino_17134619632193_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2018_2_Prova_Vespertino_17134619632214_17802.pdf",
+    ),
+    (
+        "2019.1",
+        2019,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Gabarito_17134619012312_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Matutino_17134619012318_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_1___Prova_Vespertino_17134619012333_17802.pdf",
+    ),
+    (
+        "2019.2",
+        2019,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Gabarito_171346182945_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Matutino_17134618294506_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2019_2___Prova_Vespertino_17134618294521_17802.pdf",
+    ),
+    (
+        "2020.1",
+        2020,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Gabarito_17134616792464_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_matutino_17134616792436_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2020_1___Prova_Vespertino_1713461679245_17802.pdf",
+    ),
+    (
+        "2023.2",
+        2023,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Gabarito_17134616047737_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Matutino_17134616047708_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2023_2___Prova_Vespertino_17134616047721_17802.pdf",
+    ),
+    (
+        "2024.1",
+        2024,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Gabarito_17133860755821_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Matutino_17133860755826_17802.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17802/2024_1___Prova_Vespertino_17133860756063_17802.pdf",
+    ),
+    (
+        "2024.2",
+        2024,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_1724951496786_17918.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/3___Caderno_de_Prova_2024_2___Per_odo_Matutino_pb_17249513205108_17918.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/4___Caderno_de_Prova_2024_2___Per_odo_Vespertino_pb_17249514263672_17918.pdf",
+    ),
+    (
+        "2025.1",
+        2025,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Gabarito_Oficial_17406860695787_17918.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Prova_Matutino_2025_17406859895959_17918.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/17918/Caderno_de_Prova_2025_1___Vespertino_17406860472788_17918.pdf",
+    ),
+    (
+        "2025.2",
+        2025,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Gabarito_Oficial_17509754248942_20080.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Matutino_2025_2___site_17500321187953_20080.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/20080/Prova_Vespertino_2025_2___site_17500321870438_20080.pdf",
+    ),
+    (
+        "2026.1",
+        2026,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Gabarito_Oficial_176547447291_21194.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Matutino_2026_01_1764546991821_21194.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/21194/Prova_Vespertino_2026_01_17645470086405_21194.pdf",
+    ),
+    (
+        "2026.2",
+        2026,
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Matutino_2026_2_17814818713136_22463.pdf",
+        "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Vespertino_2026_2_1781481892914_22463.pdf",
+    ),
+]
+
+ACAFE = [
+    (
+        "2026.2",
+        2026,
+        "https://acafe.org.br/concurso/vestibular/2026/2/site/",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/01%20-%20Prova%20comentada.pdf",
+    ),
+    (
+        "2026.1",
+        2026,
+        "https://acafe.org.br/concurso/vestibular/2026/1/site/",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/01%20-%20Prova%20objetiva%20oficial%20-%20comentada-.pdf",
+    ),
+    (
+        "2025.2",
+        2025,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/02%20-%20Prova%20objetiva%20oficial%20comentada.pdf",
+    ),
+    (
+        "2025.1",
+        2025,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/02%20-%20Prova%20objetiva%20Verao%202025%20-%20oficial%20comentada.pdf",
+    ),
+    (
+        "2024.2",
+        2024,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/02%20-%20Prova%20objetiva%20Inverno%202024%20oficial%20comentada.pdf",
+    ),
+    (
+        "2024.1",
+        2024,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/05%20-Prova%20objetiva.pdf",
+    ),
+    (
+        "2023.2",
+        2023,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/01%20-%20Prova%20objetiva%20Inverno%202023%20-%20comentada.pdf",
+    ),
+    (
+        "2023.1",
+        2023,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/04%20-%20Prova%20objetiva%20Ver%C3%A3o%202023.pdf",
+    ),
+    (
+        "2022.2",
+        2022,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2022&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/5%20-%20Prova%20comentada-1.pdf",
+    ),
+]
 
 
 def ingest_unicamp() -> dict[str, object]:
@@ -451,10 +774,177 @@ def ingest_pucsp() -> dict[str, object]:
     return catalog
 
 
+def udesc_subjects(edition: str, session: str) -> list[dict[str, object]]:
+    if session == "morning":
+        return subject_ranges(
+            ("matematica", "Matemática", "matematica", 1, 14),
+            ("biologia", "Biologia", "ciencias-natureza", 15, 28),
+            ("ingles", "Língua Inglesa", "linguagens", 29, 36),
+            ("portugues", "Língua Portuguesa e Literatura", "linguagens", 37, 50),
+        )
+    if edition.startswith("2026."):
+        return subject_ranges(
+            ("fisica", "Física", "ciencias-natureza", 1, 14),
+            ("quimica", "Química", "ciencias-natureza", 15, 28),
+            ("historia", "História", "ciencias-humanas", 29, 37),
+            ("filosofia", "Filosofia", "ciencias-humanas", 38, 39),
+            ("geografia", "Geografia", "ciencias-humanas", 40, 48),
+            ("sociologia", "Sociologia", "ciencias-humanas", 49, 50),
+        )
+    return subject_ranges(
+        ("fisica", "Física", "ciencias-natureza", 1, 14),
+        ("quimica", "Química", "ciencias-natureza", 15, 28),
+        ("historia", "História", "ciencias-humanas", 29, 39),
+        ("geografia", "Geografia", "ciencias-humanas", 40, 50),
+    )
+
+
+def ingest_udesc() -> dict[str, object]:
+    parser_version = "udesc-answer-key@1.0.0"
+    catalog: dict[str, object] = {}
+    for edition, year, answer_url, morning_url, afternoon_url in reversed(UDESC):
+        discover_page_contains(UDESC_ARCHIVE, [answer_url, morning_url, afternoon_url])
+        doc = fetch_pdf(answer_url)
+        try:
+            morning_english, morning_spanish, afternoon = parse_udesc_answer_key(doc.text)
+        except IngestionError as exc:
+            raise IngestionError(f"UDESC {edition}: {exc}") from exc
+
+        for session, label, phase, exam_url, parsed in [
+            ("morning", "Matutino", "morning", morning_url, morning_english),
+            ("afternoon", "Vespertino", "afternoon", afternoon_url, afternoon),
+        ]:
+            answers, annulled = parsed
+            variants = [
+                {
+                    "id": "ingles" if session == "morning" else "unica",
+                    "label": "Inglês" if session == "morning" else "Prova única",
+                    "examUrl": exam_url,
+                    "answerKeyUrl": answer_url,
+                }
+            ]
+            if session == "morning":
+                variants.append(
+                    {
+                        "id": "espanhol",
+                        "label": "Espanhol",
+                        "examUrl": exam_url,
+                        "answerKeyUrl": answer_url,
+                    }
+                )
+
+            record = entry(
+                edition=edition,
+                year=year,
+                label=f"Vestibular UDESC {edition} - período {label.lower()}",
+                phase=phase,
+                total=50,
+                answers=answers,
+                annulled=annulled,
+                variants=variants,
+                canonical_variant="ingles" if session == "morning" else "unica",
+                variant_relation="distinct" if session == "morning" else "unknown",
+                revision="final",
+                archive_page=UDESC_ARCHIVE,
+                subjects=udesc_subjects(edition, session),
+                parser_version=parser_version,
+                retrieval=make_retrieval(doc, parser_version, "final"),
+                validation_evidence=[
+                    "Arquivo oficial UDESC associa a edição ao caderno e ao gabarito oficial.",
+                    f"Período {label.lower()} cobre exatamente 50 questões objetivas.",
+                    "Inglês é a língua canônica do período matutino; Espanhol foi validado mas não é executável nesta wave.",
+                ],
+            )
+            if session == "morning":
+                spanish_answers, spanish_annulled = morning_spanish
+                record["variantAnswerKeys"] = {
+                    "espanhol": {
+                        "answers": spanish_answers,
+                        "annulled": spanish_annulled,
+                    }
+                }
+            catalog[f"{edition}-{session}"] = record
+    return catalog
+
+
+def acafe_subjects() -> list[dict[str, object]]:
+    return subject_ranges(
+        ("portugues", "Língua Portuguesa", "linguagens", 1, 10),
+        ("literatura", "Literatura", "linguagens", 11, 14),
+        ("ingles", "Língua Inglesa", "linguagens", 15, 21),
+        ("matematica", "Matemática", "matematica", 22, 28),
+        ("fisica", "Física", "ciencias-natureza", 29, 35),
+        ("quimica", "Química", "ciencias-natureza", 36, 42),
+        ("biologia", "Biologia", "ciencias-natureza", 43, 49),
+        ("historia", "História", "ciencias-humanas", 50, 56),
+        ("geografia", "Geografia", "ciencias-humanas", 57, 63),
+    )
+
+
+def ingest_acafe() -> dict[str, object]:
+    parser_version = "acafe-answer-key@1.0.0"
+    catalog: dict[str, object] = {}
+    for edition, year, archive_page, answer_url, exam_url in ACAFE:
+        discover_page_contains(archive_page, [answer_url, exam_url])
+        doc = fetch_pdf(answer_url)
+        try:
+            english, spanish = parse_acafe_answer_key(doc.text)
+        except IngestionError as exc:
+            raise IngestionError(f"ACAFE {edition}: {exc}") from exc
+
+        english_answers, english_annulled = english
+        spanish_answers, spanish_annulled = spanish
+        record = entry(
+            edition=edition,
+            year=year,
+            label=f"Vestibular de Medicina ACAFE {edition}",
+            phase="single",
+            total=63,
+            answers=english_answers,
+            annulled=english_annulled,
+            variants=[
+                {
+                    "id": "ingles",
+                    "label": "Inglês",
+                    "examUrl": exam_url,
+                    "answerKeyUrl": answer_url,
+                },
+                {
+                    "id": "espanhol",
+                    "label": "Espanhol",
+                    "examUrl": exam_url,
+                    "answerKeyUrl": answer_url,
+                },
+            ],
+            canonical_variant="ingles",
+            variant_relation="distinct",
+            revision="final",
+            archive_page=archive_page,
+            subjects=acafe_subjects(),
+            parser_version=parser_version,
+            retrieval=make_retrieval(doc, parser_version, "final"),
+            validation_evidence=[
+                "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+                "Gabarito final cobre exatamente 63 questões objetivas.",
+                "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável.",
+            ],
+        )
+        record["variantAnswerKeys"] = {
+            "espanhol": {
+                "answers": spanish_answers,
+                "annulled": spanish_annulled,
+            }
+        }
+        catalog[edition] = record
+    return catalog
+
+
 IMPORTERS: dict[str, Callable[[], dict[str, object]]] = {
     "unicamp": ingest_unicamp,
     "uel": ingest_uel,
     "puc-sp": ingest_pucsp,
+    "udesc": ingest_udesc,
+    "acafe": ingest_acafe,
 }
 
 

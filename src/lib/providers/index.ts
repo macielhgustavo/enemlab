@@ -10,6 +10,8 @@ import { epcarProvider } from "./epcar";
 import { unicampProvider } from "./unicamp";
 import { uelProvider } from "./uel";
 import { pucSpProvider } from "./puc-sp";
+import { udescProvider } from "./udesc";
+import { acafeProvider } from "./acafe";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
@@ -20,6 +22,8 @@ registerProvider(epcarProvider);
 registerProvider(unicampProvider);
 registerProvider(uelProvider);
 registerProvider(pucSpProvider);
+registerProvider(udescProvider);
+registerProvider(acafeProvider);
 
 export * from "./types";
 export * from "./registry";
@@ -113,3 +117,25 @@ export {
   pucSpQuestions,
   pucSpQuestionKey,
 } from "./puc-sp";
+export {
+  udescProvider,
+  udescMetadata,
+  UDESC_PROVIDER_ID,
+  udescYears,
+  udescEditions,
+  udescAnswerKeys,
+  udescExamUrl,
+  udescQuestions,
+  udescQuestionKey,
+} from "./udesc";
+export {
+  acafeProvider,
+  acafeMetadata,
+  ACAFE_PROVIDER_ID,
+  acafeYears,
+  acafeEditions,
+  acafeAnswerKey,
+  acafeExamUrl,
+  acafeQuestions,
+  acafeQuestionKey,
+} from "./acafe";

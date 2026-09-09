@@ -57,6 +57,92 @@ class VestibularReferenceParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ingest.IngestionError, "duplicada"):
             ingest.pairs_to_answers([("1", "A"), ("1", "B")], 1)
 
+    def test_udesc_separates_sessions_and_language_columns(self):
+        morning = [f"{number} {'Anulada' if number == 9 else 'A'}" for number in range(1, 51)]
+        spanish = [f"{number} B" for number in range(29, 37)]
+        afternoon = [f"{number} {'Anulada' if number == 14 else 'C'}" for number in range(1, 51)]
+        text = "\n".join([
+            "UDESC Vestibular - Gabarito Oficial",
+            "Período Matutino",
+            *morning,
+            *spanish,
+            "Período Vespertino",
+            *afternoon,
+        ])
+
+        english_key, spanish_key, afternoon_key = ingest.parse_udesc_answer_key(text)
+
+        self.assertEqual(english_key[0]["29"], "A")
+        self.assertEqual(spanish_key[0]["29"], "B")
+        self.assertEqual(english_key[1], [9])
+        self.assertEqual(afternoon_key[0]["1"], "C")
+        self.assertEqual(afternoon_key[1], [14])
+
+    def test_udesc_rejects_missing_language_column(self):
+        text = "\n".join([
+            "UDESC Vestibular - Gabarito Oficial",
+            "Período Matutino",
+            *[f"{number} A" for number in range(1, 51)],
+            "Período Vespertino",
+            *[f"{number} B" for number in range(1, 51)],
+        ])
+        with self.assertRaisesRegex(ingest.IngestionError, "ocorrências"):
+            ingest.parse_udesc_answer_key(text)
+
+    def test_udesc_rejects_preliminary_key(self):
+        text = "\n".join([
+            "UDESC Vestibular - Gabarito Oficial Preliminar",
+            "Período Matutino",
+            *[f"{number} A" for number in range(1, 51)],
+            *[f"{number} B" for number in range(29, 37)],
+            "Período Vespertino",
+            *[f"{number} C" for number in range(1, 51)],
+        ])
+        with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
+            ingest.parse_udesc_answer_key(text)
+
+    def test_acafe_preserves_languages_and_annulled_x(self):
+        pairs = []
+        for number in range(1, 64):
+            if number in range(15, 22):
+                pairs.extend([f"{number} B", f"{number} A"])
+            else:
+                pairs.append(f"{number} {'X' if number == 56 else 'C'}")
+        text = "\n".join([
+            "Vestibular de Medicina ACAFE",
+            "Gabarito Oficial",
+            "Língua Portuguesa Espanhol Inglês Matemática",
+            *pairs,
+        ])
+
+        english, spanish = ingest.parse_acafe_answer_key(text)
+
+        self.assertEqual(english[0]["15"], "A")
+        self.assertEqual(spanish[0]["15"], "B")
+        self.assertEqual(english[1], [56])
+        self.assertEqual(spanish[1], [56])
+
+    def test_acafe_rejects_preliminary_key(self):
+        text = "\n".join([
+            "Vestibular de Medicina ACAFE",
+            "Gabarito Oficial Preliminar",
+            "Língua Portuguesa Espanhol Inglês Matemática",
+        ])
+        with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
+            ingest.parse_acafe_answer_key(text)
+
+    def test_udesc_rejects_preliminary_key(self):
+        text = "\n".join([
+            "UDESC Vestibular - Gabarito Oficial Preliminar",
+            "Período Matutino",
+            *[f"{number} A" for number in range(1, 51)],
+            *[f"{number} B" for number in range(29, 37)],
+            "Período Vespertino",
+            *[f"{number} C" for number in range(1, 51)],
+        ])
+        with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
+            ingest.parse_udesc_answer_key(text)
+
     def test_discovery_accepts_relative_official_links(self):
         with patch.object(ingest, "fetch_text", return_value='href="../../downloads/pucsp/prova.pdf"'):
             ingest.discover_page_contains(

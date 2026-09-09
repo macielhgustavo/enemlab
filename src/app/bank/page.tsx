@@ -26,7 +26,7 @@ import {
 import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
 import { areaLabel, areasOf } from "@/lib/providers/taxonomy";
 import { buildCurrentCatalog } from "@/lib/catalog/current";
-import { examLabel } from "@/lib/providers/label";
+import { examLabel, phaseLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
 
@@ -58,6 +58,7 @@ export default function BankPage() {
   const isIta = providerId === ITA_PROVIDER_ID;
   const [year, setYear] = useState(2023);
   const [itaYear, setItaYear] = useState(() => itaYears()[0] ?? 2026);
+  const [editionId, setEditionId] = useState("");
   const [subject, setSubject] = useState("all");
   const [query, setQuery] = useState("");
   const [area, setArea] = useState("all");
@@ -76,20 +77,29 @@ export default function BankPage() {
    */
   const catalogo = useMemo(() => buildCurrentCatalog(), []);
   const anosDisponiveis = catalogo.yearsOf(providerId);
-  const selectedYear = isIta ? itaYear : year;
-  const activeYear = anosDisponiveis.includes(selectedYear)
-    ? selectedYear
-    : (anosDisponiveis[0] ?? selectedYear);
   const provider = getProvider(providerId);
+  const namedEditions = provider.metadata.editions ?? [];
+  const activeNamedEdition = namedEditions.find((edition) => edition.id === editionId)
+    ?? namedEditions[0];
+  const selectedYear = isIta ? itaYear : year;
+  const activeYear = activeNamedEdition?.year ?? (anosDisponiveis.includes(selectedYear)
+    ? selectedYear
+    : (anosDisponiveis[0] ?? selectedYear));
   const providerAreas = areasOf(providerId);
   const itaSubjectIds = Object.keys(itaAnswerKey(activeYear)?.subjects ?? {});
   const activeSubject = isIta && itaSubjectIds.includes(subject) ? subject : "all";
   const activeArea = !isIta && providerAreas.some(({ id }) => id === area) ? area : "all";
   const activeLanguage = provider.metadata.languages[0]?.id ?? "ingles";
   const totalNoCatalogo = catalogo.countQuestions({ providerId });
-  const edicaoNoCatalogo = catalogo
-    .query({ providerId, year: activeYear })
-    .at(0);
+  const edicoesNoCatalogo = catalogo.query({
+    providerId,
+    year: activeYear,
+    editionId: activeNamedEdition?.id,
+  });
+  const questoesNaEdicao = edicoesNoCatalogo.reduce(
+    (total, edition) => total + (edition.questionCount ?? 0),
+    0,
+  );
 
   const {
     data: questions,
@@ -97,8 +107,12 @@ export default function BankPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["exam", providerId, activeYear, activeLanguage],
-    queryFn: () => questionsFor(providerId, { year: activeYear, language: activeLanguage as "ingles" | "espanhol" }),
+    queryKey: ["exam", providerId, activeYear, activeNamedEdition?.id, activeLanguage],
+    queryFn: () => questionsFor(providerId, {
+      year: activeYear,
+      editionId: activeNamedEdition?.id,
+      language: activeLanguage as "ingles" | "espanhol",
+    }),
     enabled: hydrated,
     staleTime: Infinity,
   });
@@ -190,8 +204,8 @@ export default function BankPage() {
         summary={
           isLoading
             ? // O índice já sabe o tamanho da edição antes de ela chegar.
-              edicaoNoCatalogo?.questionCount
-              ? `carregando ${edicaoNoCatalogo.questionCount} questões…`
+              questoesNaEdicao
+              ? `carregando ${questoesNaEdicao} questões…`
               : "carregando banco…"
             : `${visible.length} de ${(questions || []).length} questões`
         }
@@ -233,6 +247,22 @@ export default function BankPage() {
               {itaYears().map((y) => (
                 <option key={y} value={y}>
                   ITA {y}
+                </option>
+              ))}
+            </select>
+          ) : namedEditions.length ? (
+            <select
+              id="banco-ano"
+              className="el-select__trigger"
+              value={activeNamedEdition?.id ?? ""}
+              onChange={(e) => {
+                setEditionId(e.target.value);
+                setSelected(new Set());
+              }}
+            >
+              {namedEditions.map((edition) => (
+                <option key={edition.id} value={edition.id}>
+                  {edition.label}
                 </option>
               ))}
             </select>
@@ -373,7 +403,7 @@ export default function BankPage() {
                     {semEnunciado ? (
                       <>
                         <span>{areaLabel(String(discipline(q)), providerId)}</span>
-                        <span>1ª fase</span>
+                        <span>{phaseLabel(q.phase)}</span>
                         <span>objetiva</span>
                       </>
                     ) : (

@@ -9,7 +9,7 @@ import { buildTrainingAttempt, attemptFromQuestions, type NewTrainingParams } fr
 import { ENEM_PROVIDER_ID, listProviders } from "@/lib/providers";
 import { questionsFor } from "@/lib/providers/access";
 import { areasOf } from "@/lib/providers/taxonomy";
-import { examLabel } from "@/lib/providers/label";
+import { editionOptions } from "@/lib/providers/label";
 import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { Button } from "@/components/ui/button";
 import { InlineNotice, LoadingState } from "@/components/enem-lab/states";
@@ -68,13 +68,15 @@ export default function PracticePage() {
   );
   const [referenceProviderId, setReferenceProviderId] = useState(() => referenceProviders[0]?.id ?? "ita");
   const referenceProvider = referenceProviders.find((provider) => provider.id === referenceProviderId) ?? referenceProviders[0];
-  const [referenceYear, setReferenceYear] = useState(() => referenceProvider?.metadata.years[0] ?? 2026);
+  const [referenceEditionId, setReferenceEditionId] = useState(() =>
+    referenceProvider ? editionOptions(referenceProvider.id)[0]?.id ?? "" : "",
+  );
   const [referenceSubject, setReferenceSubject] = useState("");
   const [status, setStatus] = useState<string>("");
-  const referenceYears = referenceProvider?.metadata.years ?? [];
-  const activeReferenceYear = referenceYears.includes(referenceYear)
-    ? referenceYear
-    : (referenceYears[0] ?? referenceYear);
+  const referenceEditions = referenceProvider ? editionOptions(referenceProvider.id) : [];
+  const activeReferenceEdition = referenceEditions.find(({ id }) => id === referenceEditionId)
+    ?? referenceEditions[0];
+  const activeReferenceYear = activeReferenceEdition?.year ?? 2026;
   const referenceAreas = areasOf(referenceProvider?.id);
   const activeReferenceSubject = referenceAreas.some(({ id }) => id === referenceSubject)
     ? referenceSubject
@@ -95,7 +97,11 @@ export default function PracticePage() {
     setStatus("Montando vestibular em modo referência…");
     try {
       const lang = (referenceProvider.metadata.languages[0]?.id ?? "ingles") as Language;
-      const all = await questionsFor(referenceProvider.id, { year: activeReferenceYear, language: lang });
+      const all = await questionsFor(referenceProvider.id, {
+        year: activeReferenceYear,
+        editionId: activeReferenceEdition?.id,
+        language: lang,
+      });
       const qs = activeReferenceSubject
         ? all.filter((question) => discipline(question) === activeReferenceSubject)
         : all;
@@ -253,7 +259,7 @@ export default function PracticePage() {
               onChange={(e) => {
                 const nextProvider = referenceProviders.find((provider) => provider.id === e.target.value);
                 setReferenceProviderId(e.target.value);
-                setReferenceYear(nextProvider?.metadata.years[0] ?? referenceYear);
+                setReferenceEditionId(nextProvider ? editionOptions(nextProvider.id)[0]?.id ?? "" : "");
                 setReferenceSubject("");
               }}
             >
@@ -266,10 +272,14 @@ export default function PracticePage() {
           </div>
           <div style={{ maxWidth: 150 }}>
             <label htmlFor="ref-edicao">Edição</label>
-            <select id="ref-edicao" value={activeReferenceYear} onChange={(e) => setReferenceYear(Number(e.target.value))}>
-              {referenceYears.map((y) => (
-                <option key={y} value={y}>
-                  {examLabel(referenceProvider?.id)} {y}
+            <select
+              id="ref-edicao"
+              value={activeReferenceEdition?.id ?? ""}
+              onChange={(e) => setReferenceEditionId(e.target.value)}
+            >
+              {referenceEditions.map((edition) => (
+                <option key={edition.id} value={edition.id}>
+                  {edition.label}
                 </option>
               ))}
             </select>

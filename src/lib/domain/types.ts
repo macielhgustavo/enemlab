@@ -41,6 +41,7 @@ export interface Alternative {
   export interface Question {
     providerId?: string;
     examId?: string;
+    editionId?: string;
     index: number;
     year: number;
     phase?: string;
@@ -75,6 +76,11 @@ export interface QuestionRef {
   discipline: string;
   /** Ausente nos dados anteriores à v8: resolve para ENEM na leitura. */
   providerId?: string;
+  /** Identidade exata para provas com múltiplas edições/sessões no mesmo ano. */
+  questionKey?: string;
+  editionId?: string;
+  phase?: string;
+  examId?: string;
 }
 
 // ---- Correção ----

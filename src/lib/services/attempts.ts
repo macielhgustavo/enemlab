@@ -68,6 +68,10 @@ function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" |
 function refsFrom(qs: Question[], fallbackYear: number, providerId = ENEM_PROVIDER_ID) {
   return qs.map((q) => ({
     providerId: resolveProviderId(q.providerId ?? providerId),
+    questionKey: questionKey(q),
+    editionId: q.editionId,
+    phase: q.phase,
+    examId: q.examId,
     index: q.index,
     year: q.year || fallbackYear,
     language: q.language || null,
@@ -245,6 +249,7 @@ export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
     retryOf: src.id,
     questionRefs: rows.map((x) => ({
       providerId,
+      questionKey: x.key,
       index: x.index,
       year: x.year || src.year,
       language: x.language,
@@ -278,8 +283,12 @@ export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Att
 }
 
 function questionMatchesRef(q: Question, ref: Attempt["questionRefs"][number]): boolean {
+  if (ref.questionKey) return questionKey(q) === ref.questionKey;
   return (
     q.index === ref.index &&
+    (ref.editionId ? q.editionId === ref.editionId : true) &&
+    (ref.phase ? q.phase === ref.phase : true) &&
+    (ref.examId ? q.examId === ref.examId : true) &&
     (ref.language ? q.language === ref.language : true) &&
     discipline(q) === ref.discipline
   );
@@ -307,6 +316,7 @@ async function buildProviderReviewAttempt(
   for (const item of selected) {
     const ref = {
       providerId,
+      questionKey: item.key,
       index: item.index,
       year: item.year,
       language: item.language ?? null,
@@ -333,14 +343,15 @@ export async function questionsForAttempt(a: Attempt): Promise<Question[]> {
   if (providerId !== ENEM_PROVIDER_ID) {
     const groups: Record<string, Attempt["questionRefs"]> = {};
     for (const ref of a.questionRefs) {
-      const key = `${ref.year || a.year}|${ref.language || ""}`;
+      const key = `${ref.year || a.year}|${ref.language || ""}|${ref.editionId || ""}`;
       (groups[key] ??= []).push(ref);
     }
     const out: Question[] = [];
     for (const [key, refs] of Object.entries(groups)) {
-      const [rawYear, rawLanguage] = key.split("|");
+      const [rawYear, rawLanguage, editionId] = key.split("|");
       const all = await questionsFor(providerId, {
         year: Number(rawYear),
+        editionId: editionId || undefined,
         language: (rawLanguage || a.lang || "ingles") as Language,
       });
       for (const ref of refs) {

@@ -7,6 +7,8 @@ import { epcarAnswerKey, epcarYears } from "../providers/epcar";
 import { unicampExamUrl, unicampYears } from "../providers/unicamp";
 import { uelExamUrl, uelYears } from "../providers/uel";
 import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
+import { udescEditions, udescExamUrl, udescYears } from "../providers/udesc";
+import { acafeEditions, acafeExamUrl, acafeYears } from "../providers/acafe";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -20,6 +22,8 @@ const FAB_PARSER = "fab-answer-key@2.1.0";
 const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
 const UEL_PARSER = "uel-answer-key@1.0.0";
 const PUC_SP_PARSER = "puc-sp-answer-key@1.0.0";
+const UDESC_PARSER = "udesc-answer-key@1.0.0";
+const ACAFE_PARSER = "acafe-answer-key@1.0.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -475,57 +479,56 @@ export const ufscResearchSource: ExamSourceDefinition = {
     "proposições/somatória. Não entra no runner A-E nesta wave.",
 };
 
-/** UDESC pesquisada e adiada por modelagem de períodos/opções. */
-export const udescResearchSource: ExamSourceDefinition = {
-  id: "udesc-research",
+/** UDESC: duas sessões objetivas por edição, mantidas sob um único provider. */
+export const udescSource: ExamSourceDefinition = {
+  id: "udesc-official-archive",
   providerId: "udesc",
   institution: "UDESC",
   archiveUrl: "https://www.udesc.br/vestibular/provasanteriores",
   sourceType: "pdf-reference",
   statementMode: "reference-only",
-  extractionMethod: "manual",
+  extractionMethod: "pdf-text-layer",
   rightsStatus: "official-reference",
-  status: "blocked",
+  status: "active",
   family: "university",
   discovery: "manual",
-  years: [],
-  phases: ["first"],
-  subjects: ["general"],
+  years: udescYears(),
+  phases: ["morning", "afternoon"],
+  subjects: ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"],
   answerKeyAvailable: true,
   expectedAnswersAvailable: false,
-  parserVersion: "udesc-research@0.1.0",
-  lastVerifiedAt: "2026-09-08",
-  confidence: "baixa",
+  parserVersion: UDESC_PARSER,
+  lastVerifiedAt: "2026-09-09",
+  confidence: "alta",
   notes:
-    "Gabaritos oficiais 2025.2 e 2026.2 foram encontrados, mas o PDF mistura " +
-    "períodos matutino/vespertino e opções de língua com numeração sobreposta. " +
-    "Sem modelagem segura de período/língua, fica bloqueado.",
+    "Arquivo oficial público cobre 18 edições entre 2015.1 e 2026.2. Matutino e " +
+    "vespertino mantêm numeração própria; Inglês é a variante canônica da manhã.",
 };
 
-/** ACAFE pesquisada; fonte SPA/API ainda não fechada. */
-export const acafeResearchSource: ExamSourceDefinition = {
-  id: "acafe-research",
+/** ACAFE: arquivo oficial por edição, com prova e gabarito final associados. */
+export const acafeSource: ExamSourceDefinition = {
+  id: "acafe-official-archive",
   providerId: "acafe",
-  institution: "ACAFE",
-  archiveUrl: "https://vestibular.acafe.org.br/",
-  sourceType: "official-html",
+  institution: "Sistema ACAFE",
+  archiveUrl: "https://www.acafe.org.br/",
+  sourceType: "pdf-reference",
   statementMode: "reference-only",
-  extractionMethod: "manual",
-  rightsStatus: "unknown",
-  status: "blocked",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
   family: "university",
   discovery: "manual",
-  years: [],
+  years: acafeYears(),
   phases: ["single"],
-  subjects: ["general"],
-  answerKeyAvailable: false,
+  subjects: ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"],
+  answerKeyAvailable: true,
   expectedAnswersAvailable: false,
-  parserVersion: "acafe-research@0.1.0",
-  lastVerifiedAt: "2026-09-08",
-  confidence: "baixa",
+  parserVersion: ACAFE_PARSER,
+  lastVerifiedAt: "2026-09-09",
+  confidence: "alta",
   notes:
-    "O site atual é SPA e aponta para API pública, mas os endpoints de provas " +
-    "anteriores não foram identificados com evidência suficiente.",
+    "Nove edições entre 2022.2 e 2026.2 têm prova e gabarito oficial associados. " +
+    "A edição 2022.1 foi recusada porque o PDF rotulado como oficial diz preliminar.",
 };
 
 /** PUC-PR pesquisada sem arquivo público consistente. */
@@ -702,8 +705,8 @@ const SOURCES = new Map<string, ExamSourceDefinition>([
   [uepgResearchSource.id, uepgResearchSource],
   [unespResearchSource.id, unespResearchSource],
   [ufscResearchSource.id, ufscResearchSource],
-  [udescResearchSource.id, udescResearchSource],
-  [acafeResearchSource.id, acafeResearchSource],
+  [udescSource.id, udescSource],
+  [acafeSource.id, acafeSource],
   [pucPrResearchSource.id, pucPrResearchSource],
   [pucRioResearchSource.id, pucRioResearchSource],
   [mackenzieResearchSource.id, mackenzieResearchSource],
@@ -833,6 +836,27 @@ export const pucSpImporter: ExamImporter = {
   },
 };
 
+export const udescImporter: ExamImporter = {
+  sourceId: udescSource.id,
+  availableYears: () => udescYears(),
+  provenanceFor(year, phase = "morning", page) {
+    const edition = udescEditions().find((candidate) => candidate.year === year);
+    const session = phase === "afternoon" ? "afternoon" : "morning";
+    const url = edition ? udescExamUrl(edition.id, session) : null;
+    return provenance(udescSource, url ?? udescSource.archiveUrl, page);
+  },
+};
+
+export const acafeImporter: ExamImporter = {
+  sourceId: acafeSource.id,
+  availableYears: () => acafeYears(),
+  provenanceFor(year, phase = "single", page) {
+    const edition = acafeEditions().find((candidate) => candidate.year === year);
+    const url = phase === "single" && edition ? acafeExamUrl(edition.id) : null;
+    return provenance(acafeSource, url ?? acafeSource.archiveUrl, page);
+  },
+};
+
 export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
@@ -843,5 +867,7 @@ export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "unicamp") return unicampImporter;
   if (providerId === "uel") return uelImporter;
   if (providerId === "puc-sp") return pucSpImporter;
+  if (providerId === "udesc") return udescImporter;
+  if (providerId === "acafe") return acafeImporter;
   return null;
 }
