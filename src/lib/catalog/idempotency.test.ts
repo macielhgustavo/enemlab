@@ -103,7 +103,8 @@ describe("audit de fontes", () => {
     // falhar por causa do servidor de outra pessoa.
     const pkg = JSON.parse(readFileSync(join(RAIZ, "package.json"), "utf8"));
     expect(pkg.scripts.test).not.toContain("sources-audit");
-    expect(pkg.scripts["sources:audit"]).toBe("node scripts/sources-audit.mjs");
+    expect(pkg.scripts["sources:audit"]).toContain("scripts/sources-audit.mjs");
+    expect(pkg.scripts["sources:audit"]).toContain("--use-system-ca");
   });
 
   it("cobre toda fonte registrada", () => {

@@ -11,8 +11,8 @@ import {
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
 import { isQuestionUsableForPractice } from "../domain/question-quality";
-import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers";
-import { itaQuestionsForAttempt, buildItaReviewAttempt } from "./ita-attempts";
+import { ENEM_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers";
+import { questionsFor } from "../providers/access";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -67,7 +67,7 @@ function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" |
 
 function refsFrom(qs: Question[], fallbackYear: number, providerId = ENEM_PROVIDER_ID) {
   return qs.map((q) => ({
-    providerId,
+    providerId: resolveProviderId(q.providerId ?? providerId),
     index: q.index,
     year: q.year || fallbackYear,
     language: q.language || null,
@@ -81,13 +81,16 @@ export function attemptFromQuestions(
   lang: Language,
   qs: Question[],
   mode: AttemptMode,
+  providerId?: string | null,
 ): Attempt {
+  const scopedProviderId = resolveProviderId(providerId ?? qs.find((q) => q.providerId)?.providerId);
   return baseAttempt({
+    providerId: scopedProviderId,
     year,
     lang,
     mode,
     minutes: Math.max(30, Math.round(qs.length * 3.2)),
-    questionRefs: refsFrom(qs, year),
+    questionRefs: refsFrom(qs, year, scopedProviderId),
   });
 }
 
@@ -191,17 +194,17 @@ export async function buildDueReviewsAttempt(
   limit = 30,
   providerId: string = ENEM_PROVIDER_ID,
 ): Promise<Attempt> {
+  const scopedProviderId = resolveProviderId(providerId);
   const due = Object.entries(db.srs)
-    .filter(([, v]) => sameProvider(v.providerId, providerId))
+    .filter(([, v]) => sameProvider(v.providerId, scopedProviderId))
     .filter(([, v]) => new Date(v.due).getTime() <= Date.now())
     .map(([key, v]) => ({ key, ...v }))
     .sort((a, b) => +new Date(a.due) - +new Date(b.due))
     .slice(0, limit);
   if (!due.length) throw new Error("Nenhuma revisão vencida.");
 
-  // Prova em modo referência monta a fila do próprio gabarito.
-  if (resolveProviderId(providerId) === ITA_PROVIDER_ID) {
-    return buildItaReviewAttempt(due);
+  if (scopedProviderId !== ENEM_PROVIDER_ID) {
+    return buildProviderReviewAttempt(scopedProviderId, due);
   }
   const groups: Record<string, typeof due> = {};
   due.forEach((x) => {
@@ -232,14 +235,16 @@ export async function buildContentSprintAttempt(content: string, n = 15): Promis
 
 // Refazer um conjunto de linhas erradas.
 export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
+  const providerId = resolveProviderId(src.providerId);
   return baseAttempt({
-    providerId: resolveProviderId(src.providerId),
+    providerId,
     year: src.year,
     lang: src.lang,
     mode: "retry",
     minutes: Math.max(20, Math.round(rows.length * 3)),
     retryOf: src.id,
     questionRefs: rows.map((x) => ({
+      providerId,
       index: x.index,
       year: x.year || src.year,
       language: x.language,
@@ -252,8 +257,9 @@ export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
 export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Attempt> {
   const x = db.srs[key];
   if (!x) throw new Error("Item de revisão não encontrado.");
-  if (resolveProviderId(x.providerId) === ITA_PROVIDER_ID) {
-    return buildItaReviewAttempt([{ key, ...x }], true);
+  const providerId = resolveProviderId(x.providerId);
+  if (providerId !== ENEM_PROVIDER_ID) {
+    return buildProviderReviewAttempt(providerId, [{ key, ...x }], true);
   }
   const lang = (x.language || "ingles") as Language;
   const all = await fetchExam(x.year, lang);
@@ -267,16 +273,85 @@ export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Att
     mode: "srs-recall",
     minutes: 10,
     activeRecall: true,
-    questionRefs: refsFrom([q], x.year),
+    questionRefs: refsFrom([q], x.year, providerId),
   });
+}
+
+function questionMatchesRef(q: Question, ref: Attempt["questionRefs"][number]): boolean {
+  return (
+    q.index === ref.index &&
+    (ref.language ? q.language === ref.language : true) &&
+    discipline(q) === ref.discipline
+  );
+}
+
+async function buildProviderReviewAttempt(
+  providerId: string,
+  items: { key: string; year: number; index: number; area?: string; language?: string | null }[],
+  recall = false,
+): Promise<Attempt> {
+  const groups = new Map<string, typeof items>();
+  for (const item of items) {
+    const key = `${item.year}|${item.language ?? ""}`;
+    const group = groups.get(key) ?? [];
+    group.push(item);
+    groups.set(key, group);
+  }
+
+  const selected = [...groups.values()].sort((a, b) => b.length - a.length)[0];
+  const year = selected[0].year;
+  const lang = (selected[0].language || "ingles") as Language;
+  const all = await questionsFor(providerId, { year, language: lang });
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const ref = {
+      providerId,
+      index: item.index,
+      year: item.year,
+      language: item.language ?? null,
+      discipline: item.area ?? "unknown",
+    };
+    const found = all.find((q) => questionMatchesRef(q, ref)) ?? all.find((q) => q.index === item.index);
+    if (found) questions.push(found);
+  }
+
+  if (!questions.length) throw new Error("Questão de revisão não encontrada.");
+  const attempt = attemptFromQuestions(year, lang, questions, recall ? "srs-recall" : "srs", providerId);
+  return {
+    ...attempt,
+    minutes: Math.max(10, questions.length * 5),
+    activeRecall: recall,
+  };
 }
 
 // Recupera as questões de uma tentativa (agrupando por ano) — usar dentro de React Query.
 export async function questionsForAttempt(a: Attempt): Promise<Question[]> {
-  // Provas em modo referência (ITA) montam as questões a partir do gabarito
-  // oficial: não há banco remoto para consultar.
-  if (resolveProviderId(a.providerId) === ITA_PROVIDER_ID) {
-    return itaQuestionsForAttempt(a);
+  const providerId = resolveProviderId(a.providerId);
+
+  // Providers não-ENEM montam questões a partir do próprio gabarito oficial.
+  if (providerId !== ENEM_PROVIDER_ID) {
+    const groups: Record<string, Attempt["questionRefs"]> = {};
+    for (const ref of a.questionRefs) {
+      const key = `${ref.year || a.year}|${ref.language || ""}`;
+      (groups[key] ??= []).push(ref);
+    }
+    const out: Question[] = [];
+    for (const [key, refs] of Object.entries(groups)) {
+      const [rawYear, rawLanguage] = key.split("|");
+      const all = await questionsFor(providerId, {
+        year: Number(rawYear),
+        language: (rawLanguage || a.lang || "ingles") as Language,
+      });
+      for (const ref of refs) {
+        const question =
+          all.find((candidate) => questionMatchesRef(candidate, ref)) ||
+          all.find((candidate) => candidate.index === ref.index && discipline(candidate) === ref.discipline) ||
+          all.find((candidate) => candidate.index === ref.index);
+        if (question) out.push(question);
+      }
+    }
+    return out;
   }
 
   const groups: Record<number, Attempt["questionRefs"]> = {};

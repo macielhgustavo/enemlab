@@ -135,6 +135,9 @@ Correção errada é pior que ausência de dado.
 | FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | edições validadas |
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
+| UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
+| UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
+| PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
 
 ### v8.5.3 — FAB
 
@@ -209,8 +212,59 @@ relatório apenas após leitura real; exige os dois providers e todas as ediçõ
 Não executar esse modo só para renovar datas. A ingestão com `--year` conserva
 as outras edições; qualquer edição recusada impede a escrita daquele provider.
 
+### v8.8 — Vestibular Mass Injection
+
+A wave v8.8 expande o catálogo de vestibulares sem copiar enunciados para o
+bundle. UNICAMP, UEL e PUC-SP entram em `pdf-reference`: o app guarda gabarito,
+proveniência, variante canônica e contagem; o aluno abre o enunciado na fonte
+oficial. O modo de conteúdo continua explícito porque não há licença pública
+suficiente para republicar os PDFs.
+
+| Provider | Edições aceitas | Questões | Anuladas | Variante canônica | Relação | Fonte | Direitos |
+|---|---|---:|---:|---|---|---|---|
+| UNICAMP | 2024, 2025, 2026 — 1ª fase | 216 | 1 | Q/Y, Q/Z, Q/X conforme edição | `unknown` | COMVEST | `official-reference` |
+| UEL | 2026 — 1º dia Inglês | 60 | 1 | Tipo 1 Inglês | `unknown` | COPS/UEL | `official-reference` |
+| PUC-SP | 2024, 2025, 2026 — verão | 150 | 2 | Prova única | `unknown` | NucVest | `official-reference` |
+
+As variantes marcadas como `unknown` são preservadas como metadado, mas apenas a
+canônica entra no runner. Isso evita corrigir um caderno com o gabarito de
+outro quando a equivalência por reordenação não foi demonstrada.
+
+O comando `npm run ingest:vestibular -- all` baixa os gabaritos oficiais, valida
+cobertura, duplicidade, anuladas, revisão final/retificada, checksum, tamanho e
+página de descoberta antes de escrever `answer-keys.generated.json` por
+provider. Parser atual:
+
+- `unicamp-answer-key@1.0.0`
+- `uel-answer-key@1.0.0`
+- `puc-sp-answer-key@1.0.0`
+
+Fontes, fingerprints, recusas e pendências estão no
+[relatório da wave v8.8](vestibular-mass-validation.md).
+
 ### Pesquisa sem provider
 
+- **UEM:** o arquivo oficial da CVU foi encontrado, incluindo gabarito
+  definitivo, mas o formato é somatório/numerado e não A–E. Bloqueada até haver
+  modelo de prova compatível.
+- **UEPG:** o arquivo oficial da CPS foi encontrado com gabarito após recursos,
+  mas também usa respostas por somatório. Bloqueada por incompatibilidade de
+  runner, não por ausência de fonte.
+- **UNESP/Vunesp:** páginas oficiais históricas existem, mas o acesso às provas
+  e gabaritos exige Área do Candidato ou bloqueia robôs. Não rehostar nem
+  contornar.
+- **UFSC:** a Coperve publica gabaritos definitivos, porém a prova usa itens por
+  proposição/somatório. Fica `reference-only` bloqueada até modelagem própria.
+- **UDESC:** provas e gabaritos recentes foram encontrados, mas há múltiplos
+  períodos/línguas com numeração sobreposta. Bloqueada até separar variantes,
+  dias e idiomas sem ambiguidade.
+- **ACAFE:** a página oficial usa aplicação dinâmica; os endpoints precisam de
+  fechamento antes de qualquer provider.
+- **PUC-PR, PUC-Rio e Mackenzie:** não entraram por falta de arquivo público
+  consistente com prova, gabarito final e direitos de referência fechados.
+- **UFRJ histórica:** cobertura histórica exige investigação própria. Não há
+  provider atual inventado porque o processo vigente não expõe vestibular
+  próprio objetivo equivalente.
 - **UFPR:** PS 2018–PS 2026 foram investigados no [Portal NC da UFPR](https://lua.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026).
   Há versões e documentos preliminares/definitivos, mas a associação final
   consistente entre prova, versão e gabarito não foi demonstrada. Permanece

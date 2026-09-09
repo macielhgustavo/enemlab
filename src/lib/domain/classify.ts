@@ -3,6 +3,7 @@
 // aceita múltiplas tags e evita fingir precisão quando o texto é ambíguo.
 import { CONTENTS, contentAllLabels, contentPath } from "./constants";
 import { normalizeText } from "../format";
+import { buildQuestionKey } from "../catalog/question-key";
 import type { Question } from "./types";
 
 export type ClassificationConfidence = "alta" | "media" | "baixa";
@@ -31,6 +32,15 @@ export function discipline(q: Question): string {
 }
 
 export function questionKey(q: Question): string {
+  if (q.providerId && q.providerId !== "enem") {
+    return buildQuestionKey({
+      providerId: q.providerId,
+      editionId: String(q.year),
+      phase: q.phase ?? "single",
+      language: q.language,
+      number: q.number ?? q.index,
+    });
+  }
   return `${q.year}-${q.index}-${q.language || "pt"}-${discipline(q)}`;
 }
 
