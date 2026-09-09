@@ -45,10 +45,18 @@ metadados, referências e respostas factuais, sem reempacotar o texto das
 questões. Fontes secundárias podem apoiar descoberta futura, mas não substituem
 a evidência necessária para marcar uma edição como revisada.
 
+## Runner
+
+O seletor global de prova agora controla diretamente a tela Treinar. Ao
+selecionar ITA, IME, FUVEST, AFA, EPCAR, UNICAMP, UEL, PUC-SP, UDESC ou ACAFE,
+a tela abre a edição correspondente em modo referência, carrega o documento da
+banca e permite marcar e corrigir as alternativas. O fluxo é coberto por E2E
+para todos os providers, incluindo provas com quatro e cinco alternativas.
+
 ## Validação final
 
 - `npm test`: 385 testes TypeScript e 38 testes Python aprovados.
 - `npm run lint`: aprovado.
 - `npm run build`: build de produção aprovado no Next.js 16.3.4.
 - `npm run sources:audit`: 252 documentos verificados, sem problemas.
-- `npm run test:e2e:ci`: 80 fluxos desktop/mobile aprovados.
+- `npm run test:e2e:ci`: 100 fluxos desktop/mobile aprovados.

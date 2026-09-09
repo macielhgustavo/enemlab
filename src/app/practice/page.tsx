@@ -10,6 +10,7 @@ import { ENEM_PROVIDER_ID, listProviders } from "@/lib/providers";
 import { questionsFor } from "@/lib/providers/access";
 import { areasOf } from "@/lib/providers/taxonomy";
 import { editionOptions } from "@/lib/providers/label";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { Button } from "@/components/ui/button";
 import { InlineNotice, LoadingState } from "@/components/enem-lab/states";
@@ -52,6 +53,7 @@ export default function PracticePage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
   const hydrated = useHydrated();
+  const { providerId, setProvider } = useActiveProvider();
 
   const [year, setYear] = useState(2023);
   const [lang, setLang] = useState<Language>("ingles");
@@ -66,8 +68,7 @@ export default function PracticePage() {
     () => listProviders().filter((provider) => provider.id !== ENEM_PROVIDER_ID && provider.metadata.years.length),
     [],
   );
-  const [referenceProviderId, setReferenceProviderId] = useState(() => referenceProviders[0]?.id ?? "ita");
-  const referenceProvider = referenceProviders.find((provider) => provider.id === referenceProviderId) ?? referenceProviders[0];
+  const referenceProvider = referenceProviders.find((provider) => provider.id === providerId) ?? referenceProviders[0];
   const [referenceEditionId, setReferenceEditionId] = useState(() =>
     referenceProvider ? editionOptions(referenceProvider.id)[0]?.id ?? "" : "",
   );
@@ -140,11 +141,13 @@ export default function PracticePage() {
     <>
       <PageHeader
         eyebrow="Módulo · treino"
-        title="Novo treino"
-        description="Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API."
+        title={providerId === ENEM_PROVIDER_ID ? "Novo treino" : `Treinar ${referenceProvider?.metadata.shortLabel ?? "vestibular"}`}
+        description={providerId === ENEM_PROVIDER_ID
+          ? "Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API."
+          : "Abra a prova da banca, marque as alternativas no app e receba a correção pelo gabarito oficial."}
       />
 
-      <Card>
+      {providerId === ENEM_PROVIDER_ID && <Card>
         {/* A configuração vem em três blocos nomeados em vez de uma parede de
             campos: prova, formato e regras respondem perguntas diferentes. */}
         <div className="label el-fieldset__label">A prova</div>
@@ -239,7 +242,7 @@ export default function PracticePage() {
             Começar
           </Button>
         </div>
-      </Card>
+      </Card>}
 
       <Card style={{ marginTop: 14 }}>
         <div className="htitle">
@@ -255,10 +258,10 @@ export default function PracticePage() {
             <label htmlFor="ref-provider">Prova</label>
             <select
               id="ref-provider"
-              value={referenceProviderId}
+              value={referenceProvider?.id ?? ""}
               onChange={(e) => {
                 const nextProvider = referenceProviders.find((provider) => provider.id === e.target.value);
-                setReferenceProviderId(e.target.value);
+                setProvider(e.target.value);
                 setReferenceEditionId(nextProvider ? editionOptions(nextProvider.id)[0]?.id ?? "" : "");
                 setReferenceSubject("");
               }}
@@ -301,7 +304,7 @@ export default function PracticePage() {
         </div>
       </Card>
 
-      <Card style={{ marginTop: 14 }}>
+      {providerId === ENEM_PROVIDER_ID && <Card style={{ marginTop: 14 }}>
         <h2>Modos de treino</h2>
         <div className="grid grid4" style={{ marginTop: 14 }}>
           <div className="modeCard">
@@ -329,7 +332,7 @@ export default function PracticePage() {
             <p className="muted">Dia 1 ou Dia 2 com tempo oficial.</p>
           </div>
         </div>
-      </Card>
+      </Card>}
     </>
   );
 }

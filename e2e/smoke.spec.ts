@@ -65,6 +65,37 @@ test("a prova ativa troca e a Home acompanha", async ({ page }) => {
   await expect(page.locator(".el-provider__trigger")).toContainText("Prova ativa");
 });
 
+const VESTIBULARES_REFERENCIA = [
+  { id: "ita", alternatives: 5 },
+  { id: "ime", alternatives: 5 },
+  { id: "fuvest", alternatives: 5 },
+  { id: "afa", alternatives: 4 },
+  { id: "epcar", alternatives: 4 },
+  { id: "unicamp", alternatives: 5 },
+  { id: "uel", alternatives: 5 },
+  { id: "puc-sp", alternatives: 5 },
+  { id: "udesc", alternatives: 5 },
+  { id: "acafe", alternatives: 5 },
+];
+
+for (const provider of VESTIBULARES_REFERENCIA) {
+  test(`${provider.id} selecionado abre e permite responder`, async ({ page }) => {
+    await prepare(page, { provider: provider.id });
+    await page.goto("/practice");
+    await aguardarApp(page);
+
+    await expect(page.locator("#ref-provider")).toHaveValue(provider.id);
+    await page.getByRole("button", { name: "Começar vestibular" }).click();
+    await expect(page).toHaveURL(/\/exam\//);
+    await expect(page.getByText("Enunciado na prova oficial", { exact: true })).toBeVisible();
+
+    const alternatives = page.locator(".answer");
+    await expect(alternatives).toHaveCount(provider.alternatives);
+    await alternatives.first().click();
+    await expect(alternatives.first()).toHaveClass(/selected/);
+  });
+}
+
 test("o tema alterna e fica", async ({ page }) => {
   await prepare(page, { theme: "dark" });
   await page.goto("/");
