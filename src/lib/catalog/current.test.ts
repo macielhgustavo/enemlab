@@ -60,6 +60,20 @@ describe("catálogo v8.9", () => {
       unknownEditions: 0,
     });
   });
+
+  it("lista nove edições ACAFE sem carregar os PDFs", () => {
+    const catalog = buildCurrentCatalog();
+    const entries = catalog.query({ providerId: "acafe" });
+
+    expect(entries).toHaveLength(9);
+    expect(entries.every((entry) => entry.questionCount === 63)).toBe(true);
+    expect(entries.every((entry) => entry.phase === "single")).toBe(true);
+    expect(entries.every((entry) => entry.validation === "reviewed")).toBe(true);
+    expect(catalog.countQuestions({ providerId: "acafe" })).toEqual({
+      known: 567,
+      unknownEditions: 0,
+    });
+  });
 });
 
 describe("catálogo v8.9", () => {

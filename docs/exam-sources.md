@@ -139,6 +139,7 @@ Correção errada é pior que ausência de dado.
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
 | PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
 | UDESC | `udesc.br/vestibular/provasanteriores` | `pdf-reference` | na fonte oficial | 2015.1–2026.2 (18 edições) |
+| ACAFE | `acafe.org.br` / `storage.acafe.org.br` | `pdf-reference` | na fonte oficial | 2022.2–2026.2 (9 edições) |
 
 ### v8.5.3 — FAB
 
@@ -253,6 +254,7 @@ sessões separadamente e carrega uma edição por vez.
 | Provider | Edições | Sessões | Questões | Anuladas | Variante canônica | Relação | Direitos |
 |---|---:|---:|---:|---:|---|---|---|
 | UDESC | 18 | 36 | 1.800 | 50 | Inglês no bloco de língua | `distinct` (idiomas) | `official-reference` |
+| ACAFE | 9 | 9 | 567 | 22 | Inglês | `distinct` (idiomas) | `official-reference` |
 
 O gabarito de Espanhol é validado e preservado como variante distinta, mas não
 entra no runner porque ocupa a mesma numeração do bloco canônico de Inglês. Não
@@ -260,6 +262,12 @@ há inferência de equivalência entre idiomas. O parser `udesc-answer-key@1.0.0
 exige duas sessões completas, duplicidade controlada apenas no bloco de língua,
 revisão final e cobertura exata 1..50. Detalhes e limitações estão no
 [relatório de expansão UDESC](vestibular-volume-validation.md).
+
+A ACAFE segue a mesma política de idioma nas nove edições aceitas entre 2022.2
+e 2026.2. São 63 questões por edição. A 2022.1 ficou explicitamente recusada:
+a página do arquivo chama o documento de oficial, mas o próprio PDF contém
+“Gabarito preliminar”. O parser `acafe-answer-key@1.0.0` trata `X` como
+anulação, exige cobertura 1..63 e duas respostas somente no bloco 15..21.
 
 ### Pesquisa sem provider
 
@@ -274,8 +282,6 @@ revisão final e cobertura exata 1..50. Detalhes e limitações estão no
   contornar.
 - **UFSC:** a Coperve publica gabaritos definitivos, porém a prova usa itens por
   proposição/somatório. Fica `reference-only` bloqueada até modelagem própria.
-- **ACAFE:** a página oficial usa aplicação dinâmica; os endpoints precisam de
-  fechamento antes de qualquer provider.
 - **PUC-PR, PUC-Rio e Mackenzie:** não entraram por falta de arquivo público
   consistente com prova, gabarito final e direitos de referência fechados.
 - **UFRJ histórica:** cobertura histórica exige investigação própria. Não há

@@ -210,6 +210,64 @@ def parse_udesc_answer_key(
     )
 
 
+def parse_acafe_answer_key(
+    text: str,
+) -> tuple[
+    tuple[dict[str, str], list[int]],
+    tuple[dict[str, str], list[int]],
+]:
+    normalized = ascii_upper(text)
+    if "ACAFE" not in normalized or "GABARITO OFICIAL" not in normalized:
+        raise IngestionError("documento não é gabarito oficial ACAFE")
+    header = normalized.split("LINGUA PORTUGUESA", 1)[0]
+    if "PRELIMINAR" in header or "PROVISORIO" in header:
+        raise IngestionError("gabarito ACAFE não é final")
+
+    pattern = re.compile(
+        r"(?<!\d)0?([1-9]|[1-5][0-9]|6[0-3])\s*"
+        r"(?:[.:-]\s*|\s+)"
+        r"(ANULADA|ANULADO|[A-EX])\b"
+    )
+    grouped: dict[int, list[str]] = {}
+    for match in pattern.finditer(normalized):
+        grouped.setdefault(int(match.group(1)), []).append(match.group(2))
+
+    language_numbers = set(range(15, 22))
+    for number in range(1, 64):
+        expected_occurrences = 2 if number in language_numbers else 1
+        actual = len(grouped.get(number, []))
+        if actual != expected_occurrences:
+            raise IngestionError(
+                f"ACAFE q{number}: esperadas {expected_occurrences} ocorrências, recebidas {actual}"
+            )
+
+    language_markers = {
+        "espanhol": normalized.find("ESPANHOL"),
+        "ingles": normalized.find("INGLES"),
+    }
+    if any(position < 0 for position in language_markers.values()):
+        raise IngestionError("ACAFE não identifica Inglês e Espanhol")
+    language_order = [
+        language
+        for language, _ in sorted(language_markers.items(), key=lambda item: item[1])
+    ]
+    language_index = {language: index for index, language in enumerate(language_order)}
+
+    def pairs_for(language: str) -> list[tuple[str, str]]:
+        return [
+            (
+                str(number),
+                answers[language_index[language]] if number in language_numbers else answers[0],
+            )
+            for number, answers in sorted(grouped.items())
+        ]
+
+    return (
+        pairs_to_answers(pairs_for("ingles"), 63),
+        pairs_to_answers(pairs_for("espanhol"), 63),
+    )
+
+
 def pairs_to_answers(pairs: list[tuple[str, str]], total: int) -> tuple[dict[str, str], list[int]]:
     answers: dict[str, str] = {}
     annulled: list[int] = []
@@ -306,13 +364,16 @@ def write_provider(provider_id: str, data: dict[str, object]) -> None:
 
 def discover_page_contains(page_url: str, expected_urls: list[str]) -> None:
     text = fetch_text(page_url)
-    missing = []
-    for url in expected_urls:
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path.lstrip("/")
-        candidates = {url, urllib.parse.unquote(url), path, urllib.parse.unquote(path)}
-        if not any(candidate and candidate in text for candidate in candidates):
-            missing.append(url)
+    hrefs = re.findall(r"href\s*=\s*[\"']([^\"']+)[\"']", text, re.IGNORECASE)
+    discovered = {
+        urllib.parse.unquote(urllib.parse.urljoin(page_url, html.unescape(href)))
+        for href in hrefs
+    }
+    missing = [
+        url
+        for url in expected_urls
+        if urllib.parse.unquote(url) not in discovered
+    ]
     if missing:
         raise IngestionError(f"página oficial não contém URLs esperadas: {missing[:2]}")
 
@@ -524,6 +585,72 @@ UDESC = [
         "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
         "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Matutino_2026_2_17814818713136_22463.pdf",
         "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Prova_Vespertino_2026_2_1781481892914_22463.pdf",
+    ),
+]
+
+ACAFE = [
+    (
+        "2026.2",
+        2026,
+        "https://acafe.org.br/concurso/vestibular/2026/2/site/",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/01%20-%20Prova%20comentada.pdf",
+    ),
+    (
+        "2026.1",
+        2026,
+        "https://acafe.org.br/concurso/vestibular/2026/1/site/",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/01%20-%20Prova%20objetiva%20oficial%20-%20comentada-.pdf",
+    ),
+    (
+        "2025.2",
+        2025,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/02%20-%20Prova%20objetiva%20oficial%20comentada.pdf",
+    ),
+    (
+        "2025.1",
+        2025,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/02%20-%20Prova%20objetiva%20Verao%202025%20-%20oficial%20comentada.pdf",
+    ),
+    (
+        "2024.2",
+        2024,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/02%20-%20Prova%20objetiva%20Inverno%202024%20oficial%20comentada.pdf",
+    ),
+    (
+        "2024.1",
+        2024,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/05%20-Prova%20objetiva.pdf",
+    ),
+    (
+        "2023.2",
+        2023,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/01%20-%20Prova%20objetiva%20Inverno%202023%20-%20comentada.pdf",
+    ),
+    (
+        "2023.1",
+        2023,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=1",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/04%20-%20Prova%20objetiva%20Ver%C3%A3o%202023.pdf",
+    ),
+    (
+        "2022.2",
+        2022,
+        "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2022&s=2",
+        "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf",
+        "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/5%20-%20Prova%20comentada-1.pdf",
     ),
 ]
 
@@ -740,11 +867,84 @@ def ingest_udesc() -> dict[str, object]:
     return catalog
 
 
+def acafe_subjects() -> list[dict[str, object]]:
+    return subject_ranges(
+        ("portugues", "Língua Portuguesa", "linguagens", 1, 10),
+        ("literatura", "Literatura", "linguagens", 11, 14),
+        ("ingles", "Língua Inglesa", "linguagens", 15, 21),
+        ("matematica", "Matemática", "matematica", 22, 28),
+        ("fisica", "Física", "ciencias-natureza", 29, 35),
+        ("quimica", "Química", "ciencias-natureza", 36, 42),
+        ("biologia", "Biologia", "ciencias-natureza", 43, 49),
+        ("historia", "História", "ciencias-humanas", 50, 56),
+        ("geografia", "Geografia", "ciencias-humanas", 57, 63),
+    )
+
+
+def ingest_acafe() -> dict[str, object]:
+    parser_version = "acafe-answer-key@1.0.0"
+    catalog: dict[str, object] = {}
+    for edition, year, archive_page, answer_url, exam_url in ACAFE:
+        discover_page_contains(archive_page, [answer_url, exam_url])
+        doc = fetch_pdf(answer_url)
+        try:
+            english, spanish = parse_acafe_answer_key(doc.text)
+        except IngestionError as exc:
+            raise IngestionError(f"ACAFE {edition}: {exc}") from exc
+
+        english_answers, english_annulled = english
+        spanish_answers, spanish_annulled = spanish
+        record = entry(
+            edition=edition,
+            year=year,
+            label=f"Vestibular de Medicina ACAFE {edition}",
+            phase="single",
+            total=63,
+            answers=english_answers,
+            annulled=english_annulled,
+            variants=[
+                {
+                    "id": "ingles",
+                    "label": "Inglês",
+                    "examUrl": exam_url,
+                    "answerKeyUrl": answer_url,
+                },
+                {
+                    "id": "espanhol",
+                    "label": "Espanhol",
+                    "examUrl": exam_url,
+                    "answerKeyUrl": answer_url,
+                },
+            ],
+            canonical_variant="ingles",
+            variant_relation="distinct",
+            revision="final",
+            archive_page=archive_page,
+            subjects=acafe_subjects(),
+            parser_version=parser_version,
+            retrieval=make_retrieval(doc, parser_version, "final"),
+            validation_evidence=[
+                "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+                "Gabarito final cobre exatamente 63 questões objetivas.",
+                "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável.",
+            ],
+        )
+        record["variantAnswerKeys"] = {
+            "espanhol": {
+                "answers": spanish_answers,
+                "annulled": spanish_annulled,
+            }
+        }
+        catalog[edition] = record
+    return catalog
+
+
 IMPORTERS: dict[str, Callable[[], dict[str, object]]] = {
     "unicamp": ingest_unicamp,
     "uel": ingest_uel,
     "puc-sp": ingest_pucsp,
     "udesc": ingest_udesc,
+    "acafe": ingest_acafe,
 }
 
 

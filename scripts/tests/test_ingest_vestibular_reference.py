@@ -101,6 +101,36 @@ class VestibularReferenceParserTests(unittest.TestCase):
         with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
             ingest.parse_udesc_answer_key(text)
 
+    def test_acafe_preserves_languages_and_annulled_x(self):
+        pairs = []
+        for number in range(1, 64):
+            if number in range(15, 22):
+                pairs.extend([f"{number} B", f"{number} A"])
+            else:
+                pairs.append(f"{number} {'X' if number == 56 else 'C'}")
+        text = "\n".join([
+            "Vestibular de Medicina ACAFE",
+            "Gabarito Oficial",
+            "Língua Portuguesa Espanhol Inglês Matemática",
+            *pairs,
+        ])
+
+        english, spanish = ingest.parse_acafe_answer_key(text)
+
+        self.assertEqual(english[0]["15"], "A")
+        self.assertEqual(spanish[0]["15"], "B")
+        self.assertEqual(english[1], [56])
+        self.assertEqual(spanish[1], [56])
+
+    def test_acafe_rejects_preliminary_key(self):
+        text = "\n".join([
+            "Vestibular de Medicina ACAFE",
+            "Gabarito Oficial Preliminar",
+            "Língua Portuguesa Espanhol Inglês Matemática",
+        ])
+        with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
+            ingest.parse_acafe_answer_key(text)
+
     def test_udesc_rejects_preliminary_key(self):
         text = "\n".join([
             "UDESC Vestibular - Gabarito Oficial Preliminar",

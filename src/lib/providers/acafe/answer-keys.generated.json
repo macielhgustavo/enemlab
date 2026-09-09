@@ -1,0 +1,2412 @@
+{
+  "2026.2": {
+    "edition": "2026.2",
+    "year": 2026,
+    "label": "Vestibular de Medicina ACAFE 2026.2",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "D",
+      "3": "B",
+      "4": "C",
+      "5": "C",
+      "6": "A",
+      "7": "D",
+      "8": "C",
+      "9": "D",
+      "10": "A",
+      "11": "B",
+      "12": "A",
+      "13": "A",
+      "14": "B",
+      "15": "D",
+      "16": "C",
+      "17": "D",
+      "18": "B",
+      "19": "B",
+      "20": "A",
+      "21": "C",
+      "22": "B",
+      "23": "C",
+      "24": "B",
+      "25": "A",
+      "26": "D",
+      "27": "C",
+      "28": "A",
+      "29": "B",
+      "30": "C",
+      "31": "D",
+      "32": "B",
+      "33": "A",
+      "34": "A",
+      "35": "B",
+      "36": "D",
+      "37": "A",
+      "38": "C",
+      "39": "B",
+      "40": "A",
+      "41": "C",
+      "42": "B",
+      "43": "C",
+      "44": "D",
+      "45": "B",
+      "46": "A",
+      "47": "B",
+      "48": "C",
+      "49": "D",
+      "50": "A",
+      "51": "D",
+      "52": "C",
+      "53": "B",
+      "54": "A",
+      "55": "B",
+      "56": "D",
+      "57": "B",
+      "58": "B",
+      "59": "D",
+      "60": "C",
+      "61": "A",
+      "62": "C",
+      "63": "C"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/01%20-%20Prova%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/01%20-%20Prova%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/01%20-%20Prova%20comentada.pdf",
+    "archivePage": "https://acafe.org.br/concurso/vestibular/2026/2/site/",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/2/02%20-%20prova/03%20-%20gabarito%20oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "e3777cf2bcadcad5c5fb4b0d4b766d318f0fac57c67bb5c41e67770502d7608f",
+      "bytes": 273025,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "D",
+          "3": "B",
+          "4": "C",
+          "5": "C",
+          "6": "A",
+          "7": "D",
+          "8": "C",
+          "9": "D",
+          "10": "A",
+          "11": "B",
+          "12": "A",
+          "13": "A",
+          "14": "B",
+          "15": "B",
+          "16": "C",
+          "17": "A",
+          "18": "D",
+          "19": "A",
+          "20": "D",
+          "21": "B",
+          "22": "B",
+          "23": "C",
+          "24": "B",
+          "25": "A",
+          "26": "D",
+          "27": "C",
+          "28": "A",
+          "29": "B",
+          "30": "C",
+          "31": "D",
+          "32": "B",
+          "33": "A",
+          "34": "A",
+          "35": "B",
+          "36": "D",
+          "37": "A",
+          "38": "C",
+          "39": "B",
+          "40": "A",
+          "41": "C",
+          "42": "B",
+          "43": "C",
+          "44": "D",
+          "45": "B",
+          "46": "A",
+          "47": "B",
+          "48": "C",
+          "49": "D",
+          "50": "A",
+          "51": "D",
+          "52": "C",
+          "53": "B",
+          "54": "A",
+          "55": "B",
+          "56": "D",
+          "57": "B",
+          "58": "B",
+          "59": "D",
+          "60": "C",
+          "61": "A",
+          "62": "C",
+          "63": "C"
+        },
+        "annulled": []
+      }
+    }
+  },
+  "2026.1": {
+    "edition": "2026.1",
+    "year": 2026,
+    "label": "Vestibular de Medicina ACAFE 2026.1",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "A",
+      "3": "D",
+      "4": "C",
+      "5": "D",
+      "6": "A",
+      "7": "D",
+      "8": "C",
+      "9": "B",
+      "10": "A",
+      "11": "B",
+      "12": "D",
+      "13": "B",
+      "14": "C",
+      "15": "B",
+      "16": "D",
+      "17": "B",
+      "18": "A",
+      "19": "D",
+      "20": "B",
+      "21": "A",
+      "22": "B",
+      "23": "D",
+      "24": "D",
+      "25": "C",
+      "26": "A",
+      "27": "C",
+      "28": "C",
+      "29": "A",
+      "30": "B",
+      "31": "C",
+      "32": "B",
+      "33": "C",
+      "34": "B",
+      "35": "A",
+      "36": "B",
+      "38": "C",
+      "39": "D",
+      "40": "C",
+      "41": "B",
+      "42": "A",
+      "43": "A",
+      "44": "B",
+      "45": "A",
+      "46": "D",
+      "47": "C",
+      "48": "D",
+      "49": "B",
+      "50": "B",
+      "51": "D",
+      "53": "C",
+      "54": "D",
+      "55": "B",
+      "56": "A",
+      "57": "B",
+      "58": "C",
+      "59": "D",
+      "60": "C",
+      "61": "D",
+      "62": "A",
+      "63": "A"
+    },
+    "annulled": [
+      37,
+      52
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/01%20-%20Prova%20objetiva%20oficial%20-%20comentada-.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/01%20-%20Prova%20objetiva%20oficial%20-%20comentada-.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/01%20-%20Prova%20objetiva%20oficial%20-%20comentada-.pdf",
+    "archivePage": "https://acafe.org.br/concurso/vestibular/2026/1/site/",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2026/1/02%20-%20prova/03%20-%20Gabarito%20Verao%202026%20-%20Oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "fb79570a4a110462827d5c30bc726efdfc292aaa3ed971e5c38aefea577e5a3e",
+      "bytes": 289480,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "A",
+          "3": "D",
+          "4": "C",
+          "5": "D",
+          "6": "A",
+          "7": "D",
+          "8": "C",
+          "9": "B",
+          "10": "A",
+          "11": "B",
+          "12": "D",
+          "13": "B",
+          "14": "C",
+          "15": "B",
+          "16": "C",
+          "17": "B",
+          "18": "A",
+          "19": "D",
+          "20": "A",
+          "21": "C",
+          "22": "B",
+          "23": "D",
+          "24": "D",
+          "25": "C",
+          "26": "A",
+          "27": "C",
+          "28": "C",
+          "29": "A",
+          "30": "B",
+          "31": "C",
+          "32": "B",
+          "33": "C",
+          "34": "B",
+          "35": "A",
+          "36": "B",
+          "38": "C",
+          "39": "D",
+          "40": "C",
+          "41": "B",
+          "42": "A",
+          "43": "A",
+          "44": "B",
+          "45": "A",
+          "46": "D",
+          "47": "C",
+          "48": "D",
+          "49": "B",
+          "50": "B",
+          "51": "D",
+          "53": "C",
+          "54": "D",
+          "55": "B",
+          "56": "A",
+          "57": "B",
+          "58": "C",
+          "59": "D",
+          "60": "C",
+          "61": "D",
+          "62": "A",
+          "63": "A"
+        },
+        "annulled": [
+          37,
+          52
+        ]
+      }
+    }
+  },
+  "2025.2": {
+    "edition": "2025.2",
+    "year": 2025,
+    "label": "Vestibular de Medicina ACAFE 2025.2",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "C",
+      "3": "D",
+      "4": "D",
+      "5": "B",
+      "6": "C",
+      "7": "B",
+      "8": "B",
+      "10": "C",
+      "11": "A",
+      "12": "B",
+      "13": "C",
+      "14": "D",
+      "15": "A",
+      "16": "B",
+      "17": "A",
+      "18": "D",
+      "19": "B",
+      "20": "A",
+      "21": "C",
+      "22": "A",
+      "23": "B",
+      "24": "B",
+      "25": "D",
+      "26": "B",
+      "27": "C",
+      "28": "C",
+      "29": "C",
+      "30": "A",
+      "31": "D",
+      "32": "B",
+      "33": "D",
+      "34": "A",
+      "35": "C",
+      "36": "A",
+      "37": "B",
+      "38": "A",
+      "39": "B",
+      "40": "D",
+      "41": "D",
+      "42": "C",
+      "43": "A",
+      "44": "A",
+      "45": "C",
+      "46": "B",
+      "47": "D",
+      "48": "B",
+      "49": "C",
+      "50": "A",
+      "51": "A",
+      "52": "C",
+      "53": "D",
+      "54": "B",
+      "55": "B",
+      "56": "C",
+      "57": "A",
+      "59": "B",
+      "60": "D",
+      "61": "B",
+      "62": "C",
+      "63": "C"
+    },
+    "annulled": [
+      9,
+      58
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/02%20-%20Prova%20objetiva%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/02%20-%20Prova%20objetiva%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/02%20-%20Prova%20objetiva%20oficial%20comentada.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=2",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/2/02%20-%20prova/03%20-%20Gabarito%20Inverno%202025%20-%20Oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "56897ed8c88f0d2c021b98383697eb1677f74a46996038f6219596f247b165e5",
+      "bytes": 289607,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "C",
+          "3": "D",
+          "4": "D",
+          "5": "B",
+          "6": "C",
+          "7": "B",
+          "8": "B",
+          "10": "C",
+          "11": "A",
+          "12": "B",
+          "13": "C",
+          "14": "D",
+          "15": "A",
+          "16": "D",
+          "17": "A",
+          "18": "D",
+          "19": "B",
+          "20": "C",
+          "21": "C",
+          "22": "A",
+          "23": "B",
+          "24": "B",
+          "25": "D",
+          "26": "B",
+          "27": "C",
+          "28": "C",
+          "29": "C",
+          "30": "A",
+          "31": "D",
+          "32": "B",
+          "33": "D",
+          "34": "A",
+          "35": "C",
+          "36": "A",
+          "37": "B",
+          "38": "A",
+          "39": "B",
+          "40": "D",
+          "41": "D",
+          "42": "C",
+          "43": "A",
+          "44": "A",
+          "45": "C",
+          "46": "B",
+          "47": "D",
+          "48": "B",
+          "49": "C",
+          "50": "A",
+          "51": "A",
+          "52": "C",
+          "53": "D",
+          "54": "B",
+          "55": "B",
+          "56": "C",
+          "57": "A",
+          "59": "B",
+          "60": "D",
+          "61": "B",
+          "62": "C",
+          "63": "C"
+        },
+        "annulled": [
+          9,
+          58
+        ]
+      }
+    }
+  },
+  "2025.1": {
+    "edition": "2025.1",
+    "year": 2025,
+    "label": "Vestibular de Medicina ACAFE 2025.1",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "A",
+      "3": "C",
+      "4": "A",
+      "5": "D",
+      "6": "B",
+      "7": "C",
+      "8": "A",
+      "9": "D",
+      "10": "B",
+      "11": "A",
+      "12": "B",
+      "13": "A",
+      "15": "B",
+      "16": "C",
+      "17": "A",
+      "18": "D",
+      "19": "C",
+      "20": "B",
+      "21": "A",
+      "22": "D",
+      "23": "C",
+      "24": "A",
+      "25": "C",
+      "26": "D",
+      "28": "C",
+      "29": "D",
+      "30": "C",
+      "31": "A",
+      "32": "C",
+      "34": "A",
+      "35": "C",
+      "36": "A",
+      "37": "C",
+      "38": "A",
+      "39": "D",
+      "40": "D",
+      "41": "B",
+      "42": "C",
+      "43": "B",
+      "44": "C",
+      "45": "D",
+      "47": "D",
+      "48": "A",
+      "49": "B",
+      "50": "D",
+      "51": "B",
+      "52": "A",
+      "53": "B",
+      "54": "C",
+      "55": "A",
+      "56": "D",
+      "57": "C",
+      "58": "D",
+      "59": "A",
+      "60": "D",
+      "61": "B",
+      "62": "A",
+      "63": "B"
+    },
+    "annulled": [
+      14,
+      27,
+      33,
+      46
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/02%20-%20Prova%20objetiva%20Verao%202025%20-%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/02%20-%20Prova%20objetiva%20Verao%202025%20-%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/02%20-%20Prova%20objetiva%20Verao%202025%20-%20oficial%20comentada.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2025&s=1",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2025/1/02%20-%20prova/04%20-%20Gabarito%20Verao%202025%20-%20Oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "0c700fa2fd2aba3205aa559d28940435f1ddcd65c3d33e47ecd8d2473f369da8",
+      "bytes": 212025,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "A",
+          "3": "C",
+          "4": "A",
+          "5": "D",
+          "6": "B",
+          "7": "C",
+          "8": "A",
+          "9": "D",
+          "10": "B",
+          "11": "A",
+          "12": "B",
+          "13": "A",
+          "15": "D",
+          "16": "A",
+          "17": "C",
+          "18": "B",
+          "19": "B",
+          "20": "A",
+          "21": "D",
+          "22": "D",
+          "23": "C",
+          "24": "A",
+          "25": "C",
+          "26": "D",
+          "28": "C",
+          "29": "D",
+          "30": "C",
+          "31": "A",
+          "32": "C",
+          "34": "A",
+          "35": "C",
+          "36": "A",
+          "37": "C",
+          "38": "A",
+          "39": "D",
+          "40": "D",
+          "41": "B",
+          "42": "C",
+          "43": "B",
+          "44": "C",
+          "45": "D",
+          "47": "D",
+          "48": "A",
+          "49": "B",
+          "50": "D",
+          "51": "B",
+          "52": "A",
+          "53": "B",
+          "54": "C",
+          "55": "A",
+          "56": "D",
+          "57": "C",
+          "58": "D",
+          "59": "A",
+          "60": "D",
+          "61": "B",
+          "62": "A",
+          "63": "B"
+        },
+        "annulled": [
+          14,
+          27,
+          33,
+          46
+        ]
+      }
+    }
+  },
+  "2024.2": {
+    "edition": "2024.2",
+    "year": 2024,
+    "label": "Vestibular de Medicina ACAFE 2024.2",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "A",
+      "3": "D",
+      "4": "B",
+      "5": "C",
+      "6": "A",
+      "7": "D",
+      "8": "B",
+      "9": "D",
+      "10": "A",
+      "11": "B",
+      "12": "C",
+      "13": "A",
+      "14": "A",
+      "15": "B",
+      "16": "A",
+      "17": "C",
+      "18": "D",
+      "19": "A",
+      "20": "B",
+      "21": "A",
+      "22": "C",
+      "23": "C",
+      "24": "B",
+      "25": "C",
+      "26": "A",
+      "27": "A",
+      "28": "C",
+      "29": "B",
+      "30": "D",
+      "31": "C",
+      "32": "C",
+      "33": "C",
+      "34": "B",
+      "35": "A",
+      "36": "B",
+      "37": "B",
+      "38": "A",
+      "39": "A",
+      "40": "C",
+      "41": "D",
+      "42": "A",
+      "43": "B",
+      "44": "A",
+      "45": "B",
+      "46": "C",
+      "47": "D",
+      "48": "A",
+      "49": "D",
+      "50": "A",
+      "51": "D",
+      "52": "A",
+      "53": "B",
+      "54": "C",
+      "55": "D",
+      "57": "B",
+      "58": "D",
+      "59": "C",
+      "60": "C",
+      "61": "A",
+      "62": "A",
+      "63": "D"
+    },
+    "annulled": [
+      56
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/02%20-%20Prova%20objetiva%20Inverno%202024%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/02%20-%20Prova%20objetiva%20Inverno%202024%20oficial%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/02%20-%20Prova%20objetiva%20Inverno%202024%20oficial%20comentada.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=2",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/2/02%20-%20Prova/04%20-%20Gabarito%20Oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "21be1dcfbf123d91255a1d23341ee9cbf3f7ee4d8a6332e2f295ef56a3d00d0e",
+      "bytes": 83966,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "C",
+          "2": "A",
+          "3": "D",
+          "4": "B",
+          "5": "C",
+          "6": "A",
+          "7": "D",
+          "8": "B",
+          "9": "D",
+          "10": "A",
+          "11": "B",
+          "12": "C",
+          "13": "A",
+          "14": "A",
+          "15": "D",
+          "16": "B",
+          "17": "A",
+          "18": "A",
+          "19": "C",
+          "20": "D",
+          "21": "B",
+          "22": "C",
+          "23": "C",
+          "24": "B",
+          "25": "C",
+          "26": "A",
+          "27": "A",
+          "28": "C",
+          "29": "B",
+          "30": "D",
+          "31": "C",
+          "32": "C",
+          "33": "C",
+          "34": "B",
+          "35": "A",
+          "36": "B",
+          "37": "B",
+          "38": "A",
+          "39": "A",
+          "40": "C",
+          "41": "D",
+          "42": "A",
+          "43": "B",
+          "44": "A",
+          "45": "B",
+          "46": "C",
+          "47": "D",
+          "48": "A",
+          "49": "D",
+          "50": "A",
+          "51": "D",
+          "52": "A",
+          "53": "B",
+          "54": "C",
+          "55": "D",
+          "57": "B",
+          "58": "D",
+          "59": "C",
+          "60": "C",
+          "61": "A",
+          "62": "A",
+          "63": "D"
+        },
+        "annulled": [
+          56
+        ]
+      }
+    }
+  },
+  "2024.1": {
+    "edition": "2024.1",
+    "year": 2024,
+    "label": "Vestibular de Medicina ACAFE 2024.1",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "B",
+      "3": "A",
+      "4": "C",
+      "5": "B",
+      "6": "A",
+      "7": "D",
+      "9": "D",
+      "10": "C",
+      "11": "C",
+      "12": "A",
+      "13": "B",
+      "14": "D",
+      "15": "B",
+      "16": "D",
+      "17": "A",
+      "18": "C",
+      "19": "B",
+      "20": "A",
+      "21": "D",
+      "22": "B",
+      "23": "D",
+      "24": "A",
+      "25": "C",
+      "26": "A",
+      "27": "D",
+      "28": "C",
+      "29": "C",
+      "30": "A",
+      "31": "B",
+      "32": "C",
+      "33": "D",
+      "34": "B",
+      "35": "A",
+      "36": "C",
+      "37": "A",
+      "38": "D",
+      "39": "B",
+      "41": "B",
+      "42": "C",
+      "43": "B",
+      "44": "C",
+      "45": "D",
+      "46": "A",
+      "47": "C",
+      "48": "D",
+      "49": "A",
+      "50": "A",
+      "51": "D",
+      "52": "B",
+      "53": "C",
+      "54": "A",
+      "55": "B",
+      "56": "C",
+      "57": "C",
+      "58": "D",
+      "59": "A",
+      "60": "B",
+      "61": "C",
+      "62": "A",
+      "63": "D"
+    },
+    "annulled": [
+      8,
+      40
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/05%20-Prova%20objetiva.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/05%20-Prova%20objetiva.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/05%20-Prova%20objetiva.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2024&s=1",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2024/1/02%20-%20Prova/03%20-%20Gabarito%20oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "a688c838a7c28a3126d55b895a902e0d3cb78d7a152b26cac7b3febf623fd1e1",
+      "bytes": 87156,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "B",
+          "3": "A",
+          "4": "C",
+          "5": "B",
+          "6": "A",
+          "7": "D",
+          "9": "D",
+          "10": "C",
+          "11": "C",
+          "12": "A",
+          "13": "B",
+          "14": "D",
+          "15": "D",
+          "16": "C",
+          "18": "B",
+          "19": "D",
+          "20": "B",
+          "21": "A",
+          "22": "B",
+          "23": "D",
+          "24": "A",
+          "25": "C",
+          "26": "A",
+          "27": "D",
+          "28": "C",
+          "29": "C",
+          "30": "A",
+          "31": "B",
+          "32": "C",
+          "33": "D",
+          "34": "B",
+          "35": "A",
+          "36": "C",
+          "37": "A",
+          "38": "D",
+          "39": "B",
+          "41": "B",
+          "42": "C",
+          "43": "B",
+          "44": "C",
+          "45": "D",
+          "46": "A",
+          "47": "C",
+          "48": "D",
+          "49": "A",
+          "50": "A",
+          "51": "D",
+          "52": "B",
+          "53": "C",
+          "54": "A",
+          "55": "B",
+          "56": "C",
+          "57": "C",
+          "58": "D",
+          "59": "A",
+          "60": "B",
+          "61": "C",
+          "62": "A",
+          "63": "D"
+        },
+        "annulled": [
+          8,
+          17,
+          40
+        ]
+      }
+    }
+  },
+  "2023.2": {
+    "edition": "2023.2",
+    "year": 2023,
+    "label": "Vestibular de Medicina ACAFE 2023.2",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "C",
+      "7": "B",
+      "8": "A",
+      "9": "C",
+      "10": "B",
+      "11": "B",
+      "12": "D",
+      "13": "C",
+      "14": "A",
+      "15": "B",
+      "16": "A",
+      "17": "C",
+      "18": "B",
+      "19": "D",
+      "20": "A",
+      "21": "C",
+      "22": "D",
+      "23": "A",
+      "24": "C",
+      "25": "B",
+      "26": "D",
+      "27": "A",
+      "28": "C",
+      "29": "D",
+      "30": "B",
+      "31": "A",
+      "32": "C",
+      "33": "A",
+      "34": "B",
+      "35": "C",
+      "36": "A",
+      "37": "B",
+      "38": "C",
+      "39": "C",
+      "40": "A",
+      "41": "D",
+      "42": "B",
+      "43": "C",
+      "44": "D",
+      "45": "A",
+      "46": "B",
+      "47": "C",
+      "48": "D",
+      "49": "A",
+      "50": "A",
+      "52": "C",
+      "53": "A",
+      "55": "B",
+      "56": "C",
+      "57": "C",
+      "58": "A",
+      "59": "D",
+      "60": "C",
+      "61": "D",
+      "62": "A",
+      "63": "B"
+    },
+    "annulled": [
+      6,
+      51,
+      54
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/01%20-%20Prova%20objetiva%20Inverno%202023%20-%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/01%20-%20Prova%20objetiva%20Inverno%202023%20-%20comentada.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/01%20-%20Prova%20objetiva%20Inverno%202023%20-%20comentada.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=2",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/2/02%20-%20Prova/02%20-%20Gabarito%20Inverno%202023%20-%20Oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "4a6a20794dc2eeb467656e5b909d9f9a2a8ca9c180cfb100a0f02b1e1fc1781c",
+      "bytes": 79457,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "D",
+          "3": "B",
+          "4": "D",
+          "5": "C",
+          "7": "B",
+          "8": "A",
+          "9": "C",
+          "10": "B",
+          "11": "B",
+          "12": "D",
+          "13": "C",
+          "14": "A",
+          "15": "D",
+          "16": "B",
+          "17": "A",
+          "18": "D",
+          "19": "C",
+          "20": "A",
+          "21": "B",
+          "22": "D",
+          "23": "A",
+          "24": "C",
+          "25": "B",
+          "26": "D",
+          "27": "A",
+          "28": "C",
+          "29": "D",
+          "30": "B",
+          "31": "A",
+          "32": "C",
+          "33": "A",
+          "34": "B",
+          "35": "C",
+          "36": "A",
+          "37": "B",
+          "38": "C",
+          "39": "C",
+          "40": "A",
+          "41": "D",
+          "42": "B",
+          "43": "C",
+          "44": "D",
+          "45": "A",
+          "46": "B",
+          "47": "C",
+          "48": "D",
+          "49": "A",
+          "50": "A",
+          "52": "C",
+          "53": "A",
+          "55": "B",
+          "56": "C",
+          "57": "C",
+          "58": "A",
+          "59": "D",
+          "60": "C",
+          "61": "D",
+          "62": "A",
+          "63": "B"
+        },
+        "annulled": [
+          6,
+          51,
+          54
+        ]
+      }
+    }
+  },
+  "2023.1": {
+    "edition": "2023.1",
+    "year": 2023,
+    "label": "Vestibular de Medicina ACAFE 2023.1",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "D",
+      "3": "A",
+      "5": "C",
+      "6": "D",
+      "7": "A",
+      "9": "C",
+      "10": "A",
+      "11": "C",
+      "12": "B",
+      "13": "A",
+      "14": "D",
+      "15": "A",
+      "16": "C",
+      "17": "D",
+      "18": "B",
+      "19": "B",
+      "20": "C",
+      "21": "A",
+      "22": "D",
+      "23": "A",
+      "24": "C",
+      "25": "B",
+      "26": "D",
+      "27": "B",
+      "28": "C",
+      "29": "C",
+      "30": "D",
+      "31": "A",
+      "32": "B",
+      "33": "D",
+      "34": "A",
+      "35": "B",
+      "36": "B",
+      "37": "C",
+      "38": "B",
+      "39": "A",
+      "40": "D",
+      "41": "C",
+      "42": "D",
+      "43": "C",
+      "44": "B",
+      "45": "A",
+      "46": "D",
+      "47": "C",
+      "48": "B",
+      "49": "A",
+      "50": "C",
+      "51": "A",
+      "52": "D",
+      "54": "B",
+      "55": "D",
+      "56": "B",
+      "57": "A",
+      "58": "C",
+      "59": "B",
+      "60": "D",
+      "61": "D",
+      "62": "B",
+      "63": "A"
+    },
+    "annulled": [
+      4,
+      8,
+      53
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/04%20-%20Prova%20objetiva%20Ver%C3%A3o%202023.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/04%20-%20Prova%20objetiva%20Ver%C3%A3o%202023.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/04%20-%20Prova%20objetiva%20Ver%C3%A3o%202023.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2023&s=1",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2023/1/02%20-%20Prova/05%20-%20Gabarito%20oficial%20Ver%C3%A3o%202023.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "9cec1e1036af8a5ecb2082b90f84bec8efb1f26bf3299dc3cd81524d9fbf9235",
+      "bytes": 79345,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "B",
+          "2": "D",
+          "3": "A",
+          "5": "C",
+          "6": "D",
+          "7": "A",
+          "9": "C",
+          "10": "A",
+          "11": "C",
+          "12": "B",
+          "13": "A",
+          "14": "D",
+          "15": "B",
+          "16": "D",
+          "17": "C",
+          "18": "D",
+          "19": "C",
+          "20": "D",
+          "21": "B",
+          "22": "D",
+          "23": "A",
+          "24": "C",
+          "25": "B",
+          "26": "D",
+          "27": "B",
+          "28": "C",
+          "29": "C",
+          "30": "D",
+          "31": "A",
+          "32": "B",
+          "33": "D",
+          "34": "A",
+          "35": "B",
+          "36": "B",
+          "37": "C",
+          "38": "B",
+          "39": "A",
+          "40": "D",
+          "41": "C",
+          "42": "D",
+          "43": "C",
+          "44": "B",
+          "45": "A",
+          "46": "D",
+          "47": "C",
+          "48": "B",
+          "49": "A",
+          "50": "C",
+          "51": "A",
+          "52": "D",
+          "54": "B",
+          "55": "D",
+          "56": "B",
+          "57": "A",
+          "58": "C",
+          "59": "B",
+          "60": "D",
+          "61": "D",
+          "62": "B",
+          "63": "A"
+        },
+        "annulled": [
+          4,
+          8,
+          53
+        ]
+      }
+    }
+  },
+  "2022.2": {
+    "edition": "2022.2",
+    "year": 2022,
+    "label": "Vestibular de Medicina ACAFE 2022.2",
+    "phase": "single",
+    "total": 63,
+    "canonicalVariant": "ingles",
+    "variantRelation": "distinct",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "B",
+      "3": "D",
+      "4": "C",
+      "5": "A",
+      "6": "B",
+      "7": "D",
+      "8": "C",
+      "9": "C",
+      "10": "A",
+      "11": "D",
+      "12": "A",
+      "13": "B",
+      "14": "C",
+      "15": "B",
+      "16": "D",
+      "17": "C",
+      "18": "D",
+      "19": "A",
+      "20": "D",
+      "21": "B",
+      "22": "C",
+      "23": "C",
+      "24": "B",
+      "25": "D",
+      "26": "C",
+      "27": "B",
+      "28": "A",
+      "29": "C",
+      "30": "A",
+      "33": "B",
+      "34": "D",
+      "35": "B",
+      "36": "C",
+      "38": "A",
+      "39": "D",
+      "41": "B",
+      "42": "A",
+      "43": "C",
+      "44": "D",
+      "45": "A",
+      "46": "B",
+      "47": "D",
+      "48": "A",
+      "49": "B",
+      "50": "D",
+      "52": "C",
+      "53": "B",
+      "54": "D",
+      "55": "B",
+      "56": "C",
+      "57": "B",
+      "58": "D",
+      "59": "A",
+      "60": "B",
+      "61": "C",
+      "62": "D",
+      "63": "A"
+    },
+    "annulled": [
+      31,
+      32,
+      37,
+      40,
+      51
+    ],
+    "variants": [
+      {
+        "id": "ingles",
+        "label": "Inglês",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/5%20-%20Prova%20comentada-1.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf"
+      },
+      {
+        "id": "espanhol",
+        "label": "Espanhol",
+        "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/5%20-%20Prova%20comentada-1.pdf",
+        "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf",
+    "examUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/5%20-%20Prova%20comentada-1.pdf",
+    "archivePage": "https://storage.acafe.org.br/concurso/vestibular/documentos.php?a=2022&s=2",
+    "subjects": [
+      {
+        "id": "portugues",
+        "label": "Língua Portuguesa",
+        "area": "linguagens",
+        "range": [
+          1,
+          10
+        ]
+      },
+      {
+        "id": "literatura",
+        "label": "Literatura",
+        "area": "linguagens",
+        "range": [
+          11,
+          14
+        ]
+      },
+      {
+        "id": "ingles",
+        "label": "Língua Inglesa",
+        "area": "linguagens",
+        "range": [
+          15,
+          21
+        ]
+      },
+      {
+        "id": "matematica",
+        "label": "Matemática",
+        "area": "matematica",
+        "range": [
+          22,
+          28
+        ]
+      },
+      {
+        "id": "fisica",
+        "label": "Física",
+        "area": "ciencias-natureza",
+        "range": [
+          29,
+          35
+        ]
+      },
+      {
+        "id": "quimica",
+        "label": "Química",
+        "area": "ciencias-natureza",
+        "range": [
+          36,
+          42
+        ]
+      },
+      {
+        "id": "biologia",
+        "label": "Biologia",
+        "area": "ciencias-natureza",
+        "range": [
+          43,
+          49
+        ]
+      },
+      {
+        "id": "historia",
+        "label": "História",
+        "area": "ciencias-humanas",
+        "range": [
+          50,
+          56
+        ]
+      },
+      {
+        "id": "geografia",
+        "label": "Geografia",
+        "area": "ciencias-humanas",
+        "range": [
+          57,
+          63
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial ACAFE associa a edição à prova e ao gabarito oficial.",
+      "Gabarito final cobre exatamente 63 questões objetivas.",
+      "Inglês e Espanhol são variantes distintas; Inglês é a canônica executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf",
+      "effectiveSourceUrl": "https://storage.acafe.org.br/concurso/vestibular/2022/2/05%20-%20Prova/1%20-%20Gabarito%20oficial.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "01be92336c2d00fec41d94c3638b10d1443ef62d99a33e5703b7eb0233a713a7",
+      "bytes": 78295,
+      "parserVersion": "acafe-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "acafe-answer-key@1.0.0",
+    "variantAnswerKeys": {
+      "espanhol": {
+        "answers": {
+          "1": "A",
+          "2": "B",
+          "3": "D",
+          "4": "C",
+          "5": "A",
+          "6": "B",
+          "7": "D",
+          "8": "C",
+          "9": "C",
+          "10": "A",
+          "11": "D",
+          "12": "A",
+          "13": "B",
+          "14": "C",
+          "15": "A",
+          "16": "C",
+          "17": "D",
+          "18": "B",
+          "20": "C",
+          "21": "A",
+          "22": "C",
+          "23": "C",
+          "24": "B",
+          "25": "D",
+          "26": "C",
+          "27": "B",
+          "28": "A",
+          "29": "C",
+          "30": "A",
+          "33": "B",
+          "34": "D",
+          "35": "B",
+          "36": "C",
+          "38": "A",
+          "39": "D",
+          "41": "B",
+          "42": "A",
+          "43": "C",
+          "44": "D",
+          "45": "A",
+          "46": "B",
+          "47": "D",
+          "48": "A",
+          "49": "B",
+          "50": "D",
+          "52": "C",
+          "53": "B",
+          "54": "D",
+          "55": "B",
+          "56": "C",
+          "57": "B",
+          "58": "D",
+          "59": "A",
+          "60": "B",
+          "61": "C",
+          "62": "D",
+          "63": "A"
+        },
+        "annulled": [
+          19,
+          31,
+          32,
+          37,
+          40,
+          51
+        ]
+      }
+    }
+  }
+}

@@ -32,6 +32,9 @@ import {
   udescAnswerKeys,
   udescEditions,
   UDESC_PROVIDER_ID,
+  acafeAnswerKey,
+  acafeEditions,
+  ACAFE_PROVIDER_ID,
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
@@ -150,9 +153,13 @@ export function buildCurrentCatalog(): CatalogIndex {
     const fonte = listSources().find((s) => s.providerId === p.id);
     if (!fonte) continue;
 
-    if (p.id === UDESC_PROVIDER_ID) {
-      for (const edition of udescEditions()) {
-        for (const key of udescAnswerKeys(edition.id)) {
+    if (p.id === UDESC_PROVIDER_ID || p.id === ACAFE_PROVIDER_ID) {
+      const editions = p.id === UDESC_PROVIDER_ID ? udescEditions() : acafeEditions();
+      for (const edition of editions) {
+        const keys = p.id === UDESC_PROVIDER_ID
+          ? udescAnswerKeys(edition.id)
+          : [acafeAnswerKey(edition.id)].filter((key) => key !== null);
+        for (const key of keys) {
           const measure = referenceMeasure(key);
           entradas.push({
             providerId: p.id,

@@ -269,6 +269,7 @@ pior, atribuiria a resposta à versão errada.
 | UEL | 1 (1º dia Inglês) | 60 | `reviewed` | referência | `uel-cops-archive` |
 | PUC-SP | 3 (verão) | 150 | `reviewed` | referência | `puc-sp-nucvest-archive` |
 | UDESC | 18 (manhã e tarde) | 1.800 | `reviewed` | referência | `udesc-official-archive` |
+| ACAFE | 9 (semestres) | 567 | `reviewed` | referência | `acafe-official-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
 
 O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
@@ -330,6 +331,17 @@ continuam lazy por edição.
 O modo permanece `reference-only`/`official-reference`: prova e gabarito ficam
 no domínio oficial, e o bundle contém apenas chave, correção e metadados. Veja o
 [relatório de expansão UDESC](vestibular-volume-validation.md).
+
+### v8.9 — ACAFE
+
+O adapter ACAFE usa páginas oficiais específicas por edição e preserva as URLs
+exatas de prova e gabarito encontradas nelas. As nove edições aceitas cobrem
+2022.2 e os dois semestres de 2023 a 2026, com 63 questões objetivas cada.
+Inglês é canônico; Espanhol é armazenado como variante `distinct`.
+
+O parser recusa preliminar mesmo quando o rótulo da página externa diz
+“oficial”. Isso excluiu 2022.1, cujo PDF contradiz o índice. Respostas `X` são
+registradas como anuladas, e edição só entra com cobertura exata 1..63.
 
 ### Fontes registradas e não ingeridas
 

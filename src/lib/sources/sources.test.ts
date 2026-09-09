@@ -20,12 +20,14 @@ import {
   pucSpSource,
   udescImporter,
   udescSource,
+  acafeImporter,
+  acafeSource,
 } from "./index";
 
 describe("registry de fontes", () => {
   it("registra as fontes desta versão, e nada além", () => {
     expect(listSources().map((s) => s.id).sort()).toEqual([
-      "acafe-research",
+      "acafe-official-archive",
       "afa-official-archive",
       "eear-research",
       "enem-dev",
@@ -65,6 +67,7 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("uel").map((s) => s.id)).toEqual(["uel-cops-archive"]);
     expect(sourcesForProvider("puc-sp").map((s) => s.id)).toEqual(["puc-sp-nucvest-archive"]);
     expect(sourcesForProvider("udesc").map((s) => s.id)).toEqual(["udesc-official-archive"]);
+    expect(sourcesForProvider("acafe").map((s) => s.id)).toEqual(["acafe-official-archive"]);
   });
 
   it("um provider pode ter mais de uma fonte", () => {
@@ -108,7 +111,6 @@ describe("registry de fontes", () => {
 
   it("mantém pesquisa bloqueada fora dos providers executáveis", () => {
     for (const id of [
-      "acafe-research",
       "eear-research",
       "mackenzie-research",
       "puc-pr-research",
@@ -142,7 +144,7 @@ describe("registry de fontes", () => {
   });
 
   it("descreve os novos vestibulares aceitos como referência oficial", () => {
-    for (const source of [unicampSource, uelSource, pucSpSource, udescSource]) {
+    for (const source of [unicampSource, uelSource, pucSpSource, udescSource, acafeSource]) {
       expect(source).toMatchObject({
         statementMode: "reference-only",
         sourceType: "pdf-reference",
@@ -197,6 +199,7 @@ describe("procedência", () => {
     expect(importerForProvider("uel")?.sourceId).toBe("uel-cops-archive");
     expect(importerForProvider("puc-sp")?.sourceId).toBe("puc-sp-nucvest-archive");
     expect(importerForProvider("udesc")?.sourceId).toBe("udesc-official-archive");
+    expect(importerForProvider("acafe")?.sourceId).toBe("acafe-official-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
     expect(importerForProvider("ufpr")).toBeNull();
   });
@@ -209,6 +212,7 @@ describe("procedência", () => {
     expect(uelImporter.availableYears()).toEqual(uelSource.years);
     expect(pucSpImporter.availableYears()).toEqual(pucSpSource.years);
     expect(udescImporter.availableYears()).toEqual(udescSource.years);
+    expect(acafeImporter.availableYears()).toEqual(acafeSource.years);
   });
 
   it("aponta a prova oficial para os novos providers", () => {
@@ -216,6 +220,7 @@ describe("procedência", () => {
     expect(uelImporter.provenanceFor(2026).documentUrl).toContain("cops.uel.br");
     expect(pucSpImporter.provenanceFor(2026).documentUrl).toContain("nucvest.com.br");
     expect(udescImporter.provenanceFor(2026, "morning").documentUrl).toContain("udesc.br");
+    expect(acafeImporter.provenanceFor(2026).documentUrl).toContain("acafe.org.br");
   });
 
   it("aponta a chave final oficial para cada provider FAB", () => {

@@ -305,9 +305,10 @@ const FONTES = [
   },
   {
     providerId: "acafe",
-    sourceId: "acafe-research",
-    archiveUrl: "https://vestibular.acafe.org.br/",
-    documentos: [{ role: "archive-page", url: "https://vestibular.acafe.org.br/", method: "GET" }],
+    sourceId: "acafe-official-archive",
+    archiveUrl: "https://www.acafe.org.br/",
+    generatedReferenceManifest: true,
+    documentos: [{ role: "archive-page", url: "https://www.acafe.org.br/", method: "GET" }],
   },
   {
     providerId: "puc-pr",
