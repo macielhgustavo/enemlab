@@ -22,6 +22,10 @@ import type {
   NormalizedQuestion,
 } from "../types";
 import bruto from "./answer-keys.generated.json";
+import {
+  getStructuredQuestion,
+  withStructuredQuestionContent,
+} from "../structuredRegistry";
 
 export const IME_PROVIDER_ID = "ime";
 
@@ -93,7 +97,9 @@ export function imeQuestionKey(q: NormalizedQuestion): string {
 /**
  * Questões objetivas de uma edição, montadas a partir do gabarito.
  *
- * Sem enunciado: `statementAvailable` é false e a procedência leva ao PDF.
+ * Sem conteúdo nativo aprovado, `statementAvailable` é false e a procedência
+ * leva ao PDF. O registry pode enriquecer a questão sem alterar identidade ou
+ * gabarito quando houver transcrição validada e reutilização permitida.
  */
 export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
   const k = imeAnswerKey(edition);
@@ -112,7 +118,7 @@ export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
       area: subjectId,
     };
 
-    out.push({
+    const base: NormalizedQuestion = {
       providerId: IME_PROVIDER_ID,
       examId: `ime-${edition}-objective`,
       year: k.year,
@@ -136,10 +142,18 @@ export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
       type: "multiple_choice",
       statementAvailable: false,
       official: { official: true, institution: "IME", documentUrl },
-      // Questão anulada não tem gabarito: a correção precisa ignorá-la em
-      // vez de contar como erro.
+      // Questão anulada não tem gabarito: a correção precisa ignorá-la em vez
+      // de contar como erro.
       expectedAnswer: null,
-    });
+    };
+
+    out.push(
+      withStructuredQuestionContent(
+        base,
+        getStructuredQuestion(IME_PROVIDER_ID, k.year, n, "first"),
+        "IME",
+      ),
+    );
   }
 
   return out;
