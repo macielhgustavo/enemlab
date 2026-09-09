@@ -8,8 +8,8 @@
 // quatro versões chamadas V1..V4; em 2024, cinco chamadas V, K, Q, X e Z —
 // razão pela qual o importador lê os nomes do documento, nunca do código.
 //
-// Só a versão canônica vira questão. Ingerir todas criaria 450 entradas para
-// 90 questões, e o SRS trataria a mesma questão como cinco.
+// Só a versão canônica vira questão. As 22 edições aceitas somam 2.000
+// referências canônicas; duplicar cadernos reordenados corromperia o SRS.
 
 import type {
   ExamMetadata,
@@ -41,6 +41,18 @@ export interface FuvestVariantRaw {
   examUrl: string | null;
 }
 
+export interface FuvestRetrieval {
+  originalUrl: string;
+  effectiveSourceUrl: string;
+  sourceType: "pdf-reference";
+  fetchedAt: string;
+  sha256: string;
+  bytes: number;
+  parserVersion: string;
+  revision: string;
+  final: boolean;
+}
+
 export interface FuvestAnswerKey {
   edition: string;
   year: number;
@@ -55,6 +67,14 @@ export interface FuvestAnswerKey {
   examUrl: string | null;
   secondPhaseUrls: string[];
   archivePage: string;
+  sourceType: "pdf-reference";
+  contentMode: "reference-only";
+  rightsStatus: "official-reference";
+  validationLevel: "reviewed";
+  expectedQuestions: number;
+  parsedQuestions: number;
+  validationEvidence: string[];
+  retrieval: FuvestRetrieval;
   parserVersion: string;
 }
 

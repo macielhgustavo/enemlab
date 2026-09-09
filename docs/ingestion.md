@@ -256,13 +256,13 @@ A variante só entra na chave da questão quando é conteúdo diferente.
 V, K, Q, X, Z em 2024 — parser com a lista fixa recusaria o segundo ano, ou
 pior, atribuiria a resposta à versão errada.
 
-## Estado (v8.9)
+## Estado (v8.10)
 
 | Prova | Edições | Questões | Nível | Enunciado | Fonte |
 |---|---|---|---|---|---|
 | ITA | 8 (1ª fase) | 456 | `reviewed` | referência | `ita-official-archive` |
 | IME | 8 (objetiva) | 320 | `reviewed` | referência | `ime-cfg-archive` |
-| FUVEST | 4 (1ª fase) | 360 | `reviewed` | referência | `fuvest-archive` |
+| FUVEST | 22 (1ª fase) | 2.000 | `reviewed` | referência | `fuvest-archive` |
 | AFA | 8 (1ª fase) | 512 | `reviewed` | referência | `afa-official-archive` |
 | EPCAR | 3 (1ª fase) | 144 | `reviewed` | referência | `epcar-official-archive` |
 | UNICAMP | 3 (1ª fase) | 216 | `reviewed` | referência | `unicamp-comvest-archive` |
@@ -275,10 +275,12 @@ pior, atribuiria a resposta à versão errada.
 O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
 química. Conferido à mão em 2025-2026, 2021-2022 e 2018-2019.
 
-A FUVEST tem 90 por edição. **Das 27 edições do acervo, 23 são recusadas**:
-as antigas usam layout diferente ou não publicam o gabarito da 1ª fase como
-documento próprio. Recusar é o comportamento correto — meia leitura corrige
-errado. As quatro aceitas são 2025, 2024, 2021 e 2020.
+A FUVEST tem 100 questões em 2005–2006 e 90 de 2007 em diante. O importador
+`fuvest-answer-key@1.1.0` aceita as 22 edições contínuas de 2005–2026, em três
+layouts oficiais diferentes, totalizando 2.000 referências. As páginas de
+2001–2004 permanecem bloqueadas porque o acervo atual não associa um documento
+inequívoco de gabarito da 1ª fase. Recusar é o comportamento correto — meia
+leitura corrige errado.
 
 ### FAB
 

@@ -132,7 +132,7 @@ Correção errada é pior que ausência de dado.
 | ENEM | `api.enem.dev` | `structured-api` | no app | 2009–2023 |
 | ITA | `vestibular.ita.br` | `pdf-reference` | na fonte oficial | 2019–2026 |
 | IME | `ime.eb.mil.br` | `pdf-reference` | na fonte oficial | 2018–2025 |
-| FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | edições validadas |
+| FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | 2005–2026 (22 edições) |
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |

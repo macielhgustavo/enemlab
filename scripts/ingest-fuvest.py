@@ -6,11 +6,13 @@
 
 O que este script ingere
 ------------------------
-O gabarito da **1ª fase**, que é objetiva com 90 questões.
+O gabarito da **1ª fase**, objetiva com 100 questões em 2005–2006 e 90 nas
+edições de 2007 em diante.
 
-A FUVEST aplica quatro versões da mesma prova — V1, V2, V3 e V4 —, com as
-questões em ordem diferente em cada uma. Publica um único documento de
-gabarito, com as quatro em colunas lado a lado:
+A FUVEST aplica versões da mesma prova com as questões em ordem diferente.
+Os nomes mudaram ao longo do acervo: V/K/Q/X/Z e, mais recentemente,
+V1/V2/V3/V4. O documento oficial publica as respostas por versão ou uma tabela
+de correspondência entre elas.
 
     PROVA V1   PROVA V2   PROVA V3   PROVA V4
     1 E  46 D  1 A  46 C  1 E  46 C  1 C  46 B
@@ -20,8 +22,8 @@ posições diferentes. Por isso a relação entre variantes é `reordered`, e
 apenas a **V1 é ingerida** como fonte das questões. As outras três ficam
 como referência ao documento oficial.
 
-Ingerir as quatro criaria 360 entradas para 90 questões, e o SRS trataria a
-mesma questão como quatro.
+Ingerir todas as versões multiplicaria a mesma questão no catálogo e faria o
+SRS tratar cada caderno reordenado como conteúdo diferente.
 
 O que não ingere
 ----------------
@@ -34,7 +36,7 @@ demais provas, até que alguém meça se a extração preserva o significado.
 
 Falha fechado
 -------------
-Cobertura incompleta de 1..90, número duplicado, letra inválida ou versões
+Cobertura incompleta, número duplicado, letra inválida ou versões
 com gabarito idêntico recusam a edição. Gabaritos iguais entre versões
 reordenadas indicam leitura do mesmo bloco duas vezes.
 """
@@ -42,6 +44,7 @@ reordenadas indicam leitura do mesmo bloco duas vezes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import re
@@ -49,11 +52,12 @@ import sys
 import unicodedata
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 BASE = "https://www.fuvest.br"
 SAIDA = Path(__file__).resolve().parent.parent / "src/lib/providers/fuvest/answer-keys.generated.json"
-PARSER_VERSION = "fuvest-answer-key@1.0.0"
+PARSER_VERSION = "fuvest-answer-key@1.1.0"
 
 LETRAS = ("A", "B", "C", "D", "E")
 
@@ -64,11 +68,11 @@ LETRAS = ("A", "B", "C", "D", "E")
 # errada.
 CABECALHO_VERSOES_RE = re.compile(r"PROVA\s+([A-Z][A-Z0-9]?)")
 
-# A 1ª fase tem 90 questões desde que a FUVEST adotou o formato atual.
-# Fora dessa faixa, o parser recusa em vez de aceitar o que leu.
+# As edições aceitas têm entre 80 e 100 questões. Fora dessa faixa, o parser
+# recusa em vez de aceitar o que leu.
 TOTAL_MIN, TOTAL_MAX = 80, 100
 
-ANO_MIN, ANO_MAX = 2000, 2100
+ANO_MIN, ANO_MAX = 2001, 2100
 
 
 def sem_acento(s: str) -> str:
@@ -95,7 +99,7 @@ def extrair_texto(pdf_bytes: bytes) -> str:
 # --------------------------------------------------------------------- #
 
 ANO_LINK_RE = re.compile(r'href="([^"]*acervo-vestibular-(\d{4})[^"]*)"', re.I)
-PDF_RE = re.compile(r'href="([^"]*\.pdf)"', re.I)
+PDF_RE = re.compile(r'href=["\']([^"\']*\.pdf(?:\?[^"\']*)?)["\']', re.I)
 
 
 @dataclass
@@ -126,22 +130,54 @@ def descobrir_anos(html: str) -> dict[int, str]:
 
 def classificar_edicao(ano: int, pagina: str, html: str) -> EdicaoDescoberta:
     e = EdicaoDescoberta(ano=ano, pagina=pagina, provas={}, segunda_fase=[])
+    candidatos_gabarito: list[str] = []
 
     for m in PDF_RE.finditer(html):
-        url = absoluto(m.group(1))
-        nome = sem_acento(url.rsplit("/", 1)[-1]).lower()
+        import html as html_module
 
-        if "gabarito" in nome and ("primeira" in nome or "1fase" in nome or "1_fase" in nome):
-            e.gabarito = url
+        url = absoluto(html_module.unescape(m.group(1)))
+        nome = sem_acento(url.rsplit("/", 1)[-1].split("?", 1)[0]).lower()
+        if str(ano) not in nome:
             continue
 
-        v = re.search(r"primeira_fase_prova_(v[1-4])", nome)
+        primeira_fase = any(marker in nome for marker in ("primeira_fase", "1fase", "1_fase", "fase1"))
+        gabarito = "gabarito" in nome or re.search(
+            r"(?:(?:primeira_fase|1fase|1_fase|fase1).*gab|gab.*(?:primeira_fase|1fase|1_fase|fase1))",
+            nome,
+        )
+        if "gabarito" in nome and "oficial" in nome:
+            primeira_fase = True
+        if primeira_fase and gabarito and "simulado" not in nome:
+            candidatos_gabarito.append(url)
+            continue
+
+        v = re.search(
+            r"(?:primeira_fase_prova_|1fase_prova_|fase1-prova-)(v[1-4]|[vkqxz])",
+            nome,
+        )
         if v:
             e.provas[v.group(1).upper()] = url
             continue
 
+        if primeira_fase and not gabarito and (
+            "prova_primeira_fase" in nome or nome.endswith("primeira_fase.pdf")
+        ):
+            e.provas.setdefault("V", url)
+            continue
+
         if "2fase" in nome or "segunda_fase" in nome or "segunda-fase" in nome:
             e.segunda_fase.append(url)
+
+    if candidatos_gabarito:
+        def prioridade(url: str) -> tuple[int, int, str]:
+            nome = sem_acento(url.rsplit("/", 1)[-1]).lower()
+            return (
+                1 if "retific" in nome else 0,
+                0 if "gab_cor" in nome else 1,
+                nome,
+            )
+
+        e.gabarito = max(candidatos_gabarito, key=prioridade)
 
     return e
 
@@ -150,7 +186,10 @@ def classificar_edicao(ano: int, pagina: str, html: str) -> EdicaoDescoberta:
 # Gabarito
 # --------------------------------------------------------------------- #
 
-PAR_RE = re.compile(r"(?<!\d)(\d{1,3})\s+([A-E])(?![A-Z])")
+PAR_RE = re.compile(r"(?<!\d)(\d{1,3})[^0-9A-Z]{0,6}([A-E*])(?![A-Z])")
+PREFIXADA_RE = re.compile(
+    r"(?<![A-Z0-9])(V[1-4]|[VKQXZ])[^\r\nA-Z0-9]+(\d{1,3})[^\r\nA-Z0-9]+(ANULAD[AO]|[A-E*])(?![A-Z])"
+)
 
 
 @dataclass
@@ -179,7 +218,139 @@ def detectar_versoes(texto: str) -> list[str]:
                 if v not in vistos:
                     vistos.append(v)
             return vistos
+    inicio = texto.find("GABARITO")
+    if inicio < 0:
+        inicio = 0
+    cabecalho = texto[inicio : inicio + 1200]
+    for prefixo in ("PROVA", "GRUPO"):
+        vistos: list[str] = []
+        for versao in re.findall(rf"{prefixo}\s+([A-Z][A-Z0-9]?)", cabecalho):
+            if versao in {"V", "K", "Q", "X", "Z", "V1", "V2", "V3", "V4"} and versao not in vistos:
+                vistos.append(versao)
+        if len(vistos) >= 2:
+            return vistos
     return []
+
+
+def cobertura_completa(versoes: dict[str, dict[int, str]]) -> int | None:
+    if not versoes or not all(versoes.values()):
+        return None
+    total = max(max(respostas) for respostas in versoes.values())
+    if total < TOTAL_MIN:
+        return None
+    esperadas = set(range(1, total + 1))
+    return total if all(set(respostas) == esperadas for respostas in versoes.values()) else None
+
+
+def normalizar_pares_quebrados(texto: str) -> str:
+    texto = re.sub(r"(?<=\d)(?=[A-E*]\b)", " ", texto)
+    return re.sub(r"\b([1-9])\s+([0-9])\s+(?=[A-E*]\b)", r"\1\2 ", texto)
+
+
+def resposta_normalizada(resposta: str) -> str:
+    return "X" if resposta == "*" or resposta.startswith("ANULAD") else resposta
+
+
+def adicionar_resposta(
+    versoes: dict[str, dict[int, str]], versao: str, numero: int, resposta: str
+) -> bool:
+    if numero in versoes[versao]:
+        return False
+    versoes[versao][numero] = resposta_normalizada(resposta)
+    return True
+
+
+def parse_tabela_prefixada(
+    texto: str, ordem: list[str]
+) -> tuple[dict[str, dict[int, str]], int] | None:
+    versoes: dict[str, dict[int, str]] = {versao: {} for versao in ordem}
+    for versao, numero, resposta in PREFIXADA_RE.findall(texto):
+        if versao in versoes and not adicionar_resposta(
+            versoes, versao, int(numero), resposta
+        ):
+            return None
+    total = cobertura_completa(versoes)
+    return (versoes, total) if total is not None else None
+
+
+def parse_tabela_direta(texto: str, ordem: list[str]) -> tuple[dict[str, dict[int, str]], int] | None:
+    linhas = texto.splitlines()
+    inicio = next(
+        (
+            index + 1
+            for index, linha in enumerate(linhas)
+            if len(CABECALHO_VERSOES_RE.findall(linha)) >= 2
+        ),
+        None,
+    )
+    if inicio is None:
+        return None
+
+    por_linha = 2 * len(ordem)
+
+    versoes_por_linha: dict[str, dict[int, str]] = {versao: {} for versao in ordem}
+    encontrou_linha = False
+    for linha in linhas[inicio:]:
+        pares_linha = PAR_RE.findall(normalizar_pares_quebrados(linha))
+        if len(pares_linha) != por_linha:
+            continue
+        encontrou_linha = True
+        for index, versao in enumerate(ordem):
+            for numero, resposta in pares_linha[index * 2 : index * 2 + 2]:
+                if not adicionar_resposta(
+                    versoes_por_linha, versao, int(numero), resposta
+                ):
+                    return None
+    total = cobertura_completa(versoes_por_linha)
+    if total is not None:
+        return versoes_por_linha, total
+    if encontrou_linha:
+        return None
+
+    pares = PAR_RE.findall(normalizar_pares_quebrados("\n".join(linhas[inicio:])))
+    versoes: dict[str, dict[int, str]] = {versao: {} for versao in ordem}
+    for offset in range(0, len(pares) - por_linha + 1, por_linha):
+        bloco = pares[offset : offset + por_linha]
+        for index, versao in enumerate(ordem):
+            for numero, resposta in bloco[index * 2 : index * 2 + 2]:
+                if not adicionar_resposta(versoes, versao, int(numero), resposta):
+                    return None
+    total = cobertura_completa(versoes)
+    return (versoes, total) if total is not None else None
+
+
+def parse_tabela_correspondencia(
+    texto: str, ordem: list[str]
+) -> tuple[dict[str, dict[int, str]], int] | None:
+    quantidade = len(ordem)
+    tamanho = quantidade + 1
+    versoes: dict[str, dict[int, str]] = {versao: {} for versao in ordem}
+    encontrou_dados = False
+    for linha in texto.splitlines():
+        tokens = re.findall(r"(?<![A-Z0-9])(?:[A-E*]|\d{1,3})(?![A-Z0-9])", linha)
+        tokens = [
+            token
+            for index, token in enumerate(tokens)
+            if not (
+                index > 0
+                and token in (*LETRAS, "*")
+                and tokens[index - 1] in (*LETRAS, "*")
+            )
+        ]
+        if len(tokens) < tamanho or len(tokens) % tamanho != 0:
+            continue
+        for offset in range(0, len(tokens), tamanho):
+            resposta, numeros = tokens[offset], tokens[offset + 1 : offset + tamanho]
+            if resposta not in (*LETRAS, "*") or not all(numero.isdigit() for numero in numeros):
+                continue
+            encontrou_dados = True
+            for versao, numero in zip(ordem, numeros, strict=True):
+                if not adicionar_resposta(versoes, versao, int(numero), resposta):
+                    return None
+    if not encontrou_dados:
+        return None
+    total = cobertura_completa(versoes)
+    return (versoes, total) if total is not None else None
 
 
 def parse_gabarito(texto: str, url: str) -> GabaritoFuvest | None:
@@ -204,31 +375,17 @@ def parse_gabarito(texto: str, url: str) -> GabaritoFuvest | None:
 
     revisao = "rectified" if "RETIFICAD" in limpo else "final"
 
-    versoes: dict[str, dict[int, str]] = {v: {} for v in ordem}
-    duplicadas: list[tuple[str, int]] = []
-    esperado = 2 * len(ordem)
-
-    for linha in limpo.split("\n"):
-        pares = PAR_RE.findall(linha)
-        if len(pares) != esperado:
-            continue
-
-        for i, versao in enumerate(ordem):
-            for num_s, letra in pares[i * 2 : i * 2 + 2]:
-                num = int(num_s)
-                if num in versoes[versao]:
-                    duplicadas.append((versao, num))
-                    continue
-                versoes[versao][num] = letra
-
-    if duplicadas:
-        print(f"    numeração duplicada: {duplicadas[:6]}", file=sys.stderr)
+    if PREFIXADA_RE.search(limpo):
+        resultado = parse_tabela_prefixada(limpo, ordem)
+    else:
+        resultado = (
+            parse_tabela_correspondencia(limpo, ordem)
+            if "RESPOSTA GRUPO" in limpo or "GABARITO DE CORRESPONDENCIA" in limpo
+            else parse_tabela_direta(limpo, ordem)
+        )
+    if resultado is None:
         return None
-
-    if not all(versoes.values()):
-        return None
-
-    total = max(max(m) for m in versoes.values())
+    versoes, total = resultado
     return GabaritoFuvest(
         versoes=versoes, ordem=ordem, total=total, url=url, revisao=revisao
     )
@@ -245,7 +402,7 @@ def validar(g: GabaritoFuvest) -> list[str]:
         if faltando:
             problemas.append(f"{versao} sem cobertura: {len(faltando)} questão(ões)")
 
-        ruins = [n for n, l in respostas.items() if l not in LETRAS]
+        ruins = [n for n, l in respostas.items() if l not in (*LETRAS, "X")]
         if ruins:
             problemas.append(f"{versao} com letra inválida: {sorted(ruins)[:5]}")
 
@@ -287,6 +444,7 @@ def main() -> int:
 
     print(f"{len(anos)} edição(ões)\n")
 
+    anteriores = json.loads(SAIDA.read_text(encoding="utf-8")) if SAIDA.exists() else {}
     aceitas: dict[str, dict] = {}
     recusadas: list[tuple[int, str]] = []
 
@@ -304,7 +462,8 @@ def main() -> int:
             continue
 
         try:
-            g = parse_gabarito(extrair_texto(buscar(e.gabarito)), e.gabarito)
+            pdf_bytes = buscar(e.gabarito)
+            g = parse_gabarito(extrair_texto(pdf_bytes), e.gabarito)
         except Exception as ex:  # noqa: BLE001
             recusadas.append((ano, f"falha ao ler o PDF: {ex}"))
             print(f"{ano}: RECUSADA ({ex})\n")
@@ -324,6 +483,14 @@ def main() -> int:
         # Só a primeira versão vira questão: todas são a mesma prova
         # reordenada, e ingerir todas multiplicaria o banco.
         canonica = g.ordem[0]
+        sha256 = hashlib.sha256(pdf_bytes).hexdigest()
+        anterior = anteriores.get(str(ano), {})
+        retrieval_anterior = anterior.get("retrieval", {})
+        fetched_at = (
+            retrieval_anterior.get("fetchedAt")
+            if retrieval_anterior.get("sha256") == sha256
+            else datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        )
         aceitas[str(ano)] = {
             "edition": str(ano),
             "year": ano,
@@ -331,8 +498,14 @@ def main() -> int:
             "canonicalVariant": canonica.lower(),
             "variantRelation": "reordered",
             "revision": g.revisao,
-            "answers": {str(k): v for k, v in sorted(g.versoes[canonica].items())},
-            "annulled": [],
+            "answers": {
+                str(k): v
+                for k, v in sorted(g.versoes[canonica].items())
+                if v in LETRAS
+            },
+            "annulled": sorted(
+                numero for numero, resposta in g.versoes[canonica].items() if resposta == "X"
+            ),
             "variants": [
                 {"id": v.lower(), "label": f"Prova {v}", "examUrl": e.provas.get(v)}
                 for v in g.ordem
@@ -341,6 +514,28 @@ def main() -> int:
             "examUrl": e.provas.get(canonica),
             "secondPhaseUrls": sorted(e.segunda_fase or []),
             "archivePage": pagina,
+            "sourceType": "pdf-reference",
+            "contentMode": "reference-only",
+            "rightsStatus": "official-reference",
+            "validationLevel": "reviewed",
+            "expectedQuestions": g.total,
+            "parsedQuestions": g.total,
+            "validationEvidence": [
+                "Página oficial FUVEST associa a edição à prova e ao gabarito.",
+                "Gabarito final/retificado cobre integralmente a primeira fase objetiva.",
+                "Tabela oficial de correspondência demonstra a reordenação entre versões.",
+            ],
+            "retrieval": {
+                "originalUrl": g.url,
+                "effectiveSourceUrl": g.url,
+                "sourceType": "pdf-reference",
+                "fetchedAt": fetched_at,
+                "sha256": sha256,
+                "bytes": len(pdf_bytes),
+                "parserVersion": PARSER_VERSION,
+                "revision": g.revisao,
+                "final": True,
+            },
             "parserVersion": PARSER_VERSION,
         }
         print(

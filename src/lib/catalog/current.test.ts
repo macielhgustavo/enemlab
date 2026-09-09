@@ -76,6 +76,23 @@ describe("catálogo v8.9", () => {
   });
 });
 
+describe("catálogo v8.10", () => {
+  it("lista 22 edições FUVEST e 2.000 referências sem carregar os PDFs", () => {
+    const catalog = buildCurrentCatalog();
+    const entries = catalog.query({ providerId: "fuvest" });
+
+    expect(entries).toHaveLength(22);
+    expect(entries.filter((entry) => entry.year <= 2006).every((entry) => entry.questionCount === 100)).toBe(true);
+    expect(entries.filter((entry) => entry.year >= 2007).every((entry) => entry.questionCount === 90)).toBe(true);
+    expect(entries.every((entry) => !entry.statementAvailable)).toBe(true);
+    expect(entries.every((entry) => entry.validation === "reviewed")).toBe(true);
+    expect(catalog.countQuestions({ providerId: "fuvest" })).toEqual({
+      known: 2_000,
+      unknownEditions: 0,
+    });
+  });
+});
+
 describe("catálogo v8.9", () => {
   it("lista as 18 edições da UDESC por sessão sem carregar enunciados", () => {
     const catalog = buildCurrentCatalog();

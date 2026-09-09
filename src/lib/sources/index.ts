@@ -17,7 +17,7 @@ export * from "./types";
 const ITA_PARSER = "ita-answer-key@1.0.0";
 const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
-const FUVEST_PARSER = "fuvest-answer-key@1.0.0";
+const FUVEST_PARSER = "fuvest-answer-key@1.1.0";
 const FAB_PARSER = "fab-answer-key@2.1.0";
 const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
 const UEL_PARSER = "uel-answer-key@1.0.0";
@@ -183,10 +183,11 @@ export const imeSource: ExamSourceDefinition = {
  * parser recusar todo ano em que a banca mudasse a nomenclatura, ou pior,
  * atribuir a resposta à versão errada.
  *
- * `years` traz só as edições que o importador leu inteiras. Das 27
- * descobertas no acervo, 23 são recusadas: as mais antigas usam layout
- * diferente ou não publicam o gabarito da 1ª fase como documento próprio.
- * Recusar é o comportamento correto — meia leitura corrige errado.
+ * `years` traz só as edições que o importador leu inteiras. Das 26 páginas
+ * anuais do acervo atual, 22 são aceitas (2005–2026). As quatro anteriores
+ * ficam bloqueadas porque a página oficial não associa um documento de
+ * gabarito da 1ª fase. Recusar é o comportamento correto — meia leitura
+ * corrige errado.
  */
 export const fuvestSource: ExamSourceDefinition = {
   id: "fuvest-archive",
@@ -208,12 +209,13 @@ export const fuvestSource: ExamSourceDefinition = {
   // discursivo — declarar disponibilidade prometeria correção que não existe.
   expectedAnswersAvailable: false,
   parserVersion: FUVEST_PARSER,
-  lastVerifiedAt: "2026-09-07",
+  lastVerifiedAt: "2026-09-09",
   confidence: "alta",
   notes:
-    "1ª fase com 90 questões. Só as edições cujo gabarito foi lido por " +
-    "inteiro entram; o acervo tem 27 edições e 23 são recusadas por formato " +
-    "antigo. Versões são reordenação: só a canônica vira questão.",
+    "1ª fase com 100 questões em 2005–2006 e 90 de 2007 em diante. As 22 " +
+    "edições de 2005–2026 somam 2.000 referências revisadas; 2001–2004 " +
+    "ficam bloqueadas sem gabarito oficial inequívoco. Versões são " +
+    "reordenação: só a canônica vira questão.",
 };
 
 /**
