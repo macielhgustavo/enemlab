@@ -11,7 +11,7 @@ import type { Page } from "@playwright/test";
 export const STORE_KEY = "enem_lab_v7";
 
 export interface SeedOptions {
-  provider?: "enem" | "ita";
+  provider?: string;
   theme?: "dark" | "light";
   /** Com histórico, a Home mostra números em vez do estado vazio. */
   comHistorico?: boolean;

@@ -20,26 +20,25 @@ import { variantsForReference, variantsToIngest } from "@/lib/catalog/variant";
 
 describe("catálogo ingerido", () => {
   it("traz só as edições lidas por inteiro", () => {
-    // O acervo tem 27 edições; 23 são recusadas por formato antigo. Entrar
-    // com meia leitura corrigiria errado.
-    expect(fuvestYears()).toEqual([2025, 2024, 2021, 2020]);
+    expect(fuvestYears()).toEqual(Array.from({ length: 22 }, (_, index) => 2026 - index));
   });
 
-  it("a 1ª fase tem 90 questões em todas", () => {
+  it("respeita a mudança histórica de 100 para 90 questões", () => {
     for (const ano of fuvestYears()) {
-      expect(fuvestAnswerKey(ano)!.total, String(ano)).toBe(90);
+      expect(fuvestAnswerKey(ano)!.total, String(ano)).toBe(ano <= 2006 ? 100 : 90);
     }
   });
 
-  it("cobertura contígua de 1 a 90, com letra válida", () => {
+  it("tem cobertura contígua, incluindo anuladas", () => {
     for (const ano of fuvestYears()) {
       const k = fuvestAnswerKey(ano)!;
       for (let n = 1; n <= k.total; n++) {
         const letra = k.answers[String(n)];
-        expect(letra, `${ano} q${n}`).toBeDefined();
-        expect(["A", "B", "C", "D", "E"]).toContain(letra);
+        expect(Boolean(letra) || k.annulled.includes(n), `${ano} q${n}`).toBe(true);
+        if (letra) expect(["A", "B", "C", "D", "E"]).toContain(letra);
       }
     }
+    expect(fuvestYears().flatMap((ano) => fuvestAnswerKey(ano)!.annulled)).toHaveLength(4);
   });
 });
 
@@ -74,6 +73,7 @@ describe("variantes", () => {
   it("gabarito retificado é reconhecido como tal", () => {
     // §10: a retificação vence o publicado antes.
     expect(fuvestAnswerKey(2024)!.revision).toBe("rectified");
+    expect(fuvestAnswerKey(2026)!.revision).toBe("rectified");
     expect(fuvestAnswerKey(2025)!.revision).toBe("final");
   });
 });
@@ -101,7 +101,7 @@ describe("questões", () => {
   });
 
   it("ano não ingerido devolve lista vazia", () => {
-    expect(fuvestFirstPhaseQuestions(2019)).toEqual([]);
+    expect(fuvestFirstPhaseQuestions(2004)).toEqual([]);
   });
 });
 
