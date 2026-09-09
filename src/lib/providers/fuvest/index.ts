@@ -1,15 +1,4 @@
 // Provider da FUVEST (1ª fase).
-//
-// É a primeira prova com **variantes** no catálogo, e o motivo de o
-// `ExamVariant` ter vindo antes desta wave.
-//
-// A FUVEST aplica a mesma prova em várias versões, com as questões em ordem
-// diferente, e publica um único gabarito com todas em colunas. Em 2025 foram
-// quatro versões chamadas V1..V4; em 2024, cinco chamadas V, K, Q, X e Z —
-// razão pela qual o importador lê os nomes do documento, nunca do código.
-//
-// Só a versão canônica vira questão. Ingerir todas criaria 450 entradas para
-// 90 questões, e o SRS trataria a mesma questão como cinco.
 
 import type {
   ExamMetadata,
@@ -19,16 +8,12 @@ import type {
 } from "../types";
 import type { EditionVariants } from "../../catalog/variant";
 import bruto from "./answer-keys.generated.json";
+import { getStructuredQuestion } from "../structuredRegistry";
 
 export const FUVEST_PROVIDER_ID = "fuvest";
 
 const LETTERS = ["A", "B", "C", "D", "E"] as const;
 
-/**
- * A 1ª fase é de conhecimentos gerais: uma prova só, sem separação por
- * matéria no gabarito. Declarar matérias que o documento não distingue
- * seria inventar classificação.
- */
 const SUBJECT_GERAL: ExamSubject = {
   id: "conhecimentos-gerais",
   label: "Conhecimentos gerais",
@@ -70,7 +55,6 @@ export function fuvestAnswerKey(year: number): FuvestAnswerKey | null {
   return CATALOGO[String(year)] ?? null;
 }
 
-/** Versões aplicadas numa edição, no modelo do catálogo. */
 export function fuvestVariants(year: number): EditionVariants | null {
   const k = fuvestAnswerKey(year);
   if (!k) return null;
@@ -85,24 +69,15 @@ export function fuvestVariants(year: number): EditionVariants | null {
   };
 }
 
-/** PDF da versão canônica — onde o aluno lê o enunciado. */
 export function fuvestExamUrl(year: number): string | null {
   return fuvestAnswerKey(year)?.examUrl ?? null;
 }
 
-/**
- * Documentos da 2ª fase.
- *
- * Registrados e não executáveis: a 2ª fase é discursiva, não há correção
- * automática, e inventar uma seria pior que não ter.
- */
 export function fuvestSecondPhaseUrls(year: number): string[] {
   return fuvestAnswerKey(year)?.secondPhaseUrls ?? [];
 }
 
 export function fuvestQuestionKey(q: NormalizedQuestion): string {
-  // Sem variante na chave: as versões são a mesma prova reordenada, e
-  // incluí-la criaria uma identidade por caderno para a mesma questão.
   return `fuvest-${q.year}-first-${q.number ?? q.index}`;
 }
 
@@ -117,6 +92,12 @@ export function fuvestFirstPhaseQuestions(year: number): NormalizedQuestion[] {
     const annulled = k.annulled.includes(n);
     const correct = annulled ? null : (k.answers[String(n)] ?? null);
 
+    const struct = getStructuredQuestion("fuvest", year, n, "first");
+    const statementAvailable = Boolean(struct);
+    const statementText = struct
+      ? struct.statement
+      : `[Questão ${n} - FUVEST] Consulte o caderno de prova oficial para o enunciado completo.`;
+
     out.push({
       providerId: FUVEST_PROVIDER_ID,
       examId: `fuvest-${year}-first`,
@@ -126,20 +107,23 @@ export function fuvestFirstPhaseQuestions(year: number): NormalizedQuestion[] {
       phase: "first",
       language: null,
       subject: SUBJECT_GERAL,
-      content: SUBJECT_GERAL.label,
-      context: null,
+      content: statementText,
+      context: struct?.context ?? null,
       alternativesIntroduction: null,
-      alternatives: LETTERS.map((letter) => ({
-        letter,
-        text: null,
-        file: null,
-        isCorrect: correct === letter,
-      })),
+      alternatives: LETTERS.map((letter) => {
+        const altStruct = struct?.alternatives.find((a) => a.letter === letter);
+        return {
+          letter,
+          text: altStruct ? altStruct.text : null,
+          file: null,
+          isCorrect: correct === letter,
+        };
+      }),
       correctAlternative: correct,
       files: [],
       sources: [],
       type: "multiple_choice",
-      statementAvailable: false,
+      statementAvailable,
       official: { official: true, institution: "FUVEST", documentUrl },
       expectedAnswer: null,
     });
@@ -154,7 +138,6 @@ export const fuvestMetadata: ExamMetadata = {
   shortLabel: "FUVEST",
   years: fuvestYears(),
   languages: [],
-  // A 2ª fase existe e está registrada na fonte, mas não é executável.
   phases: ["first"],
   hasEssay: false,
   areas: [{ id: SUBJECT_GERAL.id, label: SUBJECT_GERAL.label }],

@@ -1,19 +1,4 @@
 // Provider do IME (Concurso de Admissão ao CFG).
-//
-// Modo referência, pelo mesmo caminho do ITA — mas por um motivo diferente,
-// e a diferença importa para quem for adicionar a próxima prova.
-//
-// A prova do ITA é digitalizada: zero caractere de texto, uma imagem por
-// página. Não há o que extrair.
-//
-// A do IME **tem** camada de texto. O que a inviabiliza é a matemática: a
-// extração quebra 67 frações em três linhas e transforma expoentes em
-// dígitos comuns. A questão 20 de 2025-2026 sai como `y = x2 / 2b − b / 2`
-// quando a fórmula é y = x²/(2b) − b/2. Reproduzir isso mostraria ao aluno
-// uma equação diferente da que caiu.
-//
-// A lição é que "o PDF tem texto" não basta para decidir. O que decide é se
-// o texto **preserva o significado**.
 
 import type {
   ExamMetadata,
@@ -22,6 +7,7 @@ import type {
   NormalizedQuestion,
 } from "../types";
 import bruto from "./answer-keys.generated.json";
+import { getStructuredQuestion } from "../structuredRegistry";
 
 export const IME_PROVIDER_ID = "ime";
 
@@ -90,11 +76,6 @@ export function imeQuestionKey(q: NormalizedQuestion): string {
   return `ime-${q.examId.replace(/^ime-/, "")}-${q.number ?? q.index}`;
 }
 
-/**
- * Questões objetivas de uma edição, montadas a partir do gabarito.
- *
- * Sem enunciado: `statementAvailable` é false e a procedência leva ao PDF.
- */
 export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
   const k = imeAnswerKey(edition);
   if (!k) return [];
@@ -112,6 +93,12 @@ export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
       area: subjectId,
     };
 
+    const struct = getStructuredQuestion("ime", k.year, n, "first");
+    const statementAvailable = Boolean(struct);
+    const statementText = struct
+      ? struct.statement
+      : `[Questão ${n} - ${subject.label}] Consulte o caderno de prova oficial para o enunciado completo.`;
+
     out.push({
       providerId: IME_PROVIDER_ID,
       examId: `ime-${edition}-objective`,
@@ -121,23 +108,24 @@ export function imeObjectiveQuestions(edition: string): NormalizedQuestion[] {
       phase: "first",
       language: null,
       subject,
-      content: subject.label,
-      context: null,
+      content: statementText,
+      context: struct?.context ?? null,
       alternativesIntroduction: null,
-      alternatives: LETTERS.map((letter) => ({
-        letter,
-        text: null,
-        file: null,
-        isCorrect: correct === letter,
-      })),
+      alternatives: LETTERS.map((letter) => {
+        const altStruct = struct?.alternatives.find((a) => a.letter === letter);
+        return {
+          letter,
+          text: altStruct ? altStruct.text : null,
+          file: null,
+          isCorrect: correct === letter,
+        };
+      }),
       correctAlternative: correct,
       files: [],
       sources: [],
       type: "multiple_choice",
-      statementAvailable: false,
+      statementAvailable,
       official: { official: true, institution: "IME", documentUrl },
-      // Questão anulada não tem gabarito: a correção precisa ignorá-la em
-      // vez de contar como erro.
       expectedAnswer: null,
     });
   }
@@ -151,8 +139,6 @@ export const imeMetadata: ExamMetadata = {
   shortLabel: "IME",
   years: imeYears(),
   languages: [],
-  // A discursiva existe e está registrada na fonte, mas não é executável
-  // aqui: só a objetiva entra nesta wave.
   phases: ["first"],
   hasEssay: false,
   areas: Object.entries(SUBJECT_LABELS).map(([id, label]) => ({ id, label })),

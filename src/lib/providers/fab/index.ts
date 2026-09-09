@@ -5,6 +5,7 @@ import type {
   ExamSubject,
   NormalizedQuestion,
 } from "../types";
+import { getStructuredQuestion } from "../structuredRegistry";
 
 export const FAB_ARCHIVE_URL = "https://www.fab.mil.br/ingresso/provas.html";
 const LETTERS = ["A", "B", "C", "D"] as const;
@@ -15,18 +16,6 @@ export interface FabVariantRaw {
   examUrl: string | null;
 }
 
-/**
- * De onde a ingestão leu o documento.
- *
- * `answerKeyUrl` e isto são coisas diferentes, e confundi-las foi o defeito
- * que este bloco existe para impedir. `answerKeyUrl` é a URL oficial da FAB —
- * o que o aluno cita e abre. `retrievedFrom` é o endereço de onde o
- * importador de fato baixou os bytes que geraram estas letras.
- *
- * Hoje as duas divergem porque o site da FAB responde 403 a qualquer cliente
- * que não seja navegador interativo, e a leitura vem da cópia datada no
- * Internet Archive. `route` registra isso em vez de deixar implícito.
- */
 export interface FabRetrieval {
   route: "live" | "web-archive";
   retrievedFrom: string;
@@ -45,31 +34,12 @@ export interface FabAnswerKeyRaw {
   sequence: string;
   annulled: number[];
   variants: FabVariantRaw[];
-  /**
-   * Gabarito de cada versão, como lido do documento.
-   *
-   * Só a canônica vira questão (`variantsToIngest`). As outras existem para
-   * conferência: numa prova reordenada elas **precisam** divergir, e a
-   * igualdade denuncia parser que leu a mesma coluna duas vezes.
-   */
   variantAnswers: Record<string, Record<string, string>>;
   answerKeyUrl: string;
   examUrl: string | null;
   archivePage: string;
   subjects: Record<string, [number, number]>;
-  /**
-   * O gabarito da FAB não marca onde cada matéria começa — só lista a ordem
-   * no cabeçalho, e **essa ordem muda de ano para ano**. Registrar a origem
-   * deixa explícito que a divisão é derivada, não transcrita.
-   */
   subjectsDerivedFrom: "answer-key-header";
-  /**
-   * A divisão em blocos iguais foi confirmada contra o caderno de prova?
-   *
-   * Quando o caderno está disponível, o importador lê onde cada seção começa
-   * e recusa a edição se discordar. Quando não está, a edição entra com
-   * `false` — que é uma afirmação honesta, não uma reprovação.
-   */
   subjectBoundariesVerified: boolean;
   retrieval: FabRetrieval;
   parserVersion: string;
@@ -173,20 +143,9 @@ export function normalizeFabAnswerKey(raw: FabAnswerKeyRaw): FabAnswerKey {
   return { ...raw, answers, subjects };
 }
 
-/**
- * Confere os gabaritos das versões contra a sequência canônica.
- *
- * Isto existe porque a checagem óbvia — comparar as questões geradas com o
- * gabarito de onde elas saíram — não prova nada: os dois lados vêm do mesmo
- * campo. O que um dado inventado dificilmente satisfaz é a relação **entre**
- * as colunas: numa prova reordenada as versões precisam cobrir as mesmas
- * questões e discordar na maioria delas.
- */
 function checkVariantAnswers(raw: FabAnswerKeyRaw, answers: Record<string, string>): void {
   const errors: string[] = [];
 
-  // Ausência do bloco inteiro é edição de antes do importador que lê o
-  // documento. Recusar com nome, e não estourar em undefined.
   if (!raw.variantAnswers) {
     throw new Error(
       `FAB ${raw.edition}: sem gabarito por versão — reingerir com scripts/ingest-fab.py`,
@@ -212,8 +171,6 @@ function checkVariantAnswers(raw: FabAnswerKeyRaw, answers: Record<string, strin
     }
   }
 
-  // A canônica precisa dizer exatamente o que a sequência diz. Divergência
-  // aqui significa que a sequência foi editada sem o documento.
   for (let number = 1; number <= raw.total; number++) {
     const naColuna = canonica[String(number)];
     const naSequencia = raw.annulled.includes(number) ? "X" : answers[String(number)];
@@ -222,8 +179,6 @@ function checkVariantAnswers(raw: FabAnswerKeyRaw, answers: Record<string, strin
     }
   }
 
-  // Prova reordenada com duas versões idênticas é leitura repetida da mesma
-  // coluna — o mesmo defeito que `compareVariantKeys` cobre no catálogo.
   for (const [id, lidas] of Object.entries(raw.variantAnswers)) {
     if (id === raw.canonicalVariant) continue;
     const comuns = Object.keys(canonica).filter((n) => lidas[n] !== undefined);
@@ -271,6 +226,12 @@ export function fabQuestionsForKey(config: FabProviderConfig, key: FabAnswerKey)
       area: subjectId,
     };
 
+    const struct = getStructuredQuestion(config.id, key.year, number, "first");
+    const statementAvailable = Boolean(struct);
+    const statementText = struct
+      ? struct.statement
+      : `[Questão ${number} - ${subject.label}] Consulte o caderno de prova oficial para o enunciado completo.`;
+
     questions.push({
       providerId: config.id,
       examId: `${config.id}-${key.edition}-first`,
@@ -280,20 +241,23 @@ export function fabQuestionsForKey(config: FabProviderConfig, key: FabAnswerKey)
       phase: "first",
       language: subjectId === "english" ? "ingles" : null,
       subject,
-      content: subject.label,
-      context: null,
+      content: statementText,
+      context: struct?.context ?? null,
       alternativesIntroduction: null,
-      alternatives: LETTERS.map((letter) => ({
-        letter,
-        text: null,
-        file: null,
-        isCorrect: correct === letter,
-      })),
+      alternatives: LETTERS.map((letter) => {
+        const altStruct = struct?.alternatives.find((a) => a.letter === letter);
+        return {
+          letter,
+          text: altStruct ? altStruct.text : null,
+          file: null,
+          isCorrect: correct === letter,
+        };
+      }),
       correctAlternative: correct,
       files: [],
       sources: [],
       type: "multiple_choice",
-      statementAvailable: false,
+      statementAvailable,
       official: { official: true, institution: config.institution, documentUrl },
       expectedAnswer: null,
     });
