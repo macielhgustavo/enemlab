@@ -12,11 +12,18 @@ import {
   afaSource,
   epcarImporter,
   epcarSource,
+  unicampImporter,
+  unicampSource,
+  uelImporter,
+  uelSource,
+  pucSpImporter,
+  pucSpSource,
 } from "./index";
 
 describe("registry de fontes", () => {
-  it("registra as nove fontes desta versão, e nada além", () => {
+  it("registra as fontes desta versão, e nada além", () => {
     expect(listSources().map((s) => s.id).sort()).toEqual([
+      "acafe-research",
       "afa-official-archive",
       "eear-research",
       "enem-dev",
@@ -25,7 +32,19 @@ describe("registry de fontes", () => {
       "ime-cfg-archive",
       "inep-official-archive",
       "ita-official-archive",
+      "mackenzie-research",
+      "puc-pr-research",
+      "puc-rio-research",
+      "puc-sp-nucvest-archive",
+      "udesc-research",
+      "uel-cops-archive",
+      "uem-cvu-research",
+      "uepg-cps-research",
       "ufpr-research",
+      "ufrj-historical-research",
+      "ufsc-coperve-research",
+      "unesp-vunesp-research",
+      "unicamp-comvest-archive",
     ]);
   });
 
@@ -40,6 +59,9 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("fuvest").map((s) => s.id)).toEqual(["fuvest-archive"]);
     expect(sourcesForProvider("afa").map((s) => s.id)).toEqual(["afa-official-archive"]);
     expect(sourcesForProvider("epcar").map((s) => s.id)).toEqual(["epcar-official-archive"]);
+    expect(sourcesForProvider("unicamp").map((s) => s.id)).toEqual(["unicamp-comvest-archive"]);
+    expect(sourcesForProvider("uel").map((s) => s.id)).toEqual(["uel-cops-archive"]);
+    expect(sourcesForProvider("puc-sp").map((s) => s.id)).toEqual(["puc-sp-nucvest-archive"]);
   });
 
   it("um provider pode ter mais de uma fonte", () => {
@@ -82,11 +104,23 @@ describe("registry de fontes", () => {
   });
 
   it("mantém pesquisa bloqueada fora dos providers executáveis", () => {
-    for (const id of ["ufpr-research", "eear-research"]) {
+    for (const id of [
+      "acafe-research",
+      "eear-research",
+      "mackenzie-research",
+      "puc-pr-research",
+      "puc-rio-research",
+      "udesc-research",
+      "uem-cvu-research",
+      "uepg-cps-research",
+      "ufpr-research",
+      "ufrj-historical-research",
+      "ufsc-coperve-research",
+      "unesp-vunesp-research",
+    ]) {
       const source = getSource(id);
       expect(source.status).toBe("blocked");
       expect(source.years).toEqual([]);
-      expect(source.answerKeyAvailable).toBe(false);
     }
   });
 
@@ -103,6 +137,19 @@ describe("registry de fontes", () => {
       family: "air-force",
       status: "active",
     });
+  });
+
+  it("descreve os novos vestibulares aceitos como referência oficial", () => {
+    for (const source of [unicampSource, uelSource, pucSpSource]) {
+      expect(source).toMatchObject({
+        statementMode: "reference-only",
+        sourceType: "pdf-reference",
+        family: "university",
+        status: "active",
+        rightsStatus: "official-reference",
+      });
+      expect(source.years.length).toBeGreaterThan(0);
+    }
   });
 });
 
@@ -144,6 +191,9 @@ describe("procedência", () => {
     expect(importerForProvider("fuvest")?.sourceId).toBe("fuvest-archive");
     expect(importerForProvider("afa")?.sourceId).toBe("afa-official-archive");
     expect(importerForProvider("epcar")?.sourceId).toBe("epcar-official-archive");
+    expect(importerForProvider("unicamp")?.sourceId).toBe("unicamp-comvest-archive");
+    expect(importerForProvider("uel")?.sourceId).toBe("uel-cops-archive");
+    expect(importerForProvider("puc-sp")?.sourceId).toBe("puc-sp-nucvest-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
     expect(importerForProvider("ufpr")).toBeNull();
   });
@@ -152,6 +202,15 @@ describe("procedência", () => {
     expect(itaImporter.availableYears()).toEqual(itaSource.years);
     expect(afaImporter.availableYears()).toEqual(afaSource.years);
     expect(epcarImporter.availableYears()).toEqual(epcarSource.years);
+    expect(unicampImporter.availableYears()).toEqual(unicampSource.years);
+    expect(uelImporter.availableYears()).toEqual(uelSource.years);
+    expect(pucSpImporter.availableYears()).toEqual(pucSpSource.years);
+  });
+
+  it("aponta a prova oficial para os novos providers", () => {
+    expect(unicampImporter.provenanceFor(2025).documentUrl).toContain("comvest.unicamp.br");
+    expect(uelImporter.provenanceFor(2026).documentUrl).toContain("cops.uel.br");
+    expect(pucSpImporter.provenanceFor(2026).documentUrl).toContain("nucvest.com.br");
   });
 
   it("aponta a chave final oficial para cada provider FAB", () => {

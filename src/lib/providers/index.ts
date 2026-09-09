@@ -7,6 +7,9 @@ import { imeProvider } from "./ime";
 import { fuvestProvider } from "./fuvest";
 import { afaProvider } from "./afa";
 import { epcarProvider } from "./epcar";
+import { unicampProvider } from "./unicamp";
+import { uelProvider } from "./uel";
+import { pucSpProvider } from "./puc-sp";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
@@ -14,6 +17,9 @@ registerProvider(imeProvider);
 registerProvider(fuvestProvider);
 registerProvider(afaProvider);
 registerProvider(epcarProvider);
+registerProvider(unicampProvider);
+registerProvider(uelProvider);
+registerProvider(pucSpProvider);
 
 export * from "./types";
 export * from "./registry";
@@ -74,3 +80,36 @@ export {
   epcarFirstPhaseQuestions,
   epcarQuestionKey,
 } from "./epcar";
+export {
+  unicampProvider,
+  unicampMetadata,
+  UNICAMP_PROVIDER_ID,
+  unicampYears,
+  unicampAnswerKey,
+  unicampVariants,
+  unicampExamUrl,
+  unicampFirstPhaseQuestions,
+  unicampQuestionKey,
+} from "./unicamp";
+export {
+  uelProvider,
+  uelMetadata,
+  UEL_PROVIDER_ID,
+  uelYears,
+  uelAnswerKey,
+  uelVariants,
+  uelExamUrl,
+  uelFirstPhaseQuestions,
+  uelQuestionKey,
+} from "./uel";
+export {
+  pucSpProvider,
+  pucSpMetadata,
+  PUC_SP_PROVIDER_ID,
+  pucSpYears,
+  pucSpAnswerKey,
+  pucSpVariants,
+  pucSpExamUrl,
+  pucSpQuestions,
+  pucSpQuestionKey,
+} from "./puc-sp";

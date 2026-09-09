@@ -18,8 +18,11 @@ import type { NormalizedQuestion } from "./types";
  */
 export function toLegacyQuestion(q: NormalizedQuestion): Question {
   return {
+    providerId: q.providerId,
+    examId: q.examId,
     index: q.index,
     year: q.year,
+    phase: q.phase,
     language: q.language,
     discipline: q.subject.area,
     context: q.context ?? undefined,

@@ -208,6 +208,134 @@ const FONTES = [
       },
     ],
   },
+  {
+    providerId: "unicamp",
+    sourceId: "unicamp-comvest-archive",
+    archiveUrl: "https://www.comvest.unicamp.br/vestibulares-anteriores/",
+    generatedReferenceManifest: true,
+    documentos: [
+      {
+        role: "archive-index",
+        url: "https://www.comvest.unicamp.br/wp-json/wp/v2/pages/368",
+        method: "GET",
+      },
+    ],
+  },
+  {
+    providerId: "uel",
+    sourceId: "uel-cops-archive",
+    archiveUrl:
+      "https://www.cops.uel.br/v2/ProvasGabaritos/DivulgacaoProvasGabaritos1DiaVestibularDefinitivo/Selecao/370/Atividade/20969",
+    generatedReferenceManifest: true,
+    documentos: [
+      {
+        role: "archive-page",
+        url: "https://www.cops.uel.br/v2/ProvasGabaritos/DivulgacaoProvasGabaritos1DiaVestibularDefinitivo/Selecao/370/Atividade/20969",
+        method: "GET",
+      },
+    ],
+  },
+  {
+    providerId: "puc-sp",
+    sourceId: "puc-sp-nucvest-archive",
+    archiveUrl: "https://nucvest.com.br/processos-anteriores.html",
+    generatedReferenceManifest: true,
+    documentos: [
+      { role: "archive-index", url: "https://nucvest.com.br/processos-anteriores.html", method: "GET" },
+    ],
+  },
+  {
+    providerId: "uem",
+    sourceId: "uem-cvu-research",
+    archiveUrl: "https://www.cvu.uem.br/provas-gabaritos.html",
+    documentos: [
+      { role: "archive-page", url: "https://www.cvu.uem.br/provas-gabaritos.html", method: "GET" },
+      { role: "answer-key", url: "https://www.vestibular.uem.br/provas/ve25/gabdef.pdf" },
+    ],
+  },
+  {
+    providerId: "uepg",
+    sourceId: "uepg-cps-research",
+    archiveUrl: "https://www2.uepg.br/cps/vestibular-2025/",
+    documentos: [
+      { role: "archive-page", url: "https://www2.uepg.br/cps/vestibular-2025/", method: "GET" },
+      {
+        role: "answer-key",
+        url: "https://www2.uepg.br/cps/wp-content/uploads/sites/270/2025/12/EDITAL-N-51_2025-_CPS_GABARITO-VESTIBULAR-2025_Apos-Recursos.pdf",
+        method: "GET",
+      },
+    ],
+  },
+  {
+    providerId: "unesp",
+    sourceId: "unesp-vunesp-research",
+    archiveUrl: "https://www.vunesp.com.br/busca/vestibular/encerrados",
+    documentos: [
+      {
+        role: "archive-page",
+        url: "https://www.vunesp.com.br/busca/vestibular/encerrados",
+        informativo: true,
+      },
+    ],
+  },
+  {
+    providerId: "ufsc",
+    sourceId: "ufsc-coperve-research",
+    archiveUrl: "https://vestibularunificado2026.ufsc.br/provas-e-gabaritos-definitivos/",
+    documentos: [
+      {
+        role: "archive-page",
+        url: "https://vestibularunificado2026.ufsc.br/provas-e-gabaritos-definitivos/",
+        method: "GET",
+      },
+      {
+        role: "answer-key",
+        url: "https://dados.coperve.ufsc.br/vestibular2025/gabaritos/novo_gabarito_p1_amarela.pdf",
+      },
+    ],
+  },
+  {
+    providerId: "udesc",
+    sourceId: "udesc-research",
+    archiveUrl: "https://www.udesc.br/vestibular/provasanteriores",
+    documentos: [
+      { role: "archive-page", url: "https://www.udesc.br/vestibular/provasanteriores", method: "GET" },
+      {
+        role: "answer-key",
+        url: "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
+      },
+    ],
+  },
+  {
+    providerId: "acafe",
+    sourceId: "acafe-research",
+    archiveUrl: "https://vestibular.acafe.org.br/",
+    documentos: [{ role: "archive-page", url: "https://vestibular.acafe.org.br/", method: "GET" }],
+  },
+  {
+    providerId: "puc-pr",
+    sourceId: "puc-pr-research",
+    archiveUrl: "https://graduacao.pucpr.br/",
+    documentos: [{ role: "archive-page", url: "https://graduacao.pucpr.br/", method: "GET" }],
+  },
+  {
+    providerId: "puc-rio",
+    sourceId: "puc-rio-research",
+    archiveUrl: "https://www.puc-rio.br/ensinopesq/ccg/",
+    documentos: [{ role: "archive-page", url: "https://www.puc-rio.br/ensinopesq/ccg/", method: "GET" }],
+  },
+  {
+    providerId: "mackenzie",
+    sourceId: "mackenzie-research",
+    archiveUrl: "https://www.mackenzie.br/vestibular",
+    documentos: [{ role: "archive-page", url: "https://www.mackenzie.br/vestibular", method: "GET" }],
+  },
+  {
+    providerId: "ufrj",
+    sourceId: "ufrj-historical-research",
+    archiveUrl: "https://acessograduacao.ufrj.br/",
+    documentos: [{ role: "archive-page", url: "https://acessograduacao.ufrj.br/", method: "GET" }],
+  },
 ];
 
 for (const fonte of FONTES.filter((entry) => entry.viaArquivo)) {
@@ -221,6 +349,28 @@ for (const fonte of FONTES.filter((entry) => entry.viaArquivo)) {
   }))];
 }
 
+for (const fonte of FONTES.filter((entry) => entry.generatedReferenceManifest)) {
+  const dataset = JSON.parse(readFileSync(new URL(
+    `../src/lib/providers/${fonte.providerId}/answer-keys.generated.json`, import.meta.url,
+  ), "utf8"));
+  const archivePages = [...new Set(Object.values(dataset).map((entry) => entry.archivePage))];
+  const documents = Object.values(dataset).flatMap((entry) => {
+    const urls = [
+      { role: "answer-key", year: entry.year, url: entry.answerKeyUrl },
+      { role: "objective-exam", year: entry.year, url: entry.examUrl },
+      ...entry.variants
+        .map((variant) => ({ role: "variant-answer-key", year: entry.year, url: variant.answerKeyUrl }))
+        .filter((documento) => documento.url),
+    ];
+    return urls.filter((documento) => documento.url);
+  });
+  fonte.documentos = [
+    ...fonte.documentos,
+    ...archivePages.map((url) => ({ role: "archive-page", url, method: "GET" })),
+    ...documents,
+  ];
+}
+
 /**
  * Confere um documento, com uma segunda tentativa.
  *
@@ -230,21 +380,21 @@ for (const fonte of FONTES.filter((entry) => entry.viaArquivo)) {
  * ignorar o vermelho. Uma tentativa extra basta: erro que persiste nas duas
  * é notícia de verdade.
  */
-async function checar(url) {
-  const primeira = await tentar(url);
+async function checar(url, method = "HEAD") {
+  const primeira = await tentar(url, method);
   if (primeira.ok || primeira.status === 404) return primeira;
   await new Promise((r) => setTimeout(r, 1500));
-  const segunda = await tentar(url);
+  const segunda = await tentar(url, method);
   return segunda.ok || segunda.status === 404
     ? segunda
     : { ...segunda, erro: `${segunda.erro ?? segunda.status} (falhou em duas tentativas)` };
 }
 
-async function tentar(url) {
+async function tentar(url, method = "HEAD") {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, { method: "HEAD", signal: ctrl.signal, redirect: "follow" });
+    const res = await fetch(url, { method, signal: ctrl.signal, redirect: "follow" });
     return {
       status: res.status,
       ok: res.ok,
@@ -290,6 +440,16 @@ async function tentarTexto(url) {
   }
 }
 
+async function checarTexto(url) {
+  const primeira = await tentarTexto(url);
+  if (primeira.ok) return primeira;
+  await new Promise((r) => setTimeout(r, 2500));
+  const segunda = await tentarTexto(url);
+  return segunda.ok
+    ? segunda
+    : { ...segunda, erro: `${segunda.erro ?? "arquivo respondeu " + segunda.status} (falhou em duas tentativas)` };
+}
+
 function carregarBaseline(path) {
   if (!path || !existsSync(path)) return null;
   try {
@@ -325,7 +485,7 @@ async function auditarNovasEdicoes(fonte) {
   // o 403. A descoberta precisa olhar onde a ingestão olha.
   const alvos = fonte.viaArquivo ? urlsDescobertaArquivo() : [fonte.archiveUrl];
   const responses = await Promise.all(alvos.map(async (url) => {
-    if (!discoveryCache.has(url)) discoveryCache.set(url, tentarTexto(url));
+    if (!discoveryCache.has(url)) discoveryCache.set(url, checarTexto(url));
     return discoveryCache.get(url);
   }));
   const response = responses.find((item) => !item.ok) ?? {
@@ -381,7 +541,7 @@ async function main() {
         });
         continue;
       }
-      const r = await checar(d.url);
+      const r = await checar(d.url, d.method);
       const anterior = baseline?.resultados?.find((item) => item.url === d.url);
       const mudou = documentoMudou(anterior, r);
       // Um 404 previsto não é problema: é conhecimento sobre o arquivo. O

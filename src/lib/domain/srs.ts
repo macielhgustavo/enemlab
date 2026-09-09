@@ -14,7 +14,7 @@ export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
     reps: 0,
     interval: 0,
     due: new Date().toISOString(),
-    year: a.year,
+    year: row.year || a.year,
     index: row.index,
     area: row.area,
     content: row.content,
@@ -32,7 +32,7 @@ export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
   }
   old.lastResult = row.isCorrect ? "correct" : "wrong";
   old.providerId = resolveProviderId(a.providerId);
-  old.year = a.year;
+  old.year = row.year || a.year;
   old.index = row.index;
   old.area = row.area;
   old.content = row.content;

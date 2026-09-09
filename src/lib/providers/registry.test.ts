@@ -67,7 +67,7 @@ describe("registry", () => {
     expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
 
-  it("registra as seis provas desta versão", () => {
+  it("registra as nove provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer. Ela já reprovou duas vezes — no
     // IME e na FUVEST —, que é exatamente o trabalho dela.
@@ -78,12 +78,30 @@ describe("registry", () => {
       "fuvest",
       "ime",
       "ita",
+      "puc-sp",
+      "uel",
+      "unicamp",
     ]);
   });
 
   it("não traz as provas que ficaram para depois", () => {
     const ids = listProviders().map((p) => p.id);
-    for (const futuro of ["ufpr", "eear", "espcex", "esa", "unesp"]) {
+    for (const futuro of [
+      "acafe",
+      "eear",
+      "espcex",
+      "esa",
+      "mackenzie",
+      "puc-pr",
+      "puc-rio",
+      "udesc",
+      "uem",
+      "uepg",
+      "ufpr",
+      "ufrj",
+      "ufsc",
+      "unesp",
+    ]) {
       expect(ids).not.toContain(futuro);
     }
   });

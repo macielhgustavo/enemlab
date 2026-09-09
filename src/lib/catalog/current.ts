@@ -23,6 +23,12 @@ import {
   AFA_PROVIDER_ID,
   epcarAnswerKey,
   EPCAR_PROVIDER_ID,
+  unicampAnswerKey,
+  UNICAMP_PROVIDER_ID,
+  uelAnswerKey,
+  UEL_PROVIDER_ID,
+  pucSpAnswerKey,
+  PUC_SP_PROVIDER_ID,
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
@@ -30,6 +36,8 @@ import { fabValidationLevel } from "../providers/fab/evidence";
 import afaRaw from "../providers/afa/answer-keys.generated.json";
 import epcarRaw from "../providers/epcar/answer-keys.generated.json";
 import type { FabAnswerKeyRaw } from "../providers/fab";
+import { referenceMeasure } from "../providers/vestibular-reference";
+import type { ValidationLevel } from "../sources/ingestion";
 
 /**
  * Nível de validação das provas que já estavam no app.
@@ -56,7 +64,7 @@ function familiaDe(providerId: string): ExamFamilyId {
 function medirEdicao(
   providerId: string,
   ano: number,
-): { total: number; subjects: Record<string, number> } | null {
+): { total: number; subjects: Record<string, number>; validationLevel?: ValidationLevel } | null {
   if (providerId === ITA_PROVIDER_ID) {
     const k = itaAnswerKey(ano);
     if (!k) return null;
@@ -113,6 +121,21 @@ function medirEdicao(
     };
   }
 
+  if (providerId === UNICAMP_PROVIDER_ID) {
+    const k = unicampAnswerKey(ano);
+    return k ? referenceMeasure(k) : null;
+  }
+
+  if (providerId === UEL_PROVIDER_ID) {
+    const k = uelAnswerKey(ano);
+    return k ? referenceMeasure(k) : null;
+  }
+
+  if (providerId === PUC_SP_PROVIDER_ID) {
+    const k = pucSpAnswerKey(ano);
+    return k ? referenceMeasure(k) : null;
+  }
+
   return null;
 }
 
@@ -132,7 +155,9 @@ export function buildCurrentCatalog(): CatalogIndex {
       p.id === IME_PROVIDER_ID ||
       p.id === FUVEST_PROVIDER_ID ||
       p.id === AFA_PROVIDER_ID ||
-      p.id === EPCAR_PROVIDER_ID;
+      p.id === EPCAR_PROVIDER_ID ||
+      p.id === UNICAMP_PROVIDER_ID ||
+      p.id === UEL_PROVIDER_ID;
     const fasesIngeridas = p.metadata.phases.filter((f) =>
       soPrimeiraFase ? f === "first" : true,
     );
@@ -157,7 +182,7 @@ export function buildCurrentCatalog(): CatalogIndex {
           // que a prova não tem questão.
           questionCount: contagem,
           subjects: materias,
-          validation: fabRaw ? fabValidationLevel(p.id, fabRaw) : NIVEL_HERDADO,
+          validation: medida?.validationLevel ?? (fabRaw ? fabValidationLevel(p.id, fabRaw) : NIVEL_HERDADO),
           sourceId: fonte.id,
           statementAvailable: fonte.statementMode !== "reference-only",
           importerVersion: fonte.parserVersion,

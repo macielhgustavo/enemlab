@@ -22,3 +22,25 @@ describe("catálogo FAB", () => {
     });
   });
 });
+
+describe("catálogo v8.8", () => {
+  it("lista os novos vestibulares com contagem leve e sem enunciado embutido", () => {
+    const catalog = buildCurrentCatalog();
+    expect(catalog.query({ providerId: "unicamp" }).map((entry) => entry.questionCount)).toEqual([
+      72,
+      72,
+      72,
+    ]);
+    expect(catalog.query({ providerId: "uel" }).map((entry) => entry.questionCount)).toEqual([60]);
+    expect(catalog.query({ providerId: "puc-sp" }).map((entry) => entry.questionCount)).toEqual([
+      50,
+      50,
+      50,
+    ]);
+    expect(catalog.countQuestions({ providerIds: ["unicamp", "uel", "puc-sp"] })).toEqual({
+      known: 426,
+      unknownEditions: 0,
+    });
+    expect(catalog.query({ providerId: "unicamp" }).every((entry) => !entry.statementAvailable)).toBe(true);
+  });
+});

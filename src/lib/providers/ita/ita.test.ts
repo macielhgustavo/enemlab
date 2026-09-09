@@ -13,8 +13,8 @@ import {
 import { questionKey as enemQuestionKey } from "../../domain/classify";
 import type { Question } from "../../domain/types";
 
-describe("registry com duas provas", () => {
-  it("tem as seis provas registradas, e nada além disso", () => {
+describe("registry de provas", () => {
+  it("tem as nove provas registradas, e nada além disso", () => {
     expect(listProviders().map((p) => p.id).sort()).toEqual([
       "afa",
       "enem",
@@ -22,6 +22,9 @@ describe("registry com duas provas", () => {
       "fuvest",
       "ime",
       "ita",
+      "puc-sp",
+      "uel",
+      "unicamp",
     ]);
   });
 

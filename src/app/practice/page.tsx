@@ -1,25 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { examYears } from "@/lib/domain/constants";
-import { buildTrainingAttempt, type NewTrainingParams } from "@/lib/services/attempts";
-import { buildItaFirstPhaseAttempt } from "@/lib/services/ita-attempts";
-import { itaYears, itaAnswerKey } from "@/lib/providers";
+import { discipline } from "@/lib/domain/classify";
+import { buildTrainingAttempt, attemptFromQuestions, type NewTrainingParams } from "@/lib/services/attempts";
+import { ENEM_PROVIDER_ID, listProviders } from "@/lib/providers";
+import { questionsFor } from "@/lib/providers/access";
+import { areasOf } from "@/lib/providers/taxonomy";
+import { examLabel } from "@/lib/providers/label";
 import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { Button } from "@/components/ui/button";
 import { InlineNotice, LoadingState } from "@/components/enem-lab/states";
 import { Card } from "@/components/ui";
 import type { AttemptMode, AreaId, Language } from "@/lib/domain/types";
-
-const SUBJECT_PT: Record<string, string> = {
-  mathematics: "Matemática",
-  physics: "Física",
-  chemistry: "Química",
-  english: "Inglês",
-  portuguese: "Português",
-};
 
 const MODES: { value: AttemptMode; label: string }[] = [
   { value: "sprint15", label: "Sprint — 15" },
@@ -67,9 +62,23 @@ export default function PracticePage() {
   const [strategy, setStrategy] = useState(false);
   const [alerts, setAlerts] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [itaYear, setItaYear] = useState(() => itaYears()[0] ?? 2026);
-  const [itaSubject, setItaSubject] = useState("");
+  const referenceProviders = useMemo(
+    () => listProviders().filter((provider) => provider.id !== ENEM_PROVIDER_ID && provider.metadata.years.length),
+    [],
+  );
+  const [referenceProviderId, setReferenceProviderId] = useState(() => referenceProviders[0]?.id ?? "ita");
+  const referenceProvider = referenceProviders.find((provider) => provider.id === referenceProviderId) ?? referenceProviders[0];
+  const [referenceYear, setReferenceYear] = useState(() => referenceProvider?.metadata.years[0] ?? 2026);
+  const [referenceSubject, setReferenceSubject] = useState("");
   const [status, setStatus] = useState<string>("");
+  const referenceYears = referenceProvider?.metadata.years ?? [];
+  const activeReferenceYear = referenceYears.includes(referenceYear)
+    ? referenceYear
+    : (referenceYears[0] ?? referenceYear);
+  const referenceAreas = areasOf(referenceProvider?.id);
+  const activeReferenceSubject = referenceAreas.some(({ id }) => id === referenceSubject)
+    ? referenceSubject
+    : "";
 
   const areaDisabled = ["full", "real1", "real2", "adaptive15", "unseen90"].includes(mode);
   const minutesDisabled = mode === "real1" || mode === "real2";
@@ -80,12 +89,20 @@ export default function PracticePage() {
     if (m === "full" || m === "real1" || m === "real2") setArea("all");
   }
 
-  function startIta() {
+  async function startReferenceExam() {
+    if (!referenceProvider) return;
     setBusy(true);
+    setStatus("Montando vestibular em modo referência…");
     try {
-      const a = buildItaFirstPhaseAttempt(itaYear, { subject: itaSubject || null });
-      addAttempt(a);
-      router.push(`/exam/${a.id}`);
+      const lang = (referenceProvider.metadata.languages[0]?.id ?? "ingles") as Language;
+      const all = await questionsFor(referenceProvider.id, { year: activeReferenceYear, language: lang });
+      const qs = activeReferenceSubject
+        ? all.filter((question) => discipline(question) === activeReferenceSubject)
+        : all;
+      if (!qs.length) throw new Error("Nenhuma questão disponível para esse filtro.");
+      const attempt = attemptFromQuestions(activeReferenceYear, lang, qs, "full", referenceProvider.id);
+      addAttempt(attempt);
+      router.push(`/exam/${attempt.id}`);
     } catch (e) {
       setStatus((e as Error).message);
       setBusy(false);
@@ -220,38 +237,56 @@ export default function PracticePage() {
 
       <Card style={{ marginTop: 14 }}>
         <div className="htitle">
-          <h2>ITA — 1ª fase</h2>
+          <h2>Vestibulares — modo referência</h2>
           <span className="badge2">gabarito oficial</span>
         </div>
         <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-          As provas do ITA são publicadas como documento digitalizado, então o enunciado
-          é lido na prova oficial e você marca a alternativa aqui. A correção usa o
-          gabarito oficial, e o desempenho fica separado do ENEM.
+          O enunciado fica no documento oficial da banca e você marca a alternativa aqui.
+          A correção usa o gabarito oficial, e o desempenho fica separado por instituição.
         </p>
         <div className="row" style={{ alignItems: "flex-end", gap: 12, marginTop: 14 }}>
           <div style={{ maxWidth: 150 }}>
-            <label htmlFor="ita-edicao">Edição</label>
-            <select id="ita-edicao" value={itaYear} onChange={(e) => setItaYear(Number(e.target.value))}>
-              {itaYears().map((y) => (
+            <label htmlFor="ref-provider">Prova</label>
+            <select
+              id="ref-provider"
+              value={referenceProviderId}
+              onChange={(e) => {
+                const nextProvider = referenceProviders.find((provider) => provider.id === e.target.value);
+                setReferenceProviderId(e.target.value);
+                setReferenceYear(nextProvider?.metadata.years[0] ?? referenceYear);
+                setReferenceSubject("");
+              }}
+            >
+              {referenceProviders.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.metadata.shortLabel}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ maxWidth: 150 }}>
+            <label htmlFor="ref-edicao">Edição</label>
+            <select id="ref-edicao" value={activeReferenceYear} onChange={(e) => setReferenceYear(Number(e.target.value))}>
+              {referenceYears.map((y) => (
                 <option key={y} value={y}>
-                  ITA {y}
+                  {examLabel(referenceProvider?.id)} {y}
                 </option>
               ))}
             </select>
           </div>
           <div style={{ maxWidth: 190 }}>
-            <label htmlFor="ita-materia">Matéria</label>
-            <select id="ita-materia" value={itaSubject} onChange={(e) => setItaSubject(e.target.value)}>
+            <label htmlFor="ref-materia">Matéria</label>
+            <select id="ref-materia" value={activeReferenceSubject} onChange={(e) => setReferenceSubject(e.target.value)}>
               <option value="">Prova completa</option>
-              {Object.entries(itaAnswerKey(itaYear)?.subjects ?? {}).map(([id]) => (
-                <option key={id} value={id}>
-                  {SUBJECT_PT[id] ?? id}
+              {referenceAreas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.label}
                 </option>
               ))}
             </select>
           </div>
-          <Button variant="primary" onClick={startIta} loading={busy}>
-            Começar ITA
+          <Button variant="primary" onClick={startReferenceExam} loading={busy} disabled={!referenceProvider}>
+            Começar vestibular
           </Button>
         </div>
       </Card>

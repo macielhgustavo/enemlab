@@ -38,10 +38,13 @@ export interface Alternative {
   isCorrect?: boolean;
 }
 
-export interface Question {
-  index: number;
-  year: number;
-  language?: string | null;
+  export interface Question {
+    providerId?: string;
+    examId?: string;
+    index: number;
+    year: number;
+    phase?: string;
+    language?: string | null;
   discipline?: string | { value?: string; label?: string };
   context?: string;
   alternativesIntroduction?: string;

@@ -24,7 +24,7 @@ import {
   type QuestionStatus,
 } from "@/components/enem-lab/FilterBar";
 import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
-import { areaLabel } from "@/lib/providers/taxonomy";
+import { areaLabel, areasOf } from "@/lib/providers/taxonomy";
 import { buildCurrentCatalog } from "@/lib/catalog/current";
 import { examLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
@@ -65,8 +65,6 @@ export default function BankPage() {
   const [diff, setDiff] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const activeYear = isIta ? itaYear : year;
-
   /**
    * O índice responde antes de qualquer questão ser carregada (§29, §30).
    *
@@ -78,6 +76,16 @@ export default function BankPage() {
    */
   const catalogo = useMemo(() => buildCurrentCatalog(), []);
   const anosDisponiveis = catalogo.yearsOf(providerId);
+  const selectedYear = isIta ? itaYear : year;
+  const activeYear = anosDisponiveis.includes(selectedYear)
+    ? selectedYear
+    : (anosDisponiveis[0] ?? selectedYear);
+  const provider = getProvider(providerId);
+  const providerAreas = areasOf(providerId);
+  const itaSubjectIds = Object.keys(itaAnswerKey(activeYear)?.subjects ?? {});
+  const activeSubject = isIta && itaSubjectIds.includes(subject) ? subject : "all";
+  const activeArea = !isIta && providerAreas.some(({ id }) => id === area) ? area : "all";
+  const activeLanguage = provider.metadata.languages[0]?.id ?? "ingles";
   const totalNoCatalogo = catalogo.countQuestions({ providerId });
   const edicaoNoCatalogo = catalogo
     .query({ providerId, year: activeYear })
@@ -89,8 +97,8 @@ export default function BankPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["exam", providerId, activeYear, "ingles"],
-    queryFn: () => questionsFor(providerId, { year: activeYear, language: "ingles" }),
+    queryKey: ["exam", providerId, activeYear, activeLanguage],
+    queryFn: () => questionsFor(providerId, { year: activeYear, language: activeLanguage as "ingles" | "espanhol" }),
     enabled: hydrated,
     staleTime: Infinity,
   });
@@ -105,14 +113,19 @@ export default function BankPage() {
         const d = personalDifficulty(db, q);
         return (
           (!nq || txt.includes(nq)) &&
-          (area === "all" || discipline(q) === area) &&
-          (subject === "all" || discipline(q) === subject) &&
+          (activeArea === "all" || discipline(q) === activeArea) &&
+          (activeSubject === "all" || discipline(q) === activeSubject) &&
           (status === "all" || bankStatus(db, q) === status) &&
           (diff === "all" || d === diff)
         );
       })
       .slice(0, 250);
-  }, [questions, query, area, subject, status, diff, db]);
+  }, [questions, query, activeArea, activeSubject, status, diff, db]);
+
+  const selectedActiveCount = useMemo(() => {
+    if (!questions) return 0;
+    return questions.reduce((count, q) => count + (selected.has(questionKey(q)) ? 1 : 0), 0);
+  }, [questions, selected]);
 
   function toggle(k: string, on: boolean) {
     setSelected((prev) => {
@@ -135,7 +148,7 @@ export default function BankPage() {
       info("Selecione pelo menos uma questão.");
       return;
     }
-    const a = attemptFromQuestions(qs[0].year, "ingles", qs, "bank");
+    const a = attemptFromQuestions(qs[0].year, activeLanguage as "ingles" | "espanhol", qs, "bank", providerId);
     addAttempt(a);
     router.push(`/exam/${a.id}`);
   }
@@ -147,12 +160,12 @@ export default function BankPage() {
       <PageHeader
         eyebrow="Módulo · acervo"
         title="Banco de questões"
-        context={<Badge variant="accent">{getProvider(providerId).metadata.shortLabel}</Badge>}
+        context={<Badge variant="accent">{provider.metadata.shortLabel}</Badge>}
         description="Filtre, selecione e monte um treino com as questões que interessam."
         meta={
           <>
             {!isLoading && <span>{visible.length} visíveis</span>}
-            {!isLoading && <span>{selected.size} selecionadas</span>}
+            {!isLoading && <span>{selectedActiveCount} selecionadas</span>}
             {/* Vem do índice: não custa carregar nenhuma questão. */}
             <span>
               {totalNoCatalogo.known > 0
@@ -166,7 +179,7 @@ export default function BankPage() {
             <Button variant="secondary" size="sm" onClick={selectVisible} disabled={!visible.length}>
               Selecionar visíveis
             </Button>
-            <Button variant="primary" size="sm" onClick={start} disabled={!selected.size}>
+            <Button variant="primary" size="sm" onClick={start} disabled={!selectedActiveCount}>
               Treinar selecionadas
             </Button>
           </>
@@ -211,8 +224,11 @@ export default function BankPage() {
             <select
               id="banco-ano"
               className="el-select__trigger"
-              value={itaYear}
-              onChange={(e) => setItaYear(Number(e.target.value))}
+              value={activeYear}
+              onChange={(e) => {
+                setItaYear(Number(e.target.value));
+                setSelected(new Set());
+              }}
             >
               {itaYears().map((y) => (
                 <option key={y} value={y}>
@@ -224,8 +240,11 @@ export default function BankPage() {
             <select
               id="banco-ano"
               className="el-select__trigger"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              value={activeYear}
+              onChange={(e) => {
+                setYear(Number(e.target.value));
+                setSelected(new Set());
+              }}
             >
               {/* O rótulo vem da prova ativa. Estava fixo em "ENEM" e, com
                   uma terceira prova registrada, o IME passou a listar
@@ -240,21 +259,21 @@ export default function BankPage() {
           )}
         </FilterGroup>
 
-        <FilterGroup label={isIta ? "Matéria" : "Área"}>
+        <FilterGroup label={providerId === "enem" ? "Área" : "Matéria"}>
           <FilterChip
-            active={(isIta ? subject : area) === "all"}
+            active={(isIta ? activeSubject : activeArea) === "all"}
             onClick={() => (isIta ? setSubject("all") : setArea("all"))}
           >
             Todas
           </FilterChip>
           {isIta
-            ? Object.keys(itaAnswerKey(itaYear)?.subjects ?? {}).map((id) => (
-                <FilterChip key={id} active={subject === id} onClick={() => setSubject(id)}>
+            ? itaSubjectIds.map((id) => (
+                <FilterChip key={id} active={activeSubject === id} onClick={() => setSubject(id)}>
                   {areaLabel(id, providerId)}
                 </FilterChip>
               ))
-            : ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"].map((id) => (
-                <FilterChip key={id} active={area === id} onClick={() => setArea(id)}>
+            : providerAreas.map(({ id }) => (
+                <FilterChip key={id} active={activeArea === id} onClick={() => setArea(id)}>
                   {areaLabel(id, providerId)}
                 </FilterChip>
               ))}
@@ -364,7 +383,7 @@ export default function BankPage() {
 
                   <p className="body-sm el-bankitem__excerpt">
                     {semEnunciado
-                      ? "Enunciado na prova oficial — abra o PDF do ITA para ler."
+                      ? "Enunciado na prova oficial — abra o documento da banca para ler."
                       : trecho(String(q.context || q.alternativesIntroduction || ""))}
                   </p>
                 </div>

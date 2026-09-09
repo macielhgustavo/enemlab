@@ -1,0 +1,130 @@
+{
+  "2026": {
+    "edition": "2026",
+    "year": 2026,
+    "label": "Vestibular UEL 2026 - 1º dia - Inglês",
+    "phase": "first",
+    "total": 60,
+    "canonicalVariant": "tipo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "2": "A",
+      "3": "B",
+      "4": "A",
+      "5": "D",
+      "6": "E",
+      "7": "D",
+      "8": "B",
+      "9": "C",
+      "10": "E",
+      "11": "C",
+      "12": "D",
+      "13": "E",
+      "14": "B",
+      "15": "A",
+      "16": "A",
+      "17": "C",
+      "18": "A",
+      "19": "B",
+      "20": "D",
+      "21": "B",
+      "22": "E",
+      "23": "A",
+      "24": "D",
+      "25": "B",
+      "26": "C",
+      "27": "C",
+      "28": "A",
+      "29": "E",
+      "30": "E",
+      "31": "B",
+      "32": "E",
+      "33": "C",
+      "34": "D",
+      "35": "B",
+      "36": "A",
+      "37": "D",
+      "38": "A",
+      "39": "A",
+      "40": "D",
+      "42": "E",
+      "43": "C",
+      "44": "A",
+      "45": "B",
+      "46": "A",
+      "47": "E",
+      "48": "D",
+      "49": "C",
+      "50": "B",
+      "51": "C",
+      "52": "C",
+      "53": "E",
+      "54": "D",
+      "55": "C",
+      "56": "C",
+      "57": "E",
+      "58": "E",
+      "59": "D",
+      "60": "B"
+    },
+    "annulled": [
+      41
+    ],
+    "variants": [
+      {
+        "id": "tipo-1",
+        "label": "Tipo 1 - Inglês",
+        "examUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZjg1ZTQzM2QwMGNjOWUyMzFmZjEzMjZlYzc1ZGI0YjE4NTIwZDdhYjBjY2MxYjU2YTljYzcyYjgxOGI4ZGE1MTI=",
+        "answerKeyUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZmQxZmEzNWU2YjZmYzkwOWE4NjBkM2YyMWJhOTJjZDVhM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ=="
+      },
+      {
+        "id": "tipo-2",
+        "label": "Tipo 2 - Inglês",
+        "examUrl": null,
+        "answerKeyUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZjYyMjI4YzI3MDg0YjFiOGIxZjMzZGM5OTI0YzkyNzFkM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ=="
+      },
+      {
+        "id": "tipo-3",
+        "label": "Tipo 3 - Inglês",
+        "examUrl": null,
+        "answerKeyUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZjZmMzcxMjYxN2JhNThhMjM4OTQ0MzBiZTYxZjJhYWMzM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ=="
+      }
+    ],
+    "answerKeyUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZmQxZmEzNWU2YjZmYzkwOWE4NjBkM2YyMWJhOTJjZDVhM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ==",
+    "examUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZjg1ZTQzM2QwMGNjOWUyMzFmZjEzMjZlYzc1ZGI0YjE4NTIwZDdhYjBjY2MxYjU2YTljYzcyYjgxOGI4ZGE1MTI=",
+    "archivePage": "https://www.cops.uel.br/v2/ProvasGabaritos/DivulgacaoProvasGabaritos1DiaVestibularDefinitivo/Selecao/370/Atividade/20969",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          60
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Endpoint oficial COPS/UEL identifica gabaritos definitivos do 1º dia.",
+      "Gabarito canônico em inglês cobre exatamente 60 questões.",
+      "Tipos 1-3 são registrados como unknown; só o Tipo 1 vira executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZmQxZmEzNWU2YjZmYzkwOWE4NjBkM2YyMWJhOTJjZDVhM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ==",
+      "effectiveSourceUrl": "https://www.cops.uel.br/v2/download.php?Acesso=NTc0NTQyMzZjZTU3Mzg2MDZkNzAwMjMyMmVmZjA2MjJiM2EzNjg5NDhlYTY1NGM5NGU3N2Q0NGNkYTM2NTUzZmQxZmEzNWU2YjZmYzkwOWE4NjBkM2YyMWJhOTJjZDVhM2RkZjRhNDNmMGQzN2RjYjFmMGZmYzY0YmExZGI4NGJkMGU1MTAxOTYwZThhNjBmN2I1MzE4NzI2ZDIxZDk4YQ==",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-08",
+      "sha256": "512859c7df8414b2ffa9579c61f424321dd3657515c32eae1553c5e872b2d6fd",
+      "bytes": 698545,
+      "parserVersion": "uel-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "uel-answer-key@1.0.0"
+  }
+}

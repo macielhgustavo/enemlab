@@ -4,6 +4,9 @@ import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../prov
 import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/fuvest";
 import { afaAnswerKey, afaYears } from "../providers/afa";
 import { epcarAnswerKey, epcarYears } from "../providers/epcar";
+import { unicampExamUrl, unicampYears } from "../providers/unicamp";
+import { uelExamUrl, uelYears } from "../providers/uel";
+import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -14,6 +17,9 @@ const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
 const FUVEST_PARSER = "fuvest-answer-key@1.0.0";
 const FAB_PARSER = "fab-answer-key@2.1.0";
+const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
+const UEL_PARSER = "uel-answer-key@1.0.0";
+const PUC_SP_PARSER = "puc-sp-answer-key@1.0.0";
 
 /**
  * ENEM: API estruturada, com enunciado e alternativas em texto.
@@ -279,6 +285,354 @@ export const epcarSource: ExamSourceDefinition = {
     "oficial acessível. Isso não demonstra ausência de publicação.",
 };
 
+/** UNICAMP: arquivo oficial da COMVEST, 1ª fase objetiva em modo referência. */
+export const unicampSource: ExamSourceDefinition = {
+  id: "unicamp-comvest-archive",
+  providerId: "unicamp",
+  institution: "UNICAMP/COMVEST",
+  archiveUrl: "https://www.comvest.unicamp.br/vestibulares-anteriores/",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "university",
+  discovery: "manual",
+  years: unicampYears(),
+  phases: ["first", "second"],
+  subjects: ["conhecimentos-gerais"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: UNICAMP_PARSER,
+  lastVerifiedAt: "2026-09-08",
+  confidence: "alta",
+  notes:
+    "Entram 2024–2026, somente 1ª fase objetiva. A COMVEST publica múltiplos " +
+    "cadernos por edição; como a relação entre eles não foi demonstrada, a " +
+    "ingestão marca `variantRelation: unknown`, registra todas as variantes e " +
+    "executa apenas uma canônica por ano.",
+};
+
+/** UEL: COPS publica prova e gabarito definitivo do 1º dia. */
+export const uelSource: ExamSourceDefinition = {
+  id: "uel-cops-archive",
+  providerId: "uel",
+  institution: "UEL/COPS",
+  archiveUrl:
+    "https://www.cops.uel.br/v2/ProvasGabaritos/DivulgacaoProvasGabaritos1DiaVestibularDefinitivo/Selecao/370/Atividade/20969",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "university",
+  discovery: "manual",
+  years: uelYears(),
+  phases: ["first", "second"],
+  subjects: ["conhecimentos-gerais"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: true,
+  parserVersion: UEL_PARSER,
+  lastVerifiedAt: "2026-09-08",
+  confidence: "alta",
+  notes:
+    "Entra 2026, 1º dia em inglês, com gabarito oficial definitivo e questão 41 " +
+    "anulada. Tipos 1–3 foram encontrados; sem prova de reordenação, só o Tipo " +
+    "1 vira executável. Espanhol e 2ª fase ficam registrados como cobertura " +
+    "futura, sem runner discursivo nesta wave.",
+};
+
+/** PUC-SP: provider próprio, separado de PUC-PR e PUC-Rio. */
+export const pucSpSource: ExamSourceDefinition = {
+  id: "puc-sp-nucvest-archive",
+  providerId: "puc-sp",
+  institution: "PUC-SP/NucVest",
+  archiveUrl: "https://nucvest.com.br/processos-anteriores.html",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "pdf-text-layer",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "university",
+  discovery: "manual",
+  years: pucSpYears(),
+  phases: ["single"],
+  subjects: ["matematica", "ciencias-natureza", "ciencias-humanas", "linguagens"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: PUC_SP_PARSER,
+  lastVerifiedAt: "2026-09-08",
+  confidence: "alta",
+  notes:
+    "Entram as edições de verão 2024–2026, com 50 questões e gabarito oficial. " +
+    "A PUC-SP também publica edições de inverno no mesmo ano; elas foram " +
+    "descobertas, mas não entram até a UI aceitar múltiplas edições no mesmo ano.",
+};
+
+/** UEM pesquisada e bloqueada por gabarito não A-E/somatória. */
+export const uemResearchSource: ExamSourceDefinition = {
+  id: "uem-cvu-research",
+  providerId: "uem",
+  institution: "UEM/CVU",
+  archiveUrl: "https://www.cvu.uem.br/provas-gabaritos.html",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: "uem-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Arquivo oficial encontrado com provas/gabaritos, mas o formato usa " +
+    "somatória/alternativas numéricas e alguns PDFs têm extração ruim. Não cabe " +
+    "no runner A-E atual sem parser e experiência próprios.",
+};
+
+/** UEPG pesquisada e bloqueada por somatória. */
+export const uepgResearchSource: ExamSourceDefinition = {
+  id: "uepg-cps-research",
+  providerId: "uepg",
+  institution: "UEPG/CPS",
+  archiveUrl: "https://www2.uepg.br/cps/vestibular-2025/",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: "uepg-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Página oficial e gabarito após recursos encontrados, mas o vestibular usa " +
+    "questões de somatória. Importar como A-E corrigiria errado, então fica bloqueado.",
+};
+
+/** UNESP/Vunesp pesquisada, mas PDFs exigem Área do Candidato. */
+export const unespResearchSource: ExamSourceDefinition = {
+  id: "unesp-vunesp-research",
+  providerId: "unesp",
+  institution: "UNESP/Vunesp",
+  archiveUrl: "https://www.vunesp.com.br/busca/vestibular/encerrados",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "permission-required",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["first", "second"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "unesp-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Páginas oficiais Vunesp de 2022–2025 foram encontradas, mas o link de " +
+    "Provas e Gabaritos redireciona para login da Área do Candidato. Sem fonte " +
+    "pública rehostável, não há provider.",
+};
+
+/** UFSC pesquisada e bloqueada por somatória/proposições. */
+export const ufscResearchSource: ExamSourceDefinition = {
+  id: "ufsc-coperve-research",
+  providerId: "ufsc",
+  institution: "UFSC/Coperve",
+  archiveUrl: "https://vestibularunificado2026.ufsc.br/provas-e-gabaritos-definitivos/",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["day1", "day2"],
+  subjects: ["general"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: "ufsc-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Arquivo oficial e gabaritos definitivos existem, mas o formato é de " +
+    "proposições/somatória. Não entra no runner A-E nesta wave.",
+};
+
+/** UDESC pesquisada e adiada por modelagem de períodos/opções. */
+export const udescResearchSource: ExamSourceDefinition = {
+  id: "udesc-research",
+  providerId: "udesc",
+  institution: "UDESC",
+  archiveUrl: "https://www.udesc.br/vestibular/provasanteriores",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["first"],
+  subjects: ["general"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: "udesc-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Gabaritos oficiais 2025.2 e 2026.2 foram encontrados, mas o PDF mistura " +
+    "períodos matutino/vespertino e opções de língua com numeração sobreposta. " +
+    "Sem modelagem segura de período/língua, fica bloqueado.",
+};
+
+/** ACAFE pesquisada; fonte SPA/API ainda não fechada. */
+export const acafeResearchSource: ExamSourceDefinition = {
+  id: "acafe-research",
+  providerId: "acafe",
+  institution: "ACAFE",
+  archiveUrl: "https://vestibular.acafe.org.br/",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "unknown",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "acafe-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "O site atual é SPA e aponta para API pública, mas os endpoints de provas " +
+    "anteriores não foram identificados com evidência suficiente.",
+};
+
+/** PUC-PR pesquisada sem arquivo público consistente. */
+export const pucPrResearchSource: ExamSourceDefinition = {
+  id: "puc-pr-research",
+  providerId: "puc-pr",
+  institution: "PUC-PR",
+  archiveUrl: "https://graduacao.pucpr.br/",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "unknown",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "puc-pr-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "PUC-PR não foi agrupada como PUC genérica. Nesta investigação não apareceu " +
+    "arquivo oficial público e consistente de prova ↔ gabarito.",
+};
+
+/** PUC-Rio pesquisada sem prova própria pública atual. */
+export const pucRioResearchSource: ExamSourceDefinition = {
+  id: "puc-rio-research",
+  providerId: "puc-rio",
+  institution: "PUC-Rio",
+  archiveUrl: "https://www.puc-rio.br/ensinopesq/ccg/vestibular/",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "unknown",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "puc-rio-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Tratada como instituição separada. Não foi localizada fonte oficial pública " +
+    "com prova objetiva e gabarito final associáveis para ingestão.",
+};
+
+/** Mackenzie pesquisado sem archive público fechado. */
+export const mackenzieResearchSource: ExamSourceDefinition = {
+  id: "mackenzie-research",
+  providerId: "mackenzie",
+  institution: "Mackenzie",
+  archiveUrl: "https://www.mackenzie.br/vestibular",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "unknown",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "mackenzie-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Página oficial atual investigada, sem arquivo público consistente de provas " +
+    "anteriores com gabarito final para parser fail-closed.",
+};
+
+/** UFRJ histórica: não assumir prova própria vigente. */
+export const ufrjHistoricalResearchSource: ExamSourceDefinition = {
+  id: "ufrj-historical-research",
+  providerId: "ufrj",
+  institution: "UFRJ",
+  archiveUrl: "https://acessograduacao.ufrj.br/",
+  sourceType: "official-html",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "unknown",
+  status: "blocked",
+  family: "university",
+  discovery: "manual",
+  years: [],
+  phases: ["single"],
+  subjects: ["general"],
+  answerKeyAvailable: false,
+  expectedAnswersAvailable: false,
+  parserVersion: "ufrj-historical-research@0.1.0",
+  lastVerifiedAt: "2026-09-08",
+  confidence: "baixa",
+  notes:
+    "Cobertura histórica precisa ser tratada separadamente. Não foi criado " +
+    "provider atual porque a investigação não confirmou vestibular próprio vigente " +
+    "com arquivo público consistente.",
+};
+
 /** UFPR pesquisada, mas deliberadamente não executável nesta wave. */
 export const ufprResearchSource: ExamSourceDefinition = {
   id: "ufpr-research",
@@ -341,6 +695,19 @@ const SOURCES = new Map<string, ExamSourceDefinition>([
   [fuvestSource.id, fuvestSource],
   [afaSource.id, afaSource],
   [epcarSource.id, epcarSource],
+  [unicampSource.id, unicampSource],
+  [uelSource.id, uelSource],
+  [pucSpSource.id, pucSpSource],
+  [uemResearchSource.id, uemResearchSource],
+  [uepgResearchSource.id, uepgResearchSource],
+  [unespResearchSource.id, unespResearchSource],
+  [ufscResearchSource.id, ufscResearchSource],
+  [udescResearchSource.id, udescResearchSource],
+  [acafeResearchSource.id, acafeResearchSource],
+  [pucPrResearchSource.id, pucPrResearchSource],
+  [pucRioResearchSource.id, pucRioResearchSource],
+  [mackenzieResearchSource.id, mackenzieResearchSource],
+  [ufrjHistoricalResearchSource.id, ufrjHistoricalResearchSource],
   [ufprResearchSource.id, ufprResearchSource],
   [eearResearchSource.id, eearResearchSource],
 ]);
@@ -439,6 +806,33 @@ export const epcarImporter: ExamImporter = {
   },
 };
 
+export const unicampImporter: ExamImporter = {
+  sourceId: unicampSource.id,
+  availableYears: () => unicampYears(),
+  provenanceFor(year, phase = "first", page) {
+    const url = phase === "first" ? unicampExamUrl(year) : unicampSource.archiveUrl;
+    return provenance(unicampSource, url ?? unicampSource.archiveUrl, page);
+  },
+};
+
+export const uelImporter: ExamImporter = {
+  sourceId: uelSource.id,
+  availableYears: () => uelYears(),
+  provenanceFor(year, phase = "first", page) {
+    const url = phase === "first" ? uelExamUrl(year) : uelSource.archiveUrl;
+    return provenance(uelSource, url ?? uelSource.archiveUrl, page);
+  },
+};
+
+export const pucSpImporter: ExamImporter = {
+  sourceId: pucSpSource.id,
+  availableYears: () => pucSpYears(),
+  provenanceFor(year, phase = "single", page) {
+    const url = phase === "single" ? pucSpExamUrl(year) : pucSpSource.archiveUrl;
+    return provenance(pucSpSource, url ?? pucSpSource.archiveUrl, page);
+  },
+};
+
 export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
@@ -446,5 +840,8 @@ export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "fuvest") return fuvestImporter;
   if (providerId === "afa") return afaImporter;
   if (providerId === "epcar") return epcarImporter;
+  if (providerId === "unicamp") return unicampImporter;
+  if (providerId === "uel") return uelImporter;
+  if (providerId === "puc-sp") return pucSpImporter;
   return null;
 }

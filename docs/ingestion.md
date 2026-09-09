@@ -168,12 +168,18 @@ mais trinta edições que não sabemos medir" são frases diferentes.
 npm run ingest -- ime --year 2025-2026
 npm run ingest -- all --dry-run
 npm run ingest -- ime --validate
+npm run ingest:vestibular -- all
 npm run sources:audit
 npm run sources:audit -- --provider ita
 ```
 
 `--dry-run` **nunca** escreve catálogo. Um comando que escreve depois de
 dizer que não escreveria é pior que um comando que não existe.
+
+A ingestão de vestibulares em modo referência (`ingest:vestibular`) é separada
+da CLI genérica porque cada banca aceita tem adapter próprio e regras
+fail-closed próprias. Ela gera apenas gabarito, metadados de prova, variantes e
+proveniência; não copia enunciado para o bundle.
 
 A escrita é idempotente: deduplica por `provider|edição|fase` e ordena de
 forma estável. Rodar duas vezes dá o mesmo arquivo — sem isso cada execução
@@ -259,6 +265,9 @@ pior, atribuiria a resposta à versão errada.
 | FUVEST | 4 (1ª fase) | 360 | `reviewed` | referência | `fuvest-archive` |
 | AFA | 8 (1ª fase) | 512 | `reviewed` | referência | `afa-official-archive` |
 | EPCAR | 3 (1ª fase) | 144 | `reviewed` | referência | `epcar-official-archive` |
+| UNICAMP | 3 (1ª fase) | 216 | `reviewed` | referência | `unicamp-comvest-archive` |
+| UEL | 1 (1º dia Inglês) | 60 | `reviewed` | referência | `uel-cops-archive` |
+| PUC-SP | 3 (verão) | 150 | `reviewed` | referência | `puc-sp-nucvest-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
 
 O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
@@ -282,6 +291,25 @@ As provas oficiais da FAB retornam 403 ao audit HTTP automatizado neste
 ambiente. Isso não é tratado como aprovação: a página e as chaves seguem
 monitoradas, mas o bloqueio é uma pendência operacional da próxima execução do
 audit.
+
+### v8.8 — vestibulares em massa
+
+UNICAMP, UEL e PUC-SP entram com adapters específicos sobre utilitários comuns
+de modo referência. O fluxo é:
+
+1. Confirmar página oficial de arquivo ou divulgação.
+2. Baixar o gabarito final/retificado.
+3. Extrair apenas número, resposta e anuladas.
+4. Rejeitar duplicidade, buraco, letra inválida, preliminar ou cobertura
+   parcial.
+5. Gravar checksum, tamanho, data, parser, revisão, variantes e evidências.
+
+As três ficam `reference-only` e `official-reference`: o app corrige pela chave
+oficial, mas o enunciado continua no domínio da banca. UNICAMP e UEL possuem
+variantes conhecidas com relação `unknown`; só a variante canônica é
+executável. PUC-SP verão entra como prova única, separada de PUC-PR e PUC-Rio.
+
+Relatório completo: [v8.8 Vestibular Mass Injection](vestibular-mass-validation.md).
 
 ### Fontes registradas e não ingeridas
 
