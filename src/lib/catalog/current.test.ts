@@ -44,3 +44,52 @@ describe("catálogo v8.8", () => {
     expect(catalog.query({ providerId: "unicamp" }).every((entry) => !entry.statementAvailable)).toBe(true);
   });
 });
+
+describe("catálogo v8.9", () => {
+  it("lista as 18 edições UDESC em sessões leves separadas", () => {
+    const catalog = buildCurrentCatalog();
+    const entries = catalog.query({ providerId: "udesc" });
+
+    expect(entries).toHaveLength(36);
+    expect(new Set(entries.map((entry) => entry.editionId)).size).toBe(18);
+    expect(entries.every((entry) => entry.questionCount === 50)).toBe(true);
+    expect(entries.every((entry) => !entry.statementAvailable)).toBe(true);
+    expect(entries.every((entry) => entry.validation === "reviewed")).toBe(true);
+    expect(catalog.countQuestions({ providerId: "udesc" })).toEqual({
+      known: 1800,
+      unknownEditions: 0,
+    });
+  });
+});
+
+describe("catálogo v8.9", () => {
+  it("lista as 18 edições da UDESC por sessão sem carregar enunciados", () => {
+    const catalog = buildCurrentCatalog();
+    const entries = catalog.query({ providerId: "udesc" });
+
+    expect(entries).toHaveLength(36);
+    expect(new Set(entries.map((entry) => entry.editionId)).size).toBe(18);
+    expect(entries.every((entry) => entry.questionCount === 50)).toBe(true);
+    expect(entries.every((entry) => entry.statementAvailable === false)).toBe(true);
+    expect(catalog.countQuestions({ providerIds: ["udesc"] })).toEqual({
+      known: 1_800,
+      unknownEditions: 0,
+    });
+  });
+});
+
+describe("catálogo v8.9", () => {
+  it("lista as 18 edições da UDESC em duas sessões, sem carregar os PDFs", () => {
+    const catalog = buildCurrentCatalog();
+    const entries = catalog.query({ providerId: "udesc" });
+
+    expect(entries).toHaveLength(36);
+    expect(new Set(entries.map((entry) => entry.editionId))).toHaveLength(18);
+    expect(entries.every((entry) => entry.questionCount === 50)).toBe(true);
+    expect(entries.every((entry) => !entry.statementAvailable)).toBe(true);
+    expect(catalog.countQuestions({ providerIds: ["udesc"] })).toEqual({
+      known: 1_800,
+      unknownEditions: 0,
+    });
+  });
+});

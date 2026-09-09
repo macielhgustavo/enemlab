@@ -18,6 +18,8 @@ import {
   uelSource,
   pucSpImporter,
   pucSpSource,
+  udescImporter,
+  udescSource,
 } from "./index";
 
 describe("registry de fontes", () => {
@@ -36,7 +38,7 @@ describe("registry de fontes", () => {
       "puc-pr-research",
       "puc-rio-research",
       "puc-sp-nucvest-archive",
-      "udesc-research",
+      "udesc-official-archive",
       "uel-cops-archive",
       "uem-cvu-research",
       "uepg-cps-research",
@@ -62,6 +64,7 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("unicamp").map((s) => s.id)).toEqual(["unicamp-comvest-archive"]);
     expect(sourcesForProvider("uel").map((s) => s.id)).toEqual(["uel-cops-archive"]);
     expect(sourcesForProvider("puc-sp").map((s) => s.id)).toEqual(["puc-sp-nucvest-archive"]);
+    expect(sourcesForProvider("udesc").map((s) => s.id)).toEqual(["udesc-official-archive"]);
   });
 
   it("um provider pode ter mais de uma fonte", () => {
@@ -110,7 +113,6 @@ describe("registry de fontes", () => {
       "mackenzie-research",
       "puc-pr-research",
       "puc-rio-research",
-      "udesc-research",
       "uem-cvu-research",
       "uepg-cps-research",
       "ufpr-research",
@@ -140,7 +142,7 @@ describe("registry de fontes", () => {
   });
 
   it("descreve os novos vestibulares aceitos como referência oficial", () => {
-    for (const source of [unicampSource, uelSource, pucSpSource]) {
+    for (const source of [unicampSource, uelSource, pucSpSource, udescSource]) {
       expect(source).toMatchObject({
         statementMode: "reference-only",
         sourceType: "pdf-reference",
@@ -194,6 +196,7 @@ describe("procedência", () => {
     expect(importerForProvider("unicamp")?.sourceId).toBe("unicamp-comvest-archive");
     expect(importerForProvider("uel")?.sourceId).toBe("uel-cops-archive");
     expect(importerForProvider("puc-sp")?.sourceId).toBe("puc-sp-nucvest-archive");
+    expect(importerForProvider("udesc")?.sourceId).toBe("udesc-official-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
     expect(importerForProvider("ufpr")).toBeNull();
   });
@@ -205,12 +208,14 @@ describe("procedência", () => {
     expect(unicampImporter.availableYears()).toEqual(unicampSource.years);
     expect(uelImporter.availableYears()).toEqual(uelSource.years);
     expect(pucSpImporter.availableYears()).toEqual(pucSpSource.years);
+    expect(udescImporter.availableYears()).toEqual(udescSource.years);
   });
 
   it("aponta a prova oficial para os novos providers", () => {
     expect(unicampImporter.provenanceFor(2025).documentUrl).toContain("comvest.unicamp.br");
     expect(uelImporter.provenanceFor(2026).documentUrl).toContain("cops.uel.br");
     expect(pucSpImporter.provenanceFor(2026).documentUrl).toContain("nucvest.com.br");
+    expect(udescImporter.provenanceFor(2026, "morning").documentUrl).toContain("udesc.br");
   });
 
   it("aponta a chave final oficial para cada provider FAB", () => {

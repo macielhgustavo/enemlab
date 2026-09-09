@@ -17,6 +17,7 @@ export { toLegacyQuestion };
 
 export interface QuestionQuery {
   year: number;
+  editionId?: string;
   language?: Language;
   force?: boolean;
 }
@@ -27,7 +28,7 @@ export interface QuestionQuery {
  */
 export async function questionsFor(
   providerId: string | null | undefined,
-  { year, language, force }: QuestionQuery,
+  { year, editionId, language, force }: QuestionQuery,
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
 
@@ -38,7 +39,7 @@ export async function questionsFor(
   }
 
   const provider = getProvider(id);
-  const normalized = await provider.fetchQuestions({ year, language, force });
+  const normalized = await provider.fetchQuestions({ year, editionId, language, force });
   return normalized.map(toLegacyQuestion);
 }
 

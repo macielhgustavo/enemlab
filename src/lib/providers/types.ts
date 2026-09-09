@@ -6,7 +6,14 @@
  * (objetiva e discursiva). Os dois vocabulários convivem porque descrevem
  * coisas diferentes — traduzir um no outro perderia significado.
  */
-export type ExamPhase = "day1" | "day2" | "single" | "first" | "second";
+export type ExamPhase =
+  | "day1"
+  | "day2"
+  | "single"
+  | "first"
+  | "second"
+  | "morning"
+  | "afternoon";
 
 /** Natureza da resposta esperada. */
 export type QuestionType = "multiple_choice" | "discursive" | "essay";
@@ -67,6 +74,7 @@ export interface NormalizedQuestionQuality {
 export interface NormalizedQuestion {
   providerId: string;
   examId: string;
+  editionId?: string;
   year: number;
   index: number;
   phase: ExamPhase;
@@ -106,6 +114,8 @@ export interface ExamMetadata {
   shortLabel: string;
   /** Anos disponíveis, do mais recente ao mais antigo. */
   years: number[];
+  /** Edições nomeadas quando a banca realiza mais de uma prova no mesmo ano. */
+  editions?: { id: string; label: string; year: number }[];
   /** Idiomas de prova estrangeira, quando houver. */
   languages: { id: string; label: string }[];
   phases: ExamPhase[];
@@ -116,6 +126,7 @@ export interface ExamMetadata {
 
 export interface FetchQuestionsParams {
   year: number;
+  editionId?: string;
   language?: string | null;
   force?: boolean;
 }

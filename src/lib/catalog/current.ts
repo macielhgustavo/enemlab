@@ -29,6 +29,9 @@ import {
   UEL_PROVIDER_ID,
   pucSpAnswerKey,
   PUC_SP_PROVIDER_ID,
+  udescAnswerKeys,
+  udescEditions,
+  UDESC_PROVIDER_ID,
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
@@ -146,6 +149,27 @@ export function buildCurrentCatalog(): CatalogIndex {
   for (const p of listProviders()) {
     const fonte = listSources().find((s) => s.providerId === p.id);
     if (!fonte) continue;
+
+    if (p.id === UDESC_PROVIDER_ID) {
+      for (const edition of udescEditions()) {
+        for (const key of udescAnswerKeys(edition.id)) {
+          const measure = referenceMeasure(key);
+          entradas.push({
+            providerId: p.id,
+            editionId: key.edition,
+            year: key.year,
+            phase: key.phase,
+            questionCount: measure.total,
+            subjects: measure.subjects,
+            validation: measure.validationLevel,
+            sourceId: fonte.id,
+            statementAvailable: false,
+            importerVersion: fonte.parserVersion,
+          });
+        }
+      }
+      continue;
+    }
 
     // Só entram as fases cujas questões o app realmente tem. Fase publicada
     // não é fase ingerida: o ITA e o IME publicam discursiva, e listá-la com

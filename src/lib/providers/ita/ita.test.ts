@@ -14,7 +14,7 @@ import { questionKey as enemQuestionKey } from "../../domain/classify";
 import type { Question } from "../../domain/types";
 
 describe("registry de provas", () => {
-  it("tem as nove provas registradas, e nada além disso", () => {
+  it("tem as dez provas registradas, e nada além disso", () => {
     expect(listProviders().map((p) => p.id).sort()).toEqual([
       "afa",
       "enem",
@@ -23,6 +23,7 @@ describe("registry de provas", () => {
       "ime",
       "ita",
       "puc-sp",
+      "udesc",
       "uel",
       "unicamp",
     ]);

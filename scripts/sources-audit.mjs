@@ -296,14 +296,11 @@ const FONTES = [
   },
   {
     providerId: "udesc",
-    sourceId: "udesc-research",
+    sourceId: "udesc-official-archive",
     archiveUrl: "https://www.udesc.br/vestibular/provasanteriores",
+    generatedReferenceManifest: true,
     documentos: [
       { role: "archive-page", url: "https://www.udesc.br/vestibular/provasanteriores", method: "GET" },
-      {
-        role: "answer-key",
-        url: "https://www.udesc.br/arquivos/udesc/id_cpmenu/22463/Gabarito_Oficial_2026_2_1782327803971_22463.pdf",
-      },
     ],
   },
   {
@@ -364,11 +361,12 @@ for (const fonte of FONTES.filter((entry) => entry.generatedReferenceManifest)) 
     ];
     return urls.filter((documento) => documento.url);
   });
-  fonte.documentos = [
+  const combined = [
     ...fonte.documentos,
     ...archivePages.map((url) => ({ role: "archive-page", url, method: "GET" })),
     ...documents,
   ];
+  fonte.documentos = [...new Map(combined.map((documento) => [documento.url, documento])).values()];
 }
 
 /**

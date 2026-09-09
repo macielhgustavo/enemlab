@@ -35,7 +35,7 @@ export function questionKey(q: Question): string {
   if (q.providerId && q.providerId !== "enem") {
     return buildQuestionKey({
       providerId: q.providerId,
-      editionId: String(q.year),
+      editionId: q.editionId ?? String(q.year),
       phase: q.phase ?? "single",
       language: q.language,
       number: q.number ?? q.index,

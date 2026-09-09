@@ -256,7 +256,7 @@ A variante só entra na chave da questão quando é conteúdo diferente.
 V, K, Q, X, Z em 2024 — parser com a lista fixa recusaria o segundo ano, ou
 pior, atribuiria a resposta à versão errada.
 
-## Estado (v8.5.3)
+## Estado (v8.9)
 
 | Prova | Edições | Questões | Nível | Enunciado | Fonte |
 |---|---|---|---|---|---|
@@ -268,6 +268,7 @@ pior, atribuiria a resposta à versão errada.
 | UNICAMP | 3 (1ª fase) | 216 | `reviewed` | referência | `unicamp-comvest-archive` |
 | UEL | 1 (1º dia Inglês) | 60 | `reviewed` | referência | `uel-cops-archive` |
 | PUC-SP | 3 (verão) | 150 | `reviewed` | referência | `puc-sp-nucvest-archive` |
+| UDESC | 18 (manhã e tarde) | 1.800 | `reviewed` | referência | `udesc-official-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
 
 O IME tem 40 questões por edição nas oito — 15 matemática, 15 física, 10
@@ -310,6 +311,25 @@ variantes conhecidas com relação `unknown`; só a variante canônica é
 executável. PUC-SP verão entra como prova única, separada de PUC-PR e PUC-Rio.
 
 Relatório completo: [v8.8 Vestibular Mass Injection](vestibular-mass-validation.md).
+
+### v8.9 — UDESC em volume
+
+O adapter UDESC consome a página oficial de provas anteriores e uma lista
+manual de URLs de PDF encontradas nela, revalidada automaticamente a cada
+ingestão. Não monta nomes de arquivo por padrão. O
+gabarito final é dividido em manhã e tarde apenas quando o parser encontra duas
+sequências completas 1..50 e o bloco duplicado 29..36 corresponde aos dois
+idiomas publicados.
+
+As 18 edições usam identificadores semestrais (`2026.1`, `2026.2` etc.), pois o
+ano sozinho não é suficiente. `Attempt` e `QuestionRef` preservam edição,
+sessão e chave exata para impedir colisões entre manhã/tarde e entre semestres.
+O Banco soma as duas sessões no seletor da edição, enquanto catálogo e provider
+continuam lazy por edição.
+
+O modo permanece `reference-only`/`official-reference`: prova e gabarito ficam
+no domínio oficial, e o bundle contém apenas chave, correção e metadados. Veja o
+[relatório de expansão UDESC](vestibular-volume-validation.md).
 
 ### Fontes registradas e não ingeridas
 

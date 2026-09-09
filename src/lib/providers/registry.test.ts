@@ -67,7 +67,7 @@ describe("registry", () => {
     expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
 
-  it("registra as nove provas desta versão", () => {
+  it("registra as dez provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer. Ela já reprovou duas vezes — no
     // IME e na FUVEST —, que é exatamente o trabalho dela.
@@ -79,6 +79,7 @@ describe("registry", () => {
       "ime",
       "ita",
       "puc-sp",
+      "udesc",
       "uel",
       "unicamp",
     ]);
@@ -94,7 +95,6 @@ describe("registry", () => {
       "mackenzie",
       "puc-pr",
       "puc-rio",
-      "udesc",
       "uem",
       "uepg",
       "ufpr",

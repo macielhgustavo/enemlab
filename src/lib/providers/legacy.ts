@@ -20,6 +20,7 @@ export function toLegacyQuestion(q: NormalizedQuestion): Question {
   return {
     providerId: q.providerId,
     examId: q.examId,
+    editionId: q.editionId,
     index: q.index,
     year: q.year,
     phase: q.phase,

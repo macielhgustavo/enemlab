@@ -40,6 +40,7 @@ export interface CatalogEntry {
 
 export interface CatalogFilter {
   providerId?: string;
+  editionId?: string;
   providerIds?: string[];
   family?: ExamFamilyId;
   year?: number;
@@ -89,6 +90,7 @@ export class CatalogIndex {
     return this.entradas.filter((e) => {
       if (!niveis.includes(e.validation)) return false;
       if (f.providerId && e.providerId !== f.providerId) return false;
+      if (f.editionId && e.editionId !== f.editionId) return false;
       if (f.providerIds && !f.providerIds.includes(e.providerId)) return false;
       if (f.family && this.familiaDoProvider.get(e.providerId) !== f.family) return false;
       if (f.year !== undefined && e.year !== f.year) return false;
