@@ -2,7 +2,7 @@
 
 The ingestion engine exists to make question-bank growth a throughput problem instead of a hand-coding problem.
 
-The target is not "support one more exam". The target is to ingest thousands of official exam documents through a repeatable pipeline without writing code for each edition.
+The target is not "support one more exam". The target is to ingest thousands of official exam documents through a repeatable, provenance-bound pipeline without writing code for each edition.
 
 ## Pipeline
 
@@ -15,37 +15,26 @@ OFFICIAL SOURCE
       ↓
 DOWNLOAD + SHA-256
       ↓
+PDF TEXT / GEOMETRY
+      ↓
+PROOF-AWARE FONT RECOVERY
+      ↓
 PRIMARY EXTRACTOR
       ↓
 STRUCTURE + SEMANTIC FIDELITY + MEDIA CHECKS
       ↓
-┌──────────────────┬────────────────────────────┐
-│                  │                            │
-clean         targeted exception                │
-│                  ↓                            │
-│          selective recovery / media review    │
-│                  ↓                            │
-└──────────────> CANONICAL VALIDATOR <──────────┘
-                       ↓
-            BLOCKED / READY FOR REVIEW
-                       ↓
-                  HUMAN REVIEW
-                       ↓
-           EXISTING PUBLICATION GATES
+TARGETED FALLBACK FOR EXCEPTIONS
+      ↓
+CANONICAL VALIDATOR
+      ↓
+BLOCKED / READY FOR REVIEW
+      ↓
+HUMAN REVIEW
+      ↓
+EXISTING PUBLICATION GATES
 ```
 
 A successful engine job is **not published**. It is only staged for review and the existing reviewed/verified + rights gates remain authoritative.
-
-## Why adapters
-
-Every institution has different archives and PDF layouts. That variability belongs in a small `IngestionAdapter`:
-
-1. `discovery` finds official editions;
-2. `plan()` turns one edition into logical exams (phase/day/variant);
-3. `extract()` converts already-downloaded documents into neutral `ExtractedExamData`;
-4. optional `fallbackExtract()` receives only concrete unresolved question/page targets.
-
-Everything else is shared infrastructure. A FUVEST adapter describes **how FUVEST works**, not a separate implementation for every year.
 
 ## Core guarantees
 
@@ -66,11 +55,11 @@ The current engine provides:
 - external success protocol `enemlab-extraction/v1`;
 - SHA-bound failure/recovery protocol `enemlab-extraction-failure/v1`;
 - media protocol `enemlab-media/v1`;
-- extraction checkpoints keyed by document SHA + importer version.
+- extraction checkpoints keyed by document SHA + extractor/recovery versions.
 
 ## FUVEST laboratory
 
-FUVEST is the first high-volume benchmark because the reviewed manifest contains 22 editions from 2005–2026, totaling 2,000 objective references.
+FUVEST is the first high-volume benchmark. The reviewed manifest contains 22 editions from 2005–2026, totaling 2,000 objective references.
 
 Two adapters intentionally coexist:
 
@@ -103,20 +92,11 @@ Important rules:
 - corrupted control/replacement/private-use glyphs are recorded before cleanup;
 - no extraction result publishes itself.
 
-### Earlier layout benchmark
-
-| Edition | Questions | Structurally complete | Missing media | Text review | Result |
-|---|---:|---:|---:|---:|---|
-| 2025 | 90 | 88 | 29 | 2 | passed |
-| 2018 | 90 | 84 after recovery | 19 | 6 | recovered |
-| 2010 | 90 | 87 | 13 | 3 | passed |
-| 2005 | 100 | 97 | 23 | 3 | passed |
-
 ## Raster-boundary recovery: FUVEST 2018
 
 FUVEST 2018 preserves much of the body text but rasterizes question-number labels. The primary text parser found only 28/90 trustworthy numeric boundaries despite 85 complete A–E sequences.
 
-`scripts/recover-fuvest-ocr.py` now:
+`scripts/recover-fuvest-ocr.py`:
 
 - verifies the SHA-bound failure envelope;
 - renders only recovery-target pages;
@@ -127,19 +107,11 @@ FUVEST 2018 preserves much of the body text but rasterizes question-number label
 - never derives or changes the answer key;
 - keeps recovered content semantic-review-gated.
 
-Real result:
-
-- **90/90 boundaries recovered**;
-- **84/90 structurally complete**;
-- **6/90 text/structure review**;
-- **19/90 media pending**;
-- **26 pages selectively reconstructed**;
-- all 90 remain semantic-review-gated;
-- **0 hosted OCR/LLM API calls** for boundary recovery.
+Real result: 90/90 boundaries recovered, 84/90 structurally complete, 6/90 requiring text/structure review, 19/90 with media pending and zero hosted OCR/LLM API calls for boundary recovery.
 
 ## Semantic Fidelity Gate
 
-Structure is not semantic correctness. The gate detects today:
+Structure is not semantic correctness. The gate detects:
 
 - disallowed control characters;
 - `U+FFFD` replacement characters;
@@ -147,7 +119,24 @@ Structure is not semantic correctness. The gate detects today:
 - extractor-reported formula/layout ambiguity;
 - impossible metadata such as an issue targeting a nonexistent question.
 
+`contentReadyQuestions` is only a structural/media metric. It does not certify formulas, symbols, typography or text semantics.
+
 `nativeContentCandidate` requires rights `allowed`, non-reference-only source, complete structure, no unresolved media and no blocking semantic issue. Even then it is only a **candidate for human review**.
+
+## Proof-aware embedded-font recovery
+
+`scripts/recover-fuvest-font-map.py` reduces semantic exceptions only when the PDF/font itself proves the replacement. It does **not** implement global substitutions such as `U+0003 -> space`.
+
+Two proof paths are supported:
+
+1. Type0 / Identity-H / CIDFontType2: CID → GID → embedded TrueType glyph → exactly one portable Unicode code point in the font's own cmap.
+2. Type0 / Identity-H / Adobe-Identity CFF: exact CID → embedded CFF charstring with **zero drawing commands** and **positive advance width** → whitespace (`U+0020`).
+
+If any proof step is missing or ambiguous, the character is left untouched and remains review/fallback-gated. Type3 fonts without sufficient mapping evidence are never guessed.
+
+The first real CFF proof was FUVEST 2014–2015. CID 3 in the relevant embedded Calibri/Cambria subsets is a blank advancing glyph. The worker proved and normalized **25,129 occurrences** across those two editions while both exams continued to close at 90/90 question identities.
+
+The batch runner applies a proven font repair only if the parser still closes structurally. A parser regression automatically restores the untouched native text layer before any further fallback.
 
 ## Media extraction and association
 
@@ -161,78 +150,61 @@ npm run ingest:fuvest:media -- \
   --metrics
 ```
 
-The extractor uses PDF geometry instead of screenshot OCR by default:
+The extractor uses PDF geometry by default. Raster images and vector drawings become candidate rectangles; nearby fragments are clustered; a visual is auto-associated only when it lies inside one unambiguous question region. Ambiguous candidates remain review items. Each crop retains SHA-256, page and bounding box provenance.
 
-- raster images and vector drawings become candidate rectangles;
-- nearby fragments are clustered into one visual object;
-- question starts are located against the native text layer;
-- a visual is auto-associated only when it lies inside one unambiguous question region;
-- continuation-page or ambiguous candidates go to review;
-- each crop gets its own SHA-256, page and bounding box;
-- generated media remains a staging artifact, not publication content.
-
-The TypeScript association layer checks **provider + source + edition + document URL + document SHA-256** before attaching anything. Low-confidence candidates are never attached automatically.
-
-Crucially, **media detected is not media resolved**. `questionsMissingMedia` is only cleared after an explicit `resolvesMissingMedia=true` assertion for an attached asset. The current FUVEST geometry extractor intentionally emits that flag as `false`; its first job is reliable discovery/association, not pretending it recovered every visual dependency.
+Crucially, **media detected is not media resolved**. A geometric association does not by itself prove that every visual dependency of a question was recovered.
 
 ## Checkpoints and persistent batch cache
 
 There are two cache layers:
 
-1. `withExtractionCheckpointCache()` wraps any `IngestionAdapter` and caches `ExtractedExamData` by provider/source/job + importer version + exact document SHA-256 values.
+1. `withExtractionCheckpointCache()` caches `ExtractedExamData` by provider/source/job + importer version + exact document SHA-256 values.
 2. `scripts/fuvest-batch-lab.py` persists extraction and media envelopes on disk for historical backfills.
 
-A cache hit never bypasses validation. Cached data still crosses the normal engine gates.
+A cache hit never bypasses validation. If source bytes or any parser/recovery version changes, the relevant extraction key changes and old output is not reused.
 
-If an official institution replaces bytes at the same URL, the SHA changes and the old checkpoint is not reused. Changing the parser/recovery/media version also invalidates the relevant checkpoint.
+The FUVEST batch cache now includes the proof-aware font-recovery worker version as part of the extraction key. This prevents a pre-font-repair checkpoint from masking a newer deterministic recovery rule.
 
-Cache read/write failure is treated as a performance problem rather than permission to skip validation: extraction falls back to real work.
+## Full 21-edition text/semantic benchmark — 2026-09-10
 
-The persistent runner intentionally re-downloads official documents to verify current bytes before reuse. Therefore warm-cache execution still pays network cost, but avoids PDF parsing, raster recovery, media geometry analysis and image recropping.
-
-Local generated artifacts are ignored by Git:
-
-```text
-.ingestion-cache/
-.ingestion-media/
-```
-
-## Full 21-edition benchmark — 2026-09-10
-
-A temporary GitHub Actions laboratory **processed** every FUVEST edition currently eligible for extraction: **21 editions / 1,910 questions**. Here, processed means the documents produced a staged extraction result; it does not mean every question is structurally or semantically publishable. Those remain separate gates. The temporary benchmark workflow was removed after the results below were captured; full backfills are now an explicit `ingest:fuvest:batch` operation rather than permanent PR CI cost.
-
-Aggregate cold-pass result:
+A temporary GitHub Actions benchmark ran the current integrated pipeline against every FUVEST edition with a canonical exam PDF: **21 editions / 1,910 questions**. The run used `--no-media` so these numbers measure extraction, structural closure and semantic pressure; media cropping/association was intentionally not recomputed in this pass. The temporary workflow was removed after capture.
 
 | Metric | Result |
 |---|---:|
 | Editions processed | **21/21** |
+| Failures | **0** |
 | Questions extracted | **1,910** |
 | Structurally complete | **1,722 (90.2%)** |
 | Needs text/structure review | **188 (9.8%)** |
-| Questions flagged missing media | **427** |
-| Questions with blocking semantic finding | **1,000** |
-| Editions requiring raster recovery | **1** |
-| Media candidates cropped | **1,676** |
-| Media candidates auto-associated | **1,053** |
-| Media candidates requiring association review | **623** |
-| Questions receiving at least one auto-associated visual | **562** |
+| Questions flagged missing media | **456 (23.9%)** |
+| Questions with blocking semantic finding | **783 (41.0%)** |
+| Editions requiring raster-boundary recovery | **1** |
+| Editions where font-map was attempted | **16** |
+| Editions where a proven font-map was applied | **7** |
+| Suspicious glyph occurrences proven/repaired | **25,303** |
+| Suspicious glyph occurrences still unresolved | **41,692** |
 
-`questionsMissingMedia=427` and `questionsWithAutomaticMedia=562` intentionally measure different things. The first comes from text cues saying that a question depends on visual context; the second says a geometric candidate was confidently associated. Neither number proves that the full visual dependency has been recovered, and the extractor does not automatically clear the missing-media gate.
+Operational pressure per 1,000 questions:
 
-The semantic count is intentionally conservative and shows why structural success must not be confused with publication readiness. Several historical FUVEST PDFs, especially 2012–2021, expose font/layout corruption that makes a large fraction of questions unsafe without a semantic fallback or review.
+- semantic-fidelity blocks: **409.9 / 1,000**;
+- text/structure review: **98.4 / 1,000**;
+- missing-media flags: **238.7 / 1,000**.
 
-FUVEST 2021 is the main structural outlier: the runner identifies all 90 question identities but **0/90** currently satisfy the full statement + A–E structural gate. That edition is now a concrete target for a dedicated recovery strategy rather than a reason to weaken the validator.
+The font worker reduced the measured suspicious-glyph occurrence pool from 66,995 to 41,692: **25,303 occurrences removed with source-level proof (~37.8%)**. This is an occurrence reduction, not a claim that 37.8% of questions became publishable.
 
-### Cache proof
+### Current hotspots
 
-The immediate second pass returned:
+| Edition | Structure | Semantic blocks | Text review | Unresolved suspicious glyphs | Route |
+|---|---:|---:|---:|---:|---|
+| 2021 | **0/90** | **90/90** | **90/90** | **37,134** | regional OCR / alternate extraction |
+| 2016 | 72/90 | 88/90 | 18/90 | 802 | regional OCR / layout recovery |
+| 2017 | 78/90 | 90/90 | 12/90 | 1,565 | regional OCR / layout recovery |
+| 2018 | 84/90 | 90/90 | 6/90 | 1,677 | boundary recovery done; semantic regions next |
+| 2019 | 82/90 | 90/90 | 8/90 | 45 | targeted semantic/layout repair |
+| 2020 | 85/90 | 90/90 | 5/90 | 34 | targeted semantic/layout repair |
+| 2012 | 88/90 | 90/90 | 2/90 | 88 | targeted semantic repair |
 
-- **21/21 extraction cache hits**;
-- **21/21 media cache hits**;
-- identical 1,910-question and 1,722-complete outputs;
-- no parser/recovery/media recomputation for unchanged document bytes and extractor versions.
-
-In the benchmark runner, the cold pass took about **63 s wall-clock** and the warm pass about **43 s**. The remaining time is dominated by deliberate remote-document verification/download. The current cache therefore proves deterministic computational reuse, while HTTP conditional requests/document-byte caching remain the next step for reducing network cost without trusting stale source content.
+FUVEST 2021 is the dominant remaining source of raw glyph corruption: its 37,134 unresolved occurrences represent almost 89% of the unresolved suspicious-glyph pool. The PDF does not provide enough embedded-font/ToUnicode evidence for safe deterministic replacement, so weakening the semantic gate would be incorrect. The next specialized worker should operate on selected rendered regions/pages while retaining native text wherever it is trustworthy.
 
 ## Full batch command
 
@@ -241,45 +213,45 @@ npm run ingest:fuvest:batch
 npm run ingest:fuvest:batch -- --years 2005,2010,2018,2025 --concurrency 4
 ```
 
-The runner defaults to all currently eligible FUVEST editions, supports concurrency 1–8, writes optional JSON metrics and returns nonzero only when an edition cannot produce a staged extraction result. Structural, media and semantic readiness remain independently reported.
+The runner defaults to all currently eligible FUVEST editions, supports concurrency 1–8 and can write JSON metrics. Structural, media and semantic readiness remain independently reported.
 
 ## Scale interpretation
-
-This benchmark changes the bottleneck:
 
 ```text
 1,910 historical questions
        ↓
 1,722 structurally complete without per-year hand coding
        ↓
-media + semantic gates expose exceptions
+font proof removes cheap deterministic corruption
        ↓
-only the exception set receives specialized recovery / review
+media + semantic gates expose the exception set
+       ↓
+regional OCR / vision / human review only where required
 ```
 
-The engine now demonstrates the core property needed for Glau-scale growth: **adding volume is a batch-data operation, not a new coding project for every exam edition**.
+The engine now demonstrates the core property needed for large question-bank growth: **adding volume is a batch-data operation, not a new coding project for every exam edition**.
 
-The next optimization target is no longer basic question identity. It is reducing exception workload, especially:
+The next optimization targets are:
 
-1. FUVEST 2021 structural recovery;
-2. semantic repair/verification for historical PDF font corruption;
+1. FUVEST 2021 regional structural/semantic recovery;
+2. FUVEST 2016–2020 targeted semantic/layout recovery;
 3. precise proof that all required visual content for a question has been recovered;
 4. persistent review decisions so accepted corrections are never reviewed twice;
-5. conditional HTTP/document caching to remove repeated download cost;
-6. repeat the same adapter pattern for the next institution.
+5. conditional HTTP/document caching to reduce repeated download cost;
+6. repeat the adapter pattern for the next institution.
 
 ## AI / vision policy
 
 AI is fallback, not source of truth. A model may help recover damaged formulas, ambiguous layout or visual relationships, but its output remains untrusted input and must retain exact document provenance.
 
-The preferred cost order remains:
+Preferred cost order:
 
 ```text
 native PDF text/geometry
        ↓
-deterministic recovery
+proof-aware deterministic recovery
        ↓
-local OCR / vision for exceptions
+local OCR / vision for selected exceptions
        ↓
 hosted LLM/vision only for unresolved cases
        ↓
