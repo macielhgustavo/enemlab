@@ -8,8 +8,44 @@ import {
   officialRowsOf,
   personalDifficulty,
   historicalQuestionRows,
+  questionTagsByRow,
 } from "./stats";
+import {
+  latestHighConfidenceStudentAIDiagnostic,
+  studentAIDiagnosticAdaptiveWeight,
+} from "./ai-assistance";
 import type { DB, Question } from "./types";
+
+const MAX_AI_DIAGNOSTIC_PRESSURE = 18;
+
+/**
+ * Agrega somente diagnósticos recentes e de alta confiança. O teto impede que
+ * o LLM domine o ranking adaptativo: desempenho, SRS, recência e ineditismo
+ * continuam sendo os sinais principais.
+ */
+export function studentAIDiagnosticPressureByContent(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  const attempts = new Map(db.attempts.map((attempt) => [attempt.id, attempt]));
+
+  for (const row of officialRowsOf(db, providerId).slice(-120)) {
+    const trace = attempts.get(row.attemptId)?.aiAssistance?.[row.key];
+    const category = latestHighConfidenceStudentAIDiagnostic(trace);
+    const weight = studentAIDiagnosticAdaptiveWeight(category);
+    if (!weight) continue;
+
+    for (const content of questionTagsByRow(db, row)) {
+      out[content] = Math.min(
+        MAX_AI_DIAGNOSTIC_PRESSURE,
+        (out[content] || 0) + weight,
+      );
+    }
+  }
+
+  return out;
+}
 
 // Pontua uma questão pela urgência de treino: fraqueza no conteúdo,
 // amostra pequena, SRS vencido, ineditismo, recência e dificuldade.
@@ -18,6 +54,7 @@ export function adaptiveScoreQuestion(
   q: Question,
   stats: Record<string, { c: number; t: number }>,
   seen: Set<string>,
+  diagnosticPressure = 0,
 ): number {
   const content = classifyContent(q),
     st = stats[content] || { c: 0, t: 0 },
@@ -36,6 +73,7 @@ export function adaptiveScoreQuestion(
   if (days > 21) score += 6;
   if (diff === "media") score += 3;
   if (diff === "dificil" && acc < 60) score -= 5;
+  score += Math.min(MAX_AI_DIAGNOSTIC_PRESSURE, Math.max(0, diagnosticPressure));
   return score + Math.random() * 4;
 }
 
@@ -55,13 +93,17 @@ export function buildAdaptiveQuestions(
   providerId: string = DEFAULT_PROVIDER_ID,
 ): Question[] {
   const stats = masteryStats(db, providerId),
-    seen = new Set(officialRowsOf(db, providerId).map((x) => x.key));
+    seen = new Set(officialRowsOf(db, providerId).map((x) => x.key)),
+    diagnosticPressure = studentAIDiagnosticPressureByContent(db, providerId);
   const ranked = all
-    .map((q) => ({
-      q,
-      score: adaptiveScoreQuestion(db, q, stats, seen),
-      content: q.statementAvailable === false ? String(discipline(q)) : classifyContent(q),
-    }))
+    .map((q) => {
+      const content = q.statementAvailable === false ? String(discipline(q)) : classifyContent(q);
+      return {
+        q,
+        score: adaptiveScoreQuestion(db, q, stats, seen, diagnosticPressure[content] || 0),
+        content,
+      };
+    })
     .sort((a, b) => b.score - a.score);
   const chosen: Question[] = [],
     perContent: Record<string, number> = {};
