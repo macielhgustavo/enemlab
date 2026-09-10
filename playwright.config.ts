@@ -53,6 +53,21 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     channel: "chrome",
+    storageState: {
+      cookies: [
+        {
+          name: "enemlab_admin",
+          value: "enemlab-local-admin",
+          domain: "127.0.0.1",
+          path: "/",
+          expires: -1,
+          httpOnly: true,
+          secure: false,
+          sameSite: "Lax",
+        },
+      ],
+      origins: [],
+    },
   },
 
   projects: [
