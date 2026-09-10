@@ -43,19 +43,41 @@ export interface AIQuestionContext {
   language?: string | null;
 }
 
+export interface AIIndependenceSnapshot {
+  independentQuestions: number;
+  independentAccuracy: number | null;
+  highAssistanceQuestions: number;
+  correctWithHighAssistance: number;
+  correctWithHighAssistanceShare: number | null;
+}
+
+export interface AICurrentQuestionAssistance {
+  requests: number;
+  maxLevel: AIAssistanceLevel;
+  answerRevealed: boolean;
+  highAssistance: boolean;
+}
+
 export interface AIStudentSnapshot {
   completedAttempts: number;
   recentQuestions: number;
   recentAccuracy: number | null;
+  recentIndependence: AIIndependenceSnapshot;
   topicQuestions: number;
   topicAccuracy: number | null;
+  topicIndependence: AIIndependenceSnapshot;
   subjectQuestions: number;
   subjectAccuracy: number | null;
+  subjectIndependence: AIIndependenceSnapshot;
+  currentQuestionAssistance: AICurrentQuestionAssistance | null;
   highConfidenceErrors: number;
   weakTopics: Array<{
     topic: string;
     accuracy: number;
     questions: number;
+    independentAccuracy: number | null;
+    highAssistanceQuestions: number;
+    correctWithHighAssistance: number;
   }>;
 }
 
