@@ -217,6 +217,8 @@ Aggregate cold-pass result:
 | Media candidates requiring association review | **623** |
 | Questions receiving at least one auto-associated visual | **562** |
 
+`questionsMissingMedia=427` and `questionsWithAutomaticMedia=562` intentionally measure different things. The first comes from text cues saying that a question depends on visual context; the second says a geometric candidate was confidently associated. Neither number proves that the full visual dependency has been recovered, and the extractor does not automatically clear the missing-media gate.
+
 The semantic count is intentionally conservative and shows why structural success must not be confused with publication readiness. Several historical FUVEST PDFs, especially 2012–2021, expose font/layout corruption that makes a large fraction of questions unsafe without a semantic fallback or review.
 
 FUVEST 2021 is the main structural outlier: the runner identifies all 90 question identities but **0/90** currently satisfy the full statement + A–E structural gate. That edition is now a concrete target for a dedicated recovery strategy rather than a reason to weaken the validator.
