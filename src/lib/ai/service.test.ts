@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { runStudentAI, shouldFallbackToMock } from "./service";
-import type { AIProvider, AIProviderOutput, AIProviderRequest, AIRequest } from "./types";
+import type { AIProvider, AIProviderOutput, AIRequest } from "./types";
 
 const request: AIRequest = {
   mode: "hint",
@@ -27,7 +27,7 @@ const request: AIRequest = {
 class FailingProvider implements AIProvider {
   readonly id = "failing-provider";
 
-  async generate(_request: AIProviderRequest): Promise<AIProviderOutput> {
+  async generate(): Promise<AIProviderOutput> {
     throw new Error("provider indisponível");
   }
 }

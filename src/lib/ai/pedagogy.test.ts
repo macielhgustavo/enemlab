@@ -90,8 +90,6 @@ describe("pedagogical engine", () => {
           { letter: "B", text: "Dois" },
         ],
         correctAnswer: "B",
-        label: "Questão oficial ITA 2025" as never,
-        style: "outra prova",
       },
       input.question,
     );
