@@ -23,6 +23,7 @@
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
     "ingest:fuvest:questions": "python scripts/extract-fuvest-questions.py",
     "ingest:fuvest:ocr": "python scripts/recover-fuvest-ocr.py",
+    "ingest:fuvest:region-ocr": "python scripts/recover-fuvest-region-ocr.py",
     "ingest:fuvest:media": "python scripts/extract-fuvest-media.py",
     "ingest:fuvest:semantic": "python scripts/refine-fuvest-semantic.py",
     "ingest:fuvest:batch": "python scripts/fuvest-batch-lab.py",
