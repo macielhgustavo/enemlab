@@ -69,6 +69,8 @@ In addition, every child URL must:
 2. match one of the recipe's explicit `follow` patterns;
 3. pass `acceptPage`, when the recipe defines one.
 
+The effective URL returned after a fetch is checked again against `allowedHosts`, so an allowed URL that redirects to another domain is rejected before its HTML can participate in discovery.
+
 This prevents a source recipe from silently turning into an open-site crawler.
 
 The page that exposed a link is retained as discovery context. That matters for archives where the PDF is called only `prova.pdf` or `Geral.pdf`: the year can be inherited from a page such as `/vestibular/2025` without guessing from document contents.
@@ -90,16 +92,18 @@ This is intentional. Some institutions publish a definitive booklet with the cor
 
 `src/lib/discovery/recipes/ufpr.ts` is the first real recipe built specifically to test horizontal scale rather than extend the FUVEST pipeline.
 
-The official historical index exposes two site generations:
+The official historical index exposes two site generations in the verified benchmark window:
 
 - modern `PortalNC/Concurso?concurso=PSYYYY` pages;
-- legacy `/concursos_institucionais/ufpr/psYYYY/*.htm` pages.
+- legacy `/concursos_institucionais/ufpr/psYYYY/index.htm` pages for PS2016/PS2017.
 
 The same recipe follows both at depth 1. It currently targets the first-phase general booklet only and intentionally ignores second-phase/discursive material.
 
-The verified discovery window is `PS2003` through `PS2026`. The upper bound is explicit so a future edition does not silently enter the pipeline without the recipe being rechecked.
+The verified discovery window is `PS2016` through `PS2026`: 11 editions. The upper and lower bounds are explicit so neither older layouts nor a future edition silently enter the pipeline without the recipe being rechecked.
 
-Modern and known legacy definitive first-phase booklets may contain the marked correct alternatives in the booklet itself, so those URLs are represented as both `objective-exam` and `answer-key`. Preliminary material remains a separate `answer-key-preliminary` role.
+The official historical index goes further back, but older pages such as PS2011 and PS2003 use an older framed layout that the current HTML-anchor primitive does not yet resolve reliably. They remain outside this recipe rather than being claimed as supported.
+
+Modern and the verified PS2016/PS2017 definitive first-phase booklets contain the marked correct alternatives in the booklet itself, so those URLs are represented as both `objective-exam` and `answer-key`. Preliminary modern material remains a separate `answer-key-preliminary` role.
 
 This changes the UFPR status only at the **discovery** layer. It does not make UFPR publishable in the question catalog yet; extraction, variant handling, semantic validation and review gates remain unchanged.
 
