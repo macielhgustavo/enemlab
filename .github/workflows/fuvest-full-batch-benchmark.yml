@@ -1,0 +1,90 @@
+name: FUVEST Full Batch Benchmark
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/fuvest-full-batch-benchmark.yml"
+      - "scripts/fuvest-batch-lab.py"
+      - "scripts/extract-fuvest-questions.py"
+      - "scripts/recover-fuvest-font-map.py"
+      - "scripts/recover-fuvest-ocr.py"
+      - "src/lib/providers/fuvest/**"
+
+permissions:
+  contents: read
+
+jobs:
+  full-batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ingestion dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "pypdf>=6,<7" \
+            "fonttools>=4,<5" \
+            "pymupdf>=1.26,<2" \
+            "pillow>=11,<13"
+
+      - name: Test batch and recovery workers
+        run: |
+          python -m unittest \
+            scripts.tests.test_fuvest_batch_lab \
+            scripts.tests.test_recover_fuvest_font_map \
+            scripts.tests.test_recover_fuvest_ocr
+
+      - name: Run all canonical FUVEST editions
+        run: |
+          python scripts/fuvest-batch-lab.py \
+            --no-media \
+            --concurrency 4 \
+            --cache-dir /tmp/fuvest-ingestion-cache \
+            --output /tmp/fuvest-full-batch.json
+
+      - name: Report throughput and review pressure
+        run: |
+          python - <<'PY'
+          import json
+          report = json.load(open('/tmp/fuvest-full-batch.json', encoding='utf-8'))
+          questions = report['questions']
+          per_thousand = lambda value: round((value / questions) * 1000, 1) if questions else 0
+          compact = {
+              'requestedEditions': report['requestedEditions'],
+              'editions': report['editions'],
+              'questions': questions,
+              'completeStructure': report['completeStructure'],
+              'missingMedia': report['missingMedia'],
+              'semanticIssues': report['semanticIssues'],
+              'needsTextReview': report['needsTextReview'],
+              'recoveredEditions': report['recoveredEditions'],
+              'fontMapAttemptedEditions': report['fontMapAttemptedEditions'],
+              'fontMapAppliedEditions': report['fontMapAppliedEditions'],
+              'fontMapResolvedOccurrences': report['fontMapResolvedOccurrences'],
+              'fontMapUnresolvedOccurrences': report['fontMapUnresolvedOccurrences'],
+              'semanticIssuesPer1000Questions': per_thousand(report['semanticIssues']),
+              'textReviewPer1000Questions': per_thousand(report['needsTextReview']),
+              'missingMediaPer1000Questions': per_thousand(report['missingMedia']),
+              'failures': report['failures'],
+          }
+          print('FUVEST_FULL_BATCH=' + json.dumps(compact, ensure_ascii=True))
+          assert report['requestedEditions'] == 21, report
+          assert report['editions'] == 21, report
+          assert report['questions'] == 1910, report
+          assert not report['failures'], report['failures']
+          PY
+
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuvest-full-batch-report
+          path: /tmp/fuvest-full-batch.json
+          retention-days: 3
