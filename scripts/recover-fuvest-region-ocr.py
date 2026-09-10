@@ -13,6 +13,8 @@ Regras de segurança do pipeline:
 - somente questões já estruturalmente incompletas são alvo;
 - somente um OCR que recupere enunciado + alternativas A-E completas substitui
   o texto corrompido; resultado parcial permanece bloqueado;
+- questões que atravessam coluna/página podem usar segmentos geométricos
+  consecutivos, mas esses segmentos são delimitados pelos rótulos oficiais;
 - o gabarito canônico nunca é derivado nem alterado;
 - documentos permanecem ligados aos mesmos SHA-256;
 - toda questão tocada por OCR recebe erro de fidelidade semântica e exige revisão;
@@ -41,14 +43,17 @@ from typing import Any
 BASE = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 
 WORKER_NAME = "fuvest-regional-content-ocr"
-WORKER_VERSION = "fuvest-regional-content-ocr@0.2.0"
+WORKER_VERSION = "fuvest-regional-content-ocr@0.3.0"
 DEFAULT_YEAR = 2021
 OCR_MODES = (6, 4, 3, 11)
 LETTERS = ("A", "B", "C", "D", "E")
+CONTENT_TOP_PT = 32.0
+CONTENT_BOTTOM_CAP_PT = 805.0
+COLUMN_LEFT_MARGIN_PT = 28.0
+COLUMN_GUTTER_PT = 5.0
+QUESTION_END_PAD_PT = 3.0
+MIN_SEGMENT_HEIGHT_PT = 12.0
 
-# Layout support is intentionally explicit. A new year does not enter OCR just
-# because it resembles another booklet: its label font/position profile must be
-# measured first and the final geometry must still close exactly at 1..N.
 LAYOUT_PROFILES: dict[int, dict[str, Any]] = {
     2016: {
         "labelFontTokens": ("Calibri-Bold",),
@@ -88,7 +93,9 @@ def label_matches_profile(
     if not any(any(token in font for token in tokens) for font in fonts):
         return False
     bands = profile.get("labelXBands")
-    if bands is not None and not any(float(start) <= x0 <= float(end) for start, end in bands):
+    if bands is not None and not any(
+        float(start) <= x0 <= float(end) for start, end in bands
+    ):
         return False
     return True
 
@@ -161,7 +168,11 @@ def validate_bound_envelope(
 
 
 def parse_ocr_candidate(text: str, question_number: int) -> dict[str, Any]:
-    lines = [line.strip() for line in text.replace("\r", "\n").splitlines() if line.strip()]
+    lines = [
+        line.strip()
+        for line in text.replace("\r", "\n").splitlines()
+        if line.strip()
+    ]
     if lines and re.fullmatch(r"0?\d{1,2}", lines[0]):
         lines = lines[1:]
 
@@ -208,9 +219,47 @@ def validate_question_labels(
     numbers = [int(item["number"]) for item in ordered]
     if numbers != list(range(1, expected_count + 1)):
         raise ValueError("question label geometry did not close exactly at 1..N")
-    if len({(int(item["page"]), int(item["number"])) for item in ordered}) != expected_count:
+    if len(
+        {(int(item["page"]), int(item["number"])) for item in ordered}
+    ) != expected_count:
         raise ValueError("duplicate question label geometry")
     return ordered
+
+
+def column_for_x(x0: float, width: float) -> str:
+    return "L" if x0 < width / 2.0 else "R"
+
+
+def slot_index(page: int, column: str) -> int:
+    return (int(page) - 1) * 2 + (0 if column == "L" else 1)
+
+
+def slot_from_index(index: int) -> tuple[int, str]:
+    return index // 2 + 1, "L" if index % 2 == 0 else "R"
+
+
+def segment_bbox(
+    page_number: int,
+    column: str,
+    page_sizes: dict[int, tuple[float, float]],
+    y0: float,
+    y1: float,
+) -> dict[str, Any] | None:
+    if page_number not in page_sizes:
+        raise ValueError("question continuation references an unknown PDF page")
+    width, height = page_sizes[page_number]
+    midpoint = width / 2.0
+    x0 = COLUMN_LEFT_MARGIN_PT if column == "L" else midpoint + 4.0
+    x1 = midpoint - COLUMN_GUTTER_PT if column == "L" else width - COLUMN_LEFT_MARGIN_PT
+    top = max(CONTENT_TOP_PT, float(y0))
+    bottom = min(height - 30.0, CONTENT_BOTTOM_CAP_PT, float(y1))
+    if x1 <= x0 or bottom - top < MIN_SEGMENT_HEIGHT_PT:
+        return None
+    return {
+        "page": int(page_number),
+        "column": column,
+        "bbox": [round(x0, 3), round(top, 3), round(x1, 3), round(bottom, 3)],
+    }
 
 
 def build_question_regions(
@@ -219,7 +268,7 @@ def build_question_regions(
     expected_count: int,
 ) -> list[dict[str, Any]]:
     ordered = validate_question_labels(labels, expected_count)
-    grouped: dict[tuple[int, str], list[dict[str, Any]]] = collections.defaultdict(list)
+    prepared: list[dict[str, Any]] = []
 
     for source in ordered:
         item = dict(source)
@@ -227,42 +276,90 @@ def build_question_regions(
         if page_number not in page_sizes:
             raise ValueError("question label references an unknown PDF page")
         width, _ = page_sizes[page_number]
-        midpoint = width / 2.0
-        item["column"] = "L" if float(item["x0"]) < midpoint else "R"
-        grouped[(page_number, item["column"])].append(item)
+        item["column"] = column_for_x(float(item["x0"]), width)
+        item["slot"] = slot_index(page_number, item["column"])
+        prepared.append(item)
 
-    for values in grouped.values():
-        values.sort(key=lambda item: float(item["y0"]))
+    for index, item in enumerate(prepared):
+        if index == 0:
+            continue
+        previous = prepared[index - 1]
+        if int(item["slot"]) < int(previous["slot"]):
+            raise ValueError("question labels do not follow page/column reading order")
+        if (
+            int(item["slot"]) == int(previous["slot"])
+            and float(item["y0"]) <= float(previous["y0"])
+        ):
+            raise ValueError("question labels do not follow vertical reading order")
 
     regions: list[dict[str, Any]] = []
-    for item in ordered:
+    for index, item in enumerate(prepared):
         page_number = int(item["page"])
-        width, height = page_sizes[page_number]
-        midpoint = width / 2.0
-        column = "L" if float(item["x0"]) < midpoint else "R"
-        peers = grouped[(page_number, column)]
-        position = next(
-            index for index, peer in enumerate(peers) if int(peer["number"]) == int(item["number"])
+        column = str(item["column"])
+        current_slot = int(item["slot"])
+        next_item = prepared[index + 1] if index + 1 < len(prepared) else None
+        next_slot = int(next_item["slot"]) if next_item is not None else None
+        _, page_height = page_sizes[page_number]
+
+        if next_item is not None and next_slot == current_slot:
+            primary_y1 = float(next_item["y0"]) - QUESTION_END_PAD_PT
+        else:
+            primary_y1 = min(page_height - 30.0, CONTENT_BOTTOM_CAP_PT)
+
+        primary = segment_bbox(
+            page_number,
+            column,
+            page_sizes,
+            max(CONTENT_TOP_PT, float(item["y0"]) - 4.0),
+            primary_y1,
         )
-        next_y = (
-            float(peers[position + 1]["y0"])
-            if position + 1 < len(peers)
-            else min(height - 30.0, 805.0)
-        )
-        x0 = 28.0 if column == "L" else midpoint + 4.0
-        x1 = midpoint - 5.0 if column == "L" else width - 28.0
-        y0 = max(32.0, float(item["y0"]) - 4.0)
-        y1 = min(height - 30.0, max(y0 + 24.0, next_y - 3.0))
-        if x1 <= x0 or y1 <= y0:
+        if primary is None:
             raise ValueError("invalid regional OCR crop geometry")
+
+        segments = [primary]
+
+        if next_item is not None and next_slot is not None and next_slot > current_slot:
+            for continuation_slot in range(current_slot + 1, next_slot + 1):
+                continuation_page, continuation_column = slot_from_index(continuation_slot)
+                if continuation_slot == next_slot:
+                    continuation_y1 = float(next_item["y0"]) - QUESTION_END_PAD_PT
+                else:
+                    _, continuation_height = page_sizes.get(
+                        continuation_page, (0.0, 0.0)
+                    )
+                    continuation_y1 = min(
+                        continuation_height - 30.0, CONTENT_BOTTOM_CAP_PT
+                    )
+                continuation = segment_bbox(
+                    continuation_page,
+                    continuation_column,
+                    page_sizes,
+                    CONTENT_TOP_PT,
+                    continuation_y1,
+                )
+                if continuation is not None:
+                    segments.append(continuation)
+        elif next_item is None and column == "L":
+            continuation = segment_bbox(
+                page_number,
+                "R",
+                page_sizes,
+                CONTENT_TOP_PT,
+                min(page_height - 30.0, CONTENT_BOTTOM_CAP_PT),
+            )
+            if continuation is not None:
+                segments.append(continuation)
+
         regions.append(
             {
                 "number": int(item["number"]),
                 "page": page_number,
                 "column": column,
-                "bbox": [round(x0, 3), round(y0, 3), round(x1, 3), round(y1, 3)],
+                "bbox": list(primary["bbox"]),
+                "segments": segments,
             }
         )
+
     return regions
 
 
@@ -275,7 +372,7 @@ def discover_question_regions(
 
     try:
         import pymupdf
-    except ImportError as error:  # pragma: no cover - depends on runtime package
+    except ImportError as error:  # pragma: no cover
         raise RuntimeError("PyMuPDF is required for regional OCR geometry") from error
 
     document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
@@ -334,6 +431,59 @@ def tesseract_language() -> tuple[str | None, str | None]:
     return ("por+eng" if "eng" in languages else "por"), None
 
 
+def render_region_segments(
+    document: Any,
+    region: dict[str, Any],
+    temporary: Path,
+    number: int,
+    *,
+    scale: float = 3.0,
+) -> list[Path]:
+    import pymupdf
+
+    raw_segments = region.get("segments")
+    segments = raw_segments if isinstance(raw_segments, list) and raw_segments else [
+        {"page": region["page"], "column": region["column"], "bbox": region["bbox"]}
+    ]
+    paths: list[Path] = []
+    for segment_index, segment in enumerate(segments):
+        page = document.load_page(int(segment["page"]) - 1)
+        x0, y0, x1, y1 = [float(value) for value in segment["bbox"]]
+        pixmap = page.get_pixmap(
+            matrix=pymupdf.Matrix(scale, scale),
+            clip=pymupdf.Rect(x0, y0, x1, y1),
+            alpha=False,
+        )
+        path = temporary / f"q{number:03d}-s{segment_index:02d}.png"
+        path.write_bytes(pixmap.tobytes("png"))
+        paths.append(path)
+    return paths
+
+
+def run_tesseract(
+    executable: str,
+    image_path: Path,
+    language: str,
+    mode: int,
+) -> str:
+    text = subprocess.run(
+        [
+            executable,
+            str(image_path),
+            "stdout",
+            "-l",
+            language,
+            "--psm",
+            str(mode),
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    ).stdout
+    return "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
+
+
 def ocr_question_regions(
     pdf_bytes: bytes,
     regions: list[dict[str, Any]],
@@ -367,6 +517,7 @@ def ocr_question_regions(
     recovered: dict[int, dict[str, Any]] = {}
     attempts_by_mode: collections.Counter[int] = collections.Counter()
     region_reports: list[dict[str, Any]] = []
+    tesseract_calls = 0
     document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     executable = shutil.which("tesseract")
     assert executable is not None and language is not None
@@ -375,55 +526,86 @@ def ocr_question_regions(
         temporary = Path(directory)
         for number in target_numbers:
             region = by_number[number]
-            page = document.load_page(int(region["page"]) - 1)
-            x0, y0, x1, y1 = [float(value) for value in region["bbox"]]
-            pixmap = page.get_pixmap(
-                matrix=pymupdf.Matrix(3, 3),
-                clip=pymupdf.Rect(x0, y0, x1, y1),
-                alpha=False,
-            )
-            image_path = temporary / f"q{number:03d}.png"
-            image_path.write_bytes(pixmap.tobytes("png"))
+            image_paths = render_region_segments(document, region, temporary, number)
 
             attempts: list[tuple[int, str]] = []
+            attempt_variants: list[dict[str, Any]] = []
             selected_mode: int | None = None
             selected: dict[str, Any] | None = None
+            selected_used_continuation = False
             for mode in OCR_MODES:
                 attempts_by_mode[mode] += 1
-                text = subprocess.run(
-                    [
-                        executable,
-                        str(image_path),
-                        "stdout",
-                        "-l",
-                        language,
-                        "--psm",
-                        str(mode),
-                    ],
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                    text=True,
-                ).stdout
-                text = "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
-                attempts.append((mode, text))
-                candidate = parse_ocr_candidate(text, number)
-                if candidate["complete"]:
+
+                tesseract_calls += 1
+                primary_text = run_tesseract(
+                    executable, image_paths[0], language, mode
+                )
+                attempts.append((mode, primary_text))
+                primary_candidate = parse_ocr_candidate(primary_text, number)
+                attempt_variants.append(
+                    {
+                        "mode": mode,
+                        "usedContinuation": False,
+                        "candidate": primary_candidate,
+                    }
+                )
+                if primary_candidate["complete"]:
                     selected_mode = mode
-                    selected = candidate
+                    selected = primary_candidate
                     break
 
+                if len(image_paths) > 1:
+                    parts = [primary_text] if primary_text else []
+                    for image_path in image_paths[1:]:
+                        tesseract_calls += 1
+                        part = run_tesseract(
+                            executable, image_path, language, mode
+                        )
+                        if part:
+                            parts.append(part)
+                    combined_text = "\n".join(parts)
+                    attempts.append((mode, combined_text))
+                    combined_candidate = parse_ocr_candidate(
+                        combined_text, number
+                    )
+                    attempt_variants.append(
+                        {
+                            "mode": mode,
+                            "usedContinuation": True,
+                            "candidate": combined_candidate,
+                        }
+                    )
+                    if combined_candidate["complete"]:
+                        selected_mode = mode
+                        selected = combined_candidate
+                        selected_used_continuation = True
+                        break
+
             if selected is None:
-                selected_mode, selected = select_best_candidate(attempts, number)
+                best = max(
+                    attempt_variants,
+                    key=lambda item: candidate_score(item["candidate"]),
+                )
+                selected_mode = int(best["mode"])
+                selected = best["candidate"]
+                selected_used_continuation = bool(best["usedContinuation"])
             selected["ocrMode"] = selected_mode
+            segments = region.get("segments") or [
+                {"page": region["page"], "column": region["column"], "bbox": region["bbox"]}
+            ]
             region_reports.append(
                 {
                     "questionNumber": number,
                     "page": int(region["page"]),
                     "column": region["column"],
                     "bbox": list(region["bbox"]),
+                    "segments": copy.deepcopy(segments),
+                    "segmentCount": len(segments),
                     "selectedMode": selected_mode,
+                    "usedContinuation": selected_used_continuation,
                     "structurallyComplete": bool(selected["complete"]),
+                    "markerCount": int(selected.get("markers", 0)),
+                    "alphaCharacters": int(selected.get("alphaCharacters", 0)),
                     "ocrTextSha256": selected["ocrTextSha256"],
                 }
             )
@@ -439,10 +621,13 @@ def ocr_question_regions(
         "applied": bool(recovered),
         "appliedQuestions": sorted(recovered),
         "unresolvedQuestions": unresolved,
-        "attemptsByMode": {str(mode): count for mode, count in sorted(attempts_by_mode.items())},
+        "attemptsByMode": {
+            str(mode): count for mode, count in sorted(attempts_by_mode.items())
+        },
         "regions": region_reports,
         "language": language,
         "renderScale": 3,
+        "tesseractCalls": tesseract_calls,
     }
 
 
@@ -495,7 +680,9 @@ def apply_recovered_questions(
         )
     extraction["semanticFidelityIssues"] = issues
 
-    missing_media = {int(number) for number in extraction.get("questionsMissingMedia", [])}
+    missing_media = {
+        int(number) for number in extraction.get("questionsMissingMedia", [])
+    }
     missing_media.update(
         number for number, candidate in recovered.items() if candidate.get("needsMedia")
     )
@@ -504,7 +691,9 @@ def apply_recovered_questions(
     warnings = [
         warning
         for warning in extraction.get("warnings", [])
-        if not any(warning.startswith(f"questão {number}:") for number in applied_numbers)
+        if not any(
+            warning.startswith(f"questão {number}:") for number in applied_numbers
+        )
     ]
     warnings.extend(
         f"questão {number}: texto reconstruído por OCR regional; revisão semântica obrigatória"
@@ -583,11 +772,18 @@ def main() -> int:
 
     manifest = BASE["load_manifest"]()
     try:
-        entry, exam_bytes, key_bytes, pages = BASE["load_year_documents"](args.year, manifest)
+        entry, exam_bytes, key_bytes, pages = BASE["load_year_documents"](
+            args.year, manifest
+        )
         envelope = BASE["build_envelope"](entry, exam_bytes, key_bytes, pages)
-        recovered, report = recover_envelope(envelope, entry, exam_bytes, key_bytes)
+        recovered, report = recover_envelope(
+            envelope, entry, exam_bytes, key_bytes
+        )
     except Exception as error:  # noqa: BLE001
-        print(f"FUVEST {args.year}: REGIONAL OCR BLOQUEADO — {error}", file=sys.stderr)
+        print(
+            f"FUVEST {args.year}: REGIONAL OCR BLOQUEADO — {error}",
+            file=sys.stderr,
+        )
         return 1
 
     payload = json.dumps(recovered, ensure_ascii=False, indent=2) + "\n"
