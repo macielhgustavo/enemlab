@@ -163,8 +163,15 @@
 }
 .studentAIComposer button:disabled { opacity: .4; cursor: not-allowed; }
 
+/* A barra de controles da prova ocupa o canto inferior direito no mobile.
+   O tutor fica acima dela para ambos permanecerem clicáveis, sem depender
+   de z-index para disputar a mesma área da tela. */
+@media (max-width: 800px) {
+  .studentAI { bottom: 66px; }
+}
+
 @media (max-width: 720px) {
-  .studentAI { right: 12px; bottom: 12px; width: calc(100vw - 24px); }
+  .studentAI { right: 12px; bottom: 66px; width: calc(100vw - 24px); }
   .studentAITrigger { min-width: 170px; }
-  .studentAIPanel { max-height: min(72vh, 620px); overflow-y: auto; }
+  .studentAIPanel { max-height: min(68dvh, 580px); overflow-y: auto; }
 }
