@@ -29,12 +29,10 @@ from pathlib import Path
 from typing import Any
 
 V3 = runpy.run_path(
-    str(Path(__file__).with_name("recover-fuvest-region-ocr.py")),
+    str(Path(__file__).with_name("recover-fuvest-region-ocr-v3.py")),
     run_name="fuvest_regional_ocr_v3_base",
 )
 
-# Re-export the stable public surface first; overrides below replace only the
-# recovery orchestration that needs the new label-repair stage.
 for _name, _value in V3.items():
     if not _name.startswith("__"):
         globals()[_name] = _value
@@ -88,8 +86,6 @@ def parse_ocr_candidate_with_label_repair(text: str, question_number: int) -> di
         if candidate is not None:
             starts.append((index, candidate[0], candidate[1]))
 
-    # Exact-five is the main protection against image/grid layouts and prose
-    # that happens to begin with parenthesized letters.
     if len(starts) != len(LETTERS):
         return original
 
