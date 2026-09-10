@@ -5,7 +5,7 @@ import {
   generatedQuestionIdentity,
   normalizeGeneratedQuestion,
 } from "./pedagogy";
-import type { AIRequest } from "./types";
+import type { AIProviderOutput, AIRequest } from "./types";
 
 function request(overrides: Partial<AIRequest> = {}): AIRequest {
   return {
@@ -33,19 +33,23 @@ function request(overrides: Partial<AIRequest> = {}): AIRequest {
   };
 }
 
+function output(overrides: Partial<AIProviderOutput> = {}): AIProviderOutput {
+  return {
+    title: "Teste",
+    explanation: "Explicação",
+    concepts: ["Porcentagem"],
+    nextStep: "Continue",
+    revealAnswer: false,
+    ...overrides,
+  };
+}
+
 describe("pedagogical engine", () => {
   it("mantém dica no nível 1 sem revelar gabarito", () => {
     const input = request({ mode: "hint" });
     const policy = buildPedagogicalPolicy(input);
     const result = enforcePedagogicalResponse(
-      {
-        title: "Teste",
-        explanation: "Explicação",
-        concepts: ["Porcentagem"],
-        nextStep: "Continue",
-        revealAnswer: true,
-        answer: "B",
-      },
+      output({ revealAnswer: true, answer: "B" }),
       input,
       policy,
       "fake",
@@ -67,6 +71,43 @@ describe("pedagogical engine", () => {
     const policy = buildPedagogicalPolicy(input);
     expect(policy.includeCorrectAnswerInModelContext).toBe(true);
     expect(policy.revealAnswer).toBe(false);
+  });
+
+  it("descarta diagnóstico enviado durante uma simples pista", () => {
+    const input = request({ mode: "hint" });
+    const result = enforcePedagogicalResponse(
+      output({
+        diagnostic: {
+          category: "content-gap",
+          confidence: "high",
+          note: "Suposição indevida do provider.",
+        },
+      }),
+      input,
+      buildPedagogicalPolicy(input),
+      "fake",
+    );
+    expect(result.diagnostic).toBeUndefined();
+  });
+
+  it("aceita diagnóstico estruturado ao analisar uma resposta marcada", () => {
+    const input = request({ mode: "why-wrong", selectedAlternative: "A" });
+    const result = enforcePedagogicalResponse(
+      output({
+        diagnostic: {
+          category: "calculation",
+          confidence: "high",
+          note: "A conta aplicada à alternativa marcada está inconsistente.",
+        },
+      }),
+      input,
+      buildPedagogicalPolicy(input),
+      "fake",
+    );
+    expect(result.diagnostic).toMatchObject({
+      category: "calculation",
+      confidence: "high",
+    });
   });
 
   it("força proveniência de IA usando a prova real apenas como estilo", () => {
