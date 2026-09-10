@@ -122,23 +122,18 @@ const EXPENSIVE_TIERS = new Set<RepairTier>(["local-ocr", "vision", "llm", "huma
 
 export const DEFAULT_REPAIR_STRATEGIES: readonly RepairStrategy[] = [
   {
-    id: "safe-control-cleanup",
-    tier: "deterministic",
-    costRank: 1,
-    scope: "field",
-    batchable: true,
-    maxBatchSize: 500,
-    rootCauses: ["glyph-control"],
-    requiresRevalidation: true,
-  },
-  {
     id: "font-map-recovery",
     tier: "alternate-parser",
     costRank: 2,
     scope: "cluster",
     batchable: true,
     maxBatchSize: 1000,
-    rootCauses: ["glyph-replacement", "glyph-private-use", "formula-ambiguity"],
+    rootCauses: [
+      "glyph-control",
+      "glyph-replacement",
+      "glyph-private-use",
+      "formula-ambiguity",
+    ],
     requiresRevalidation: true,
   },
   {
@@ -180,6 +175,7 @@ export const DEFAULT_REPAIR_STRATEGIES: readonly RepairStrategy[] = [
     maxBatchSize: 24,
     rootCauses: [
       "structure-incomplete",
+      "glyph-control",
       "glyph-replacement",
       "glyph-private-use",
       "formula-ambiguity",
@@ -198,6 +194,7 @@ export const DEFAULT_REPAIR_STRATEGIES: readonly RepairStrategy[] = [
     rootCauses: [
       "structure-incomplete",
       "media-unbound",
+      "glyph-control",
       "glyph-replacement",
       "glyph-private-use",
       "formula-ambiguity",
@@ -215,6 +212,7 @@ export const DEFAULT_REPAIR_STRATEGIES: readonly RepairStrategy[] = [
     maxBatchSize: 20,
     rootCauses: [
       "structure-incomplete",
+      "glyph-control",
       "glyph-replacement",
       "glyph-private-use",
       "formula-ambiguity",
@@ -404,7 +402,10 @@ export function collectJobExceptionObservations(job: IngestionJobResult): Except
   return [...deduped.values()];
 }
 
-function unitsForScope(cluster: Pick<ExceptionCluster, "occurrenceCount" | "affectedQuestions" | "affectedPages">, scope: RepairScope): number {
+function unitsForScope(
+  cluster: Pick<ExceptionCluster, "occurrenceCount" | "affectedQuestions" | "affectedPages">,
+  scope: RepairScope,
+): number {
   if (scope === "cluster") return 1;
   if (scope === "page") return Math.max(1, cluster.affectedPages || cluster.affectedQuestions);
   if (scope === "question" || scope === "human") {
@@ -444,7 +445,10 @@ export function clusterExceptionObservations(
   const clusters = [...groups.entries()].map(([fingerprint, group]) => {
     const first = group[0];
     const editionKeys = new Set(
-      group.map((item) => `${item.providerId}:${item.sourceId}:${item.editionId}:${item.phase}:${item.variant ?? ""}`),
+      group.map(
+        (item) =>
+          `${item.providerId}:${item.sourceId}:${item.editionId}:${item.phase}:${item.variant ?? ""}`,
+      ),
     );
     const questionKeys = new Set(
       group
@@ -509,7 +513,8 @@ export function buildExceptionReductionPlan(
   );
   const affectedEditions = new Set(
     observations.map(
-      (item) => `${item.providerId}:${item.sourceId}:${item.editionId}:${item.phase}:${item.variant ?? ""}`,
+      (item) =>
+        `${item.providerId}:${item.sourceId}:${item.editionId}:${item.phase}:${item.variant ?? ""}`,
     ),
   );
   const rootCauseCounts: Partial<Record<ExceptionRootCause, number>> = {};
