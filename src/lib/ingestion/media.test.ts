@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { associateMediaWithExtraction, type MediaManifest } from "./media";
+import {
+  associateMediaWithExtraction,
+  type ExpectedMediaBinding,
+  type MediaManifest,
+} from "./media";
 import type { ExtractedExamData } from "./types";
 
 function extraction(): ExtractedExamData {
@@ -60,9 +64,20 @@ function manifest(overrides: Partial<MediaManifest> = {}): MediaManifest {
   };
 }
 
+function binding(overrides: Partial<ExpectedMediaBinding> = {}): ExpectedMediaBinding {
+  return {
+    providerId: "teste",
+    sourceId: "teste-oficial",
+    editionId: "2025",
+    documentUrl: "https://example.test/prova.pdf",
+    documentSha256: "a".repeat(64),
+    ...overrides,
+  };
+}
+
 describe("media association", () => {
   it("attaches high-confidence media but preserves missing-media until explicitly resolved", () => {
-    const result = associateMediaWithExtraction(extraction(), manifest());
+    const result = associateMediaWithExtraction(extraction(), manifest(), binding());
 
     expect(result.attachedAssets).toEqual(["q1-figure-1"]);
     expect(result.extraction.questions[0].files).toEqual(["/media/q1-figure-1.png"]);
@@ -73,7 +88,7 @@ describe("media association", () => {
   it("clears missing-media only with an explicit resolution assertion", () => {
     const value = manifest();
     value.assets[0].resolvesMissingMedia = true;
-    const result = associateMediaWithExtraction(extraction(), value);
+    const result = associateMediaWithExtraction(extraction(), value, binding());
 
     expect(result.extraction.questionsMissingMedia).toEqual([]);
     expect(result.resolvedQuestionNumbers).toEqual([1]);
@@ -82,7 +97,7 @@ describe("media association", () => {
   it("sends low-confidence or review-mode assets to review without attaching them", () => {
     const value = manifest();
     value.assets[0].confidence = 0.7;
-    const result = associateMediaWithExtraction(extraction(), value);
+    const result = associateMediaWithExtraction(extraction(), value, binding());
 
     expect(result.attachedAssets).toEqual([]);
     expect(result.reviewAssets).toEqual(["q1-figure-1"]);
@@ -90,20 +105,33 @@ describe("media association", () => {
     expect(result.extraction.questionsMissingMedia).toEqual([1]);
   });
 
-  it("rejects provenance and identity mismatches instead of silently attaching media", () => {
+  it("rejects asset provenance mismatch instead of silently attaching media", () => {
     const value = manifest();
     value.assets[0].sourceDocumentUrl = "https://example.test/outra.pdf";
-    const result = associateMediaWithExtraction(extraction(), value);
+    const result = associateMediaWithExtraction(extraction(), value, binding());
 
     expect(result.attachedAssets).toEqual([]);
-    expect(result.rejectedAssets[0].reason).toMatch(/source document/i);
+    expect(result.rejectedAssets[0].reason).toMatch(/media manifest/i);
+  });
+
+  it("rejects a manifest from another edition or document SHA before association", () => {
+    expect(() =>
+      associateMediaWithExtraction(extraction(), manifest(), binding({ editionId: "2024" })),
+    ).toThrow(/identity/i);
+    expect(() =>
+      associateMediaWithExtraction(
+        extraction(),
+        manifest(),
+        binding({ documentSha256: "c".repeat(64) }),
+      ),
+    ).toThrow(/SHA binding/i);
   });
 
   it("attaches pure-visual alternatives without overwriting conflicting media", () => {
     const value = manifest();
     value.assets[0].alternativeId = "A";
     value.assets[0].resolvesMissingMedia = true;
-    const result = associateMediaWithExtraction(extraction(), value);
+    const result = associateMediaWithExtraction(extraction(), value, binding());
 
     expect(result.extraction.questions[0].alternatives?.[0].file).toBe(
       "/media/q1-figure-1.png",
