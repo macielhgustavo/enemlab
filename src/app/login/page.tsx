@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import type { FormEvent } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, LockKeyhole } from "lucide-react";
 
 export default function LoginPage() {
@@ -45,15 +47,22 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_50%_at_50%_0%,color-mix(in_oklab,var(--brand)_12%,transparent),transparent_70%)]" />
 
       <section className="login-card" aria-labelledby="login-title">
-        <a href="/" className="mb-8 inline-flex items-center gap-2 text-xs text-muted transition-colors hover:text-text">
+        <Link
+          href="/"
+          className="mb-8 inline-flex items-center gap-2 text-xs text-muted transition-colors hover:text-text"
+        >
           <ArrowLeft size={14} /> Voltar para a landing page
-        </a>
+        </Link>
 
         <span className="grid size-11 place-items-center rounded-lg border border-brand/25 bg-brand/10 text-brand">
           <LockKeyhole size={19} />
         </span>
-        <p className="mt-7 font-mono text-[10px] uppercase tracking-[0.18em] text-brand">Acesso ao painel</p>
-        <h1 id="login-title" className="mt-3 text-3xl font-semibold tracking-[-0.03em]">Entrar no Studium Labs</h1>
+        <p className="mt-7 font-mono text-[10px] uppercase tracking-[0.18em] text-brand">
+          Acesso ao painel
+        </p>
+        <h1 id="login-title" className="mt-3 text-3xl font-semibold tracking-[-0.03em]">
+          Entrar no Studium Labs
+        </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
           Use as credenciais administrativas para acessar a plataforma atual.
         </p>
@@ -86,7 +95,11 @@ export default function LoginPage() {
             />
           </div>
 
-          {error ? <p className="login-error" role="alert">{error}</p> : null}
+          {error ? (
+            <p className="login-error" role="alert">
+              {error}
+            </p>
+          ) : null}
 
           <button className="login-submit" type="submit" disabled={loading}>
             {loading ? "Entrando…" : "Entrar no painel"}
