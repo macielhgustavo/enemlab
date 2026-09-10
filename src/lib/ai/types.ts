@@ -1,6 +1,8 @@
 import type {
   StudentAIAssistanceLevel,
   StudentAIAssistanceMode,
+  StudentAIDiagnosticCategory,
+  StudentAIDiagnosticConfidence,
 } from "../domain/types";
 
 export type AIAssistanceMode = StudentAIAssistanceMode;
@@ -97,14 +99,8 @@ export interface AIRequest {
 }
 
 export interface AIDiagnosticSignal {
-  category:
-    | "content-gap"
-    | "interpretation"
-    | "calculation"
-    | "strategy"
-    | "attention"
-    | "unknown";
-  confidence: "low" | "medium" | "high";
+  category: StudentAIDiagnosticCategory;
+  confidence: StudentAIDiagnosticConfidence;
   note: string;
 }
 
