@@ -199,7 +199,7 @@ Local generated artifacts are ignored by Git:
 
 ## Full 21-edition benchmark — 2026-09-10
 
-A temporary GitHub Actions laboratory **processed** every FUVEST edition currently eligible for extraction: **21 editions / 1,910 questions**. Here, processed means the documents produced a staged extraction result; it does not mean every question is structurally or semantically publishable. Those remain separate gates.
+A temporary GitHub Actions laboratory **processed** every FUVEST edition currently eligible for extraction: **21 editions / 1,910 questions**. Here, processed means the documents produced a staged extraction result; it does not mean every question is structurally or semantically publishable. Those remain separate gates. The temporary benchmark workflow was removed after the results below were captured; full backfills are now an explicit `ingest:fuvest:batch` operation rather than permanent PR CI cost.
 
 Aggregate cold-pass result:
 
