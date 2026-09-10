@@ -11,6 +11,11 @@ determinística baseada na própria fonte embutida. A página reparada só é us
 quando existe evidência positiva e o parser continua fechando; caso contrário,
 o texto nativo original é preservado e os gates semânticos continuam bloqueando.
 
+Depois da extração estrutural, layouts explicitamente suportados podem passar por
+OCR regional local. Esse fallback usa a geometria oficial para fixar a identidade
+da questão e só aplica uma substituição quando recupera enunciado + A-E completos.
+Conteúdo OCR continua semanticamente bloqueado até revisão e nunca altera gabarito.
+
 Por padrão cobre todas as edições revisadas com caderno canônico. FUVEST 2022 é
 naturalmente excluída porque só possui referência/gabarito no manifesto atual.
 
@@ -35,6 +40,7 @@ ROOT = Path(__file__).resolve().parent.parent
 QUESTIONS = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 RECOVERY = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-ocr.py")))
 FONTMAP = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-font-map.py")))
+REGIONAL = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-region-ocr.py")))
 MEDIA = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-media.py")))
 
 
@@ -123,6 +129,31 @@ def attach_font_recovery_metadata(
     return envelope
 
 
+def empty_regional_report(envelope: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "workerVersion": REGIONAL["WORKER_VERSION"],
+        "attempted": False,
+        "applied": False,
+        "targetedQuestions": [],
+        "appliedQuestions": [],
+        "unresolvedQuestions": [],
+        "attemptsByMode": {},
+        "regions": [],
+    }
+
+
+def regional_result_is_cacheable(report: dict[str, Any]) -> bool:
+    reason = str(report.get("rejectedReason", ""))
+    dependency_failures = {
+        "tesseract-not-installed",
+        "tesseract-language-probe-failed",
+        "tesseract-portuguese-language-missing",
+        "pymupdf-not-installed",
+        "PyMuPDF is required for regional OCR geometry",
+    }
+    return reason not in dependency_failures
+
+
 def extraction_for_year(
     year: int,
     entry: dict[str, Any],
@@ -139,7 +170,8 @@ def extraction_for_year(
     version = (
         f"{QUESTIONS['EXTRACTOR_VERSION']}|"
         f"{FONTMAP['WORKER_VERSION']}|"
-        f"{RECOVERY['WORKER_VERSION']}"
+        f"{RECOVERY['WORKER_VERSION']}|"
+        f"{REGIONAL['WORKER_VERSION']}"
     )
     cache_key = content_cache_key("fuvest-extraction", version, str(year), exam_sha, key_sha)
     cache_path = cache_dir / "extraction" / str(year) / f"{cache_key}.json"
@@ -212,7 +244,19 @@ def extraction_for_year(
             )
 
     attach_font_recovery_metadata(envelope, font_report)
-    write_json(cache_path, envelope)
+
+    regional_report = empty_regional_report(envelope)
+    if REGIONAL["should_attempt_region_recovery"](envelope, entry):
+        envelope, regional_report = REGIONAL["recover_envelope"](
+            envelope, entry, exam_bytes, key_bytes
+        )
+    envelope["regionalContentRecovery"] = regional_report
+
+    # A missing local OCR dependency is an environment limitation, not a stable
+    # extraction result. Do not checkpoint that miss or a later capable machine
+    # would incorrectly reuse it and skip recovery.
+    if regional_result_is_cacheable(regional_report):
+        write_json(cache_path, envelope)
     return envelope, exam_bytes, False, time.perf_counter() - started
 
 
@@ -270,6 +314,7 @@ def process_year(
     )
     extraction_metrics = QUESTIONS["metrics"](envelope)
     font_map = envelope.get("fontMapRecovery", {})
+    regional = envelope.get("regionalContentRecovery", {})
     result: dict[str, Any] = {
         "year": year,
         "questions": extraction_metrics["questions"],
@@ -282,6 +327,11 @@ def process_year(
         "fontMapApplied": bool(font_map.get("applied")),
         "fontMapResolvedOccurrences": int(font_map.get("resolvedOccurrences", 0)),
         "fontMapUnresolvedOccurrences": int(font_map.get("unresolvedOccurrences", 0)),
+        "regionalRecoveryAttempted": bool(regional.get("attempted")),
+        "regionalRecoveryApplied": bool(regional.get("applied")),
+        "regionalRecoveryTargetedQuestions": len(regional.get("targetedQuestions", [])),
+        "regionalRecoveryAppliedQuestions": len(regional.get("appliedQuestions", [])),
+        "regionalRecoveryUnresolvedQuestions": len(regional.get("unresolvedQuestions", [])),
         "extractionCacheHit": extraction_hit,
         "elapsedSeconds": round(elapsed, 3),
     }
@@ -322,6 +372,21 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "fontMapUnresolvedOccurrences": sum(
             int(item.get("fontMapUnresolvedOccurrences", 0)) for item in ordered
+        ),
+        "regionalRecoveryAttemptedEditions": sum(
+            bool(item.get("regionalRecoveryAttempted")) for item in ordered
+        ),
+        "regionalRecoveryAppliedEditions": sum(
+            bool(item.get("regionalRecoveryApplied")) for item in ordered
+        ),
+        "regionalRecoveryTargetedQuestions": sum(
+            int(item.get("regionalRecoveryTargetedQuestions", 0)) for item in ordered
+        ),
+        "regionalRecoveryAppliedQuestions": sum(
+            int(item.get("regionalRecoveryAppliedQuestions", 0)) for item in ordered
+        ),
+        "regionalRecoveryUnresolvedQuestions": sum(
+            int(item.get("regionalRecoveryUnresolvedQuestions", 0)) for item in ordered
         ),
         "extractionCacheHits": sum(bool(item["extractionCacheHit"]) for item in ordered),
         "mediaAssets": sum(int(item.get("mediaAssets", 0)) for item in ordered),
