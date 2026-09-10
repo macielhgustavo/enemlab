@@ -24,6 +24,22 @@ export type StudentAIAssistanceMode =
 
 export type StudentAIAssistanceLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
+export type StudentAIDiagnosticCategory =
+  | "content-gap"
+  | "interpretation"
+  | "calculation"
+  | "strategy"
+  | "attention"
+  | "unknown";
+
+export type StudentAIDiagnosticConfidence = "low" | "medium" | "high";
+
+/** Evidência mínima do diagnóstico: não persiste a explicação textual do LLM. */
+export interface StudentAIDiagnosticEvidence {
+  category: StudentAIDiagnosticCategory;
+  confidence: StudentAIDiagnosticConfidence;
+}
+
 /** Evento mínimo persistido. Não guarda texto da conversa nem resposta da IA. */
 export interface StudentAIAssistanceEvent {
   at: string;
@@ -32,6 +48,7 @@ export interface StudentAIAssistanceEvent {
   answerRevealed: boolean;
   provider: string;
   fallbackFrom?: string;
+  diagnostic?: StudentAIDiagnosticEvidence;
 }
 
 /**
