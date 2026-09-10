@@ -55,7 +55,11 @@ export default function PlanoPage() {
 
   async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
     if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
-    if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
+    if (block.kind === "weak" || block.kind === "validation") {
+      const attempt = await buildContentSprintAttempt(block.content!, block.questions);
+      if (block.kind === "validation" || block.aiAllowed === false) attempt.aiAllowed = false;
+      return attempt;
+    }
     if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
     return buildTrainingAttempt(db, {
       year: 2023,
@@ -120,7 +124,7 @@ export default function PlanoPage() {
       <PageHead
         eyebrow="Plano · inteligência diária"
         title="Seu estudo de hoje, já priorizado."
-        sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
+        sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, evidência independente, ritmo semanal, tempo disponível e histórico real de resolução."
         right={
           <Button asChild variant="secondary" size="sm">
             <Link href="/adaptive">Abrir Adaptive</Link>
@@ -240,6 +244,12 @@ export default function PlanoPage() {
           <b>{plan.signals.highConfidenceErrors}</b>
           <span>erros recentes respondidos com certeza</span>
         </div>
+        <div className="dailySignal">
+          <Sparkles size={15} />
+          <small>validar sem IA</small>
+          <b>{plan.signals.assistedTopicsToValidate}</b>
+          <span>conteúdos com evidência independente abaixo do desempenho bruto</span>
+        </div>
       </div>
 
       <Card className="dailyPlanQueueCard">
@@ -266,6 +276,7 @@ export default function PlanoPage() {
                     <span>{block.questions} questões</span>
                     <span>~{block.minutes} min</span>
                     {block.metric && <span>{block.metric}</span>}
+                    {block.aiAllowed === false && <span>tutor IA desativado</span>}
                   </div>
                 </div>
                 <div className="dailyPlanAction">
@@ -322,11 +333,6 @@ export default function PlanoPage() {
           ))}
         </div>
       </Card>
-
-      <div style={{ height: 20 }} />
-      <div className="muted" style={{ fontSize: 10, display: "flex", gap: 7, alignItems: "center" }}>
-        <Sparkles size={12} /> O plano usa somente seu histórico local e se adapta conforme você conclui novas questões.
-      </div>
     </div>
   );
 }
