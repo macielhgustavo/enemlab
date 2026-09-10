@@ -1,0 +1,2 @@
+public/native/editions/*.json -text
+public/native/manifest.json text eol=lf

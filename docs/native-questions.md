@@ -68,6 +68,8 @@ Após publicar, incluir os arquivos e o manifesto na revisão de código e
 reconstruir o site. O manifesto integra o build; os enunciados são baixados
 apenas quando a edição é solicitada. Arquivos antigos podem ser mantidos
 para builds anteriores.
+O `.gitattributes` preserva os bytes dos arquivos de edição para que a
+conversão automática de quebras de linha entre Windows e Linux não altere o hash.
 
 ## Migração gradual
 
