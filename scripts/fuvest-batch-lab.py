@@ -16,6 +16,10 @@ OCR regional local. Esse fallback usa a geometria oficial para fixar a identidad
 da questão e só aplica uma substituição quando recupera enunciado + A-E completos.
 Conteúdo OCR continua semanticamente bloqueado até revisão e nunca altera gabarito.
 
+A concorrência do pipeline e a concorrência de OCR são orçamentos separados.
+Downloads/parsing podem continuar paralelos enquanto recoveries pesados de
+Tesseract/PyMuPDF são limitados independentemente para evitar oversubscription.
+
 Por padrão cobre todas as edições revisadas com caderno canônico. FUVEST 2022 é
 naturalmente excluída porque só possui referência/gabarito no manifesto atual.
 
@@ -34,6 +38,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import BoundedSemaphore
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -58,6 +63,12 @@ def write_json(path: Path, value: Any) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+def validate_concurrency(value: int, name: str) -> int:
+    if value < 1 or value > 8:
+        raise ValueError(f"{name} must be between 1 and 8")
+    return value
 
 
 def load_valid_extraction_cache(
@@ -154,11 +165,38 @@ def regional_result_is_cacheable(report: dict[str, Any]) -> bool:
     return reason not in dependency_failures
 
 
+def run_boundary_recovery(
+    failure: dict[str, Any],
+    entry: dict[str, Any],
+    manifest: dict[str, dict[str, Any]],
+    exam_bytes: bytes,
+    key_bytes: bytes,
+    ocr_limiter: BoundedSemaphore,
+) -> dict[str, Any]:
+    _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
+    with ocr_limiter:
+        recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
+            exam_bytes,
+            target_pages,
+            int(entry["total"]),
+        )
+    return RECOVERY["build_recovery_envelope"](
+        failure,
+        entry,
+        exam_bytes,
+        key_bytes,
+        recovered_pages,
+        boundary_labels=labels,
+        geometry=geometry,
+    )
+
+
 def extraction_for_year(
     year: int,
     entry: dict[str, Any],
     manifest: dict[str, dict[str, Any]],
     cache_dir: Path,
+    ocr_limiter: BoundedSemaphore,
 ) -> tuple[dict[str, Any], bytes, bool, float]:
     started = time.perf_counter()
     exam_bytes = QUESTIONS["fetch"](entry["examUrl"])
@@ -195,8 +233,6 @@ def extraction_for_year(
         )
     except Exception as repaired_error:
         if bool(font_report.get("applied")):
-            # A font repair is useful only if it preserves structural closure.
-            # Revert to the untouched text layer before invoking boundary recovery.
             font_report["applied"] = False
             font_report["rejectedReason"] = "parser-regression"
             font_report["parserRegression"] = str(repaired_error)
@@ -208,53 +244,37 @@ def extraction_for_year(
                 failure = QUESTIONS["build_failure_envelope"](
                     entry, exam_bytes, key_bytes, native_pages, primary_error
                 )
-                _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
-                recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
-                    exam_bytes,
-                    target_pages,
-                    int(entry["total"]),
-                )
-                envelope = RECOVERY["build_recovery_envelope"](
+                envelope = run_boundary_recovery(
                     failure,
                     entry,
+                    manifest,
                     exam_bytes,
                     key_bytes,
-                    recovered_pages,
-                    boundary_labels=labels,
-                    geometry=geometry,
+                    ocr_limiter,
                 )
         else:
             failure = QUESTIONS["build_failure_envelope"](
                 entry, exam_bytes, key_bytes, native_pages, repaired_error
             )
-            _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
-            recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
-                exam_bytes,
-                target_pages,
-                int(entry["total"]),
-            )
-            envelope = RECOVERY["build_recovery_envelope"](
+            envelope = run_boundary_recovery(
                 failure,
                 entry,
+                manifest,
                 exam_bytes,
                 key_bytes,
-                recovered_pages,
-                boundary_labels=labels,
-                geometry=geometry,
+                ocr_limiter,
             )
 
     attach_font_recovery_metadata(envelope, font_report)
 
     regional_report = empty_regional_report(envelope)
     if REGIONAL["should_attempt_region_recovery"](envelope, entry):
-        envelope, regional_report = REGIONAL["recover_envelope"](
-            envelope, entry, exam_bytes, key_bytes
-        )
+        with ocr_limiter:
+            envelope, regional_report = REGIONAL["recover_envelope"](
+                envelope, entry, exam_bytes, key_bytes
+            )
     envelope["regionalContentRecovery"] = regional_report
 
-    # A missing local OCR dependency is an environment limitation, not a stable
-    # extraction result. Do not checkpoint that miss or a later capable machine
-    # would incorrectly reuse it and skip recovery.
     if regional_result_is_cacheable(regional_report):
         write_json(cache_path, envelope)
     return envelope, exam_bytes, False, time.perf_counter() - started
@@ -307,10 +327,11 @@ def process_year(
     cache_dir: Path,
     media_dir: Path,
     include_media: bool,
+    ocr_limiter: BoundedSemaphore,
 ) -> dict[str, Any]:
     QUESTIONS["validate_manifest_entry"](entry, year)
     envelope, exam_bytes, extraction_hit, elapsed = extraction_for_year(
-        year, entry, manifest, cache_dir
+        year, entry, manifest, cache_dir, ocr_limiter
     )
     extraction_metrics = QUESTIONS["metrics"](envelope)
     font_map = envelope.get("fontMapRecovery", {})
@@ -422,16 +443,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--media-dir", type=Path, default=ROOT / ".ingestion-media" / "fuvest")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--concurrency", type=int, default=4)
+    parser.add_argument(
+        "--ocr-concurrency",
+        type=int,
+        default=1,
+        help="recoveries OCR pesados simultâneos; padrão: 1",
+    )
     parser.add_argument("--no-media", action="store_true")
     args = parser.parse_args(argv)
 
-    if args.concurrency < 1 or args.concurrency > 8:
-        raise ValueError("concurrency must be between 1 and 8")
+    validate_concurrency(args.concurrency, "concurrency")
+    validate_concurrency(args.ocr_concurrency, "ocr-concurrency")
 
     manifest = QUESTIONS["load_manifest"]()
     years = parse_years(args.years, manifest)
     results: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
+    ocr_limiter = BoundedSemaphore(args.ocr_concurrency)
 
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
         futures = {
@@ -443,6 +471,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.cache_dir,
                 args.media_dir,
                 not args.no_media,
+                ocr_limiter,
             ): year
             for year in years
         }
@@ -459,6 +488,8 @@ def main(argv: list[str] | None = None) -> int:
     summary = summarize(results)
     summary["failures"] = sorted(failures, key=lambda item: int(item["year"]))
     summary["requestedEditions"] = len(years)
+    summary["pipelineConcurrency"] = args.concurrency
+    summary["ocrConcurrency"] = args.ocr_concurrency
     if args.output:
         write_json(args.output, summary)
     print(json.dumps(summary, ensure_ascii=False))
