@@ -140,6 +140,37 @@ class FuvestVisualAlternativeRecoveryTest(unittest.TestCase):
         ]
         self.assertIsNone(MODULE["infer_one_row_layout"](statement, 800, 1125))
 
+    def test_infers_bottom_left_c_from_proven_three_plus_two_grid(self):
+        labels = [
+            {**label("A", 55, 290), "explicit": True},
+            {**label("D", 455, 292), "explicit": True},
+            {**label("B", 55, 520), "explicit": True},
+            {**label("E", 455, 522), "explicit": True},
+        ]
+        layout = MODULE["infer_two_column_grid_layout"](labels, 800, 1160)
+        self.assertIsNotNone(layout)
+        self.assertEqual(layout["layout"], "two-column-grid")
+        self.assertEqual(layout["inferredLabels"], ["C"])
+        self.assertGreater(layout["labels"]["C"]["y"], layout["labels"]["B"]["y"])
+
+    def test_does_not_infer_grid_from_bare_or_misaligned_markers(self):
+        bare = [
+            {**label("A", 55, 290), "explicit": False},
+            {**label("D", 455, 292), "explicit": True},
+            {**label("B", 55, 520), "explicit": True},
+            {**label("E", 455, 522), "explicit": True},
+        ]
+        self.assertIsNone(MODULE["infer_two_column_grid_layout"](bare, 800, 1160))
+        misaligned = [
+            {**label("A", 55, 290), "explicit": True},
+            {**label("D", 455, 400), "explicit": True},
+            {**label("B", 55, 520), "explicit": True},
+            {**label("E", 455, 522), "explicit": True},
+        ]
+        self.assertIsNone(
+            MODULE["infer_two_column_grid_layout"](misaligned, 800, 1160)
+        )
+
     def test_consensus_rejects_conflicting_layouts(self):
         vertical = {
             "layout": "vertical",

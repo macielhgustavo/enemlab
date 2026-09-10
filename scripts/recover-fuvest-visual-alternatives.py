@@ -44,7 +44,7 @@ REGIONAL = runpy.run_path(
 BASE = REGIONAL["BASE"]
 
 WORKER_NAME = "fuvest-visual-alternatives"
-WORKER_VERSION = "fuvest-visual-alternatives@0.2.0"
+WORKER_VERSION = "fuvest-visual-alternatives@0.2.1"
 LETTERS = tuple("ABCDE")
 RENDER_SCALE = 3.0
 OCR_MODES = (11, 6, 4, 3)
@@ -274,6 +274,79 @@ def infer_one_row_layout(
     return valid[0] if len(valid) == 1 else None
 
 
+def infer_two_column_grid_layout(
+    labels: list[dict[str, Any]],
+    image_width: int,
+    image_height: int,
+) -> dict[str, Any] | None:
+    """Recover the bottom-left C cell from a proven A/B + D/E grid.
+
+    This is the only missing-label shape that the canonical FUVEST 3+2 grid can
+    determine without reading option content: A aligns with D, B with E, and C
+    continues the measured A-to-B spacing in the left column. Any extra or
+    competing explicit marker keeps the question blocked.
+    """
+
+    explicit = [
+        label
+        for label in labels
+        if bool(label.get("explicit"))
+        and float(label.get("confidence", -1)) >= MIN_LABEL_CONFIDENCE
+    ]
+    by_letter = {
+        letter: [label for label in explicit if label.get("letter") == letter]
+        for letter in LETTERS
+    }
+    if by_letter["C"] or any(not by_letter[letter] for letter in "ABDE"):
+        return None
+
+    valid: list[dict[str, Any]] = []
+    for choices in itertools.product(*(by_letter[letter] for letter in "ABDE")):
+        observed = dict(zip("ABDE", choices))
+        x_left = [_label_x(observed[letter]) for letter in "AB"]
+        x_right = [_label_x(observed[letter]) for letter in "DE"]
+        if max(x_left) - min(x_left) > 55.0 or max(x_right) - min(x_right) > 55.0:
+            continue
+        if statistics.mean(x_right) - statistics.mean(x_left) < 150.0:
+            continue
+        if abs(_label_y(observed["A"]) - _label_y(observed["D"])) > 65.0:
+            continue
+        if abs(_label_y(observed["B"]) - _label_y(observed["E"])) > 65.0:
+            continue
+        left_step = _label_y(observed["B"]) - _label_y(observed["A"])
+        right_step = _label_y(observed["E"]) - _label_y(observed["D"])
+        if not _gap_is_reasonable([left_step, right_step]):
+            continue
+        expected_y = _label_y(observed["B"]) + statistics.mean([left_step, right_step])
+        if expected_y + min(left_step, right_step) * 0.4 > image_height:
+            continue
+        median_width = max(1, int(statistics.median(label["w"] for label in choices)))
+        median_height = max(1, int(statistics.median(label["h"] for label in choices)))
+        inferred_c = {
+            "letter": "C",
+            "x": int(round(statistics.mean(x_left) - median_width / 2.0)),
+            "y": int(round(expected_y - median_height / 2.0)),
+            "w": median_width,
+            "h": median_height,
+            "confidence": 0.0,
+            "explicit": True,
+            "inferred": True,
+        }
+        selection = {**observed, "C": inferred_c}
+        if classify_layout(selection) != "two-column-grid":
+            continue
+        valid.append(
+            {
+                "layout": "two-column-grid",
+                "labels": selection,
+                "inferredLabels": ["C"],
+            }
+        )
+        if len(valid) > 1:
+            return None
+    return valid[0] if len(valid) == 1 else None
+
+
 def _layouts_are_compatible(first: dict[str, Any], second: dict[str, Any]) -> bool:
     if first.get("layout") != second.get("layout"):
         return False
@@ -317,6 +390,7 @@ def detect_visual_layout(
             explicit_only=True,
         )
         layout = select_unique_layout(strict_labels)
+        inferred_layout: dict[str, Any] | None = None
         detection_pass = "strict"
         if layout is None:
             layout = select_unique_layout(adaptive_labels)
@@ -324,9 +398,9 @@ def detect_visual_layout(
         if layout is not None:
             direct.append({**layout, "mode": mode, "detectionPass": detection_pass})
         else:
-            inferred_layout = infer_one_row_layout(
+            inferred_layout = infer_two_column_grid_layout(
                 adaptive_labels, image_width, image_height
-            )
+            ) or infer_one_row_layout(adaptive_labels, image_width, image_height)
             if inferred_layout is not None:
                 inferred.append(
                     {
@@ -342,6 +416,9 @@ def detect_visual_layout(
                 "markerCount": len(observed),
                 "detectedLetters": sorted({str(label["letter"]) for label in observed}),
                 "directLayout": layout.get("layout") if layout else None,
+                "inferredLayout": inferred_layout.get("layout")
+                if layout is None and inferred_layout
+                else None,
             }
         )
 
