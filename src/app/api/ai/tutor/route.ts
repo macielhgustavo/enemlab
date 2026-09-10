@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runStudentAI } from "@/lib/ai/service";
+import type { AIGeneratedQuestionLabel } from "@/lib/ai/types";
 
 const assistanceModeSchema = z.enum([
   "hint",
@@ -28,9 +29,17 @@ const officialOriginSchema = z.object({
   sourceUrl: z.string().max(2_000).optional(),
 });
 
+const generatedLabelSchema = z.custom<AIGeneratedQuestionLabel>(
+  (value) =>
+    typeof value === "string" &&
+    value.startsWith("Questão gerada por IA — estilo ") &&
+    value.length <= 220,
+  { message: "Rótulo de proveniência de IA inválido." },
+);
+
 const generatedOriginSchema = z.object({
   kind: z.literal("ai-generated"),
-  label: z.string().startsWith("Questão gerada por IA — estilo ").max(220),
+  label: generatedLabelSchema,
   style: z.string().min(1).max(160),
 });
 
