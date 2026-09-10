@@ -22,59 +22,43 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Test strict label-repair gates
+      - name: Test regional recovery gates
         run: |
           python -m unittest scripts.tests.test_recover_fuvest_label_repair
           python -m unittest scripts.tests.test_recover_fuvest_region_ocr
-      - name: Benchmark only affected editions
+      - name: Run full cold batch
         run: |
-          rm -rf /tmp/enemlab-label-repair-cache
+          rm -rf /tmp/enemlab-label-repair-full-cache
           python scripts/fuvest-batch-lab.py \
-            --years 2016,2017,2021 \
-            --concurrency 3 \
+            --concurrency 4 \
             --ocr-concurrency 1 \
             --no-media \
-            --cache-dir /tmp/enemlab-label-repair-cache \
-            --output /tmp/fuvest-label-repair.json
-      - name: Validate measured improvement without exposing exam text
+            --cache-dir /tmp/enemlab-label-repair-full-cache \
+            --output /tmp/fuvest-label-repair-full.json
+      - name: Validate full measured improvement
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          summary = json.loads(Path('/tmp/fuvest-label-repair.json').read_text())
-          assert summary['questions'] == 270, summary
-          assert summary['completeStructure'] >= 254, summary
-          assert summary['semanticIssues'] == 268, summary
-
-          applied = 0
-          unresolved = 0
-          details = []
-          root = Path('/tmp/enemlab-label-repair-cache/extraction')
-          for year in (2016, 2017, 2021):
-              files = list((root / str(year)).glob('*.json'))
-              assert len(files) == 1, (year, files)
-              envelope = json.loads(files[0].read_text())
-              report = envelope.get('regionalContentRecovery', {})
-              repaired = report.get('labelRepairAppliedQuestions', [])
-              remaining = report.get('unresolvedQuestions', [])
-              applied += len(repaired)
-              unresolved += len(remaining)
-              details.append({
-                  'year': year,
-                  'completeStructure': next(
-                      item['completeStructure'] for item in summary['results'] if item['year'] == year
-                  ),
-                  'labelRepairAppliedQuestions': repaired,
-                  'unresolvedQuestions': remaining,
-              })
-
+          summary = json.loads(Path('/tmp/fuvest-label-repair-full.json').read_text())
+          assert summary['requestedEditions'] == 21, summary
+          assert summary['editions'] == 21, summary
+          assert summary['failures'] == [], summary
+          assert summary['questions'] == 1910, summary
+          assert summary['completeStructure'] >= 1832, summary
+          assert summary['needsTextReview'] <= 78, summary
+          assert summary['semanticIssues'] == 783, summary
+          assert summary['regionalRecoveryAppliedQuestions'] >= 110, summary
+          assert summary['regionalRecoveryUnresolvedQuestions'] <= 10, summary
           print(json.dumps({
+              'editions': summary['editions'],
+              'questions': summary['questions'],
               'completeStructure': summary['completeStructure'],
               'needsTextReview': summary['needsTextReview'],
+              'missingMedia': summary['missingMedia'],
               'semanticIssues': summary['semanticIssues'],
-              'labelRepairApplied': applied,
-              'regionalUnresolved': unresolved,
-              'details': details,
+              'regionalRecoveryAppliedQuestions': summary['regionalRecoveryAppliedQuestions'],
+              'regionalRecoveryUnresolvedQuestions': summary['regionalRecoveryUnresolvedQuestions'],
           }, ensure_ascii=False))
           PY
