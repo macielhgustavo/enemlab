@@ -23,6 +23,26 @@ export type {
   MediaManifest,
 } from "./media";
 export {
+  buildExceptionReductionPlan,
+  clusterExceptionObservations,
+  collectJobExceptionObservations,
+  DEFAULT_REPAIR_STRATEGIES,
+  normalizeExceptionMessage,
+  routeRepairStrategies,
+} from "./exceptionReducer";
+export type {
+  ExceptionCluster,
+  ExceptionFieldScope,
+  ExceptionObservation,
+  ExceptionReductionMetrics,
+  ExceptionReductionPlan,
+  ExceptionRootCause,
+  RepairRouteStep,
+  RepairScope,
+  RepairStrategy,
+  RepairTier,
+} from "./exceptionReducer";
+export {
   assessSemanticFidelity,
   buildSelectiveFallbackRequest,
   issueBlocksQuestion,
