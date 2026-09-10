@@ -1,0 +1,78 @@
+name: Ingestion Full Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "scripts/fuvest-batch-lab.py"
+      - "scripts/extract-fuvest-questions.py"
+      - "scripts/recover-fuvest-ocr.py"
+      - "scripts/extract-fuvest-media.py"
+      - ".github/workflows/ingestion-full-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fuvest-full-backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install extraction dependencies
+        run: python -m pip install --disable-pip-version-check pypdf fonttools pymupdf pillow
+
+      - name: First pass — cold cache
+        shell: bash
+        run: |
+          set +e
+          python scripts/fuvest-batch-lab.py \
+            --cache-dir /tmp/enemlab-ingestion-cache \
+            --media-dir /tmp/enemlab-ingestion-media \
+            --output /tmp/fuvest-first.json \
+            --concurrency 4
+          echo $? > /tmp/fuvest-first-exit.txt
+          set -e
+          test -s /tmp/fuvest-first.json
+
+      - name: Second pass — warm cache
+        shell: bash
+        run: |
+          set +e
+          python scripts/fuvest-batch-lab.py \
+            --cache-dir /tmp/enemlab-ingestion-cache \
+            --media-dir /tmp/enemlab-ingestion-media \
+            --output /tmp/fuvest-second.json \
+            --concurrency 4
+          echo $? > /tmp/fuvest-second-exit.txt
+          set -e
+          test -s /tmp/fuvest-second.json
+
+      - name: Verify cache and print benchmark
+        run: |
+          python - <<'PY'
+          import json
+
+          first = json.load(open('/tmp/fuvest-first.json', encoding='utf-8'))
+          second = json.load(open('/tmp/fuvest-second.json', encoding='utf-8'))
+
+          assert first['requestedEditions'] == 21, first['requestedEditions']
+          assert second['requestedEditions'] == 21, second['requestedEditions']
+          assert second['extractionCacheHits'] == first['editions'], (
+              second['extractionCacheHits'], first['editions']
+          )
+          assert second['mediaCacheHits'] == first['editions'], (
+              second['mediaCacheHits'], first['editions']
+          )
+          assert second['questions'] == first['questions']
+          assert second['completeStructure'] == first['completeStructure']
+
+          print('FIRST_PASS=' + json.dumps(first, ensure_ascii=False))
+          print('SECOND_PASS=' + json.dumps(second, ensure_ascii=False))
+          PY
