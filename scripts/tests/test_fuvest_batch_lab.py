@@ -11,6 +11,7 @@ MODULE = runpy.run_path(
 content_cache_key = MODULE["content_cache_key"]
 load_valid_extraction_cache = MODULE["load_valid_extraction_cache"]
 parse_years = MODULE["parse_years"]
+summarize = MODULE["summarize"]
 
 
 class FuvestBatchLabTest(unittest.TestCase):
@@ -62,6 +63,33 @@ class FuvestBatchLabTest(unittest.TestCase):
         self.assertEqual(parse_years(None, manifest), [2023])
         with self.assertRaisesRegex(ValueError, "sem caderno revisado"):
             parse_years("2022", manifest)
+
+    def test_summary_preserves_mapped_metrics_and_cache_hits(self):
+        value = summarize(
+            [
+                {
+                    "year": 2025,
+                    "questions": 90,
+                    "completeStructure": 88,
+                    "missingMedia": 29,
+                    "semanticIssues": 2,
+                    "needsTextReview": 2,
+                    "recovered": False,
+                    "extractionCacheHit": True,
+                    "mediaAssets": 65,
+                    "mediaAutomatic": 46,
+                    "mediaReview": 19,
+                    "questionsWithAutomaticMedia": 27,
+                    "mediaCacheHit": True,
+                }
+            ]
+        )
+        self.assertEqual(value["editions"], 1)
+        self.assertEqual(value["questions"], 90)
+        self.assertEqual(value["completeStructure"], 88)
+        self.assertEqual(value["needsTextReview"], 2)
+        self.assertEqual(value["extractionCacheHits"], 1)
+        self.assertEqual(value["mediaCacheHits"], 1)
 
 
 if __name__ == "__main__":
