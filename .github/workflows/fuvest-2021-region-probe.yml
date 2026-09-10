@@ -17,123 +17,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install probe dependencies
+      - name: Install recovery dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Benchmark adaptive regional OCR
+      - name: Run production worker tests
         run: |
-          python - <<'PY'
-          import collections
-          import re
-          import runpy
-          import subprocess
-          import tempfile
-          import unicodedata
-          from pathlib import Path
-
-          import pymupdf
-
-          questions = runpy.run_path('scripts/extract-fuvest-questions.py')
-          manifest = questions['load_manifest']()
-          entry, exam_bytes, key_bytes, pages = questions['load_year_documents'](2021, manifest)
-
-          controls = sum(
-              1 for text in pages for ch in text
-              if unicodedata.category(ch) in {'Cc', 'Cf'}
-              and ch not in {'\n', '\r', '\t', '\u00ad'}
-          )
-          print('fonttools_control_occurrences', controls)
-          base = questions['build_envelope'](entry, exam_bytes, key_bytes, pages)
-          print('fonttools_parser', questions['metrics'](base))
-
-          doc = pymupdf.open(stream=exam_bytes, filetype='pdf')
-          labels = []
-          widths = []
-          for page_index in range(1, doc.page_count):
-              page = doc.load_page(page_index)
-              widths.append(float(page.rect.width))
-              for block in page.get_text('dict').get('blocks', []):
-                  for line in block.get('lines', []):
-                      spans = line.get('spans', [])
-                      text = ''.join(str(span.get('text', '')) for span in spans).strip()
-                      bbox = line.get('bbox')
-                      fonts = {str(span.get('font', '')) for span in spans}
-                      if bbox and re.fullmatch(r'\d{2}', text) and any('SegoeUIBlack' in font for font in fonts):
-                          x0, y0, x1, y1 = map(float, bbox)
-                          labels.append({'number': int(text), 'page': page_index + 1, 'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1})
-          labels.sort(key=lambda item: item['number'])
-          if [item['number'] for item in labels] != list(range(1, 91)):
-              raise SystemExit('question label geometry did not close exactly at 1..90')
-          print('region_labels', len(labels))
-
-          midpoint = (sum(widths) / len(widths)) / 2
-          grouped = collections.defaultdict(list)
-          for item in labels:
-              item['column'] = 'L' if item['x0'] < midpoint else 'R'
-              grouped[(item['page'], item['column'])].append(item)
-          for values in grouped.values():
-              values.sort(key=lambda item: item['y0'])
-
-          def parse_candidate(text):
-              lines = [line.strip() for line in text.splitlines() if line.strip()]
-              if lines and re.fullmatch(r'0?\d{1,2}', lines[0]):
-                  lines = lines[1:]
-              statement, alternatives, context = questions['parse_alternatives'](lines)
-              complete = bool(statement.strip()) and alternatives is not None and len(alternatives) == 5
-              markers = questions['alternative_marker_count'](lines)
-              alpha = sum(ch.isalpha() for ch in text)
-              return complete, markers, alpha, statement, alternatives, context
-
-          attempts_by_mode = collections.Counter()
-          selected_by_mode = collections.Counter()
-          blocks = {}
-          parsed = {}
-          with tempfile.TemporaryDirectory() as directory:
-              tmp = Path(directory)
-              for item in labels:
-                  page = doc.load_page(item['page'] - 1)
-                  peers = grouped[(item['page'], item['column'])]
-                  pos = peers.index(item)
-                  next_y = peers[pos + 1]['y0'] if pos + 1 < len(peers) else min(float(page.rect.height) - 30.0, 805.0)
-                  x0 = 28.0 if item['column'] == 'L' else midpoint + 4.0
-                  x1 = midpoint - 5.0 if item['column'] == 'L' else float(page.rect.width) - 28.0
-                  y0 = max(32.0, item['y0'] - 4.0)
-                  y1 = max(y0 + 24.0, next_y - 3.0)
-                  pix = page.get_pixmap(matrix=pymupdf.Matrix(3, 3), clip=pymupdf.Rect(x0, y0, x1, y1), alpha=False)
-                  image_path = tmp / f"q{item['number']:02d}.png"
-                  image_path.write_bytes(pix.tobytes('png'))
-
-                  best = None
-                  best_mode = None
-                  for mode in (6, 4, 3, 11):
-                      attempts_by_mode[mode] += 1
-                      text = subprocess.run(
-                          ['tesseract', str(image_path), 'stdout', '-l', 'por+eng', '--psm', str(mode)],
-                          check=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL,
-                          text=True,
-                      ).stdout
-                      text = '\n'.join(line.rstrip() for line in text.splitlines() if line.strip())
-                      result = parse_candidate(text)
-                      score = (1 if result[0] else 0, min(result[1], 5), result[2])
-                      if best is None or score > best[0]:
-                          best = (score, text, result)
-                          best_mode = mode
-                      if result[0]:
-                          break
-                  selected_by_mode[best_mode] += 1
-                  blocks[item['number']] = best[1]
-                  parsed[item['number']] = best[2]
-
-          complete = [number for number, result in parsed.items() if result[0]]
-          print('adaptive_complete_AE', len(complete))
-          print('adaptive_incomplete', [n for n in range(1, 91) if n not in complete])
-          print('attempts_by_mode', dict(attempts_by_mode))
-          print('selected_by_mode', dict(selected_by_mode))
-          for number in [1, 2, 3, 11, 45, 90]:
-              print(f'--- OCR Q{number:02d} ---')
-              print(blocks[number][:1000].replace('\n', ' | '))
-          PY
+          python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
+      - name: Cold production batch
+        run: |
+          rm -rf /tmp/enemlab-fuvest-2021-cache
+          python scripts/fuvest-batch-lab.py \
+            --years 2021 \
+            --concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-fuvest-2021-cache \
+            --output /tmp/fuvest-2021-cold.json
+          cat /tmp/fuvest-2021-cold.json
+      - name: Warm production batch
+        run: |
+          python scripts/fuvest-batch-lab.py \
+            --years 2021 \
+            --concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-fuvest-2021-cache \
+            --output /tmp/fuvest-2021-warm.json
+          cat /tmp/fuvest-2021-warm.json
