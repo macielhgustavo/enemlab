@@ -81,6 +81,7 @@ export interface ReferenceProviderConfig {
   keys: Record<string, ReferenceAnswerKey>;
   defaultLanguage?: string | null;
   useNamedEditionId?: boolean;
+  alternativeLetters?: readonly string[];
 }
 
 function expandSubject(subject: ReferenceSubjectRaw): ReferenceSubject {
@@ -232,6 +233,14 @@ export function referenceQuestionsForKey(
   key: ReferenceAnswerKey,
 ): NormalizedQuestion[] {
   const documentUrl = key.examUrl ?? key.answerKeyUrl;
+  const letters = config.alternativeLetters ?? LETTERS;
+  if (
+    letters.length < 2 ||
+    new Set(letters).size !== letters.length ||
+    Object.values(key.answers).some((answer) => !letters.includes(answer))
+  ) {
+    throw new Error(`${config.id}: alternativas incompatíveis com o gabarito`);
+  }
 
   return Array.from({ length: key.total }, (_, index) => {
     const number = index + 1;
@@ -251,7 +260,7 @@ export function referenceQuestionsForKey(
       content: subject.label,
       context: null,
       alternativesIntroduction: null,
-      alternatives: LETTERS.map((letter) => ({
+      alternatives: letters.map((letter) => ({
         letter,
         text: null,
         file: null,

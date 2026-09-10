@@ -15,7 +15,8 @@ if (!file || args.some((arg) => arg.startsWith("--") && arg !== "--publish")) {
 const server = await createServer({
   root,
   configFile: false,
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, watch: null },
+  optimizeDeps: { noDiscovery: true, include: [] },
   appType: "custom",
   resolve: { alias: { "@": path.join(root, "src") } },
 });

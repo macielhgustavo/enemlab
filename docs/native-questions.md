@@ -16,10 +16,10 @@ O ENEM mantém sua API atual.
 - Identidade e correção permanecem iguais em tentativas, resultados, histórico e SRS.
 - `nativeQuestionCount` e `contentMode` distinguem cobertura completa de `hybrid` no catálogo.
 
-O manifesto inicial está vazio. Esta entrega não transcreve provas reais e
-não anuncia referências como novas questões nativas. As questões sintéticas
-dos testes não são publicadas. A próxima etapa é produzir e revisar os
-primeiros arquivos reais antes de adicioná-los ao manifesto.
+O primeiro piloto contém seis questões reais da UFT 2025.1 (tarde):
+29, 31, 32, 33, 34 e 35. As outras 38 permanecem em referência, incluindo
+a anulada 28. Consulte [a evidência e os limites do piloto](native-uft-validation.md).
+As questões sintéticas dos testes não são publicadas.
 
 ## Contrato
 
@@ -96,5 +96,5 @@ Também verifica cada arquivo publicado sem rede.
 `src/lib/native/runner.test.tsx` monta o resolvedor real, mostra enunciado e
 imagem, responde uma alternativa e verifica a ausência do painel de PDF.
 
-Os testes usam conteúdo sintético: comprovam a arquitetura, não a fidelidade
-de uma prova que ainda não foi transcrita.
+Os testes de arquitetura usam conteúdo sintético. O teste UFT e o E2E nativo
+também usam o arquivo real publicado; revisão humana independente continua pendente.
