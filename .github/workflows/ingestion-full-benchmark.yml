@@ -64,6 +64,16 @@ jobs:
 
           assert first['requestedEditions'] == 21, first['requestedEditions']
           assert second['requestedEditions'] == 21, second['requestedEditions']
+
+          # Previously this benchmark could appear green when a metrics-key bug
+          # marked all 21 editions as failed. Keep a hard lower bound from the
+          # four layouts already benchmarked independently (2005/2010/2018/2025).
+          assert first['editions'] >= 4, first
+          assert first['questions'] >= 370, first
+          assert first['completeStructure'] > 0, first
+
+          assert second['editions'] == first['editions']
+          assert second['failures'] == first['failures']
           assert second['extractionCacheHits'] == first['editions'], (
               second['extractionCacheHits'], first['editions']
           )
@@ -72,6 +82,7 @@ jobs:
           )
           assert second['questions'] == first['questions']
           assert second['completeStructure'] == first['completeStructure']
+          assert second['mediaAssets'] == first['mediaAssets']
 
           print('FIRST_PASS=' + json.dumps(first, ensure_ascii=False))
           print('SECOND_PASS=' + json.dumps(second, ensure_ascii=False))
