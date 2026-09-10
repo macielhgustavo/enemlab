@@ -1,15 +1,22 @@
 // Revisão espaçada (portada do v6).
 import { SRS_INTERVALS } from "./constants";
 import { DEFAULT_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers/registry";
+import { shouldReinforceSRSFromStudentAI } from "./ai-assistance";
 import type { Attempt, DB, ResultRow, SrsEntry } from "./types";
+
+const AI_REINFORCEMENT_DAYS = 2;
 
 // Atualiza a fila SRS a partir de uma linha corrigida (muta db.srs).
 export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
   if (!row.correct) return;
   const k = row.key;
   const existing = db.srs[k];
-  // Acerto na primeira exposição não entra na fila.
-  if (row.isCorrect && !existing) return;
+  const reinforceFromAI =
+    row.isCorrect === true && shouldReinforceSRSFromStudentAI(a.aiAssistance?.[k]);
+
+  // Acerto na primeira exposição não entra na fila, exceto quando a própria
+  // tentativa traz dupla evidência de que o acerto ainda precisa ser validado.
+  if (row.isCorrect && !existing && !reinforceFromAI) return;
   const old: SrsEntry = existing || {
     reps: 0,
     interval: 0,
@@ -22,9 +29,16 @@ export function updateSRS(db: DB, row: ResultRow, a: Attempt): void {
     discipline: row.area,
   };
   if (row.isCorrect) {
-    old.reps = (old.reps || 0) + 1;
-    old.interval = SRS_INTERVALS[Math.min(old.reps, 5)];
-    old.due = new Date(Date.now() + old.interval * 86400000).toISOString();
+    if (reinforceFromAI) {
+      // O LLM não "marca erro" nem zera progresso: apenas impede alongar o
+      // intervalo nesta passagem e agenda uma confirmação curta sem inferir causalidade.
+      old.interval = AI_REINFORCEMENT_DAYS;
+      old.due = new Date(Date.now() + AI_REINFORCEMENT_DAYS * 86400000).toISOString();
+    } else {
+      old.reps = (old.reps || 0) + 1;
+      old.interval = SRS_INTERVALS[Math.min(old.reps, 5)];
+      old.due = new Date(Date.now() + old.interval * 86400000).toISOString();
+    }
   } else {
     old.reps = 0;
     old.interval = 0;
