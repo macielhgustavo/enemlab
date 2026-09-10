@@ -120,6 +120,46 @@ class FuvestRegionalOcrRecoveryTest(unittest.TestCase):
                 [labels[0], {**labels[1], "number": 3}], {2: (595.0, 842.0)}, 2
             )
 
+    def test_geometry_carries_question_into_next_column_until_next_label(self):
+        labels = [
+            {"number": 1, "page": 2, "x0": 55.0, "y0": 700.0},
+            {"number": 2, "page": 2, "x0": 316.0, "y0": 180.0},
+        ]
+        regions = MODULE["build_question_regions"](
+            labels, {2: (595.0, 842.0)}, 2
+        )
+        self.assertEqual(len(regions[0]["segments"]), 2)
+        continuation = regions[0]["segments"][1]
+        self.assertEqual(continuation["column"], "R")
+        self.assertEqual(continuation["page"], 2)
+        self.assertEqual(continuation["bbox"][1], MODULE["CONTENT_TOP_PT"])
+        self.assertLess(continuation["bbox"][3], 180.0)
+
+    def test_geometry_carries_right_column_question_to_next_page(self):
+        labels = [
+            {"number": 1, "page": 2, "x0": 316.0, "y0": 700.0},
+            {"number": 2, "page": 3, "x0": 55.0, "y0": 200.0},
+        ]
+        regions = MODULE["build_question_regions"](
+            labels,
+            {2: (595.0, 842.0), 3: (595.0, 842.0)},
+            2,
+        )
+        self.assertEqual(len(regions[0]["segments"]), 2)
+        continuation = regions[0]["segments"][1]
+        self.assertEqual((continuation["page"], continuation["column"]), (3, "L"))
+        self.assertEqual(continuation["bbox"][1], MODULE["CONTENT_TOP_PT"])
+        self.assertLess(continuation["bbox"][3], 200.0)
+
+    def test_final_left_question_may_continue_into_right_column(self):
+        regions = MODULE["build_question_regions"](
+            [{"number": 1, "page": 2, "x0": 55.0, "y0": 700.0}],
+            {2: (595.0, 842.0)},
+            1,
+        )
+        self.assertEqual(len(regions[0]["segments"]), 2)
+        self.assertEqual(regions[0]["segments"][1]["column"], "R")
+
     def test_layout_profiles_are_explicit_and_filter_label_geometry(self):
         profile_2016 = MODULE["layout_profile"](2016)
         profile_2017 = MODULE["layout_profile"](2017)
