@@ -166,6 +166,11 @@ def parse_ocr_candidate(text: str, question_number: int) -> dict[str, Any]:
         lines = lines[1:]
 
     statement, alternatives, context = BASE["parse_alternatives"](lines)
+    detected_letters = []
+    for line in lines:
+        match = BASE["ALTERNATIVE_RE"].match(line)
+        if match:
+            detected_letters.append((match.group(1) or match.group(2)).upper())
     complete = bool(statement.strip()) and alternatives is not None and [
         alternative.get("id") for alternative in alternatives
     ] == list(LETTERS) and all(alternative.get("text") for alternative in alternatives)
@@ -176,6 +181,7 @@ def parse_ocr_candidate(text: str, question_number: int) -> dict[str, Any]:
         "context": context,
         "complete": complete,
         "markers": BASE["alternative_marker_count"](lines),
+        "detectedLetters": detected_letters,
         "alphaCharacters": sum(character.isalpha() for character in text),
         "needsMedia": BASE["media_reference"]("\n".join(lines)),
         "ocrTextSha256": sha256_bytes(text.encode("utf-8")),
@@ -188,6 +194,49 @@ def candidate_score(candidate: dict[str, Any]) -> tuple[int, int, int]:
         min(int(candidate.get("markers", 0)), len(LETTERS)),
         int(candidate.get("alphaCharacters", 0)),
     )
+
+
+def structural_failure_reason(candidate: dict[str, Any]) -> str | None:
+    if candidate.get("complete"):
+        return None
+    if not str(candidate.get("statement") or "").strip():
+        return "missing-statement"
+
+    alternatives = candidate.get("alternatives")
+    detected = list(candidate.get("detectedLetters", []))
+    if alternatives is None:
+        if not detected:
+            return "no-alternative-markers"
+        if len(detected) < len(LETTERS):
+            return "incomplete-alternative-sequence"
+        return "invalid-alternative-sequence"
+
+    if [item.get("id") for item in alternatives] != list(LETTERS):
+        return "alternative-order-mismatch"
+    if not all(str(item.get("text") or "").strip() for item in alternatives):
+        return "empty-alternative-content"
+    return "incomplete-structure"
+
+
+def crop_dimensions(
+    segments: list[dict[str, Any]], render_scale: float,
+) -> dict[str, Any]:
+    return {
+        "renderScale": render_scale,
+        "segments": [
+            {
+                "page": int(segment["page"]),
+                "column": str(segment["column"]),
+                "widthPoints": round(
+                    float(segment["bbox"][2]) - float(segment["bbox"][0]), 3
+                ),
+                "heightPoints": round(
+                    float(segment["bbox"][3]) - float(segment["bbox"][1]), 3
+                ),
+            }
+            for segment in segments
+        ],
+    }
 
 
 def select_best_candidate(
@@ -425,6 +474,23 @@ def ocr_question_regions(
                     "selectedMode": selected_mode,
                     "structurallyComplete": bool(selected["complete"]),
                     "ocrTextSha256": selected["ocrTextSha256"],
+                    "markerCount": int(selected.get("markers", 0)),
+                    "detectedLetters": list(selected.get("detectedLetters", [])),
+                    "alphaCharacters": int(selected.get("alphaCharacters", 0)),
+                    "segmentCount": 1,
+                    "continuationUsed": False,
+                    "cropDimensions": crop_dimensions(
+                        [
+                            {
+                                "page": int(region["page"]),
+                                "column": str(region["column"]),
+                                "bbox": list(region["bbox"]),
+                            }
+                        ],
+                        3,
+                    ),
+                    "bestScore": list(candidate_score(selected)),
+                    "structuralFailureReason": structural_failure_reason(selected),
                 }
             )
             if selected["complete"]:

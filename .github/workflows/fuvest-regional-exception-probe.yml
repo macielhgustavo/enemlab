@@ -11,35 +11,125 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install PDF dependencies
-        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5'
-      - name: Probe reviewed label geometry only
+      - name: Install OCR dependencies
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
+          python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
+      - name: Test regional recovery gates
+        run: |
+          python -m unittest scripts.tests.test_recover_fuvest_region_ocr
+          python -m unittest scripts.tests.test_recover_fuvest_label_repair
+          python -m unittest scripts.tests.test_recover_fuvest_visual_alternatives
+      - name: Benchmark continuation and probe remaining visual labels
+        run: |
+          rm -rf /tmp/enemlab-exception-probe
+          mkdir -p /tmp/enemlab-exception-probe
+          python scripts/fuvest-batch-lab.py \
+            --years 2016,2017,2021 \
+            --concurrency 3 \
+            --ocr-concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-exception-probe/cache \
+            --output /tmp/enemlab-exception-probe/summary.json
           python - <<'PY'
+          import csv
+          import io
           import json
+          import re
           import runpy
+          import tempfile
+          from pathlib import Path
 
-          module = runpy.run_path('scripts/recover-fuvest-region-ocr.py')
-          base = module['BASE']
+          regional = runpy.run_path('scripts/recover-fuvest-region-ocr.py')
+          visual = runpy.run_path('scripts/recover-fuvest-visual-alternatives.py')
+          base = regional['BASE']
           manifest = base['load_manifest']()
-          entry, exam_bytes, _, _ = base['load_year_documents'](2021, manifest)
-          regions = module['discover_question_regions'](exam_bytes, int(entry['total']), 2021)
-          by_number = {int(item['number']): item for item in regions}
-          out = []
-          for number in range(40, 47):
-              item = by_number[number]
-              out.append({
-                  'number': number,
-                  'page': item['page'],
-                  'column': item['column'],
-                  'bbox': item['bbox'],
-                  'segments': item.get('segments', []),
-              })
-          print(json.dumps(out, ensure_ascii=False))
+          cache_root = Path('/tmp/enemlab-exception-probe/cache/extraction')
+          asset_root = Path('/tmp/enemlab-exception-probe/assets')
+          safe_label = re.compile(r'^[\(\[\{]?[A-Ea-e](?:[\)\]\}\.\:,;|IJj1])?$')
+          aggregate = json.loads(
+              Path('/tmp/enemlab-exception-probe/summary.json').read_text()
+          )
+          print(json.dumps({
+              'completeStructure': aggregate['completeStructure'],
+              'regionalApplied': aggregate['regionalRecoveryAppliedQuestions'],
+              'regionalUnresolved': aggregate['regionalRecoveryUnresolvedQuestions'],
+          }, ensure_ascii=False))
+
+          for year in (2016, 2017, 2021):
+              files = list((cache_root / str(year)).glob('*.json'))
+              assert len(files) == 1, (year, files)
+              envelope = json.loads(files[0].read_text())
+              entry, exam_bytes, key_bytes, _ = base['load_year_documents'](year, manifest)
+              region_report = envelope['regionalContentRecovery']
+              unresolved = set(region_report['unresolvedQuestions'])
+              diagnostics = [
+                  item for item in region_report['regions']
+                  if int(item['questionNumber']) in unresolved
+              ]
+              print(json.dumps({
+                  'year': year,
+                  'unresolvedDiagnostics': diagnostics,
+              }, ensure_ascii=False))
+
+              recovered, visual_report = visual['recover_visual_alternatives'](
+                  envelope,
+                  entry,
+                  exam_bytes,
+                  key_bytes,
+                  asset_root / str(year),
+                  f'/ingestion-media/fuvest/{year}/visual-alternatives',
+              )
+              print(json.dumps({
+                  'year': year,
+                  'visualApplied': visual_report.get('appliedQuestions', []),
+                  'visualUnresolved': visual_report.get('unresolvedQuestions', []),
+                  'afterVisual': base['metrics'](recovered)['structurallyComplete'],
+              }, ensure_ascii=False))
+
+              regions = regional['discover_question_regions'](
+                  exam_bytes, int(entry['total']), year
+              )
+              by_number = {int(item['number']): item for item in regions}
+              language, unavailable = regional['tesseract_language']()
+              assert not unavailable and language
+              import pymupdf
+              document = pymupdf.open(stream=exam_bytes, filetype='pdf')
+              try:
+                  with tempfile.TemporaryDirectory() as directory:
+                      for number in visual_report.get('unresolvedQuestions', []):
+                          region = by_number[int(number)]
+                          primary = (region.get('segments') or [region])[0]
+                          path = Path(directory) / f'q{number:03d}.png'
+                          regional['_render_segment'](document, primary, path)
+                          tsv = visual['_run_tsv']('tesseract', path, language)
+                          candidates = []
+                          for row in csv.DictReader(io.StringIO(tsv), delimiter='\t'):
+                              token = str(row.get('text') or '').strip()
+                              if not safe_label.fullmatch(token):
+                                  continue
+                              candidates.append({
+                                  'token': token,
+                                  'confidence': float(row.get('conf') or -1),
+                                  'x': int(row.get('left') or 0),
+                                  'y': int(row.get('top') or 0),
+                                  'w': int(row.get('width') or 0),
+                                  'h': int(row.get('height') or 0),
+                              })
+                          strict = visual['parse_tsv_labels'](tsv)
+                          print(json.dumps({
+                              'year': year,
+                              'questionNumber': number,
+                              'rawLabelCandidates': candidates,
+                              'strictLabels': strict,
+                          }, ensure_ascii=False))
+              finally:
+                  document.close()
           PY

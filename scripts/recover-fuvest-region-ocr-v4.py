@@ -39,7 +39,7 @@ for _name, _value in V3.items():
 
 BASE = V3["BASE"]
 WORKER_NAME = V3["WORKER_NAME"]
-WORKER_VERSION = "fuvest-regional-content-ocr@0.4.0"
+WORKER_VERSION = "fuvest-regional-content-ocr@0.4.1"
 OCR_MODES = tuple(V3["OCR_MODES"])
 LETTERS = tuple(V3["LETTERS"])
 
@@ -119,6 +119,7 @@ def parse_ocr_candidate_with_label_repair(text: str, question_number: int) -> di
         "context": BASE["join_wrapped"](context_lines) or None,
         "complete": True,
         "markers": len(LETTERS),
+        "detectedLetters": observed,
         "alphaCharacters": sum(character.isalpha() for character in text),
         "needsMedia": BASE["media_reference"]("\n".join(lines)),
         "ocrTextSha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
@@ -188,6 +189,16 @@ def _label_repair_pass(
                     "labelRepairObserved": list(best.get("labelRepairObserved", [])),
                     "labelRepairPositionalMatches": int(best.get("labelRepairPositionalMatches", 0)),
                     "labelRepairTextSha256": best.get("ocrTextSha256"),
+                    "labelRepairMarkerCount": int(best.get("markers", 0)),
+                    "labelRepairDetectedLetters": list(best.get("detectedLetters", [])),
+                    "labelRepairAlphaCharacters": int(best.get("alphaCharacters", 0)),
+                    "labelRepairBestScore": list(V3["candidate_score"](best)),
+                    "labelRepairStructuralFailureReason": V3[
+                        "structural_failure_reason"
+                    ](best),
+                    "labelRepairCropDimensions": V3["crop_dimensions"](
+                        [primary], 3.0
+                    ),
                 }
                 if best.get("complete") and best.get("labelRepair"):
                     best["ocrMode"] = best_mode
@@ -222,7 +233,38 @@ def ocr_question_regions(
     by_report = {int(item.get("questionNumber", 0)): item for item in region_reports}
     for number, extension in label_reports.items():
         if number in by_report:
-            by_report[number].update(extension)
+            current = by_report[number]
+            current.update(extension)
+            if tuple(extension.get("labelRepairBestScore", ())) > tuple(
+                current.get("bestScore", ())
+            ):
+                current.update(
+                    {
+                        "selectedMode": extension.get("labelRepairMode"),
+                        "structurallyComplete": bool(
+                            extension.get("labelRepairRecovered")
+                        ),
+                        "ocrTextSha256": extension.get("labelRepairTextSha256"),
+                        "markerCount": int(extension.get("labelRepairMarkerCount", 0)),
+                        "detectedLetters": list(
+                            extension.get("labelRepairDetectedLetters", [])
+                        ),
+                        "alphaCharacters": int(
+                            extension.get("labelRepairAlphaCharacters", 0)
+                        ),
+                        "segmentCount": 1,
+                        "continuationUsed": False,
+                        "cropDimensions": copy.deepcopy(
+                            extension.get("labelRepairCropDimensions")
+                        ),
+                        "bestScore": list(
+                            extension.get("labelRepairBestScore", [])
+                        ),
+                        "structuralFailureReason": extension.get(
+                            "labelRepairStructuralFailureReason"
+                        ),
+                    }
+                )
         else:
             region_reports.append({"questionNumber": number, **copy.deepcopy(extension)})
 

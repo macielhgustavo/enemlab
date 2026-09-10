@@ -32,7 +32,7 @@ CORE = runpy.run_path(
 BASE = CORE["BASE"]
 
 WORKER_NAME = CORE["WORKER_NAME"]
-WORKER_VERSION = "fuvest-regional-content-ocr@0.3.1"
+WORKER_VERSION = "fuvest-regional-content-ocr@0.3.2"
 DEFAULT_YEAR = CORE["DEFAULT_YEAR"]
 OCR_MODES = tuple(CORE["OCR_MODES"])
 LETTERS = tuple(CORE["LETTERS"])
@@ -48,6 +48,8 @@ candidate_score = CORE["candidate_score"]
 select_best_candidate = CORE["select_best_candidate"]
 validate_question_labels = CORE["validate_question_labels"]
 tesseract_language = CORE["tesseract_language"]
+crop_dimensions = CORE["crop_dimensions"]
+structural_failure_reason = CORE["structural_failure_reason"]
 
 CONTENT_TOP_PT = 32.0
 CONTENT_BOTTOM_TRIGGER_PT = 795.0
@@ -115,6 +117,23 @@ def _add_conservative_continuations(
             if current_column == "L" and next_page == current_page and next_column == "R":
                 continuation = _make_continuation_segment(
                     current_page, "R", page_sizes, next_start
+                )
+            elif (
+                current_column == "L"
+                and next_page == current_page + 1
+                and next_column == "L"
+            ):
+                # Some reviewed two-column pages finish a question in the left
+                # column and reserve the entire right column for its continuation.
+                # The next official identity therefore starts on the following
+                # page. This is only an optional second OCR pass; primary geometry
+                # remains untouched and incomplete output is still rejected.
+                _, height = page_sizes[current_page]
+                continuation = _make_continuation_segment(
+                    current_page,
+                    "R",
+                    page_sizes,
+                    min(height - 30.0, CONTENT_BOTTOM_CAP_PT),
                 )
             elif current_column == "R" and next_page == current_page + 1 and next_column == "L":
                 continuation = _make_continuation_segment(
@@ -274,8 +293,12 @@ def _continuation_pass(
                     "segmentCount": len(segments),
                     "segments": copy.deepcopy(segments),
                     "continuationMarkerCount": int(best.get("markers", 0)),
+                    "continuationDetectedLetters": list(best.get("detectedLetters", [])),
                     "continuationAlphaCharacters": int(best.get("alphaCharacters", 0)),
                     "continuationTextSha256": best["ocrTextSha256"],
+                    "continuationBestScore": list(candidate_score(best)),
+                    "continuationStructuralFailureReason": structural_failure_reason(best),
+                    "continuationCropDimensions": crop_dimensions(segments, 3.0),
                 }
                 if best["complete"]:
                     best["ocrMode"] = best_mode
@@ -337,7 +360,40 @@ def ocr_question_regions(
     by_report = {int(item.get("questionNumber", 0)): item for item in region_reports}
     for number, extension in continuation_reports.items():
         if number in by_report:
-            by_report[number].update(extension)
+            current = by_report[number]
+            current.update(extension)
+            if tuple(extension.get("continuationBestScore", ())) > tuple(
+                current.get("bestScore", ())
+            ):
+                current.update(
+                    {
+                        "selectedMode": extension.get("continuationMode"),
+                        "structurallyComplete": bool(
+                            extension.get("continuationRecovered")
+                        ),
+                        "ocrTextSha256": extension.get("continuationTextSha256"),
+                        "markerCount": int(
+                            extension.get("continuationMarkerCount", 0)
+                        ),
+                        "detectedLetters": list(
+                            extension.get("continuationDetectedLetters", [])
+                        ),
+                        "alphaCharacters": int(
+                            extension.get("continuationAlphaCharacters", 0)
+                        ),
+                        "segmentCount": int(extension.get("segmentCount", 1)),
+                        "continuationUsed": True,
+                        "cropDimensions": copy.deepcopy(
+                            extension.get("continuationCropDimensions")
+                        ),
+                        "bestScore": list(
+                            extension.get("continuationBestScore", [])
+                        ),
+                        "structuralFailureReason": extension.get(
+                            "continuationStructuralFailureReason"
+                        ),
+                    }
+                )
         else:
             region_reports.append({"questionNumber": number, **copy.deepcopy(extension)})
 

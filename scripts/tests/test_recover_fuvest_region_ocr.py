@@ -101,7 +101,12 @@ class FuvestRegionalOcrRecoveryTest(unittest.TestCase):
         )
         self.assertTrue(complete["complete"])
         self.assertEqual([item["id"] for item in complete["alternatives"]], list("ABCDE"))
+        self.assertEqual(complete["detectedLetters"], list("ABCDE"))
         self.assertFalse(incomplete["complete"])
+        self.assertEqual(
+            MODULE["structural_failure_reason"](incomplete),
+            "incomplete-alternative-sequence",
+        )
 
     def test_geometry_requires_exact_question_identity_sequence(self):
         labels = [
@@ -150,6 +155,21 @@ class FuvestRegionalOcrRecoveryTest(unittest.TestCase):
         self.assertEqual((continuation["page"], continuation["column"]), (3, "L"))
         self.assertEqual(continuation["bbox"][1], MODULE["CONTENT_TOP_PT"])
         self.assertLess(continuation["bbox"][3], 200.0)
+
+    def test_geometry_carries_bottom_left_question_across_empty_right_column(self):
+        regions = MODULE["build_question_regions"](
+            [
+                {"number": 1, "page": 2, "x0": 55.0, "y0": 700.0},
+                {"number": 2, "page": 3, "x0": 55.0, "y0": 200.0},
+            ],
+            {2: (595.0, 842.0), 3: (595.0, 842.0)},
+            2,
+        )
+        self.assertEqual(len(regions[0]["segments"]), 2)
+        continuation = regions[0]["segments"][1]
+        self.assertEqual((continuation["page"], continuation["column"]), (2, "R"))
+        self.assertEqual(continuation["bbox"][1], MODULE["CONTENT_TOP_PT"])
+        self.assertGreater(continuation["bbox"][3], 790.0)
 
     def test_final_left_question_may_continue_into_right_column(self):
         regions = MODULE["build_question_regions"](
