@@ -38,8 +38,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pt-BR" data-theme="dark" className={inter.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+        {!authenticated && <link rel="preconnect" href="https://fonts.googleapis.com" />}
+        {!authenticated && (
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        )}
+        {!authenticated && (
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap"
+          />
+        )}
       </head>
-      <body suppressHydrationWarning>
+      <body className={authenticated ? undefined : "public-shell"} suppressHydrationWarning>
         <Providers>{authenticated ? <AppShell>{children}</AppShell> : children}</Providers>
       </body>
     </html>
