@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/exception-cluster-benchmark.yml"
       - "scripts/inspect-fuvest-font-glyphs.py"
+      - "scripts/recover-fuvest-font-map.py"
 
 permissions:
   contents: read
@@ -22,8 +23,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install parser dependency
-        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
+      - name: Install parser dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
 
       - name: Inspect suspicious glyph sources
         run: |
@@ -47,10 +48,38 @@ jobs:
           assert compact['observations'] > 0
           PY
 
-      - name: Upload glyph diagnostic report
+      - name: Prove embedded-font mappings on 2014-2015
+        run: |
+          python scripts/recover-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-report.json
+          python - <<'PY'
+          import json
+          report = json.load(open('/tmp/font-map-report.json', encoding='utf-8'))
+          print('FONT_MAP_REPORT=' + json.dumps({
+              'editions': report['editions'],
+              'resolvedOccurrences': report['resolvedOccurrences'],
+              'unresolvedOccurrences': report['unresolvedOccurrences'],
+              'parserClosedEditions': report['parserClosedEditions'],
+              'provenMappings': report['provenMappings'][:20],
+              'results': [{
+                  'year': item['year'],
+                  'resolvedOccurrences': item['resolvedOccurrences'],
+                  'unresolvedOccurrences': item['unresolvedOccurrences'],
+                  'parserClosed': item['parserClosed'],
+                  'questions': item['questions'],
+                  'semanticIssues': item['semanticIssues'],
+              } for item in report['results']],
+          }, ensure_ascii=True))
+          assert report['editions'] == 2
+          assert not report['failures'], report['failures']
+          assert report['resolvedOccurrences'] > 0, 'expected at least one font-proven repair'
+          PY
+
+      - name: Upload diagnostic reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fuvest-font-glyph-report
-          path: /tmp/glyph-report.json
+          name: fuvest-font-diagnostic-reports
+          path: |
+            /tmp/glyph-report.json
+            /tmp/font-map-report.json
           retention-days: 3
