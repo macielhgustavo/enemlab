@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BookOpenCheck,
+  ArrowUpRight,
   BrainCircuit,
+  ChevronRight,
   CircleHelp,
-  Focus,
+  Layers3,
   Lightbulb,
   MessageCircle,
+  Pin,
   Route,
   ScanText,
   Send,
@@ -30,119 +32,82 @@ interface StudentAITutorProps {
   onAssistance?: (response: AIResponse) => void;
 }
 
-type AssistanceSurface = "rail" | "selection";
-
-type FloatingAnchor = {
-  left: number;
-  top: number;
-  text?: string;
-};
-
-const QUICK_ACTIONS: Array<{
-  mode: AIAssistanceMode;
-  label: string;
-  description: string;
-  icon: typeof Lightbulb;
-  requiresSelection?: boolean;
-}> = [
-  {
-    mode: "hint",
-    label: "Pista",
-    description: "Só a direção necessária para continuar.",
-    icon: Lightbulb,
-  },
-  {
-    mode: "explain",
-    label: "Explicar",
-    description: "Desmonta a questão sem transformar tudo em gabarito.",
-    icon: BookOpenCheck,
-  },
-  {
-    mode: "guided-solve",
-    label: "Resolver comigo",
-    description: "Avança por etapas e pede seu raciocínio no caminho.",
-    icon: Route,
-  },
-  {
-    mode: "study-needed",
-    label: "O que revisar",
-    description: "Mostra o conceito que está por trás desta questão.",
-    icon: Sparkles,
-  },
-  {
-    mode: "why-wrong",
-    label: "Diagnosticar escolha",
-    description: "Levanta uma hipótese para o desvio no seu raciocínio.",
-    icon: CircleHelp,
-    requiresSelection: true,
-  },
-  {
-    mode: "explain-alternative",
-    label: "Ler minha alternativa",
-    description: "Analisa exatamente a alternativa que você marcou.",
-    icon: Target,
-    requiresSelection: true,
-  },
-];
-
-const ASSISTANCE_STAGES: Array<{
+type Stage = {
   level: AIAssistanceLevel;
   label: string;
-  short: string;
+  description: string;
   mode: AIAssistanceMode;
-  prompt: string;
-}> = [
+  message: string;
+  icon: typeof Lightbulb;
+};
+
+type FloatingAnchor = {
+  top: number;
+  left: number;
+};
+
+type SelectionAnchor = FloatingAnchor & {
+  text: string;
+};
+
+const STAGES: Stage[] = [
   {
     level: 1,
     label: "Orientação",
-    short: "Direção inicial",
+    description: "Uma direção mínima para destravar o raciocínio.",
     mode: "hint",
-    prompt: "Dê apenas uma orientação inicial, sem revelar o caminho completo.",
+    message: "Dê apenas uma orientação inicial, sem revelar o caminho completo nem a resposta.",
+    icon: Lightbulb,
   },
   {
     level: 2,
     label: "Leitura",
-    short: "Entender o pedido",
+    description: "Separe o pedido, as condições e os dados relevantes.",
     mode: "explain",
-    prompt: "Ajude a interpretar o enunciado e o que a questão realmente pede.",
+    message: "Ajude-me a interpretar o enunciado: identifique o objetivo, as condições e os dados relevantes, sem resolver.",
+    icon: ScanText,
   },
   {
     level: 3,
     label: "Conceito",
-    short: "Conectar a teoria",
+    description: "Conecte a questão ao conhecimento necessário.",
     mode: "explain",
-    prompt: "Mostre o conceito central necessário e como reconhecê-lo nesta questão.",
+    message: "Mostre qual conceito preciso reconhecer aqui e como ele se conecta ao enunciado, sem resolver a questão.",
+    icon: BrainCircuit,
   },
   {
     level: 4,
     label: "Estratégia",
-    short: "Escolher o caminho",
-    mode: "guided-solve",
-    prompt: "Ajude a escolher a estratégia de resolução, sem concluir por mim.",
+    description: "Escolha um caminho de resolução antes de executar.",
+    mode: "explain",
+    message: "Ajude-me a montar uma estratégia de resolução e explique por que ela funciona, sem revelar o gabarito.",
+    icon: Target,
   },
   {
     level: 5,
-    label: "Desenvolvimento",
-    short: "Executar comigo",
+    label: "Resolução guiada",
+    description: "Avance por etapas preservando minha participação.",
     mode: "guided-solve",
-    prompt: "Conduza o desenvolvimento passo a passo e pare antes da resposta final quando possível.",
+    message: "Resolva comigo passo a passo, parando no próximo movimento útil para eu continuar participando.",
+    icon: Route,
   },
   {
     level: 6,
     label: "Resolução",
-    short: "Ver a solução completa",
+    description: "Mostre a solução completa quando eu decidir chegar até aqui.",
     mode: "guided-solve",
-    prompt: "Quero a resolução completa desta questão, com justificativa do resultado final.",
+    message: "Quero a resolução completa desta questão, com justificativa do caminho e da resposta.",
+    icon: Layers3,
   },
 ];
 
-const DIAGNOSTIC_LABELS: Record<string, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   "content-gap": "lacuna de conteúdo",
   interpretation: "interpretação",
   calculation: "cálculo",
   strategy: "estratégia",
   attention: "atenção",
-  unknown: "padrão ainda incerto",
+  unknown: "origem incerta",
 };
 
 const CONFIDENCE_LABELS: Record<string, string> = {
@@ -151,35 +116,19 @@ const CONFIDENCE_LABELS: Record<string, string> = {
   high: "alta",
 };
 
-function actionMessage(mode: AIAssistanceMode): string {
-  const labels: Record<AIAssistanceMode, string> = {
-    hint: "Me dê uma pista.",
-    explain: "Explique essa questão.",
-    "guided-solve": "Resolva comigo, sem pular etapas.",
-    "why-wrong": "Analise a alternativa que marquei e diagnostique onde meu raciocínio pode ter desviado.",
-    "explain-alternative": "Explique a alternativa que eu marquei e o papel dela nesta questão.",
-    "study-needed": "O que preciso estudar para resolver isso?",
-    "similar-question": "Crie uma questão parecida.",
-    chat: "",
-  };
-  return labels[mode];
+function responseText(response: AIResponse): string {
+  return `${response.title}\n${response.explanation}\n${response.nextStep}`;
 }
 
-function elementFromNode(node: Node | null): HTMLElement | null {
-  if (!node) return null;
-  if (node instanceof HTMLElement) return node;
-  return node.parentElement;
+function clampPopoverLeft(rawLeft: number, width = 390): number {
+  if (typeof window === "undefined") return rawLeft;
+  const availableWidth = Math.min(width, window.innerWidth - 24);
+  return Math.max(12, Math.min(rawLeft, window.innerWidth - availableWidth - 12));
 }
 
-function clampPopoverLeft(left: number, width: number): number {
-  if (typeof window === "undefined") return left;
-  return Math.max(12, Math.min(left, window.innerWidth - width - 12));
-}
-
-function responseProviderLabel(response: AIResponse): string {
-  if (response.fallbackFrom) return "modo de contingência";
-  if (response.provider === "mock") return "simulação local";
-  return "modelo ativo";
+function clampPopoverTop(rawTop: number, height = 210): number {
+  if (typeof window === "undefined") return rawTop;
+  return Math.max(12, Math.min(rawTop, window.innerHeight - height - 12));
 }
 
 export default function StudentAITutor({
@@ -187,22 +136,24 @@ export default function StudentAITutor({
   student,
   onAssistance,
 }: StudentAITutorProps) {
-  const [activated, setActivated] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [active, setActive] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [input, setInput] = useState("");
-  const [responses, setResponses] = useState<AIResponse[]>([]);
+  const [latest, setLatest] = useState<AIResponse | null>(null);
   const [conversation, setConversation] = useState<AIConversationTurn[]>([]);
-  const [visibleResponse, setVisibleResponse] = useState<AIResponse | null>(null);
+  const [railAnchor, setRailAnchor] = useState({ left: 24, top: 104 });
+  const [selectionAnchor, setSelectionAnchor] = useState<SelectionAnchor | null>(null);
   const [selectionResponse, setSelectionResponse] = useState<AIResponse | null>(null);
-  const [selectionAnchor, setSelectionAnchor] = useState<FloatingAnchor | null>(null);
+  const [selectionBusy, setSelectionBusy] = useState(false);
+  const [selectionPinned, setSelectionPinned] = useState(false);
   const [diagnosticAnchor, setDiagnosticAnchor] = useState<FloatingAnchor | null>(null);
   const [diagnosticFor, setDiagnosticFor] = useState<string | null>(null);
-  const [railAnchor, setRailAnchor] = useState({ left: 24, top: 104 });
+  const lastSelection = useRef("");
+  const selectionRequest = useRef(0);
 
-  const latest = responses[responses.length - 1];
   const selected = question.selectedAnswer || null;
   const storedLevel = student.currentQuestionAssistance?.maxLevel || 0;
   const currentLevel = Math.max(storedLevel, latest?.level || 0);
@@ -221,15 +172,11 @@ export default function StudentAITutor({
 
     const contentRect = content.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
-    const available = Math.max(0, cardRect.right - contentRect.right);
-    const desiredLeft =
-      available >= 72
-        ? contentRect.right + Math.min(34, Math.max(16, available - 52))
-        : cardRect.right - 46;
+    const desiredLeft = Math.min(cardRect.right - 46, contentRect.right + 18);
 
     setRailAnchor({
       left: Math.max(12, Math.min(desiredLeft, window.innerWidth - 54)),
-      top: Math.max(92, Math.min(contentRect.top + 8, window.innerHeight - 380)),
+      top: Math.max(86, Math.min(contentRect.top + 92, window.innerHeight - 390)),
     });
   }, []);
 
@@ -246,135 +193,169 @@ export default function StudentAITutor({
 
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.studentAi = activated ? "active" : "idle";
+    root.dataset.studentAi = active ? "active" : "idle";
     return () => {
       delete root.dataset.studentAi;
     };
-  }, [activated]);
+  }, [active]);
+
+  const requestTutor = useCallback(
+    async ({
+      mode,
+      message,
+      requestedLevel,
+      turns,
+    }: {
+      mode: AIAssistanceMode;
+      message?: string;
+      requestedLevel?: AIAssistanceLevel;
+      turns?: AIConversationTurn[];
+    }): Promise<AIResponse> => {
+      const response = await fetch("/api/ai/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          question,
+          student,
+          message: message?.trim() || undefined,
+          requestedLevel,
+          selectedAlternative: selected,
+          conversation: turns?.slice(-10),
+        }),
+      });
+      const body = (await response.json()) as AIResponse | { error?: string };
+      if (!response.ok) {
+        throw new Error(
+          "error" in body && body.error ? body.error : "Falha ao consultar o tutor.",
+        );
+      }
+      const ai = body as AIResponse;
+      onAssistance?.(ai);
+      return ai;
+    },
+    [onAssistance, question, selected, student],
+  );
 
   const ask = useCallback(
-    async (
-      mode: AIAssistanceMode,
-      message?: string,
-      requestedLevel?: AIAssistanceLevel,
-      surface: AssistanceSurface = "rail",
-    ): Promise<AIResponse | null> => {
-      const cleanMessage = message?.trim();
-      if (mode === "chat" && !cleanMessage) return null;
-      if (busy) return null;
-
-      setActivated(true);
+    async (mode: AIAssistanceMode, message: string, requestedLevel?: AIAssistanceLevel) => {
+      const cleanMessage = message.trim();
+      if (!cleanMessage || busy) return;
       setBusy(true);
       setError("");
+      setWorkspaceOpen(true);
 
-      const userContent = cleanMessage || actionMessage(mode);
-      const userTurn: AIConversationTurn = { role: "user", content: userContent };
+      const userTurn: AIConversationTurn = { role: "user", content: cleanMessage };
       const nextConversation = [...conversation, userTurn].slice(-10);
 
       try {
-        const response = await fetch("/api/ai/tutor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode,
-            question,
-            student,
-            message: cleanMessage,
-            selectedAlternative: selected,
-            requestedLevel,
-            conversation: nextConversation,
-          }),
+        const ai = await requestTutor({
+          mode,
+          message: cleanMessage,
+          requestedLevel,
+          turns: nextConversation,
         });
-        const body = (await response.json()) as AIResponse | { error?: string };
-        if (!response.ok) {
-          throw new Error(
-            "error" in body && body.error ? body.error : "Falha ao consultar o tutor.",
-          );
-        }
-
-        const ai = body as AIResponse;
         const assistantTurn: AIConversationTurn = {
           role: "assistant",
-          content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}`,
+          content: responseText(ai),
         };
-        onAssistance?.(ai);
-        setResponses((current) => [...current, ai].slice(-8));
+        setLatest(ai);
         setConversation([...nextConversation, assistantTurn].slice(-10));
         setInput("");
-
-        if (surface === "selection") {
-          setSelectionResponse(ai);
+        if (ai.diagnostic && selected) {
+          setDiagnosticFor(selected);
         } else {
-          setVisibleResponse(ai);
-          setMenuOpen(false);
-          if (ai.diagnostic && selected) {
-            setDiagnosticFor(selected);
-          } else {
-            setDiagnosticFor(null);
-            setDiagnosticAnchor(null);
-          }
+          setDiagnosticFor(null);
+          setDiagnosticAnchor(null);
         }
-        return ai;
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Falha ao consultar o tutor.");
-        return null;
       } finally {
         setBusy(false);
       }
     },
-    [busy, conversation, onAssistance, question, selected, student],
+    [busy, conversation, requestTutor, selected],
+  );
+
+  const analyzeSelection = useCallback(
+    async (text: string, level: AIAssistanceLevel = 2) => {
+      const requestId = ++selectionRequest.current;
+      setSelectionBusy(true);
+      setSelectionResponse(null);
+      try {
+        const ai = await requestTutor({
+          mode: "explain",
+          requestedLevel: level,
+          message: `Analise somente este trecho selecionado da questão: “${text}”. Explique a função dele no raciocínio, o que ele exige que eu perceba e, se houver, uma armadilha de leitura. Não resolva a questão inteira.`,
+        });
+        if (requestId === selectionRequest.current) setSelectionResponse(ai);
+      } catch (cause) {
+        if (requestId === selectionRequest.current) {
+          setSelectionResponse(null);
+          setError(cause instanceof Error ? cause.message : "Falha ao analisar o trecho.");
+        }
+      } finally {
+        if (requestId === selectionRequest.current) setSelectionBusy(false);
+      }
+    },
+    [requestTutor],
   );
 
   useEffect(() => {
-    function inspectSelection() {
-      if (busy) return;
+    if (!active) return;
+
+    const captureSelection = () => {
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !selection.rangeCount) return;
 
-      const range = selection.getRangeAt(0);
-      const element = elementFromNode(range.commonAncestorContainer);
-      const questionRoot = document.querySelector<HTMLElement>(".examContent #questionContent");
-      if (!element || !questionRoot || !questionRoot.contains(element)) return;
-      if (element.closest(".answers, button, input, textarea")) return;
+      const text = selection.toString().replace(/\s+/g, " ").trim().slice(0, 900);
+      if (text.length < 3 || text === lastSelection.current) return;
 
-      const text = selection.toString().replace(/\s+/g, " ").trim();
-      if (text.length < 8 || text.length > 900) return;
+      const range = selection.getRangeAt(0);
+      const node = range.commonAncestorContainer;
+      const element = node instanceof Element ? node : node.parentElement;
+      if (!element?.closest(".examContent #questionContent")) return;
+      if (element.closest(".answers, button, input, textarea")) return;
 
       const rect = range.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
-      const popoverHeight = 310;
-      const below = rect.bottom + 12;
-      const top =
-        below + popoverHeight < window.innerHeight
-          ? below
-          : Math.max(12, rect.top - popoverHeight - 12);
 
-      setActivated(true);
-      setMenuOpen(false);
-      setVisibleResponse(null);
+      lastSelection.current = text;
+      setSelectionPinned(false);
       setDiagnosticFor(null);
       setDiagnosticAnchor(null);
-      setSelectionResponse(null);
       setSelectionAnchor({
-        left: clampPopoverLeft(rect.left, 390),
-        top,
         text,
+        top: clampPopoverTop(rect.bottom + 12, 300),
+        left: clampPopoverLeft(rect.left + rect.width / 2 - 195),
       });
+      void analyzeSelection(text, 2);
+    };
 
-      void ask(
-        "explain",
-        `Analise somente este trecho do enunciado, explique a função dele na questão e por que ele importa para a resolução, sem antecipar a resposta final: “${text}”`,
-        Math.min(3, Math.max(2, currentLevel || 2)) as AIAssistanceLevel,
-        "selection",
-      );
-    }
+    const onPointerUp = () => window.setTimeout(captureSelection, 20);
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Shift" || event.key.startsWith("Arrow")) {
+        window.setTimeout(captureSelection, 20);
+      }
+    };
+    const dismissOnViewportChange = () => {
+      if (!selectionPinned) setSelectionAnchor(null);
+    };
 
-    document.addEventListener("pointerup", inspectSelection);
-    return () => document.removeEventListener("pointerup", inspectSelection);
-  }, [ask, busy, currentLevel]);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("keyup", onKeyUp);
+    window.addEventListener("resize", dismissOnViewportChange);
+    window.addEventListener("scroll", dismissOnViewportChange, true);
+    return () => {
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("resize", dismissOnViewportChange);
+      window.removeEventListener("scroll", dismissOnViewportChange, true);
+    };
+  }, [active, analyzeSelection, selectionPinned]);
 
   useEffect(() => {
-    if (!visibleResponse?.diagnostic || !diagnosticFor || selected !== diagnosticFor) return;
+    if (!active || !latest?.diagnostic || !diagnosticFor || selected !== diagnosticFor) return;
 
     const answers = Array.from(
       document.querySelectorAll<HTMLButtonElement>(".examContent .answers button.answer"),
@@ -384,143 +365,267 @@ export default function StudentAITutor({
     );
     if (!target) return;
 
-    const sync = () => {
+    const position = () => {
       const rect = target.getBoundingClientRect();
-      const width = 360;
-      const estimatedHeight = 142;
-      const below = rect.bottom + 10;
       setDiagnosticAnchor({
-        left: clampPopoverLeft(rect.left + 46, width),
-        top:
-          below + estimatedHeight < window.innerHeight
-            ? below
-            : Math.max(12, rect.top - estimatedHeight - 10),
+        top: clampPopoverTop(rect.bottom + 10, 150),
+        left: clampPopoverLeft(rect.left + 46, 390),
       });
     };
 
-    const frame = window.requestAnimationFrame(sync);
-    window.addEventListener("resize", sync);
-    window.addEventListener("scroll", sync, { passive: true });
+    const frame = window.requestAnimationFrame(position);
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, { passive: true });
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", sync);
-      window.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position);
     };
-  }, [diagnosticFor, selected, visibleResponse]);
+  }, [active, diagnosticFor, latest, selected]);
 
-  function closeSelection() {
+  function deactivateLayer() {
+    setActive(false);
+    setWorkspaceOpen(false);
+    setComposerOpen(false);
     setSelectionAnchor(null);
     setSelectionResponse(null);
+    setSelectionPinned(false);
+    setDiagnosticAnchor(null);
+    setDiagnosticFor(null);
+    lastSelection.current = "";
     window.getSelection()?.removeAllRanges();
   }
 
-  function toggleActionMenu() {
-    const next = !menuOpen;
-    setActivated(true);
-    setMenuOpen(next);
-    if (next) {
-      setVisibleResponse(null);
-      setDiagnosticFor(null);
-      setDiagnosticAnchor(null);
-      closeSelection();
-    }
+  function keepSelectionInWorkspace() {
+    if (!selectionResponse) return;
+    setLatest(selectionResponse);
+    setWorkspaceOpen(true);
+    setSelectionPinned(false);
+    setSelectionAnchor(null);
+    lastSelection.current = "";
+    window.getSelection()?.removeAllRanges();
   }
 
   return (
     <>
-      <aside
-        className={`studentAILayerRail ${activated ? "isActive" : ""}`}
-        style={{ left: railAnchor.left, top: railAnchor.top }}
-        aria-label="Camada de assistência da questão"
-      >
-        <button
-          type="button"
-          className="studentAIOrb"
-          onClick={toggleActionMenu}
-          aria-expanded={menuOpen}
-          aria-controls="student-ai-actions"
-          title="Abrir Tutor IA"
-        >
-          <BrainCircuit size={18} />
-          <span>Tutor IA</span>
+      {!active ? (
+        <button type="button" className="studentAIActivator" onClick={() => setActive(true)}>
+          <span className="studentAIActivatorIcon">
+            <Sparkles size={16} />
+          </span>
+          <span>
+            <b>Ativar camada IA</b>
+            <small>ajuda contextual, sem tirar você da questão</small>
+          </span>
+          <ChevronRight size={15} />
         </button>
-
-        {activated && (
-          <div className="studentAIDepth" aria-label="Profundidade da assistência">
-            {ASSISTANCE_STAGES.map((stage) => (
-              <button
-                key={stage.level}
-                type="button"
-                className={[
-                  currentLevel >= stage.level ? "reached" : "",
-                  currentLevel === stage.level ? "current" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => void ask(stage.mode, stage.prompt, stage.level)}
-                disabled={busy}
-                title={`${stage.label} — ${stage.short}`}
-                aria-label={`Assistência: ${stage.label}`}
-              >
-                <i />
-                <span>{stage.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {menuOpen && (
-          <section id="student-ai-actions" className="studentAIActionMenu" aria-label="Ações do Tutor IA">
-            <header>
-              <div className="studentAIEyebrow">
-                <ScanText size={13} /> CAMADA INTELIGENTE
-              </div>
-              <strong>Como você quer avançar?</strong>
-              <p>Escolha o tipo de ajuda. A profundidade fica registrada na trilha ao lado.</p>
-            </header>
-
-            <div className="studentAIActionGrid">
-              {QUICK_ACTIONS.map((action) => {
-                const Icon = action.icon;
-                const disabled = busy || (!!action.requiresSelection && !selected);
-                return (
-                  <button
-                    key={action.mode}
-                    type="button"
-                    onClick={() => void ask(action.mode)}
-                    disabled={disabled}
-                    title={
-                      action.requiresSelection && !selected
-                        ? "Marque uma alternativa primeiro"
-                        : action.description
-                    }
-                  >
-                    <span className="studentAIActionIcon"><Icon size={15} /></span>
-                    <span>
-                      <b>{action.label}</b>
-                      <small>{action.description}</small>
-                    </span>
-                  </button>
-                );
-              })}
+      ) : (
+        <>
+          <aside
+            className="studentAIRail"
+            style={{ left: railAnchor.left, top: railAnchor.top }}
+            aria-label="Profundidade da assistência da IA"
+          >
+            <div className="studentAIRailMark" aria-hidden="true">
+              <Sparkles size={14} />
             </div>
-
-            {!selected && (
-              <div className="studentAIContextNote">
-                <Focus size={13} /> Marque uma alternativa para liberar a análise da sua escolha.
-              </div>
-            )}
-
+            <div className="studentAIRailLine" aria-hidden="true" />
+            {STAGES.map((stage) => {
+              const Icon = stage.icon;
+              const status =
+                currentLevel > stage.level
+                  ? "complete"
+                  : currentLevel === stage.level
+                    ? "current"
+                    : "future";
+              return (
+                <button
+                  key={stage.level}
+                  type="button"
+                  className="studentAIRailStage"
+                  data-status={status}
+                  onClick={() => void ask(stage.mode, stage.message, stage.level)}
+                  disabled={busy}
+                  aria-label={`${stage.label}: ${stage.description}`}
+                  title={`${stage.label} — ${stage.description}`}
+                >
+                  <span className="studentAIRailNode">
+                    <Icon size={13} />
+                  </span>
+                  <span className="studentAIRailLabel">
+                    <b>{stage.label}</b>
+                    <small>{stage.description}</small>
+                  </span>
+                </button>
+              );
+            })}
             <button
               type="button"
-              className="studentAIChatToggle"
-              onClick={() => setChatOpen((value) => !value)}
-              aria-expanded={chatOpen}
+              className="studentAIRailWorkspace"
+              onClick={() => setWorkspaceOpen((value) => !value)}
+              aria-expanded={workspaceOpen}
             >
-              <MessageCircle size={14} /> Perguntar livremente
+              <MessageCircle size={14} />
+              <span>Raciocínio</span>
+            </button>
+          </aside>
+
+          <div className="studentAIStatus" aria-label="Camada IA ativa">
+            <button type="button" onClick={() => setWorkspaceOpen((value) => !value)}>
+              <Sparkles size={14} />
+              <span>
+                <b>Camada IA</b>
+                <small>{currentLevel ? STAGES[currentLevel - 1]?.label : "pronta"}</small>
+              </span>
+            </button>
+            <button type="button" onClick={deactivateLayer} aria-label="Desativar camada IA">
+              <X size={15} />
+            </button>
+          </div>
+        </>
+      )}
+
+      {active && workspaceOpen && (
+        <section className="studentAIWorkspace" aria-label="Raciocínio guiado da questão">
+          <header className="studentAIWorkspaceHead">
+            <div>
+              <span>RACIOCÍNIO GUIADO</span>
+              <h2>{currentLevel ? STAGES[currentLevel - 1]?.label : "Comece pela questão"}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWorkspaceOpen(false)}
+              aria-label="Fechar raciocínio"
+            >
+              <X size={16} />
+            </button>
+          </header>
+
+          <div className="studentAIWorkspaceMeta">
+            <span>{sourceLabel}</span>
+            <span>
+              {question.subject} · {question.topic}
+            </span>
+          </div>
+
+          <div className="studentAIDepthMeter" aria-label="Profundidade da ajuda">
+            {STAGES.map((stage) => (
+              <span
+                key={stage.level}
+                className={currentLevel >= stage.level ? "active" : ""}
+                title={stage.label}
+              />
+            ))}
+          </div>
+
+          {selected && (
+            <div className="studentAISelectedActions">
+              <div>
+                <span>SUA ESCOLHA · {selected}</span>
+                <small>Teste o raciocínio sem transformar a análise em gabarito.</small>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void ask(
+                    "explain-alternative",
+                    "Analise a alternativa que marquei. Diga se meu raciocínio faz sentido e, se houver um desvio sustentado pelo contexto, explique-o sem revelar a letra correta.",
+                    4,
+                  )
+                }
+              >
+                <CircleHelp size={13} />
+                Analisar escolha
+              </button>
+            </div>
+          )}
+
+          {!latest && !busy && !error && (
+            <div className="studentAIEmptyState">
+              <ScanText size={18} />
+              <b>A inteligência fica na questão, não em um chat.</b>
+              <p>
+                Use a trilha para escolher a profundidade da ajuda ou selecione qualquer trecho
+                do enunciado para receber uma leitura contextual naquele ponto.
+              </p>
+            </div>
+          )}
+
+          {busy && (
+            <div className="studentAIThinking">
+              <span />
+              <div>
+                <b>Construindo a próxima intervenção</b>
+                <small>A resposta respeita a profundidade escolhida.</small>
+              </div>
+            </div>
+          )}
+
+          {error && <div className="studentAIError">{error}</div>}
+
+          {latest && !busy && (
+            <article className="studentAIInsight" data-level={latest.level}>
+              <div className="studentAIInsightEyebrow">
+                <span>{STAGES[latest.level - 1]?.label || `Nível ${latest.level}`}</span>
+                <small>
+                  {latest.fallbackFrom
+                    ? `contingência · ${latest.fallbackFrom} → mock`
+                    : latest.provider === "mock"
+                      ? "modo de desenvolvimento"
+                      : latest.provider}
+                </small>
+              </div>
+              <h3>{latest.title}</h3>
+              <p>{latest.explanation}</p>
+
+              {!!latest.concepts.length && (
+                <div className="studentAIConcepts">
+                  {latest.concepts.map((concept, index) => (
+                    <span key={`${concept}-${index}`}>{concept}</span>
+                  ))}
+                </div>
+              )}
+
+              <div className="studentAINextStep">
+                <span>PRÓXIMO MOVIMENTO</span>
+                <p>{latest.nextStep}</p>
+              </div>
+
+              {latest.revealAnswer && latest.answer && (
+                <div className="studentAIRevealedAnswer">
+                  <span>RESPOSTA REVELADA</span>
+                  <b>{latest.answer}</b>
+                </div>
+              )}
+
+              {latest.generatedQuestion && (
+                <div className="studentAIGenerated">
+                  <span>{latest.generatedQuestion.label}</span>
+                  <p>{latest.generatedQuestion.statement}</p>
+                  {latest.generatedQuestion.alternatives.map((alternative) => (
+                    <div key={alternative.letter}>
+                      <b>{alternative.letter}</b> {alternative.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          )}
+
+          <div className="studentAIWorkspaceFooter">
+            <button
+              type="button"
+              className="studentAIFreeQuestion"
+              onClick={() => setComposerOpen((value) => !value)}
+              aria-expanded={composerOpen}
+            >
+              <MessageCircle size={14} />
+              Fazer uma pergunta livre
+              <ChevronRight size={13} />
             </button>
 
-            {chatOpen && (
+            {composerOpen && (
               <form
                 className="studentAIComposer"
                 onSubmit={(event) => {
@@ -534,134 +639,105 @@ export default function StudentAITutor({
                   placeholder="Pergunte sobre esta questão…"
                   disabled={busy}
                   aria-label="Mensagem para o tutor IA"
+                  autoFocus
                 />
-                <button type="submit" disabled={busy || !input.trim()} aria-label="Enviar para o tutor">
+                <button type="submit" disabled={busy || !input.trim()} aria-label="Enviar pergunta">
                   <Send size={15} />
                 </button>
               </form>
             )}
-          </section>
-        )}
-
-        {visibleResponse && !menuOpen && (
-          <article className="studentAIInsight" data-level={visibleResponse.level}>
-            <button
-              type="button"
-              className="studentAIClose"
-              onClick={() => {
-                setVisibleResponse(null);
-                setDiagnosticFor(null);
-                setDiagnosticAnchor(null);
-              }}
-              aria-label="Fechar explicação"
-            >
-              <X size={15} />
-            </button>
-            <div className="studentAIEyebrow">
-              <Sparkles size={12} /> {ASSISTANCE_STAGES[visibleResponse.level - 1]?.label || "Tutor IA"}
-            </div>
-            <h3>{visibleResponse.title}</h3>
-            <p>{visibleResponse.explanation}</p>
-            {!!visibleResponse.concepts.length && (
-              <div className="studentAIConcepts">
-                {visibleResponse.concepts.map((concept) => (
-                  <span key={concept}>{concept}</span>
-                ))}
-              </div>
-            )}
-            <div className="studentAINext">
-              <span>PRÓXIMO MOVIMENTO</span>
-              <b>{visibleResponse.nextStep}</b>
-            </div>
-            {visibleResponse.revealAnswer && visibleResponse.answer && (
-              <div className="studentAIAnswer">
-                Resposta revelada <b>{visibleResponse.answer}</b>
-              </div>
-            )}
-            <footer>
-              <span>{sourceLabel}</span>
-              <span>{responseProviderLabel(visibleResponse)}</span>
-            </footer>
-          </article>
-        )}
-
-        {busy && !selectionAnchor && !menuOpen && (
-          <div className="studentAILoading" role="status">
-            <span /> calibrando a próxima intervenção…
           </div>
-        )}
+        </section>
+      )}
 
-        {error && !selectionAnchor && !menuOpen && <div className="studentAIError">{error}</div>}
-      </aside>
-
-      {selectionAnchor && (
-        <article
+      {active && selectionAnchor && (
+        <section
           className="studentAISelectionPopover"
-          style={{ left: selectionAnchor.left, top: selectionAnchor.top }}
+          style={{ top: selectionAnchor.top, left: selectionAnchor.left }}
           aria-live="polite"
         >
-          <button type="button" className="studentAIClose" onClick={closeSelection} aria-label="Fechar análise do trecho">
-            <X size={15} />
-          </button>
-          <div className="studentAIEyebrow">
-            <ScanText size={12} /> LEITURA CONTEXTUAL
-          </div>
-          <blockquote>“{selectionAnchor.text}”</blockquote>
-          {busy && !selectionResponse ? (
-            <div className="studentAIInlineLoading">
-              <span /> entendendo a função deste trecho…
+          <header>
+            <div>
+              <span>LEITURA CONTEXTUAL</span>
+              <small>
+                “{selectionAnchor.text.slice(0, 120)}
+                {selectionAnchor.text.length > 120 ? "…" : ""}”
+              </small>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectionAnchor(null);
+                setSelectionPinned(false);
+                lastSelection.current = "";
+                window.getSelection()?.removeAllRanges();
+              }}
+              aria-label="Fechar análise do trecho"
+            >
+              <X size={14} />
+            </button>
+          </header>
+
+          {selectionBusy ? (
+            <div className="studentAISelectionLoading">
+              <span />
+              Interpretando a função deste trecho…
             </div>
           ) : selectionResponse ? (
             <>
-              <h3>{selectionResponse.title}</h3>
-              <p>{selectionResponse.explanation}</p>
+              <div className="studentAISelectionBody">
+                <b>{selectionResponse.title}</b>
+                <p>{selectionResponse.explanation}</p>
+              </div>
               {!!selectionResponse.concepts.length && (
-                <div className="studentAIConcepts">
-                  {selectionResponse.concepts.map((concept) => (
-                    <span key={concept}>{concept}</span>
+                <div className="studentAISelectionChips">
+                  {selectionResponse.concepts.slice(0, 4).map((concept, index) => (
+                    <span key={`${concept}-${index}`}>{concept}</span>
                   ))}
                 </div>
               )}
               <div className="studentAISelectionActions">
                 <button
                   type="button"
-                  onClick={() =>
-                    void ask(
-                      "explain",
-                      `Aprofunde a análise deste trecho sem revelar a resposta final: “${selectionAnchor.text}”`,
-                      Math.min(5, selectionResponse.level + 1) as AIAssistanceLevel,
-                      "selection",
-                    )
-                  }
-                  disabled={busy}
+                  onClick={() => void analyzeSelection(selectionAnchor.text, 3)}
                 >
-                  Aprofundar
+                  <ArrowUpRight size={13} /> Aprofundar
                 </button>
-                <span>{selectionResponse.concepts[0] || question.topic}</span>
+                <button type="button" onClick={() => setSelectionPinned(true)}>
+                  <Pin size={13} /> {selectionPinned ? "Fixado" : "Fixar"}
+                </button>
+                <button type="button" onClick={keepSelectionInWorkspace}>
+                  <BrainCircuit size={13} /> Levar ao raciocínio
+                </button>
               </div>
             </>
           ) : (
-            <div className="studentAIError">{error || "Não foi possível interpretar este trecho."}</div>
+            <div className="studentAISelectionLoading">Não foi possível analisar este trecho.</div>
           )}
-        </article>
+        </section>
       )}
 
-      {diagnosticAnchor && visibleResponse?.diagnostic && selected === diagnosticFor && (
-        <aside
-          className="studentAIDiagnosticBubble"
-          style={{ left: diagnosticAnchor.left, top: diagnosticAnchor.top }}
-          aria-label="Hipótese diagnóstica sobre a alternativa marcada"
-        >
-          <div>
-            <span>HIPÓTESE</span>
-            <b>{DIAGNOSTIC_LABELS[visibleResponse.diagnostic.category] || visibleResponse.diagnostic.category}</b>
-          </div>
-          <p>{visibleResponse.diagnostic.note}</p>
-          <footer>
-            confiança {CONFIDENCE_LABELS[visibleResponse.diagnostic.confidence] || visibleResponse.diagnostic.confidence}
-          </footer>
-        </aside>
-      )}
+      {active &&
+        latest?.diagnostic &&
+        diagnosticAnchor &&
+        selected === diagnosticFor && (
+          <aside
+            className="studentAIDiagnostic"
+            style={{ top: diagnosticAnchor.top, left: diagnosticAnchor.left }}
+            aria-label="Hipótese diagnóstica da alternativa marcada"
+          >
+            <div className="studentAIDiagnosticIcon">
+              <CircleHelp size={14} />
+            </div>
+            <div>
+              <span>
+                POSSÍVEL DESVIO · CONFIANÇA {CONFIDENCE_LABELS[latest.diagnostic.confidence] || latest.diagnostic.confidence}
+              </span>
+              <b>{CATEGORY_LABELS[latest.diagnostic.category] || latest.diagnostic.category}</b>
+              <p>{latest.diagnostic.note}</p>
+            </div>
+          </aside>
+        )}
     </>
   );
 }
