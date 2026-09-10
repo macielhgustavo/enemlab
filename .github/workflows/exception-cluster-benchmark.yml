@@ -4,13 +4,12 @@ on:
   pull_request:
     paths:
       - ".github/workflows/exception-cluster-benchmark.yml"
-      - "scripts/refine-fuvest-semantic.py"
 
 permissions:
   contents: read
 
 jobs:
-  fuvest-exception-clusters:
+  fuvest-codepoint-inventory:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -22,133 +21,86 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install extraction dependencies
-        run: python -m pip install --disable-pip-version-check pypdf fonttools pymupdf pillow
+      - name: Install parser dependency
+        run: python -m pip install --disable-pip-version-check pypdf
 
-      - name: Build extraction cache
-        run: |
-          python scripts/fuvest-batch-lab.py \
-            --cache-dir /tmp/enemlab-ingestion-cache \
-            --media-dir /tmp/enemlab-ingestion-media \
-            --output /tmp/fuvest.json \
-            --concurrency 4 \
-            --no-media
-
-      - name: Cluster and refine exception causes
+      - name: Inventory control and private-use codepoints
         run: |
           python - <<'PY'
           import collections
           import json
-          import re
           import runpy
-          from pathlib import Path
+          import unicodedata
+          from concurrent.futures import ThreadPoolExecutor, as_completed
 
-          REFINE = runpy.run_path('scripts/refine-fuvest-semantic.py', run_name='refine_benchmark')
-          QUESTIONS = REFINE['QUESTIONS']
-
-          def normalize(message):
-              value = message.lower()
-              value = re.sub(r'https?://\S+', '<url>', value)
-              value = re.sub(r'\b[0-9a-f]{32,64}\b', '<digest>', value)
-              value = re.sub(r'\b\d+\b', '#', value)
-              return ' '.join(value.split())
-
-          def report(envelopes):
-              cause_counts = collections.Counter()
-              question_sets = collections.defaultdict(set)
-              clusters = collections.defaultdict(set)
-              editions = set()
-              for envelope in envelopes:
-                  identity = envelope['identity']
-                  extraction = envelope['extraction']
-                  year = identity['year']
-                  editions.add(year)
-
-                  for question in extraction.get('questions', []):
-                      number = question.get('number')
-                      complete = bool(question.get('statement')) and len(question.get('alternatives') or []) == 5
-                      if not complete:
-                          cause_counts['structure-incomplete'] += 1
-                          question_sets['structure-incomplete'].add((year, number))
-                          clusters[('structure-incomplete', 'structure', 'estrutura objetiva incompleta')].add((year, number))
-
-                  for number in extraction.get('questionsMissingMedia', []):
-                      cause_counts['media-unbound'] += 1
-                      question_sets['media-unbound'].add((year, number))
-                      clusters[('media-unbound', 'media', 'questão depende de mídia')].add((year, number))
-
-                  seen_semantic = set()
-                  for issue in extraction.get('semanticFidelityIssues', []):
-                      if issue.get('severity') == 'warning':
-                          continue
-                      code = issue.get('code', 'extractor-reported')
-                      cause = {
-                          'control-character': 'glyph-control',
-                          'replacement-character': 'glyph-replacement',
-                          'private-use-character': 'glyph-private-use',
-                          'formula-ambiguity': 'formula-ambiguity',
-                          'layout-ambiguity': 'layout-ambiguity',
-                          'extractor-reported': 'extractor-reported',
-                      }.get(code, 'extractor-reported')
-                      number = issue.get('questionNumber')
-                      page = issue.get('page')
-                      field = issue.get('field') or ('page' if page else 'global')
-                      field_scope = 'alternative' if str(field).startswith('alternative:') else field
-                      key = (cause, year, number, page, field_scope, normalize(issue.get('message', '')))
-                      if key in seen_semantic:
-                          continue
-                      seen_semantic.add(key)
-                      cause_counts[cause] += 1
-                      if number is not None:
-                          question_sets[cause].add((year, number))
-                      clusters[(cause, field_scope, normalize(issue.get('message', '')))].add((year, number if number is not None else f'p{page}'))
-
-              ranked = sorted(
-                  ({'cause': key[0], 'field': key[1], 'signature': key[2], 'affected': len(values)} for key, values in clusters.items()),
-                  key=lambda item: (-item['affected'], item['cause'], item['field'], item['signature']),
-              )
-              return {
-                  'editions': len(editions),
-                  'causeObservations': dict(cause_counts.most_common()),
-                  'affectedQuestionsByCause': {cause: len(values) for cause, values in sorted(question_sets.items())},
-                  'clusterCount': len(ranked),
-                  'topClusters': ranked[:20],
-              }
-
-          files = sorted(Path('/tmp/enemlab-ingestion-cache/extraction').glob('*/*.json'))
-          assert len(files) == 21, len(files)
-          envelopes = [json.loads(path.read_text(encoding='utf-8')) for path in files]
-          baseline = report(envelopes)
-
+          QUESTIONS = runpy.run_path('scripts/extract-fuvest-questions.py', run_name='codepoint_inventory')
           manifest = QUESTIONS['load_manifest']()
-          refined = []
-          skipped = []
-          for envelope in envelopes:
-              year = int(envelope['identity']['year'])
-              entry = manifest[str(year)]
-              try:
-                  exam_bytes = QUESTIONS['fetch'](entry['examUrl'])
-                  pages = QUESTIONS['extract_pdf_pages'](exam_bytes)
-                  refined.append(
-                      REFINE['refine_envelope'](
-                          envelope,
-                          pages,
-                          str(entry.get('canonicalVariant') or ''),
-                      )
-                  )
-              except Exception as error:
-                  refined.append(envelope)
-                  skipped.append({'year': year, 'error': str(error)})
+          eligible = [
+              int(year)
+              for year, entry in manifest.items()
+              if entry.get('examUrl') and entry.get('answerKeyUrl')
+          ]
 
-          after = report(refined)
-          result = {
-              'baseline': baseline,
-              'afterPreciseAttribution': after,
-              'refinementSkipped': skipped,
+          def inspect(year):
+              entry = manifest[str(year)]
+              pdf = QUESTIONS['fetch'](entry['examUrl'])
+              pages = QUESTIONS['extract_pdf_pages'](pdf)
+              counts = collections.Counter()
+              examples = {}
+              for page_number, page in enumerate(pages, start=1):
+                  for line in page.splitlines():
+                      for index, char in enumerate(line):
+                          category = unicodedata.category(char)
+                          if not (
+                              (category in {'Cc', 'Cf'} and char not in {'\n', '\r', '\t', '\u00ad'})
+                              or category == 'Co'
+                              or char == '\ufffd'
+                          ):
+                              continue
+                          codepoint = f'U+{ord(char):04X}'
+                          counts[codepoint] += 1
+                          examples.setdefault(
+                              codepoint,
+                              {
+                                  'year': year,
+                                  'page': page_number,
+                                  'category': category,
+                                  'name': unicodedata.name(char, '<unnamed>'),
+                                  'context': line[max(0, index - 18): index] + '<X>' + line[index + 1: index + 19],
+                              },
+                          )
+              return year, counts, examples
+
+          total = collections.Counter()
+          years_by_code = collections.defaultdict(set)
+          examples = {}
+          with ThreadPoolExecutor(max_workers=4) as executor:
+              futures = [executor.submit(inspect, year) for year in eligible]
+              for future in as_completed(futures):
+                  year, counts, found_examples = future.result()
+                  total.update(counts)
+                  for codepoint in counts:
+                      years_by_code[codepoint].add(year)
+                  for codepoint, example in found_examples.items():
+                      examples.setdefault(codepoint, example)
+
+          ranked = []
+          for codepoint, count in total.most_common():
+              ranked.append(
+                  {
+                      'codepoint': codepoint,
+                      'count': count,
+                      'editions': len(years_by_code[codepoint]),
+                      'years': sorted(years_by_code[codepoint]),
+                      'example': examples[codepoint],
+                  }
+              )
+          report = {
+              'editions': len(eligible),
+              'distinctCodepoints': len(ranked),
+              'totalOccurrences': sum(total.values()),
+              'codepoints': ranked,
           }
-          print('EXCEPTION_REDUCTION_REPORT=' + json.dumps(result, ensure_ascii=False))
-          assert baseline['editions'] == 21
-          assert after['editions'] == 21
-          assert after['affectedQuestionsByCause'].get('glyph-control', 0) <= baseline['affectedQuestionsByCause'].get('glyph-control', 0)
-          assert after['affectedQuestionsByCause'].get('glyph-private-use', 0) <= baseline['affectedQuestionsByCause'].get('glyph-private-use', 0)
+          print('CODEPOINT_INVENTORY=' + json.dumps(report, ensure_ascii=True))
+          assert report['editions'] == 21
           PY
