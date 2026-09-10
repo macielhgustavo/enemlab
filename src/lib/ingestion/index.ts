@@ -2,6 +2,26 @@ export { IngestionEngine, buildIngestionJobKey } from "./engine";
 export { fingerprintFetchedDocument } from "./fingerprint";
 export { mapWithConcurrency } from "./concurrency";
 export {
+  buildExtractionCheckpointKey,
+  cloneExtractedExamData,
+  InMemoryExtractionCheckpointStore,
+  withExtractionCheckpointCache,
+} from "./checkpoint";
+export type {
+  CheckpointedIngestionAdapter,
+  ExtractionCheckpointRecord,
+  ExtractionCheckpointStats,
+  ExtractionCheckpointStore,
+} from "./checkpoint";
+export { associateMediaWithExtraction } from "./media";
+export type {
+  ExtractedMediaAsset,
+  MediaAssociationMode,
+  MediaAssociationResult,
+  MediaBoundingBox,
+  MediaManifest,
+} from "./media";
+export {
   assessSemanticFidelity,
   buildSelectiveFallbackRequest,
   issueBlocksQuestion,
