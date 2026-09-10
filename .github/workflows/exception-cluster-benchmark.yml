@@ -4,12 +4,13 @@ on:
   pull_request:
     paths:
       - ".github/workflows/exception-cluster-benchmark.yml"
+      - "scripts/inspect-fuvest-font-glyphs.py"
 
 permissions:
   contents: read
 
 jobs:
-  fuvest-codepoint-inventory:
+  fuvest-font-glyph-diagnostics:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,83 +25,24 @@ jobs:
       - name: Install parser dependency
         run: python -m pip install --disable-pip-version-check pypdf
 
-      - name: Inventory control and private-use codepoints
+      - name: Inspect suspicious glyph sources
         run: |
+          python scripts/inspect-fuvest-font-glyphs.py --years all --output /tmp/glyph-report.json
           python - <<'PY'
-          import collections
           import json
-          import runpy
-          import unicodedata
-          from concurrent.futures import ThreadPoolExecutor, as_completed
-
-          QUESTIONS = runpy.run_path('scripts/extract-fuvest-questions.py', run_name='codepoint_inventory')
-          manifest = QUESTIONS['load_manifest']()
-          eligible = [
-              int(year)
-              for year, entry in manifest.items()
-              if entry.get('examUrl') and entry.get('answerKeyUrl')
-          ]
-
-          def inspect(year):
-              entry = manifest[str(year)]
-              pdf = QUESTIONS['fetch'](entry['examUrl'])
-              pages = QUESTIONS['extract_pdf_pages'](pdf)
-              counts = collections.Counter()
-              examples = {}
-              for page_number, page in enumerate(pages, start=1):
-                  for line in page.splitlines():
-                      for index, char in enumerate(line):
-                          category = unicodedata.category(char)
-                          if not (
-                              (category in {'Cc', 'Cf'} and char not in {'\n', '\r', '\t', '\u00ad'})
-                              or category == 'Co'
-                              or char == '\ufffd'
-                          ):
-                              continue
-                          codepoint = f'U+{ord(char):04X}'
-                          counts[codepoint] += 1
-                          examples.setdefault(
-                              codepoint,
-                              {
-                                  'year': year,
-                                  'page': page_number,
-                                  'category': category,
-                                  'name': unicodedata.name(char, '<unnamed>'),
-                                  'context': line[max(0, index - 18): index] + '<X>' + line[index + 1: index + 19],
-                              },
-                          )
-              return year, counts, examples
-
-          total = collections.Counter()
-          years_by_code = collections.defaultdict(set)
-          examples = {}
-          with ThreadPoolExecutor(max_workers=4) as executor:
-              futures = [executor.submit(inspect, year) for year in eligible]
-              for future in as_completed(futures):
-                  year, counts, found_examples = future.result()
-                  total.update(counts)
-                  for codepoint in counts:
-                      years_by_code[codepoint].add(year)
-                  for codepoint, example in found_examples.items():
-                      examples.setdefault(codepoint, example)
-
-          ranked = []
-          for codepoint, count in total.most_common():
-              ranked.append(
-                  {
-                      'codepoint': codepoint,
-                      'count': count,
-                      'editions': len(years_by_code[codepoint]),
-                      'years': sorted(years_by_code[codepoint]),
-                      'example': examples[codepoint],
-                  }
-              )
-          report = {
-              'editions': len(eligible),
-              'distinctCodepoints': len(ranked),
-              'totalOccurrences': sum(total.values()),
-              'codepoints': ranked,
+          report = json.load(open('/tmp/glyph-report.json', encoding='utf-8'))
+          compact = {
+              'requestedEditions': report['requestedEditions'],
+              'failures': report['failures'],
+              'observations': report['observations'],
+              'clusters': report['clusters'],
+              'withToUnicode': report['withToUnicode'],
+              'withCmapSource': report['withCmapSource'],
+              'withEmbeddedFont': report['withEmbeddedFont'],
+              'topClusters': report['topClusters'][:30],
           }
-          print('CODEPOINT_INVENTORY=' + json.dumps(report, ensure_ascii=True))
-          assert report['editions'] == 21
+          print('FONT_GLYPH_REPORT=' + json.dumps(compact, ensure_ascii=True))
+          assert compact['requestedEditions'] == 21
+          assert not compact['failures'], compact['failures']
+          assert compact['observations'] > 0
           PY
