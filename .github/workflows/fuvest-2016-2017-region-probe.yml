@@ -1,4 +1,4 @@
-name: FUVEST 2016-2017 Regional Recovery Benchmark
+name: FUVEST Full Recovery Benchmark
 
 on:
   pull_request:
@@ -10,12 +10,8 @@ permissions:
 
 jobs:
   benchmark:
-    strategy:
-      fail-fast: false
-      matrix:
-        year: [2016, 2017]
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,13 +25,22 @@ jobs:
       - name: Run worker tests
         run: |
           python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
-      - name: Benchmark FUVEST ${{ matrix.year }}
+      - name: Run full production batch
         run: |
-          rm -rf /tmp/enemlab-fuvest-${{ matrix.year }}-cache
+          rm -rf /tmp/enemlab-fuvest-full-cache
           python scripts/fuvest-batch-lab.py \
-            --years ${{ matrix.year }} \
-            --concurrency 1 \
+            --concurrency 4 \
             --no-media \
-            --cache-dir /tmp/enemlab-fuvest-${{ matrix.year }}-cache \
-            --output /tmp/fuvest-${{ matrix.year }}.json
-          cat /tmp/fuvest-${{ matrix.year }}.json
+            --cache-dir /tmp/enemlab-fuvest-full-cache \
+            --output /tmp/fuvest-full.json
+          cat /tmp/fuvest-full.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/fuvest-full.json').read_text())
+          assert data['editions'] == 21, data
+          assert data['questions'] == 1910, data
+          assert not data['failures'], data['failures']
+          assert data['completeStructure'] >= 1825, data['completeStructure']
+          assert data['needsTextReview'] <= 85, data['needsTextReview']
+          PY
