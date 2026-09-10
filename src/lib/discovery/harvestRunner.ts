@@ -19,6 +19,9 @@ export interface HarvestRunnerResult {
     recipes: number;
     successfulSources: number;
     sourceIssues: number;
+    pagesAttempted: number;
+    pagesFetched: number;
+    linksSeen: number;
     editionsDiscovered: number;
     matchedDocuments: number;
     inventoryDocuments: number;
@@ -68,6 +71,9 @@ export async function runSourceHarvest(
       recipes: recipes.length,
       successfulSources: sources.filter((source) => source.pagesFetched > 0).length,
       sourceIssues: sources.reduce((total, source) => total + source.issues.length, 0),
+      pagesAttempted: sources.reduce((total, source) => total + source.pagesAttempted, 0),
+      pagesFetched: sources.reduce((total, source) => total + source.pagesFetched, 0),
+      linksSeen: sources.reduce((total, source) => total + source.linksSeen, 0),
       editionsDiscovered: sources.reduce((total, source) => total + source.editions.length, 0),
       matchedDocuments: sources.reduce((total, source) => total + source.matchedDocuments, 0),
       inventoryDocuments: snapshot.records.length,
