@@ -98,7 +98,18 @@ function validatePlan(
   if (!plan.documents.length) problems.push("plan has no documents");
   const urls = plan.documents.map((document) => document.url);
   if (urls.some((url) => !isWebUrl(url))) problems.push("plan contains an invalid document URL");
-  if (new Set(urls).size !== urls.length) problems.push("plan contains duplicate document URLs");
+  const documentDefinitions = plan.documents.map((document) =>
+    [
+      document.role,
+      document.phase ?? "",
+      document.subject ?? "",
+      document.variant ?? "",
+      document.url,
+    ].join("|"),
+  );
+  if (new Set(documentDefinitions).size !== documentDefinitions.length) {
+    problems.push("plan contains duplicate document definitions");
+  }
 
   const examDocuments = plan.documents.filter(
     (document) => document.role === "objective-exam" || document.role === "subject-exam",
