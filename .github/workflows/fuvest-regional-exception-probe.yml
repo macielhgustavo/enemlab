@@ -22,40 +22,64 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Run focused production batch
-        run: |
-          rm -rf /tmp/enemlab-fuvest-exception-cache
-          python scripts/fuvest-batch-lab.py \
-            --years 2016,2017,2021 \
-            --concurrency 3 \
-            --ocr-concurrency 1 \
-            --no-media \
-            --cache-dir /tmp/enemlab-fuvest-exception-cache \
-            --output /tmp/fuvest-exceptions.json
-      - name: Print unresolved regional reports
+      - name: Diagnose only the 16 remaining regional exceptions
         run: |
           python - <<'PY'
           import json
+          import runpy
+          import shutil
+          import tempfile
           from pathlib import Path
 
-          root = Path('/tmp/enemlab-fuvest-exception-cache/extraction')
-          for year in (2016, 2017, 2021):
-              files = list((root / str(year)).glob('*.json'))
-              assert len(files) == 1, (year, files)
-              envelope = json.loads(files[0].read_text())
-              report = envelope.get('regionalContentRecovery', {})
-              unresolved = report.get('unresolvedQuestions', [])
-              regions = {
-                  int(item['questionNumber']): item
-                  for item in report.get('regions', [])
-                  if int(item.get('questionNumber', 0)) in set(unresolved)
-              }
-              print(json.dumps({
-                  'year': year,
-                  'targeted': report.get('targetedQuestions', []),
-                  'applied': report.get('appliedQuestions', []),
-                  'unresolved': unresolved,
-                  'unresolvedRegionReports': [regions[n] for n in unresolved if n in regions],
-                  'attemptsByMode': report.get('attemptsByMode', {}),
-              }, ensure_ascii=False))
+          module = runpy.run_path('scripts/recover-fuvest-region-ocr.py')
+          base = module['BASE']
+          manifest = base['load_manifest']()
+          targets = {
+              2016: [8, 9, 16, 67],
+              2017: [57, 58, 78],
+              2021: [1, 2, 4, 10, 29, 32, 40, 43, 88],
+          }
+          executable = shutil.which('tesseract')
+          language, error = module['tesseract_language']()
+          assert executable and language and not error
+
+          import pymupdf
+
+          with tempfile.TemporaryDirectory(prefix='enemlab-exception-probe-') as directory:
+              root = Path(directory)
+              for year, numbers in targets.items():
+                  entry, exam_bytes, key_bytes, _ = base['load_year_documents'](year, manifest)
+                  regions = module['discover_question_regions'](exam_bytes, int(entry['total']), year)
+                  by_number = {int(item['number']): item for item in regions}
+                  document = pymupdf.open(stream=exam_bytes, filetype='pdf')
+                  try:
+                      for number in numbers:
+                          region = by_number[number]
+                          primary = (region.get('segments') or [
+                              {'page': region['page'], 'column': region['column'], 'bbox': region['bbox']}
+                          ])[0]
+                          path = root / f'{year}-q{number:03d}.png'
+                          module['_render_segment'](document, primary, path)
+                          attempts = []
+                          for mode in module['OCR_MODES']:
+                              text = module['_run_tesseract'](executable, path, language, mode)
+                              parsed = module['parse_ocr_candidate'](text, number)
+                              attempts.append({
+                                  'mode': mode,
+                                  'complete': parsed['complete'],
+                                  'markers': parsed['markers'],
+                                  'alpha': parsed['alphaCharacters'],
+                                  'text': text[:2600],
+                              })
+                          print(json.dumps({
+                              'year': year,
+                              'question': number,
+                              'page': primary['page'],
+                              'column': primary['column'],
+                              'bbox': primary['bbox'],
+                              'hasContinuation': len(region.get('segments', [])) > 1,
+                              'attempts': attempts,
+                          }, ensure_ascii=False))
+                  finally:
+                      document.close()
           PY
