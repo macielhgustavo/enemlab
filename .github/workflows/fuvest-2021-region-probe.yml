@@ -1,4 +1,4 @@
-name: FUVEST 2021 Region Probe
+name: FUVEST Regional Recovery Benchmark
 
 on:
   pull_request:
@@ -25,22 +25,12 @@ jobs:
       - name: Run production worker tests
         run: |
           python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
-      - name: Cold production batch
+      - name: Run full production batch
         run: |
-          rm -rf /tmp/enemlab-fuvest-2021-cache
+          rm -rf /tmp/enemlab-fuvest-full-cache
           python scripts/fuvest-batch-lab.py \
-            --years 2021 \
-            --concurrency 1 \
+            --concurrency 4 \
             --no-media \
-            --cache-dir /tmp/enemlab-fuvest-2021-cache \
-            --output /tmp/fuvest-2021-cold.json
-          cat /tmp/fuvest-2021-cold.json
-      - name: Warm production batch
-        run: |
-          python scripts/fuvest-batch-lab.py \
-            --years 2021 \
-            --concurrency 1 \
-            --no-media \
-            --cache-dir /tmp/enemlab-fuvest-2021-cache \
-            --output /tmp/fuvest-2021-warm.json
-          cat /tmp/fuvest-2021-warm.json
+            --cache-dir /tmp/enemlab-fuvest-full-cache \
+            --output /tmp/fuvest-full.json
+          cat /tmp/fuvest-full.json
