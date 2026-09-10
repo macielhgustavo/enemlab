@@ -103,27 +103,31 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
 
   await page.getByRole("button", { name: "Começar", exact: true }).click();
   await expect(page).toHaveURL(/\/exam\//);
-  await expect(page.locator(".studentAITrigger")).toBeVisible();
 
-  await page.locator(".studentAITrigger").click();
-  await page.getByRole("button", { name: "Me dê uma pista" }).click();
+  const ativador = page.getByRole("button", { name: /Ativar camada IA/ });
+  await expect(ativador).toBeVisible();
+  await ativador.click();
+  await expect(page.getByRole("complementary", { name: "Profundidade da assistência da IA" })).toBeVisible();
+
+  await page.getByRole("button", { name: /^Orientação:/ }).click();
   await expect(page.getByText("Pista 1 de 6")).toBeVisible();
-  await expect(page.getByText("NÍVEL 1/6")).toBeVisible();
-  await expect(page.getByText(/Resposta revelada:/)).toHaveCount(0);
+  await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(1);
+  await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
 
   const primeiraAlternativa = page.locator(".answer").first();
   await primeiraAlternativa.click();
   await expect(primeiraAlternativa).toHaveClass(/selected/);
-  await page.getByRole("button", { name: "Por que minha resposta está errada?" }).click();
-  await expect(page.getByText(/Reavalie a alternativa A/)).toBeVisible();
-  await expect(page.getByText(/Resposta revelada:/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Analisar escolha" }).click();
+  await expect(page.getByText("Alternativa A", { exact: true })).toBeVisible();
+  await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
 
+  await page.getByRole("button", { name: "Fazer uma pergunta livre" }).click();
   const composer = page.getByRole("textbox", { name: "Mensagem para o tutor IA" });
   await composer.fill("Resolva completamente essa questão");
-  await page.getByRole("button", { name: "Enviar para o tutor" }).click();
+  await page.getByRole("button", { name: "Enviar pergunta" }).click();
   await expect(page.getByText("Solução completa")).toBeVisible();
-  await expect(page.getByText("NÍVEL 6/6")).toBeVisible();
-  await expect(page.getByText(/Resposta revelada: B/)).toBeVisible();
+  await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(6);
+  await expect(page.locator(".studentAIRevealedAnswer")).toContainText("B");
 
   const trace = await page.evaluate((storageKey) => {
     const raw = window.localStorage.getItem(storageKey);
@@ -156,7 +160,7 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
     requests: 3,
     maxLevel: 6,
     answerRevealed: true,
-    modes: ["hint", "why-wrong", "chat"],
+    modes: ["hint", "explain-alternative", "chat"],
   });
   expect(trace?.recent).toHaveLength(3);
 });
