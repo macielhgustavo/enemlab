@@ -7,16 +7,31 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
+    "test": "vitest run && python -m unittest discover -s scripts/tests -p test_*.py",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:e2e:ci": "playwright test e2e/smoke.spec.ts e2e/a11y.spec.ts",
+    "test:visual": "playwright test e2e/visual.spec.ts",
+    "test:a11y": "playwright test e2e/a11y.spec.ts",
+    "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
+    "ingest": "node scripts/ingest.mjs",
+    "ingest:fab": "python scripts/ingest-fab.py",
+    "ingest:fuvest": "python scripts/ingest-fuvest.py",
+    "ingest:vestibular": "python scripts/ingest_vestibular_reference.py",
+    "sources:audit": "node --use-system-ca scripts/sources-audit.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^1.41.0",
     "motion": "^13.2.0",
     "next": "16.3.4",
+    "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
@@ -24,6 +39,10 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/nextjs-vite": "^10.6.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -37,8 +56,10 @@
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^30.0.1",
     "prettier": "^3.9.6",
+    "storybook": "^10.6.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.2.2",
     "vitest": "^5.0.0"
   }
 }

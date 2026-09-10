@@ -16,28 +16,33 @@ const assistanceModeSchema = z.enum([
 const alternativeSchema = z.object({
   letter: z.string().min(1).max(3),
   text: z.string().max(10_000),
+  file: z.string().max(2_000).nullable().optional(),
 });
 
 const officialOriginSchema = z.object({
   kind: z.literal("official"),
-  institution: z.literal("ENEM"),
-  year: z.number().int().min(1998).max(2100),
+  providerId: z.string().min(1).max(80),
+  institution: z.string().min(1).max(160),
+  year: z.number().int().min(1900).max(2100),
   questionNumber: z.number().int().positive(),
+  sourceUrl: z.string().max(2_000).optional(),
 });
 
 const generatedOriginSchema = z.object({
   kind: z.literal("ai-generated"),
-  label: z.literal("Questão gerada por IA — estilo ENEM"),
+  label: z.string().startsWith("Questão gerada por IA — estilo ").max(220),
+  style: z.string().min(1).max(160),
 });
 
 const requestSchema = z.object({
   mode: assistanceModeSchema,
   question: z.object({
-    key: z.string().min(1).max(200),
+    key: z.string().min(1).max(240),
     origin: z.union([officialOriginSchema, generatedOriginSchema]),
     statement: z.string().max(30_000),
     alternativesIntroduction: z.string().max(10_000).optional(),
     alternatives: z.array(alternativeSchema).max(8),
+    images: z.array(z.string().max(2_000)).max(12).optional(),
     correctAnswer: z.string().max(3).nullable().optional(),
     selectedAnswer: z.string().max(3).nullable().optional(),
     subject: z.string().min(1).max(120),

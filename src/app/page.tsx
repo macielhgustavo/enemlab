@@ -11,14 +11,13 @@ import {
   CheckCircle2,
   FileText,
   ArrowRight,
-  Crosshair,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct, shortSec } from "@/lib/format";
-import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
+import { areasOf } from "@/lib/providers/taxonomy";
 import {
-
   areaStats,
   rollingRows,
   streakDays,
@@ -27,13 +26,22 @@ import {
 } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
 import DomainMap from "@/components/DomainMap";
-import { AnimatedNumber, Ring } from "@/components/dash";
+import { Ring } from "@/components/dash";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { MetricCard } from "@/components/enem-lab/MetricCard";
+import { EmptyState } from "@/components/enem-lab/states";
+import { Button } from "@/components/ui/button";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
+import { examLabel } from "@/lib/providers/label";
+import { sameProvider } from "@/lib/providers";
 
-const EvolutionArea = dynamic(() => import("@/components/charts").then((m) => m.EvolutionArea), {
-  ssr: false,
-  loading: () => <Sk h={230} r={14} />,
-});
+const EvolutionArea = dynamic(
+  () => import("@/components/charts").then((m) => m.EvolutionArea),
+  {
+    ssr: false,
+    loading: () => <Sk h={230} r={14} />,
+  },
+);
 
 function saudacao(h: number) {
   if (h < 5) return "Boa madrugada";
@@ -61,20 +69,27 @@ const WD = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
 export default function HomePage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [hora] = useState(() => new Date().getHours());
   const [hoje] = useState(() => new Date());
 
   if (!hydrated) return <DashboardSkeleton />;
 
-  const roll = rollingRows(db, 100);
+  const roll = rollingRows(db, 100, providerId);
   const rollPct = roll.length ? pct(roll.filter((x) => x.isCorrect).length, roll.length) : null;
-  const due = dueSRS(db).length;
-  const streak = streakDays(db);
-  const inProg = db.attempts.find((a) => !a.finishedAt);
-  const stats = areaStats(db);
-  const weak = weakestContents(db, 4);
-  const evo = evolutionSeries(db);
-  const completed = db.attempts.filter((a) => a.result);
+  const due = dueSRS(db, providerId).length;
+  const streak = streakDays(db, providerId);
+  // Sessões e atividade também são da prova ativa: sem isto o painel do ITA
+  // conta sessões do ENEM e sugere retomar uma prova de outra banca.
+  const inProg = db.attempts.find(
+    (a) => !a.finishedAt && sameProvider(a.providerId, providerId),
+  );
+  const stats = areaStats(db, providerId);
+  const weak = weakestContents(db, 4, providerId);
+  const evo = evolutionSeries(db, undefined, undefined, providerId);
+  const completed = db.attempts.filter(
+    (a) => a.result && sameProvider(a.providerId, providerId),
+  );
 
   // ---- Meta diária: fatia da meta semanal ----
   const alvoDia = Math.max(1, Math.round((db.goals.questions || 0) / 7));
@@ -112,16 +127,19 @@ export default function HomePage() {
   const deltaPP = evo.length >= 2 ? Math.round(evo[evo.length - 1] - evo[0]) : null;
   const tempoTotal = completed.reduce((s, a) => s + (a.elapsed || 0), 0);
 
-  const areasMap = AREA_ORDER.map((k) => {
-    const v = stats[k] || { c: 0, t: 0 };
-    return { id: k, label: AREA_LABELS[k], pct: v.t ? pct(v.c, v.t) : null, n: v.t };
+  // A divisão de conteúdo é de cada banca: o ENEM tem quatro áreas, o ITA tem
+  // matérias. Ler a taxonomia do provider evita o painel do ITA listar áreas
+  // do ENEM zeradas.
+  const areasMap = areasOf(providerId).map(({ id, label }) => {
+    const v = stats[id] || { c: 0, t: 0 };
+    return { id, label, pct: v.t ? pct(v.c, v.t) : null, n: v.t };
   });
 
   // ---- Próxima missão, derivada do estado real ----
   const missao = inProg
     ? {
         k: "sessão em andamento",
-        t: `Retomar ENEM ${inProg.year}`,
+        t: `Retomar ${examLabel(inProg.providerId)} ${inProg.year}`,
         meta: [
           `${Object.keys(inProg.answers || {}).length}/${inProg.questionRefs.length} respondidas`,
           inProg.mode,
@@ -174,49 +192,28 @@ export default function HomePage() {
 
   return (
     <>
-      <header className="pagehead">
-        <div className="eyebrow">
-          Centro de controle ·{" "}
-          {hoje.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-        </div>
-        <h1>{saudacao(hora)}.</h1>
-        <div className="sub">
-          {inProg
+      <PageHeader
+        size="editorial"
+        eyebrow={`Centro de controle · ${hoje.toLocaleDateString("pt-BR", {
+          day: "numeric",
+          month: "long",
+        })}`}
+        title={`${saudacao(hora)}.`}
+        description={
+          inProg
             ? "Você tem uma sessão em aberto."
             : due > 0
               ? "Sua fila de revisão está pronta."
-              : "Sua próxima sessão já está pronta."}
-        </div>
-        <div className="aside">
-          <div>
-            Estudo transforma
-            <br />
-            possibilidades
-            <br />
-            em realidade.
-            <i />
-          </div>
-          <div>
-            Mais
-            <br />
-            conhecimento
-            <br />
-            mais futuro
-            <i />
-          </div>
-        </div>
-      </header>
+              : "Sua próxima sessão já está pronta."
+        }
+      />
 
       {/* ---------- FILEIRA 1 ---------- */}
       <div className="hrow hrow-1">
         <section className="hcard mission">
-          <div className="brandtag">ENEM Lab</div>
           <div className="k">Próxima missão</div>
           <div className="head">
-            <span className="badge">
-              <Crosshair size={22} />
-            </span>
-            <h3>{missao.t}</h3>
+            <h2>{missao.t}</h2>
           </div>
           <div className="meta">
             {missao.meta.map((m, i) => (
@@ -226,39 +223,19 @@ export default function HomePage() {
               </span>
             ))}
           </div>
-          <Link className="cta" href={missao.href}>
-            {missao.cta} <ArrowRight size={17} />
-          </Link>
-
-          <svg className="art" viewBox="0 0 340 150" aria-hidden="true">
-            <polyline
-              points="0,140 46,112 78,124 118,70 152,96 196,44 238,86 276,58 340,104"
-              fill="none"
-              stroke="var(--brand)"
-              strokeOpacity="0.5"
-              strokeWidth="1.2"
-            />
-            <polyline
-              points="0,150 46,126 78,136 118,90 152,112 196,66 238,102 276,78 340,118"
-              fill="none"
-              stroke="var(--brand)"
-              strokeOpacity="0.22"
-              strokeWidth="1"
-            />
-          </svg>
-          <div className="sig">
-            Pequenas sessões
-            <br />
-            grandes resultados
-          </div>
+          <Button asChild variant="primary" className="mission-action">
+            <Link href={missao.href}>
+              {missao.cta} <ArrowRight size={16} />
+            </Link>
+          </Button>
         </section>
 
         <section className="hcard goal">
           <div className="ringbox">
-            <Ring value={metaPct} size={186} stroke={13} />
+            <Ring value={metaPct} size={136} stroke={7} />
             <div className="val">
               <b>
-                <AnimatedNumber value={metaPct} format={(n) => `${Math.round(n)}`} />
+                {metaPct}
                 <i>%</i>
               </b>
               <small>Meta diária</small>
@@ -274,55 +251,40 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="hcard statcol">
-          <div className="statrow">
-            <span className="chip">
-              <BarChart3 size={18} />
-            </span>
-            <div>
-              <div className="n">
-                <AnimatedNumber value={completed.length} />
+        {/* Indicadores no MetricCard: mesmos números, mesma origem. O que
+            muda é que "sem amostra" deixa de virar zero — a taxa de acerto
+            só existe depois de uma correção. */}
+        <section className="statcol el-stack" aria-label="Seu desempenho">
+          <MetricCard
+            presentation="plain"
+            label="Sessões realizadas"
+            value={completed.length}
+            icon={<BarChart3 size={14} />}
+            aside={<Spark values={sessoesPorSemana} />}
+          />
+          <MetricCard
+            presentation="plain"
+            label="Taxa de acerto"
+            value={rollPct}
+            format={(n) => `${Math.round(n)}%`}
+            icon={<Target size={14} />}
+            hint={rollPct === null ? "Corrija um treino para calcular" : undefined}
+            aside={<Spark values={evo} />}
+          />
+          <MetricCard
+            presentation="plain"
+            label="Dias em sequência"
+            value={streak}
+            format={(n) => String(Math.round(n))}
+            icon={<Flame size={14} />}
+            aside={
+              <div className="dots5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <i key={i} className={i < Math.min(5, streak) ? "on" : ""} />
+                ))}
               </div>
-              <div className="l">
-                Sessões
-                <br />
-                realizadas
-              </div>
-            </div>
-            <Spark values={sessoesPorSemana} />
-          </div>
-
-          <div className="statrow">
-            <span className="chip">
-              <Target size={18} />
-            </span>
-            <div>
-              <div className="n">
-                {rollPct === null ? (
-                  "—"
-                ) : (
-                  <AnimatedNumber value={rollPct} format={(n) => `${Math.round(n)}%`} />
-                )}
-              </div>
-              <div className="l">Taxa de acerto</div>
-            </div>
-            <Spark values={evo} />
-          </div>
-
-          <div className="statrow">
-            <span className="chip" style={{ color: "#ff9d4d" }}>
-              <Flame size={18} />
-            </span>
-            <div>
-              <div className="n">{String(streak).padStart(2, "0")}</div>
-              <div className="l">Dias em sequência</div>
-            </div>
-            <div className="dots5">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <i key={i} className={i < Math.min(5, streak) ? "on" : ""} />
-              ))}
-            </div>
-          </div>
+            }
+          />
         </section>
       </div>
 
@@ -372,7 +334,7 @@ export default function HomePage() {
               Ver detalhes <ArrowRight size={13} />
             </Link>
           </div>
-          <DomainMap areas={areasMap} />
+          <DomainMap areas={areasMap} hub={examLabel(providerId)} />
         </section>
 
         <section className="hcard">
@@ -397,7 +359,7 @@ export default function HomePage() {
                           ? "Revisão de erros"
                           : a.realDay
                             ? `ENEM Real • Dia ${a.realDay}`
-                            : `Sessão ENEM ${a.year}`}
+                            : `Sessão ${examLabel(a.providerId)} ${a.year}`}
                     </div>
                     <div className="s">
                       {pct(a.result!.correct, a.result!.total)}% • {a.result!.total} questões
@@ -407,26 +369,20 @@ export default function HomePage() {
                 </Link>
               ))
             ) : (
-              <div className="actrow" style={{ borderTop: "none" }}>
-                <span className="mark2 pend">
-                  <FileText size={15} />
-                </span>
-                <div>
-                  <div className="t">Nenhuma sessão ainda</div>
-                  <div className="s">Corrija um treino para preencher o histórico</div>
-                </div>
-              </div>
+              <EmptyState
+                icon={<FileText size={20} />}
+                title="Nenhuma sessão ainda"
+                description="Corrija um treino para o painel começar a medir seu desempenho."
+                action={
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/practice">Montar treino</Link>
+                  </Button>
+                }
+              />
             )}
           </div>
         </section>
       </div>
-
-      <footer className="pagefoot">
-        <span>{"/// Foco hoje. Conquista sempre."}</span>
-        <span className="end">
-          ENEM Lab <i />
-        </span>
-      </footer>
     </>
   );
 }

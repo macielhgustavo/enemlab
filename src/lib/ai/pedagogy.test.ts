@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildPedagogicalPolicy, enforcePedagogicalResponse, normalizeGeneratedQuestion } from "./pedagogy";
+import {
+  buildPedagogicalPolicy,
+  enforcePedagogicalResponse,
+  generatedQuestionIdentity,
+  normalizeGeneratedQuestion,
+} from "./pedagogy";
 import type { AIRequest } from "./types";
 
 function request(overrides: Partial<AIRequest> = {}): AIRequest {
@@ -7,7 +12,13 @@ function request(overrides: Partial<AIRequest> = {}): AIRequest {
     mode: "hint",
     question: {
       key: "2023-1",
-      origin: { kind: "official", institution: "ENEM", year: 2023, questionNumber: 1 },
+      origin: {
+        kind: "official",
+        providerId: "enem",
+        institution: "ENEM",
+        year: 2023,
+        questionNumber: 1,
+      },
       statement: "Enunciado",
       alternatives: [
         { letter: "A", text: "A" },
@@ -58,19 +69,40 @@ describe("pedagogical engine", () => {
     expect(policy.revealAnswer).toBe(false);
   });
 
-  it("força proveniência correta para questão gerada", () => {
-    const generated = normalizeGeneratedQuestion({
-      origin: "ai-generated",
-      label: "Questão gerada por IA — estilo ENEM",
-      style: "ENEM",
-      statement: "Simulada",
-      alternatives: [
-        { letter: "A", text: "Um" },
-        { letter: "B", text: "Dois" },
-      ],
-      correctAnswer: "B",
+  it("força proveniência de IA usando a prova real apenas como estilo", () => {
+    const input = request({
+      question: {
+        ...request().question,
+        origin: {
+          kind: "official",
+          providerId: "ita",
+          institution: "ITA",
+          year: 2025,
+          questionNumber: 12,
+        },
+      },
     });
+    const generated = normalizeGeneratedQuestion(
+      {
+        statement: "Simulada",
+        alternatives: [
+          { letter: "A", text: "Um" },
+          { letter: "B", text: "Dois" },
+        ],
+        correctAnswer: "B",
+        label: "Questão oficial ITA 2025" as never,
+        style: "outra prova",
+      },
+      input.question,
+    );
     expect(generated?.origin).toBe("ai-generated");
-    expect(generated?.label).toBe("Questão gerada por IA — estilo ENEM");
+    expect(generated?.label).toBe("Questão gerada por IA — estilo ITA");
+    expect(generated?.style).toBe("ITA");
+  });
+
+  it("deriva o rótulo gerado da instituição de origem", () => {
+    expect(generatedQuestionIdentity(request().question).label).toBe(
+      "Questão gerada por IA — estilo ENEM",
+    );
   });
 });

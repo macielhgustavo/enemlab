@@ -2,11 +2,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { FINAL_BUILD, FINAL_SCHEMA } from "@/lib/domain/constants";
+import { FINAL_BUILD, FINAL_SCHEMA, examYears } from "@/lib/domain/constants";
 import { rebuildSessions } from "@/lib/domain/stats";
 import { runSelfTests, type SelfTest } from "@/lib/domain/selftests";
+import { auditQuestionSet, type QuestionBankAudit } from "@/lib/domain/question-quality";
+import { questionsFor } from "@/lib/providers/access";
+import type { Language } from "@/lib/domain/types";
 import { listSnapshots, saveSnapshot, getSnapshot, type Snapshot } from "@/lib/idb";
 import { parseBackup } from "@/lib/validators/backup";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { buildCurrentCatalog } from "@/lib/catalog/current";
+import { listSources } from "@/lib/sources";
+import { examLabel } from "@/lib/providers/label";
 import { Card, Empty } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
@@ -23,6 +30,11 @@ export default function DataPage() {
   const mergeRef = useRef<HTMLInputElement>(null);
   const [selfTests, setSelfTests] = useState<SelfTest[] | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [auditYear, setAuditYear] = useState(2023);
+  const [auditLang, setAuditLang] = useState<Language>("ingles");
+  const [bankAudit, setBankAudit] = useState<QuestionBankAudit | null>(null);
+  const [auditBusy, setAuditBusy] = useState(false);
+  const [auditError, setAuditError] = useState("");
 
   async function refreshSnapshots() {
     setSnapshots(await listSnapshots());
@@ -46,7 +58,27 @@ export default function DataPage() {
     success("Snapshot restaurado.");
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  async function runBankAudit() {
+    setAuditBusy(true);
+    setAuditError("");
+    try {
+      const questions = await questionsFor(null, { year: auditYear, language: auditLang });
+      setBankAudit(auditQuestionSet(questions));
+    } catch (err) {
+      const message = (err as Error).message || "Falha ao auditar o banco.";
+      setAuditError(message);
+      toastError(message);
+    } finally {
+      setAuditBusy(false);
+    }
+  }
+
+  if (!hydrated)
+    return (
+      <Card>
+        <span className="muted">Carregando…</span>
+      </Card>
+    );
 
   const raw = JSON.stringify(db);
   const sessions = rebuildSessions(db);
@@ -90,14 +122,26 @@ export default function DataPage() {
     }
   }
 
+  const catalogo = buildCurrentCatalog();
+  const importadorDe = (providerId: string) =>
+    listSources().find((f) => f.providerId === providerId)?.parserVersion ?? "—";
+
   return (
     <>
+      {/* A tela abria direto num <h2>, sem <h1>: o documento começava no
+          segundo nível e um leitor de tela não tinha como saber onde estava. */}
+      <PageHeader
+        eyebrow="Módulo · dados"
+        title="Dados e backup"
+        description="Exporte, importe e confira a saúde do que está guardado neste navegador."
+      />
+
       <div className="grid grid2">
         <Card>
           <h2>Backup e sincronização manual</h2>
           <p className="muted">
-            Exporte um pacote completo ou faça merge com outro navegador sem apagar o
-            histórico atual.
+            Exporte um pacote completo ou faça merge com outro navegador sem apagar o histórico
+            atual.
           </p>
           <div className="row">
             <button className="btn" onClick={exportDB}>
@@ -147,9 +191,7 @@ export default function DataPage() {
             <div className="healthItem">
               <small>Último backup</small>
               <b style={{ fontSize: 13 }}>
-                {db.lastBackupAt
-                  ? new Date(db.lastBackupAt).toLocaleString("pt-BR")
-                  : "nunca"}
+                {db.lastBackupAt ? new Date(db.lastBackupAt).toLocaleString("pt-BR") : "nunca"}
               </b>
             </div>
             <div className="healthItem">
@@ -166,6 +208,188 @@ export default function DataPage() {
         </Card>
       </div>
 
+      {/* Catálogo por prova (§32). Lê o índice, não as questões: montar
+          esta tabela não pode custar o download do banco inteiro. */}
+      <Card style={{ marginTop: 14 }}>
+        <h2 className="heading-md">Catálogo por prova</h2>
+        <p className="body-sm" style={{ marginTop: 4 }}>
+          Edições registradas, nível de validação e origem do enunciado. Contagem desconhecida
+          aparece como travessão — não como zero.
+        </p>
+        <div
+          className="tablewrap"
+          role="region"
+          aria-label="Catálogo de provas, role horizontalmente para mais colunas"
+          tabIndex={0}
+          style={{ marginTop: 12 }}
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Prova</th>
+                <th>Edições</th>
+                <th>Questões</th>
+                <th>Verificadas</th>
+                <th>Revisadas</th>
+                <th>Provisórias</th>
+                <th>Bloqueadas</th>
+                <th>Referência</th>
+                <th>Importador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catalogo.summary().map((s) => (
+                <tr key={s.providerId}>
+                  <td>
+                    <b>{examLabel(s.providerId)}</b>
+                  </td>
+                  <td>{s.editions}</td>
+                  <td>
+                    {s.unknownCount === s.editions ? (
+                      <span className="muted" title="só se sabe carregando a prova">
+                        —
+                      </span>
+                    ) : (
+                      <>
+                        {s.questions}
+                        {s.unknownCount > 0 && (
+                          <span
+                            className="muted"
+                            title={`${s.unknownCount} edição(ões) sem contagem`}
+                          >
+                            {" "}
+                            +{s.unknownCount}?
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </td>
+                  <td>{s.verified}</td>
+                  <td>{s.reviewed}</td>
+                  <td>{s.provisional}</td>
+                  <td>{s.blocked || "—"}</td>
+                  <td>{s.referenceOnly || "—"}</td>
+                  <td className="mono">{importadorDe(s.providerId)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card style={{ marginTop: 14 }}>
+        <div className="row between" style={{ alignItems: "flex-end" }}>
+          <div>
+            <h2>Qualidade do banco de questões</h2>
+            <div className="muted">
+              Audita estrutura, gabarito, alternativas, mídia, codificação, fórmulas e confiança
+              da classificação.
+            </div>
+          </div>
+          <div className="row" style={{ alignItems: "flex-end" }}>
+            <div>
+              <label htmlFor="audit-year">Ano</label>
+              <select
+                id="audit-year"
+                value={auditYear}
+                onChange={(e) => setAuditYear(Number(e.target.value))}
+              >
+                {examYears().map((year) => (
+                  <option value={year} key={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="audit-language">Idioma</label>
+              <select
+                id="audit-language"
+                value={auditLang}
+                onChange={(e) => setAuditLang(e.target.value as Language)}
+              >
+                <option value="ingles">Inglês</option>
+                <option value="espanhol">Espanhol</option>
+              </select>
+            </div>
+            <button className="btn secondary" disabled={auditBusy} onClick={runBankAudit}>
+              {auditBusy ? "Auditando…" : "Auditar edição"}
+            </button>
+          </div>
+        </div>
+
+        {!bankAudit && !auditError && (
+          <div className="notice" style={{ marginTop: 14 }}>
+            A auditoria não altera questões. Treinos livres já evitam itens bloqueados; provas
+            reais preservam a estrutura oficial e apenas sinalizam problemas.
+          </div>
+        )}
+        {auditError && (
+          <div className="notice" style={{ marginTop: 14 }}>
+            {auditError}
+          </div>
+        )}
+
+        {bankAudit && (
+          <>
+            <div className="healthGrid" style={{ marginTop: 14 }}>
+              <div className="healthItem">
+                <small>Questões</small>
+                <b>{bankAudit.total}</b>
+                <div className="muted">itens auditados</div>
+              </div>
+              <div className="healthItem">
+                <small>Saudáveis</small>
+                <b className="healthOk">{bankAudit.healthy}</b>
+                <div className="muted">sem alerta relevante</div>
+              </div>
+              <div className="healthItem">
+                <small>Revisar</small>
+                <b style={{ color: "var(--warn)" }}>{bankAudit.review}</b>
+                <div className="muted">avisos de qualidade</div>
+              </div>
+              <div className="healthItem">
+                <small>Bloqueadas</small>
+                <b style={{ color: "var(--bad)" }}>{bankAudit.blocked}</b>
+                <div className="muted">fora de treinos livres</div>
+              </div>
+              <div className="healthItem">
+                <small>Score médio</small>
+                <b>{bankAudit.averageScore}/100</b>
+                <div className="muted">qualidade estrutural</div>
+              </div>
+              <div className="healthItem">
+                <small>Classificação</small>
+                <b>{bankAudit.lowClassification}</b>
+                <div className="muted">
+                  com baixa confiança • {bankAudit.unclassified} sem classe
+                </div>
+              </div>
+            </div>
+
+            <div className="testGrid" style={{ marginTop: 14 }}>
+              {bankAudit.issueCounts.length === 0 && (
+                <div className="muted">Nenhum problema detectado.</div>
+              )}
+              {bankAudit.issueCounts.slice(0, 8).map((item) => (
+                <div className="testRow" key={item.code}>
+                  <span
+                    className={`testDot ${item.severity === "error" ? "bad" : item.severity === "warning" ? "warn" : ""}`}
+                  />
+                  <div>
+                    <b>{item.label}</b>
+                    <div className="muted" style={{ fontSize: 11 }}>
+                      {item.code}
+                    </div>
+                  </div>
+                  <span className="badge2">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
+
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>
           <div className="row between">
@@ -178,7 +402,9 @@ export default function DataPage() {
             </button>
           </div>
           <div className="testGrid" style={{ marginTop: 12 }}>
-            {!selfTests && <div className="muted">Rode o autoteste para ver os resultados.</div>}
+            {!selfTests && (
+              <div className="muted">Rode o autoteste para ver os resultados.</div>
+            )}
             {selfTests?.map((t) => (
               <div className="testRow" key={t.name}>
                 <span className={`testDot ${t.ok ? "" : t.warn ? "warn" : "bad"}`} />
@@ -230,8 +456,10 @@ export default function DataPage() {
       <Card style={{ marginTop: 14 }}>
         <h2>Privacidade e armazenamento</h2>
         <p className="muted">
-          Histórico, SRS e notas ficam localmente neste navegador. Nada é enviado a um
-          servidor.
+          O ENEM Lab mantém uma cópia completa do histórico, SRS e notas neste navegador. Se
+          você entrar em uma conta e ativar a sincronização, uma cópia também é salva na nuvem
+          para continuidade entre dispositivos, protegida por autenticação e políticas RLS da
+          sua conta. Backups JSON e snapshots locais continuam disponíveis.
         </p>
         <div className="row">
           <button

@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefatos de build: o do Storybook é JS minificado e gerava 10 mil
+    // avisos que escondiam os problemas reais do código.
+    "storybook-static/**",
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

@@ -8,17 +8,27 @@ import {
   contentMasteryState,
   wilsonInterval,
 } from "@/lib/domain/stats";
-import { Empty, Card, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { EmptyState } from "@/components/enem-lab/states";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { getProvider, ENEM_PROVIDER_ID } from "@/lib/providers";
 
 export default function MasteryPage() {
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
-  const st = masteryStats(db);
-  const entries = Object.entries(st);
+  const isEnem = providerId === ENEM_PROVIDER_ID;
+  const label = getProvider(providerId).metadata.shortLabel;
+  const st = masteryStats(db, providerId);
+  // A taxonomia completa de conteúdos é do ENEM. Em outra prova, mostrar a
+  // lista inteira zerada seria ruído: só aparece o que foi medido.
+  const entries = Object.entries(st).filter(([, v]) => (isEnem ? true : v.t > 0));
   const tested = entries.filter(([, v]) => v.t > 0).length;
-  const weak = weakestContents(db, 8);
+  const weak = weakestContents(db, 8, providerId);
 
   // Tipos de erro classificados
   const reasonCounts: Record<string, number> = {};
@@ -29,11 +39,12 @@ export default function MasteryPage() {
 
   return (
     <>
-      <PageHead
+      <PageHeader
         eyebrow="Módulo · domínio"
         title="Mapa de domínio"
-        sub="Domínio por conteúdo, com amostra, retenção e intervalo de confiança."
-        right={<span className="badge2">{tested} conteúdos testados</span>}
+        context={<Badge variant="accent">{label}</Badge>}
+        description={`Desempenho medido apenas em ${label}: provas diferentes nunca se somam.`}
+        meta={<span>{tested} conteúdos testados</span>}
       />
 
       <Card>
@@ -86,7 +97,12 @@ export default function MasteryPage() {
         <Card>
           <h2>Pontos fracos</h2>
           <div className="queue">
-            {weak.length === 0 && <Empty>Sem dados suficientes.</Empty>}
+            {weak.length === 0 && (
+              <EmptyState
+                title="Sem dados suficientes"
+                description="Corrija alguns treinos para o mapa começar a apontar pontos fracos."
+              />
+            )}
             {weak.map((x) => {
               const ci = wilsonInterval(x.c, x.t);
               return (
@@ -112,7 +128,10 @@ export default function MasteryPage() {
           <h2>Tipos de erro</h2>
           <div className="reasonStats">
             {Object.keys(reasonCounts).length === 0 && (
-              <Empty>Classifique erros para ver padrões.</Empty>
+              <EmptyState
+                title="Nenhum padrão ainda"
+                description="Classifique o motivo dos erros no caderno para ver padrões aqui."
+              />
             )}
             {Object.entries(reasonCounts)
               .sort((a, b) => b[1] - a[1])

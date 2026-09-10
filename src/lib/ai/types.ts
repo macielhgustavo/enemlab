@@ -9,22 +9,27 @@ export type AIAssistanceMode =
   | "chat";
 
 export type AIAssistanceLevel = 1 | 2 | 3 | 4 | 5 | 6;
+export type AIGeneratedQuestionLabel = `Questão gerada por IA — estilo ${string}`;
 
 export interface AIQuestionAlternative {
   letter: string;
   text: string;
+  file?: string | null;
 }
 
 export type AIQuestionOrigin =
   | {
       kind: "official";
-      institution: "ENEM";
+      providerId: string;
+      institution: string;
       year: number;
       questionNumber: number;
+      sourceUrl?: string;
     }
   | {
       kind: "ai-generated";
-      label: "Questão gerada por IA — estilo ENEM";
+      label: AIGeneratedQuestionLabel;
+      style: string;
     };
 
 export interface AIQuestionContext {
@@ -33,6 +38,7 @@ export interface AIQuestionContext {
   statement: string;
   alternativesIntroduction?: string;
   alternatives: AIQuestionAlternative[];
+  images?: string[];
   correctAnswer?: string | null;
   selectedAnswer?: string | null;
   subject: string;
@@ -86,8 +92,8 @@ export interface AIDiagnosticSignal {
 
 export interface AIGeneratedQuestion {
   origin: "ai-generated";
-  label: "Questão gerada por IA — estilo ENEM";
-  style: "ENEM";
+  label: AIGeneratedQuestionLabel;
+  style: string;
   statement: string;
   alternatives: AIQuestionAlternative[];
   correctAnswer: string;
@@ -125,5 +131,5 @@ export interface AIProviderRequest {
 
 export interface AIProvider {
   readonly id: string;
-  generate(input: AIProviderRequest): Promise<AIResponse>;
+  generate(request: AIProviderRequest): Promise<AIResponse>;
 }

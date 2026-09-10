@@ -1,6 +1,7 @@
 // Cliente da API enem.dev (portado do v6): paginação, retry em 429, cache em memória.
 import { API_BASE } from "../domain/constants";
 import { discipline, questionKey } from "../domain/classify";
+import { isQuestionUsableForPractice } from "../domain/question-quality";
 import type { Language, Question } from "../domain/types";
 
 const yearCache = new Map<string, Question[]>();
@@ -167,6 +168,7 @@ export async function buildUnseenAcrossYears(
       const pool = all.filter(
         (q) =>
           discipline(q) === ar &&
+          isQuestionUsableForPractice(q) &&
           !seenKeys.has(questionKey(q)) &&
           !collected.some((x) => questionKey(x) === questionKey(q)),
       );

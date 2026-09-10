@@ -2,7 +2,8 @@
 // aos contratos genéricos, sem alterar as regras de estudo.
 import { fetchExam } from "../api/enem";
 import { AREA_LABELS, AREA_ORDER, examYears } from "../domain/constants";
-import { classifyContent, discipline, questionKey } from "../domain/classify";
+import { classifyQuestion, discipline, questionKey } from "../domain/classify";
+import { inspectQuestion } from "../domain/question-quality";
 import type { Language, Question } from "../domain/types";
 import type {
   ExamMetadata,
@@ -39,6 +40,8 @@ export const enemMetadata: ExamMetadata = {
 export function normalizeEnemQuestion(q: Question): NormalizedQuestion {
   const area = discipline(q);
   const correct = q.correctAlternative ?? null;
+  const classification = classifyQuestion(q);
+  const quality = inspectQuestion(q);
   return {
     providerId: ENEM_PROVIDER_ID,
     examId: `enem-${q.year}`,
@@ -47,7 +50,21 @@ export function normalizeEnemQuestion(q: Question): NormalizedQuestion {
     phase: phaseForArea(area),
     language: q.language ?? null,
     subject: { id: area, label: AREA_LABELS[area] || area, area },
-    content: classifyContent(q),
+    content: classification.primary,
+    classification: {
+      primary: classification.primary,
+      tags: classification.tags,
+      path: classification.path,
+      subtopic: classification.subtopic,
+      confidence: classification.confidence,
+      score: classification.score,
+    },
+    quality: {
+      score: quality.score,
+      status: quality.status,
+      scoreable: quality.scoreable,
+      issueCodes: quality.issues.map((x) => x.code),
+    },
     context: q.context ?? null,
     alternativesIntroduction: q.alternativesIntroduction ?? null,
     alternatives: (q.alternatives || []).map((a) => ({

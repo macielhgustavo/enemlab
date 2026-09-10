@@ -1,0 +1,163 @@
+// Camada de FONTE — separada do provider de execução.
+//
+// Provider responde "como o ENEM Lab usa esta prova".
+// Fonte responde "de onde este conteúdo vem, em que forma, e o que podemos
+// fazer com ele". Misturar os dois foi o que deixou o ENEM embutido no app.
+//
+//   FONTE → IMPORTADOR → CATÁLOGO NORMALIZADO → PROVIDER
+
+/** Formato em que a fonte publica o conteúdo. */
+export type SourceType =
+  | "structured-api"
+  | "official-html"
+  | "pdf-text"
+  | "pdf-reference"
+  | "partner-feed"
+  | "open-dataset";
+
+/** Como o enunciado chega até o aluno. */
+export type StatementMode = "structured" | "reference-only" | "mixed";
+
+/**
+ * Situação de reuso do conteúdo.
+ *
+ * **Não é parecer jurídico.** É um marcador operacional do que ainda precisa
+ * ser checado antes de distribuir conteúdo — "disponível na internet" não
+ * significa "liberado para republicação", e "oficial" também não.
+ *
+ * Na dúvida: `permission-required` e modo referência.
+ */
+export type RightsStatus =
+  | "allowed"
+  | "official-reference"
+  | "permission-required"
+  | "unknown";
+
+/**
+ * Nome anterior do mesmo tipo, mantido porque `reuseStatus` aparece em
+ * código e documentação já escritos. O nome canônico é `RightsStatus`.
+ */
+export type ReuseStatus = RightsStatus;
+
+/** Como o conteúdo foi extraído da fonte. */
+export type ExtractionMethod =
+  | "api"
+  | "html-parse"
+  | "pdf-text-layer"
+  | "manual"
+  | "none";
+
+export interface ExamSourceDefinition {
+  id: string;
+  /** Provider de execução que consome esta fonte. */
+  providerId: string;
+  institution: string;
+  /** Página oficial onde as provas são publicadas. */
+  archiveUrl: string;
+  sourceType: SourceType;
+  statementMode: StatementMode;
+  extractionMethod: ExtractionMethod;
+  /**
+   * Direitos de reuso. Ver `RightsStatus`: é metadata operacional, não
+   * parecer jurídico.
+   */
+  rightsStatus: RightsStatus;
+
+  /** Edições que a ingestão validou — não as que a fonte publica. */
+  years: number[];
+  phases: string[];
+  subjects: string[];
+
+  answerKeyAvailable: boolean;
+  expectedAnswersAvailable: boolean;
+
+  parserVersion: string;
+  /** Data da última verificação real contra a fonte. */
+  lastVerifiedAt: string;
+  /** Confiança na ingestão, do que foi de fato conferido. */
+  confidence: "alta" | "media" | "baixa";
+  /** Estado operacional da fonte: apenas fontes ativas alimentam providers. */
+  status?: "active" | "research" | "blocked";
+  /** O que um leitor precisa saber antes de confiar nestes dados. */
+  notes?: string;
+
+  // ---- v8.5: plataforma de ingestão em massa ----
+
+  /**
+   * Família da prova, para a interface agrupar dez ou mais opções.
+   *
+   * É metadata de apresentação e **nunca** chave de histórico: agrupar ITA e
+   * IME sob "engenharias" na tela não pode fazer o desempenho de um contar
+   * para o outro.
+   */
+  family?: ExamFamilyId;
+
+  /**
+   * Como as edições são descobertas.
+   *
+   * `manual` significa lista escrita à mão — honesto para arquivo pequeno e
+   * estável, insuficiente para instituição que publica todo ano.
+   */
+  discovery?: "manual" | "automatic";
+
+  /** Última varredura de saúde da fonte (`npm run sources:audit`). */
+  lastAuditedAt?: string;
+
+  /**
+   * Por onde a ingestão lê os documentos.
+   *
+   * `live` é o normal: o importador baixa da própria URL oficial.
+   *
+   * `web-archive` significa que a instituição publica os documentos mas não
+   * os entrega a um cliente automatizado — a FAB responde 403 a tudo que não
+   * seja navegador interativo —, e a leitura vem da cópia datada no Internet
+   * Archive. A URL oficial continua sendo a citada ao aluno; muda só de onde
+   * os bytes foram lidos, e cada edição registra isso em `retrieval`.
+   *
+   * O campo existe por dois motivos práticos. Primeiro, honestidade: sem ele
+   * a fonte parece dizer que lê da instituição. Segundo, o audit
+   * (`npm run sources:audit`) precisa saber que 403 na URL viva é o estado
+   * esperado destas fontes, e não uma quebra a reportar.
+   */
+  retrievalRoute?: "live" | "web-archive";
+}
+
+/**
+ * Família de prova. Só serve para organizar a interface (§21).
+ *
+ * O comentário existe porque a tentação é usar isto como agregador de
+ * estatística — e aí o isolamento entre provas, que custou uma versão
+ * inteira para ser construído, cai por uma conveniência de UI.
+ */
+export type ExamFamilyId =
+  | "general"
+  | "engineering"
+  | "university"
+  | "air-force"
+  | "army"
+  | "navy";
+
+/** Procedência de um item: responde "de onde veio isto?". */
+export interface Provenance {
+  providerId: string;
+  sourceId: string;
+  institution: string;
+  official: boolean;
+  documentUrl: string;
+  page?: number;
+  parserVersion: string;
+  lastVerifiedAt: string;
+}
+
+/**
+ * Um importador descobre e normaliza o conteúdo de uma fonte. O ENEM usa a
+ * API estruturada; o ITA usa o gabarito em PDF. Nenhum dos dois é conhecido
+ * pelas telas.
+ */
+export interface ExamImporter {
+  readonly sourceId: string;
+  /** Edições disponíveis segundo a ingestão já verificada. */
+  availableYears(): number[];
+  /** Procedência de um item específico. */
+  provenanceFor(year: number, phase?: string, page?: number): Provenance;
+}

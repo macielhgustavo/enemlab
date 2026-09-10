@@ -10,6 +10,20 @@ import { questionKey } from "@/lib/domain/classify";
 import { questionsForAttempt } from "@/lib/services/attempts";
 import StudentAITutor from "@/components/StudentAITutor";
 
+function hasUsableText(question: {
+  statementAvailable?: boolean;
+  context?: string;
+  alternativesIntroduction?: string;
+  alternatives?: Array<{ text?: string }>;
+}): boolean {
+  if (question.statementAvailable === false) return false;
+  return !!(
+    question.context?.trim() ||
+    question.alternativesIntroduction?.trim() ||
+    question.alternatives?.some((alternative) => alternative.text?.trim())
+  );
+}
+
 export default function StudentAIHost() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
@@ -60,10 +74,16 @@ export default function StudentAIHost() {
   const selectedAnswer = selectedFromDom || storedSelection || null;
 
   const context = useMemo(() => {
-    if (!question) return null;
-    return buildStudentSnapshot(db, question, selectedAnswer);
-  }, [db, question, selectedAnswer]);
+    if (!question || !attempt || !hasUsableText(question)) return null;
+    return buildStudentSnapshot(db, question, selectedAnswer, attempt.providerId);
+  }, [db, question, selectedAnswer, attempt]);
 
   if (!hydrated || !attempt || attempt.strict || !context) return null;
-  return <StudentAITutor question={context.question} student={context.student} />;
+  return (
+    <StudentAITutor
+      key={context.question.key}
+      question={context.question}
+      student={context.student}
+    />
+  );
 }

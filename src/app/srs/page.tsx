@@ -3,16 +3,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS } from "@/lib/domain/constants";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { areaLabel } from "@/lib/providers/taxonomy";
 import { allSrs, dueSRS } from "@/lib/domain/srs";
 import { buildDueReviewsAttempt, buildActiveRecallAttempt } from "@/lib/services/attempts";
-import { Metric, Empty, Card, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { MetricCard } from "@/components/enem-lab/MetricCard";
+import { EmptyState, InlineNotice } from "@/components/enem-lab/states";
+import { examLabel } from "@/lib/providers/label";
 
 export default function SrsPage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   // Relógio como estado explícito: mantém a renderização pura e faz a
@@ -27,7 +35,7 @@ export default function SrsPage() {
     setBusy(true);
     setErr("");
     try {
-      const a = await buildDueReviewsAttempt(db, limit);
+      const a = await buildDueReviewsAttempt(db, limit, providerId);
       addAttempt(a);
       router.push(`/exam/${a.id}`);
     } catch (e) {
@@ -51,8 +59,8 @@ export default function SrsPage() {
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
-  const all = allSrs(db);
-  const due = dueSRS(db);
+  const all = allSrs(db, providerId);
+  const due = dueSRS(db, providerId);
   const soon = all.filter(
     (x) => +new Date(x.due) > now && +new Date(x.due) <= now + 3 * 86400000,
   );
@@ -60,69 +68,92 @@ export default function SrsPage() {
 
   return (
     <>
-      <PageHead
+      <PageHeader
         eyebrow="Módulo · revisões"
         title="Revisão espaçada"
-        sub="Errar uma vez não encerra a questão: ela volta na hora certa."
-        right={
+        context={<Badge variant="accent">{examLabel(providerId)}</Badge>}
+        description="Errar uma vez não encerra a questão: ela volta na hora certa."
+        meta={<span>{all.length} itens na fila</span>}
+        actions={
           <>
-            <button className="btn" onClick={() => review(30)} disabled={busy || due.length === 0}>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={busy}
+              disabled={due.length === 0}
+              onClick={() => review(30)}
+            >
               Revisar vencidas
-            </button>
-            <button
-              className="btn secondary"
-              onClick={() => review(15)}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={busy || due.length === 0}
+              onClick={() => review(15)}
             >
               Bloco de 15
-            </button>
+            </Button>
           </>
         }
       />
 
-      {(busy || err) && (
-        <div className="notice" style={{ marginBottom: 14 }}>
-          {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
-          {busy ? "Montando bloco de revisão…" : err}
+      {err && (
+        <div style={{ marginBottom: 16 }}>
+          <InlineNotice tone="danger">{err}</InlineNotice>
         </div>
       )}
 
-      <div className="grid grid4" style={{ marginTop: 14 }}>
-        <Metric label="Vencidas" value={due.length} />
-        <Metric label="Próx. 3 dias" value={soon.length} />
-        <Metric label="No sistema" value={all.length} />
-        <Metric label="Maior intervalo" value={`${maxInterval}d`} />
+      <div className="el-metrics-strip">
+        <MetricCard label="Vencidas" value={due.length} tone={due.length > 0 ? "warning" : "default"} />
+        <MetricCard label="Próx. 3 dias" value={soon.length} />
+        <MetricCard label="No sistema" value={all.length} />
+        <MetricCard
+          label="Maior intervalo"
+          value={all.length ? maxInterval : null}
+          unit="d"
+          hint={all.length ? undefined : "sem itens ainda"}
+        />
       </div>
 
-      <Card style={{ marginTop: 14 }}>
-        <h2>Fila</h2>
-        <div className="srsList">
-          {all.length === 0 && <Empty>Erre uma questão para iniciar a fila.</Empty>}
-          {all.slice(0, 40).map((x) => {
-            const delta = (+new Date(x.due) - now) / 86400000;
-            const cls = delta <= 0 ? "" : delta <= 3 ? "soon" : "later";
-            return (
-              <div className="srsItem" key={x.key}>
-                <span className={`dueDot ${cls}`} />
-                <div>
-                  <b>
-                    {x.content || AREA_LABELS[x.area] || x.area} • Q{x.index}
-                  </b>
-                  <div className="muted" style={{ fontSize: 11 }}>
-                    ENEM {x.year} • repetições {x.reps || 0} • intervalo {x.interval || 0}d •{" "}
-                    {delta <= 0 ? "vencida" : `em ${Math.ceil(delta)}d`}
+      <Card style={{ marginTop: "var(--density-gap)" }}>
+        <h2 className="heading-md">Fila</h2>
+        <div className="el-srslist">
+          {all.length === 0 ? (
+            <EmptyState
+              title="A fila está vazia"
+              description="Erre uma questão num treino e ela entra aqui para voltar na hora certa."
+            />
+          ) : (
+            all.slice(0, 40).map((x) => {
+              const delta = (+new Date(x.due) - now) / 86400000;
+              const vencida = delta <= 0;
+              const tom = vencida ? "danger" : delta <= 3 ? "warning" : "neutral";
+              return (
+                <Card key={x.key} padding="sm" className="el-srsitem">
+                  <div className="el-srsitem__body">
+                    <b className="heading-sm">
+                      {x.content || areaLabel(x.area, providerId)} • Q{x.index}
+                    </b>
+                    <div className="caption el-srsitem__meta">
+                      {/* A banca vem do item, não de um padrão: um item do ITA
+                          dizia "ENEM 2026" aqui. */}
+                      <span>
+                        {examLabel(x.providerId ?? providerId)} {x.year}
+                      </span>
+                      <span>{x.reps || 0} repetições</span>
+                      <span>intervalo {x.interval || 0}d</span>
+                    </div>
                   </div>
-                </div>
-                <button
-                  className="btn secondary"
-                  onClick={() => recall(x.key)}
-                  disabled={busy}
-                >
-                  Recordar
-                </button>
-              </div>
-            );
-          })}
+                  <Badge variant={tom}>
+                    {vencida ? "vencida" : `em ${Math.ceil(delta)}d`}
+                  </Badge>
+                  <Button variant="secondary" size="sm" disabled={busy} onClick={() => recall(x.key)}>
+                    Recordar
+                  </Button>
+                </Card>
+              );
+            })
+          )}
         </div>
       </Card>
     </>

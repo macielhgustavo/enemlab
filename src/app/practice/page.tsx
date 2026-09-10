@@ -1,10 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { examYears } from "@/lib/domain/constants";
-import { buildTrainingAttempt, type NewTrainingParams } from "@/lib/services/attempts";
+import { discipline } from "@/lib/domain/classify";
+import { buildTrainingAttempt, attemptFromQuestions, type NewTrainingParams } from "@/lib/services/attempts";
+import { ENEM_PROVIDER_ID, listProviders } from "@/lib/providers";
+import { questionsFor } from "@/lib/providers/access";
+import { areasOf } from "@/lib/providers/taxonomy";
+import { editionOptions } from "@/lib/providers/label";
+import { useActiveProvider } from "@/components/ExamSwitch";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { Button } from "@/components/ui/button";
+import { InlineNotice, LoadingState } from "@/components/enem-lab/states";
 import { Card } from "@/components/ui";
 import type { AttemptMode, AreaId, Language } from "@/lib/domain/types";
 
@@ -44,6 +53,7 @@ export default function PracticePage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
   const hydrated = useHydrated();
+  const { providerId, setProvider } = useActiveProvider();
 
   const [year, setYear] = useState(2023);
   const [lang, setLang] = useState<Language>("ingles");
@@ -54,7 +64,24 @@ export default function PracticePage() {
   const [strategy, setStrategy] = useState(false);
   const [alerts, setAlerts] = useState(true);
   const [busy, setBusy] = useState(false);
+  const referenceProviders = useMemo(
+    () => listProviders().filter((provider) => provider.id !== ENEM_PROVIDER_ID && provider.metadata.years.length),
+    [],
+  );
+  const referenceProvider = referenceProviders.find((provider) => provider.id === providerId) ?? referenceProviders[0];
+  const [referenceEditionId, setReferenceEditionId] = useState(() =>
+    referenceProvider ? editionOptions(referenceProvider.id)[0]?.id ?? "" : "",
+  );
+  const [referenceSubject, setReferenceSubject] = useState("");
   const [status, setStatus] = useState<string>("");
+  const referenceEditions = referenceProvider ? editionOptions(referenceProvider.id) : [];
+  const activeReferenceEdition = referenceEditions.find(({ id }) => id === referenceEditionId)
+    ?? referenceEditions[0];
+  const activeReferenceYear = activeReferenceEdition?.year ?? 2026;
+  const referenceAreas = areasOf(referenceProvider?.id);
+  const activeReferenceSubject = referenceAreas.some(({ id }) => id === referenceSubject)
+    ? referenceSubject
+    : "";
 
   const areaDisabled = ["full", "real1", "real2", "adaptive15", "unseen90"].includes(mode);
   const minutesDisabled = mode === "real1" || mode === "real2";
@@ -63,6 +90,30 @@ export default function PracticePage() {
     setMode(m);
     setMinutes(defaultMinutes(m));
     if (m === "full" || m === "real1" || m === "real2") setArea("all");
+  }
+
+  async function startReferenceExam() {
+    if (!referenceProvider) return;
+    setBusy(true);
+    setStatus("Montando vestibular em modo referência…");
+    try {
+      const lang = (referenceProvider.metadata.languages[0]?.id ?? "ingles") as Language;
+      const all = await questionsFor(referenceProvider.id, {
+        year: activeReferenceYear,
+        editionId: activeReferenceEdition?.id,
+        language: lang,
+      });
+      const qs = activeReferenceSubject
+        ? all.filter((question) => discipline(question) === activeReferenceSubject)
+        : all;
+      if (!qs.length) throw new Error("Nenhuma questão disponível para esse filtro.");
+      const attempt = attemptFromQuestions(activeReferenceYear, lang, qs, "full", referenceProvider.id);
+      addAttempt(attempt);
+      router.push(`/exam/${attempt.id}`);
+    } catch (e) {
+      setStatus((e as Error).message);
+      setBusy(false);
+    }
   }
 
   async function start() {
@@ -79,24 +130,31 @@ export default function PracticePage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <LoadingState lines={4} label="Carregando as opções de treino" />
+      </Card>
+    );
 
   return (
     <>
-      <Card>
-        <div className="row between">
-          <div>
-            <h2>Novo treino</h2>
-            <div className="muted">
-              Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API.
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        eyebrow="Módulo · treino"
+        title={providerId === ENEM_PROVIDER_ID ? "Novo treino" : `Treinar ${referenceProvider?.metadata.shortLabel ?? "vestibular"}`}
+        description={providerId === ENEM_PROVIDER_ID
+          ? "Do sprint de 15 ao ENEM Real. Questões em cache abrem sem nova chamada à API."
+          : "Abra a prova da banca, marque as alternativas no app e receba a correção pelo gabarito oficial."}
+      />
 
-        <div className="grid grid3" style={{ marginTop: 15 }}>
+      {providerId === ENEM_PROVIDER_ID && <Card>
+        {/* A configuração vem em três blocos nomeados em vez de uma parede de
+            campos: prova, formato e regras respondem perguntas diferentes. */}
+        <div className="label el-fieldset__label">A prova</div>
+        <div className="grid grid3" style={{ marginTop: 12 }}>
           <div>
-            <label>Ano</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            <label htmlFor="treino-ano">Ano</label>
+            <select id="treino-ano" value={year} onChange={(e) => setYear(Number(e.target.value))}>
               {examYears().map((y) => (
                 <option key={y} value={y}>
                   {y}
@@ -106,15 +164,15 @@ export default function PracticePage() {
             </select>
           </div>
           <div>
-            <label>Idioma</label>
-            <select value={lang} onChange={(e) => setLang(e.target.value as Language)}>
+            <label htmlFor="treino-idioma">Idioma</label>
+            <select id="treino-idioma" value={lang} onChange={(e) => setLang(e.target.value as Language)}>
               <option value="ingles">Inglês</option>
               <option value="espanhol">Espanhol</option>
             </select>
           </div>
           <div>
-            <label>Modo</label>
-            <select value={mode} onChange={(e) => changeMode(e.target.value as AttemptMode)}>
+            <label htmlFor="treino-modo">Modo</label>
+            <select id="treino-modo" value={mode} onChange={(e) => changeMode(e.target.value as AttemptMode)}>
               {MODES.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
@@ -126,8 +184,8 @@ export default function PracticePage() {
 
         <div className="grid grid2" style={{ marginTop: 12 }}>
           <div>
-            <label>Área</label>
-            <select
+            <label htmlFor="treino-area">Área</label>
+            <select id="treino-area"
               value={area}
               disabled={areaDisabled}
               onChange={(e) => setArea(e.target.value as AreaId | "all")}
@@ -140,8 +198,8 @@ export default function PracticePage() {
             </select>
           </div>
           <div>
-            <label>Tempo máximo (min)</label>
-            <input
+            <label htmlFor="treino-minutos">Tempo máximo (min)</label>
+            <input id="treino-minutos"
               type="number"
               min={10}
               max={700}
@@ -152,7 +210,10 @@ export default function PracticePage() {
           </div>
         </div>
 
-        <label className="toggle" style={{ marginTop: 13 }}>
+        <div className="label el-fieldset__label" style={{ marginTop: 24 }}>
+          Regras da sessão
+        </div>
+        <label className="toggle" style={{ marginTop: 12 }}>
           <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />{" "}
           Modo rígido: o relógio continua mesmo se fechar a prova.
         </label>
@@ -170,23 +231,80 @@ export default function PracticePage() {
         </label>
 
         {status && (
-          <div className="notice" style={{ marginTop: 14 }}>
-            {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
-            {status}
+          <div style={{ marginTop: 16 }}>
+            <InlineNotice tone="warning">{status}</InlineNotice>
           </div>
         )}
 
-        <div className="row between" style={{ marginTop: 15 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Banco estruturado: 2009–2023
-          </span>
-          <button className="btn" onClick={start} disabled={busy}>
+        <div className="row between" style={{ marginTop: 20 }}>
+          <span className="caption">Banco estruturado: 2009–2023</span>
+          <Button variant="primary" onClick={start} loading={busy}>
             Começar
-          </button>
+          </Button>
+        </div>
+      </Card>}
+
+      <Card style={{ marginTop: 14 }}>
+        <div className="htitle">
+          <h2>Vestibulares — modo referência</h2>
+          <span className="badge2">gabarito oficial</span>
+        </div>
+        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+          O enunciado fica no documento oficial da banca e você marca a alternativa aqui.
+          A correção usa o gabarito oficial, e o desempenho fica separado por instituição.
+        </p>
+        <div className="row" style={{ alignItems: "flex-end", gap: 12, marginTop: 14 }}>
+          <div style={{ maxWidth: 150 }}>
+            <label htmlFor="ref-provider">Prova</label>
+            <select
+              id="ref-provider"
+              value={referenceProvider?.id ?? ""}
+              onChange={(e) => {
+                const nextProvider = referenceProviders.find((provider) => provider.id === e.target.value);
+                setProvider(e.target.value);
+                setReferenceEditionId(nextProvider ? editionOptions(nextProvider.id)[0]?.id ?? "" : "");
+                setReferenceSubject("");
+              }}
+            >
+              {referenceProviders.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.metadata.shortLabel}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ maxWidth: 150 }}>
+            <label htmlFor="ref-edicao">Edição</label>
+            <select
+              id="ref-edicao"
+              value={activeReferenceEdition?.id ?? ""}
+              onChange={(e) => setReferenceEditionId(e.target.value)}
+            >
+              {referenceEditions.map((edition) => (
+                <option key={edition.id} value={edition.id}>
+                  {edition.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ maxWidth: 190 }}>
+            <label htmlFor="ref-materia">Matéria</label>
+            <select id="ref-materia" value={activeReferenceSubject} onChange={(e) => setReferenceSubject(e.target.value)}>
+              <option value="">Prova completa</option>
+              {referenceAreas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button variant="primary" onClick={startReferenceExam} loading={busy} disabled={!referenceProvider}>
+            Começar vestibular
+          </Button>
         </div>
       </Card>
 
-      <Card style={{ marginTop: 14 }}>
+      {providerId === ENEM_PROVIDER_ID && <Card style={{ marginTop: 14 }}>
         <h2>Modos de treino</h2>
         <div className="grid grid4" style={{ marginTop: 14 }}>
           <div className="modeCard">
@@ -214,7 +332,7 @@ export default function PracticePage() {
             <p className="muted">Dia 1 ou Dia 2 com tempo oficial.</p>
           </div>
         </div>
-      </Card>
+      </Card>}
     </>
   );
 }

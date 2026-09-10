@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BrainCircuit, Clock3, Gauge, RotateCcw, Sparkles, Target } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
+import { useActiveProvider } from "@/components/ExamSwitch";
 import { pct } from "@/lib/format";
-import { AREA_LABELS, AREA_ORDER } from "@/lib/domain/constants";
+import { areasOf } from "@/lib/providers/taxonomy";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/enem-lab/states";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import {
@@ -27,6 +30,7 @@ export default function PlanoPage() {
   const addAttempt = useStore((s) => s.addAttempt);
   const router = useRouter();
   const hydrated = useHydrated();
+  const { providerId } = useActiveProvider();
   const [now] = useState(() => new Date());
   const [budget, setBudget] = useState(() => {
     if (typeof window === "undefined") return 60;
@@ -50,7 +54,7 @@ export default function PlanoPage() {
   }
 
   async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
-    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions);
+    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
     if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
     if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
     return buildTrainingAttempt(db, {
@@ -83,20 +87,27 @@ export default function PlanoPage() {
     }
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando plano…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <LoadingState lines={4} label="Carregando o plano de hoje" />
+      </Card>
+    );
 
-  const plan = buildDailyPlan(db, budget, now);
-  const stats = areaStats(db);
+  const plan = buildDailyPlan(db, budget, now, providerId);
+  const stats = areaStats(db, providerId);
   const activePlan = db.attempts.find(
     (attempt) => attempt.plan?.source === "daily-plan" && attempt.plan.dateKey === plan.dateKey && !attempt.finishedAt,
   );
   const progress = Math.min(100, Math.round((plan.signals.minutesToday / Math.max(1, plan.budgetMinutes)) * 100));
 
-  const readiness = AREA_ORDER.map((area) => {
+  // Prontidão é medida na taxonomia da prova ativa, não nas áreas do ENEM.
+  const readiness = areasOf(providerId).map(({ id: area, label }) => {
     const value = stats[area] || { c: 0, t: 0 };
     const ci = wilsonInterval(value.c, value.t);
     return {
       area,
+      label,
       ...value,
       low: ci.low,
       high: ci.high,
@@ -111,9 +122,9 @@ export default function PlanoPage() {
         title="Seu estudo de hoje, já priorizado."
         sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
         right={
-          <Link className="btn secondary link-btn" href="/adaptive">
-            Abrir Adaptive
-          </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/adaptive">Abrir Adaptive</Link>
+          </Button>
         }
       />
 
@@ -125,9 +136,11 @@ export default function PlanoPage() {
               Você já iniciou um bloco hoje. Termine ou retome antes de abrir outro para manter o diagnóstico limpo.
             </span>
           </div>
-          <Link className="btn link-btn" href={`/exam/${activePlan.id}`}>
-            Continuar <ArrowRight size={15} />
-          </Link>
+          <Button asChild variant="primary">
+            <Link href={`/exam/${activePlan.id}`}>
+              Continuar <ArrowRight size={15} />
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -144,7 +157,7 @@ export default function PlanoPage() {
             </div>
           </div>
 
-          <div className="dailyBudgetPresets" aria-label="Tempo disponível para estudar hoje">
+          <div className="dailyBudgetPresets" role="group" aria-label="Tempo disponível para estudar hoje">
             {BUDGET_PRESETS.map((value) => (
               <button
                 key={value}
@@ -163,7 +176,14 @@ export default function PlanoPage() {
               <span>tempo estudado hoje</span>
               <b>{plan.signals.minutesToday}/{plan.budgetMinutes} min</b>
             </div>
-            <div className="dailyPlanProgressTrack" aria-label={`${progress}% do tempo diário usado`}>
+            <div
+              className="dailyPlanProgressTrack"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${progress}% do tempo diário usado`}
+            >
               <span style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -195,7 +215,7 @@ export default function PlanoPage() {
         </Card>
       </div>
 
-      <div className="dailySignalGrid" aria-label="Sinais usados pelo plano">
+      <div className="dailySignalGrid" role="group" aria-label="Sinais usados pelo plano">
         <div className="dailySignal">
           <RotateCcw size={15} />
           <small>retenção</small>
@@ -249,18 +269,14 @@ export default function PlanoPage() {
                   </div>
                 </div>
                 <div className="dailyPlanAction">
-                  <button
-                    type="button"
-                    className="btn"
+                  <Button
+                    variant="primary"
                     disabled={!!busyBlock || !!activePlan}
+                    loading={busyBlock === block.id}
                     onClick={() => startBlock(block)}
                   >
-                    {busyBlock === block.id ? (
-                      <><span className="loader" /> montando</>
-                    ) : (
-                      <>{block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} /></>
-                    )}
-                  </button>
+                    {block.kind === "srs" ? "Revisar" : "Iniciar bloco"} <ArrowRight size={14} />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -288,7 +304,7 @@ export default function PlanoPage() {
           {readiness.map((item) => (
             <div className="dailyReadinessItem" key={item.area}>
               <div className="row between">
-                <b>{AREA_LABELS[item.area]}</b>
+                <b>{item.label}</b>
                 <span className="muted">{item.p === null ? "sem amostra" : `${item.p}% · n=${item.t}`}</span>
               </div>
               <div className="ciBar" style={{ marginTop: 9 }}>

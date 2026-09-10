@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BookOpenCheck,
   BrainCircuit,
@@ -35,8 +35,18 @@ const ACTIONS: Array<{
   { mode: "hint", label: "Me dê uma pista", icon: Lightbulb },
   { mode: "explain", label: "Explique a questão", icon: BookOpenCheck },
   { mode: "guided-solve", label: "Resolva comigo", icon: Route },
-  { mode: "why-wrong", label: "Por que minha resposta está errada?", icon: CircleHelp, requiresSelection: true },
-  { mode: "explain-alternative", label: "Explique minha alternativa", icon: MessageCircle, requiresSelection: true },
+  {
+    mode: "why-wrong",
+    label: "Por que minha resposta está errada?",
+    icon: CircleHelp,
+    requiresSelection: true,
+  },
+  {
+    mode: "explain-alternative",
+    label: "Explique minha alternativa",
+    icon: MessageCircle,
+    requiresSelection: true,
+  },
   { mode: "study-needed", label: "O que preciso estudar?", icon: Sparkles },
   { mode: "similar-question", label: "Crie uma questão parecida", icon: BrainCircuit },
 ];
@@ -63,18 +73,11 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
   const [responses, setResponses] = useState<AIResponse[]>([]);
   const [conversation, setConversation] = useState<AIConversationTurn[]>([]);
 
-  useEffect(() => {
-    setResponses([]);
-    setConversation([]);
-    setError("");
-    setInput("");
-  }, [question.key]);
-
   const latest = responses[responses.length - 1];
   const selected = question.selectedAnswer || null;
   const sourceLabel = useMemo(() => {
     if (question.origin.kind === "official") {
-      return `ENEM ${question.origin.year} · Q${question.origin.questionNumber}`;
+      return `${question.origin.institution} ${question.origin.year} · Q${question.origin.questionNumber}`;
     }
     return question.origin.label;
   }, [question.origin]);
@@ -106,7 +109,9 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
       });
       const body = (await response.json()) as AIResponse | { error?: string };
       if (!response.ok) {
-        throw new Error("error" in body && body.error ? body.error : "Falha ao consultar o tutor.");
+        throw new Error(
+          "error" in body && body.error ? body.error : "Falha ao consultar o tutor.",
+        );
       }
 
       const ai = body as AIResponse;
@@ -114,7 +119,10 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
       setConversation(
         [
           ...nextConversation,
-          { role: "assistant", content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}` },
+          {
+            role: "assistant",
+            content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}`,
+          },
         ].slice(-10),
       );
       setInput("");
@@ -134,7 +142,9 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
         aria-expanded={open}
         aria-controls="student-ai-panel"
       >
-        <span className="studentAITriggerIcon"><BrainCircuit size={18} /></span>
+        <span className="studentAITriggerIcon">
+          <BrainCircuit size={18} />
+        </span>
         <span>
           <b>Tutor IA</b>
           <small>{question.topic}</small>
@@ -149,7 +159,9 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
               <span>ASSISTÊNCIA CONTEXTUAL</span>
               <b>{sourceLabel}</b>
             </div>
-            <small>{question.subject} · {question.topic}</small>
+            <small>
+              {question.subject} · {question.topic}
+            </small>
           </header>
 
           <div className="studentAIActions">
@@ -160,9 +172,13 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
                 <button
                   key={action.mode}
                   type="button"
-                  onClick={() => ask(action.mode)}
+                  onClick={() => void ask(action.mode)}
                   disabled={disabled}
-                  title={action.requiresSelection && !selected ? "Marque uma alternativa primeiro" : action.label}
+                  title={
+                    action.requiresSelection && !selected
+                      ? "Marque uma alternativa primeiro"
+                      : action.label
+                  }
                 >
                   <Icon size={14} />
                   {action.label}
@@ -193,18 +209,27 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
                   <span>NÍVEL {latest.level}/6</span>
                   <h3>{latest.title}</h3>
                 </div>
-                <small>{latest.provider === "mock" ? "modo de desenvolvimento" : latest.provider}</small>
+                <small>
+                  {latest.provider === "mock" ? "modo de desenvolvimento" : latest.provider}
+                </small>
               </div>
               <p>{latest.explanation}</p>
               {!!latest.concepts.length && (
                 <div className="studentAIConcepts">
-                  {latest.concepts.map((concept) => <span key={concept}>{concept}</span>)}
+                  {latest.concepts.map((concept) => (
+                    <span key={concept}>{concept}</span>
+                  ))}
                 </div>
               )}
               <div className="studentAINext">
                 <b>Próximo passo</b>
                 <span>{latest.nextStep}</span>
               </div>
+              {latest.diagnostic && (
+                <div className="studentAISelectionHint">
+                  Sinal diagnóstico ({latest.diagnostic.confidence}): {latest.diagnostic.note}
+                </div>
+              )}
               {latest.revealAnswer && latest.answer && (
                 <div className="studentAIAnswer">
                   Resposta revelada: <b>{latest.answer}</b>

@@ -2,7 +2,13 @@
 // Funções puras: recebem o db como argumento.
 import { pct } from "../format";
 import { contentAllLabels } from "./constants";
-import { classifyContent, discipline, questionKey } from "./classify";
+import { classifyContent, discipline, isUnclassifiedContent, questionKey } from "./classify";
+import {
+  DEFAULT_PROVIDER_ID,
+  filterByProvider,
+  resolveProviderId,
+  sameProvider,
+} from "../providers/registry";
 import type {
   Attempt,
   DB,
@@ -29,8 +35,29 @@ export function officialRows(db: DB): EnrichedRow[] {
   return db.attempts
     .filter((a) => a.result)
     .flatMap((a) =>
-      a.result!.rows.map((r) => ({ ...r, attemptId: a.id, finishedAt: a.finishedAt })),
+      a.result!.rows.map((r) => ({
+        ...r,
+        // Linhas gravadas antes da v8 não têm a prova: herdam a da tentativa,
+        // que por sua vez resolve para ENEM quando também está ausente.
+        providerId: resolveProviderId(r.providerId ?? a.providerId),
+        attemptId: a.id,
+        finishedAt: a.finishedAt,
+      })),
     );
+}
+
+/**
+ * Linhas de uma prova específica. É por aqui que as estatísticas de bancas
+ * diferentes deixam de se misturar: quem quiser um número por prova filtra
+ * antes de agregar.
+ */
+export function officialRowsOf(db: DB, providerId?: string | null): EnrichedRow[] {
+  return filterByProvider(officialRows(db), providerId);
+}
+
+/** Provas que aparecem no histórico, já normalizando os dados antigos. */
+export function providersInHistory(db: DB): string[] {
+  return [...new Set(officialRows(db).map((r) => resolveProviderId(r.providerId)))].sort();
 }
 
 export function parseManualTags(note?: { tags?: string; tag?: string }): string[] {
@@ -47,9 +74,12 @@ export function questionTagsByRow(db: DB, row: EnrichedRow): string[] {
   return [row.content].filter(Boolean);
 }
 
-export function areaStats(db: DB): Record<string, Tally> {
+export function areaStats(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): Record<string, Tally> {
   const out: Record<string, Tally> = {};
-  officialRows(db)
+  officialRowsOf(db, providerId)
     .filter((x) => x.correct)
     .forEach((x) => {
       (out[x.area] ??= { c: 0, t: 0 }).t++;
@@ -58,17 +88,21 @@ export function areaStats(db: DB): Record<string, Tally> {
   return out;
 }
 
-export function rollingRows(db: DB, n = 100): EnrichedRow[] {
-  return officialRows(db)
+export function rollingRows(
+  db: DB,
+  n = 100,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): EnrichedRow[] {
+  return officialRowsOf(db, providerId)
     .filter((x) => x.correct)
     .slice(-n);
 }
 
-export function streakDays(db: DB): number {
+export function streakDays(db: DB, providerId: string = DEFAULT_PROVIDER_ID): number {
   const dates = [
     ...new Set(
       db.attempts
-        .filter((a) => a.result)
+        .filter((a) => a.result && sameProvider(a.providerId, providerId))
         .map((a) => new Date(a.finishedAt!).toISOString().slice(0, 10)),
     ),
   ]
@@ -112,10 +146,20 @@ export function statisticalConfidence(c: number, n: number): { label: string; cl
 }
 
 // ---- Mastery (multi-tag) ----
-export function masteryStats(db: DB): Record<string, Tally> {
+/**
+ * Domínio por conteúdo. Escopado por prova de propósito: a taxonomia de
+ * conteúdos é do ENEM, e deixar linhas de outra banca entrarem aqui somaria
+ * desempenhos que não se comparam. O padrão é ENEM para preservar todo o
+ * comportamento anterior.
+ */
+export function masteryStats(
+  db: DB,
+  providerId: string | null = DEFAULT_PROVIDER_ID,
+): Record<string, Tally> {
   const out: Record<string, Tally> = {};
   for (const n of contentAllLabels()) out[n] = { c: 0, t: 0 };
-  for (const row of officialRows(db).filter((x) => x.correct)) {
+  const base = providerId === null ? officialRows(db) : officialRowsOf(db, providerId);
+  for (const row of base.filter((x) => x.correct)) {
     for (const tag of questionTagsByRow(db, row)) {
       (out[tag] ??= { c: 0, t: 0 }).t++;
       if (row.isCorrect) out[tag].c++;
@@ -128,10 +172,14 @@ export interface WeakContent extends Tally {
   name: string;
   p: number;
 }
-export function weakestContents(db: DB, n = 5): WeakContent[] {
-  const st = masteryStats(db);
+export function weakestContents(
+  db: DB,
+  n = 5,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): WeakContent[] {
+  const st = masteryStats(db, providerId);
   return Object.entries(st)
-    .filter(([, v]) => v.t > 0)
+    .filter(([name, v]) => v.t > 0 && !isUnclassifiedContent(name))
     .map(([name, v]) => ({ name, ...v, p: pct(v.c, v.t) }))
     .sort((a, b) => a.p - b.p || b.t - a.t)
     .slice(0, n);
@@ -297,8 +345,13 @@ export function rebuildSessions(db: DB): StudySession[] {
 }
 
 // Série de evolução: média móvel de acerto ao longo das questões corrigidas.
-export function evolutionSeries(db: DB, maxPoints = 30, window = 50): number[] {
-  const rows = officialRows(db).filter((x) => x.correct);
+export function evolutionSeries(
+  db: DB,
+  maxPoints = 30,
+  window = 50,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): number[] {
+  const rows = officialRowsOf(db, providerId).filter((x) => x.correct);
   if (rows.length < 2) return [];
   const vals: number[] = [];
   const stepSize = Math.max(1, Math.floor(rows.length / maxPoints));

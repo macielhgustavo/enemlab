@@ -1,8 +1,9 @@
 import { pct } from "../format";
+import { DEFAULT_PROVIDER_ID, sameProvider } from "../providers/registry";
 import { dueSRS } from "./srs";
 import {
   masteryStats,
-  officialRows,
+  officialRowsOf,
   questionTagsByRow,
   wilsonInterval,
 } from "./stats";
@@ -82,12 +83,17 @@ function mondayStart(now: Date): Date {
   return d;
 }
 
-function completedAttempts(db: DB) {
-  return db.attempts.filter((a) => a.result && a.finishedAt);
+function completedAttempts(db: DB, providerId: string = DEFAULT_PROVIDER_ID) {
+  return db.attempts.filter(
+    (a) => a.result && a.finishedAt && sameProvider(a.providerId, providerId),
+  );
 }
 
-export function estimatedQuestionMinutes(db: DB): number {
-  const times = officialRows(db)
+export function estimatedQuestionMinutes(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): number {
+  const times = officialRowsOf(db, providerId)
     .map((row) => row.timeSec)
     .filter((sec) => Number.isFinite(sec) && sec >= 20 && sec <= 600)
     .slice(-100)
@@ -98,9 +104,9 @@ export function estimatedQuestionMinutes(db: DB): number {
   return Math.round(clamp(median / 60, 1.5, 5.5) * 10) / 10;
 }
 
-function weakPriorities(db: DB): WeakPriority[] {
-  const mastery = masteryStats(db);
-  const recent = officialRows(db).slice(-120);
+function weakPriorities(db: DB, providerId: string = DEFAULT_PROVIDER_ID): WeakPriority[] {
+  const mastery = masteryStats(db, providerId);
+  const recent = officialRowsOf(db, providerId).slice(-120);
 
   return Object.entries(mastery)
     .filter(([, value]) => value.t >= 2)
@@ -135,10 +141,20 @@ function addBlock(blocks: DailyPlanBlock[], block: DailyPlanBlock, remaining: nu
   return Math.max(0, remaining - block.minutes);
 }
 
-export function buildDailyPlan(db: DB, requestedBudget = 60, now = new Date()): DailyPlan {
+/**
+ * Plano do dia da prova ativa. Ritmo, fila, fraquezas e metas saem todos da
+ * mesma banca — misturar faria o plano recomendar com base em desempenho que
+ * não se compara.
+ */
+export function buildDailyPlan(
+  db: DB,
+  requestedBudget = 60,
+  now = new Date(),
+  providerId: string = DEFAULT_PROVIDER_ID,
+): DailyPlan {
   const budgetMinutes = clamp(Math.round(requestedBudget || 60), MIN_BUDGET, MAX_BUDGET);
   const dateKey = localDateKey(now);
-  const finished = completedAttempts(db);
+  const finished = completedAttempts(db, providerId);
   const today = finished.filter((a) => sameLocalDay(a.finishedAt, dateKey));
   const minutesToday = Math.round(
     today.reduce((sum, a) => sum + Math.max(0, a.elapsed || a.questionSec || 0), 0) / 60,
@@ -155,9 +171,9 @@ export function buildDailyPlan(db: DB, requestedBudget = 60, now = new Date()): 
   const baseDailyTarget = Math.max(5, Math.round(weeklyTarget / 7));
   const targetToday = Math.max(baseDailyTarget, Math.min(baseDailyTarget * 2, paceDeficit));
 
-  const due = dueSRS(db);
-  const avgQuestionMinutes = estimatedQuestionMinutes(db);
-  const weak = weakPriorities(db);
+  const due = dueSRS(db, providerId);
+  const avgQuestionMinutes = estimatedQuestionMinutes(db, providerId);
+  const weak = weakPriorities(db, providerId);
   const highConfidenceErrors = weak.reduce((sum, item) => sum + item.certainWrong, 0);
   const completedPlanBlocks = today.filter((a) => a.plan?.source === "daily-plan").length;
 

@@ -6,12 +6,16 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Flag, XCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
-import { AREA_LABELS } from "@/lib/domain/constants";
+import { areaLabel } from "@/lib/providers/taxonomy";
+import { examLabel } from "@/lib/providers/label";
 import { discipline } from "@/lib/domain/classify";
 import { markdownImageUrls, richText, safeUrl, shortSec } from "@/lib/format";
 import { questionsForAttempt } from "@/lib/services/attempts";
 import MathContent from "@/components/MathContent";
-import { Card, PageHead } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/enem-lab/PageHeader";
 import type { Question, ResultRow } from "@/lib/domain/types";
 
 type ReviewFilter = "all" | "wrong" | "correct" | "blank" | "flagged";
@@ -105,20 +109,34 @@ export default function ResultReviewPage() {
 
   return (
     <div className="resultReviewPage">
-      <PageHead
-        eyebrow={`Correção · ENEM ${attempt.year}`}
+      <PageHeader
+        eyebrow="Correção"
         title="Questão por questão"
-        sub="Revise resposta, gabarito, confiança, tempo e conteúdo sem perder o contexto da prova."
-        right={
-          <Link className="btn secondary link-btn" href={`/result/${id}`}>
-            Voltar ao resultado
-          </Link>
+        context={
+          <Badge variant="accent">
+            {examLabel(attempt.providerId)} {attempt.year}
+          </Badge>
+        }
+        crumbs={[
+          { label: "Histórico", href: "/history" },
+          { label: "Resultado", href: `/result/${id}` },
+          { label: "Correção" },
+        ]}
+        description="Revise resposta, gabarito, confiança, tempo e conteúdo sem perder o contexto da prova."
+        actions={
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/result/${id}`}>Voltar ao resultado</Link>
+          </Button>
         }
       />
 
       <div className="resultReviewLayout">
         <aside className="resultReviewRail" aria-label="Navegação da correção">
-          <div className="resultReviewFilters" role="tablist" aria-label="Filtrar questões">
+          {/* Era `role="tablist"` com `role="tab"`, mas sem `tabpanel` do outro
+              lado — e isto não são abas: é um filtro sobre a mesma lista. Um
+              grupo de botões de alternar com `aria-pressed` descreve o que a
+              tela realmente faz. */}
+          <div className="resultReviewFilters" role="group" aria-label="Filtrar questões">
             {FILTERS.map((item) => (
               <button
                 key={item.id}
@@ -128,8 +146,7 @@ export default function ResultReviewPage() {
                   setFilter(item.id);
                   setPosition(0);
                 }}
-                role="tab"
-                aria-selected={filter === item.id}
+                aria-pressed={filter === item.id}
               >
                 <span>{item.label}</span>
                 <b>{counts[item.id]}</b>
@@ -178,6 +195,7 @@ export default function ResultReviewPage() {
             <ReviewQuestion
               row={row}
               question={question}
+              providerId={attempt.providerId}
               position={currentPosition}
               total={filtered.length}
             />
@@ -185,25 +203,25 @@ export default function ResultReviewPage() {
 
           {!!filtered.length && (
             <div className="resultReviewPager">
-              <button
-                type="button"
-                className="btn secondary"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setPosition((value) => Math.max(0, value - 1))}
                 disabled={currentPosition === 0}
               >
                 <ArrowLeft size={15} /> anterior
-              </button>
+              </Button>
               <span>
                 {currentPosition + 1} de {filtered.length}
               </span>
-              <button
-                type="button"
-                className="btn secondary"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setPosition((value) => Math.min(filtered.length - 1, value + 1))}
                 disabled={currentPosition >= filtered.length - 1}
               >
                 próxima <ArrowRight size={15} />
-              </button>
+              </Button>
             </div>
           )}
         </main>
@@ -215,11 +233,14 @@ export default function ResultReviewPage() {
 function ReviewQuestion({
   row,
   question,
+  providerId,
   position,
   total,
 }: {
   row: ResultRow;
   question: Question;
+  /** Banca da tentativa: define em que taxonomia o nome da área é lido. */
+  providerId?: string | null;
   position: number;
   total: number;
 }) {
@@ -239,7 +260,7 @@ function ReviewQuestion({
       <div className="resultReviewQuestionTop">
         <div>
           <span className="resultReviewEyebrow">QUESTÃO {row.index} · {position + 1}/{total}</span>
-          <h2>{AREA_LABELS[row.area] || row.area}</h2>
+          <h2>{areaLabel(row.area, providerId)}</h2>
           <div className="resultReviewPath">{row.content}</div>
         </div>
         <span className={`resultReviewStatus ${status}`}>

@@ -1,9 +1,11 @@
 // Motor adaptativo (portado do v6 beta final).
 import { pct } from "../format";
-import { classifyContent, questionKey } from "./classify";
+import { classifyContent, discipline, questionKey } from "./classify";
+import { DEFAULT_PROVIDER_ID } from "../providers/registry";
 import {
   masteryStats,
   officialRows,
+  officialRowsOf,
   personalDifficulty,
   historicalQuestionRows,
 } from "./stats";
@@ -38,11 +40,28 @@ export function adaptiveScoreQuestion(
 }
 
 // Monta a fila adaptativa com teto por conteúdo (~30%).
-export function buildAdaptiveQuestions(db: DB, all: Question[], n = 15): Question[] {
-  const stats = masteryStats(db),
-    seen = new Set(officialRows(db).map((x) => x.key));
+/**
+ * Fila adaptativa de uma prova. O histórico, o domínio e a diversidade de
+ * assuntos são todos da mesma banca: cruzar provas faria o motor recomendar
+ * com base em desempenho que não se compara.
+ *
+ * Em prova sem enunciado em texto (modo referência), o agrupamento é por
+ * matéria — a taxonomia de conteúdos do ENEM não se aplica.
+ */
+export function buildAdaptiveQuestions(
+  db: DB,
+  all: Question[],
+  n = 15,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): Question[] {
+  const stats = masteryStats(db, providerId),
+    seen = new Set(officialRowsOf(db, providerId).map((x) => x.key));
   const ranked = all
-    .map((q) => ({ q, score: adaptiveScoreQuestion(db, q, stats, seen), content: classifyContent(q) }))
+    .map((q) => ({
+      q,
+      score: adaptiveScoreQuestion(db, q, stats, seen),
+      content: q.statementAvailable === false ? String(discipline(q)) : classifyContent(q),
+    }))
     .sort((a, b) => b.score - a.score);
   const chosen: Question[] = [],
     perContent: Record<string, number> = {};

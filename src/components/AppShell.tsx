@@ -15,15 +15,22 @@ import {
   Sun,
   Moon,
   Search,
+  UserRound,
+  Cloud,
+  Menu,
 } from "lucide-react";
+import { Brand } from "@/components/Brand";
+import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { dueSRS } from "@/lib/domain/srs";
+import { resolveProviderId } from "@/lib/providers";
+import { useCloudSync } from "@/components/CloudSyncProvider";
 import CommandPalette from "@/components/CommandPalette";
+import ProviderSwitcher from "@/components/enem-lab/ProviderSwitcher";
 import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 import ExamExperienceHost from "@/components/ExamExperienceHost";
-import StudentAIHost from "@/components/StudentAIHost";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -36,12 +43,48 @@ const NAV = [
   { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
   { href: "/review", label: "Erros", icon: BookX, short: "Erros" },
   { href: "/data", label: "Dados", icon: Database, short: "Dados" },
+  { href: "/account", label: "Conta", icon: UserRound, short: "Conta" },
 ];
 
-const MOBILE = [NAV[0], NAV[1], NAV[3], NAV[6], NAV[5]];
+/**
+ * A nav era uma lista de onze itens sem hierarquia, e "Conta" ficava no fim
+ * dela como se fosse mais uma ferramenta de estudo. Agrupar diz o que é
+ * ação, o que é acompanhamento e o que é configuração — e encurta a busca
+ * visual de onze itens para três blocos.
+ */
+const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
+  {
+    titulo: "Estudar",
+    itens: NAV.filter((n) =>
+      ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href),
+    ),
+  },
+  {
+    titulo: "Acompanhar",
+    itens: NAV.filter((n) => ["/mastery", "/srs", "/history", "/review"].includes(n.href)),
+  },
+  { titulo: "Sistema", itens: NAV.filter((n) => ["/data", "/account"].includes(n.href)) },
+];
+
+const MOBILE = [NAV[0], NAV[1], NAV[2], NAV[6]];
 
 function openPalette() {
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }),
+  );
+}
+
+/**
+ * Quanto ar cada tela merece.
+ *
+ * Não é preferência do usuário: é decisão de projeto. Rota não listada fica
+ * no padrão — o default precisa ser o certo para a maioria, senão vira uma
+ * tabela que alguém tem que manter.
+ */
+function densidadeDaRota(pathname: string): "compact" | "default" | "spacious" {
+  if (pathname === "/") return "spacious";
+  if (pathname.startsWith("/bank") || pathname.startsWith("/srs")) return "compact";
+  return "default";
 }
 
 function isActive(pathname: string, href: string) {
@@ -54,15 +97,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const toggleTheme = useStore((s) => s.toggleTheme);
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
+  const cloud = useCloudSync();
 
-  const due = hydrated ? dueSRS(db).length : 0;
+  const due = hydrated ? dueSRS(db, resolveProviderId(db.activeProvider)).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
   const sysLabel = !hydrated
-    ? "sincronizando"
+    ? "carregando"
     : due > 0
       ? `${due} pendente${due > 1 ? "s" : ""}`
       : "tudo em dia";
+
+  const cloudLabel =
+    cloud.status === "syncing"
+      ? "sincronizando"
+      : cloud.status === "needs-merge"
+        ? "mesclar conta"
+        : cloud.user
+          ? cloud.status === "idle"
+            ? "nuvem em dia"
+            : "nuvem offline"
+          : "somente local";
 
   const isExam = pathname.startsWith("/exam/");
   const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
@@ -75,54 +130,52 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <ImageZoomHost />
         <QuestionIssueReporter />
         <ExamExperienceHost />
-        <StudentAIHost />
       </div>
     );
   }
 
   return (
     <div className="layout">
+      <a className="skip-link" href="#main-content">
+        Ir para o conteúdo
+      </a>
       <aside className="rail">
-        <div className="brand">
-          <span className="mark">E</span>
-          <span className="name">ENEM Lab</span>
-        </div>
+        <Brand />
+        <ProviderSwitcher />
         <div className="tag">Mission Control</div>
 
-        <button className="cmdk-trigger" onClick={openPalette}>
+        <button
+          className="cmdk-trigger"
+          onClick={openPalette}
+          aria-label="Buscar páginas e ações"
+        >
           <Search size={14} />
           <span>Buscar</span>
           <kbd>⌘K</kbd>
         </button>
 
-        <nav className="railnav">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={isActive(pathname, item.href) ? "active" : ""}
-                aria-current={isActive(pathname, item.href) ? "page" : undefined}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="railnav" aria-label="Navegação principal">
+          {GRUPOS.map((grupo) => (
+            <div className="railgroup" key={grupo.titulo}>
+              <span className="railgroup__label label">{grupo.titulo}</span>
+              {grupo.itens.map((item) => {
+                const Icon = item.icon;
+                const on = isActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={on ? "active" : ""}
+                    aria-current={on ? "page" : undefined}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
-
-        <div className="rail-sign">
-          <i />
-          Disciplina
-          <br />
-          hoje
-          <br />
-          <br />
-          Resultados
-          <br />
-          amanhã
-        </div>
 
         <div className="sysline">
           <span className={`sysdot ${sysClass}`} />
@@ -131,7 +184,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="rail-foot">
-          <span className="tele">{theme === "dark" ? "Escuro" : "Claro"}</span>
+          <Link href="/account" className="tele">
+            <Cloud size={12} /> {cloudLabel}
+          </Link>
           <button
             className="iconbtn"
             onClick={toggleTheme}
@@ -142,7 +197,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="content">{children}</main>
+      {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
+          poucos blocos com muito peso. Antes as duas respiravam igual, porque
+          densidade só existia na documentação. */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="content"
+        data-density={densidadeDaRota(pathname)}
+        data-page={pathname.split("/")[1] || "home"}
+      >
+        {children}
+      </main>
 
       {canOpenResultReview && (
         <Link className="resultReviewShortcut" href={`${pathname}/review`}>
@@ -165,6 +231,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className={!MOBILE.some((item) => isActive(pathname, item.href)) ? "active" : ""}
+            >
+              <Menu size={18} aria-hidden="true" />
+              <span>Mais</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent title="Navegação" side="bottom" className="el-navigation-sheet">
+            <nav aria-label="Todas as páginas" className="el-mobile-nav">
+              {GRUPOS.map((grupo) => (
+                <div key={grupo.titulo}>
+                  <p className="label">{grupo.titulo}</p>
+                  {grupo.itens.map((item) => (
+                    <SheetClose asChild key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={isActive(pathname, item.href) ? "page" : undefined}
+                      >
+                        <item.icon size={16} aria-hidden="true" />
+                        {item.label}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                </div>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </nav>
 
       {isResultReview && <ImageZoomHost />}

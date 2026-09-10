@@ -2,6 +2,7 @@ import type {
   AIAssistanceLevel,
   AIAssistanceMode,
   AIGeneratedQuestion,
+  AIGeneratedQuestionLabel,
   AIPedagogicalPolicy,
   AIQuestionContext,
   AIRequest,
@@ -30,6 +31,20 @@ const DEFAULT_LEVELS: Record<AIAssistanceMode, AIAssistanceLevel> = {
 
 function clampLevel(level: number): AIAssistanceLevel {
   return Math.max(1, Math.min(6, Math.round(level))) as AIAssistanceLevel;
+}
+
+export function generatedQuestionIdentity(question: AIQuestionContext): {
+  style: string;
+  label: AIGeneratedQuestionLabel;
+} {
+  const style =
+    question.origin.kind === "official"
+      ? question.origin.institution
+      : question.origin.style;
+  return {
+    style,
+    label: `Questão gerada por IA — estilo ${style}`,
+  };
 }
 
 export function isExplicitFullSolutionRequest(message?: string): boolean {
@@ -80,6 +95,7 @@ export function buildTutorPrompts(
   policy: AIPedagogicalPolicy,
 ): { systemPrompt: string; userPrompt: string } {
   const question = questionContextForModel(request.question, policy);
+  const generatedIdentity = generatedQuestionIdentity(request.question);
   const systemPrompt = [
     "Você é o tutor pedagógico do ENEMLab.",
     "Seu objetivo é ensinar, não apenas entregar respostas.",
@@ -89,7 +105,8 @@ export function buildTutorPrompts(
       ? "O aluno pediu assistência de nível 6; a resposta correta pode ser revelada."
       : "Não revele a letra da alternativa correta nem escreva um gabarito explícito.",
     "Nunca invente instituição, ano, prova, número ou fonte oficial.",
-    "Se houver questão gerada, identifique-a obrigatoriamente como 'Questão gerada por IA — estilo ENEM'.",
+    `Se houver questão gerada, identifique-a como '${generatedIdentity.label}' e nunca como questão oficial.`,
+    "Se a resolução depender de uma imagem que você não consegue interpretar a partir do contexto recebido, diga essa limitação em vez de inventar detalhes.",
     "Use linguagem clara, progressiva e adequada ao ensino médio.",
     "Retorne somente JSON válido com as chaves: title, explanation, concepts, nextStep, revealAnswer, answer, diagnostic, generatedQuestion.",
     "concepts deve ser um array curto de strings. diagnostic é opcional.",
@@ -116,15 +133,17 @@ export function buildTutorPrompts(
 }
 
 export function normalizeGeneratedQuestion(
-  generated?: Partial<AIGeneratedQuestion>,
+  generated: Partial<AIGeneratedQuestion> | undefined,
+  sourceQuestion: AIQuestionContext,
 ): AIGeneratedQuestion | undefined {
   if (!generated?.statement || !generated.alternatives?.length || !generated.correctAnswer) {
     return undefined;
   }
+  const identity = generatedQuestionIdentity(sourceQuestion);
   return {
     origin: "ai-generated",
-    label: "Questão gerada por IA — estilo ENEM",
-    style: "ENEM",
+    label: identity.label,
+    style: identity.style,
     statement: String(generated.statement),
     alternatives: generated.alternatives
       .filter((alternative) => alternative?.letter && alternative?.text)
@@ -132,6 +151,7 @@ export function normalizeGeneratedQuestion(
       .map((alternative) => ({
         letter: String(alternative.letter),
         text: String(alternative.text),
+        file: alternative.file ? String(alternative.file) : null,
       })),
     correctAnswer: String(generated.correctAnswer),
     explanation: generated.explanation ? String(generated.explanation) : undefined,
@@ -161,7 +181,7 @@ export function enforcePedagogicalResponse(
     diagnostic: raw.diagnostic,
     generatedQuestion:
       request.mode === "similar-question"
-        ? normalizeGeneratedQuestion(raw.generatedQuestion)
+        ? normalizeGeneratedQuestion(raw.generatedQuestion, request.question)
         : undefined,
     provider,
   };

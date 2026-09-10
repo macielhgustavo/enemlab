@@ -38,16 +38,35 @@ export interface Alternative {
   isCorrect?: boolean;
 }
 
-export interface Question {
-  index: number;
-  year: number;
-  language?: string | null;
+  export interface Question {
+    providerId?: string;
+    examId?: string;
+    editionId?: string;
+    index: number;
+    year: number;
+    phase?: string;
+    language?: string | null;
   discipline?: string | { value?: string; label?: string };
   context?: string;
   alternativesIntroduction?: string;
   alternatives?: Alternative[];
   correctAlternative?: string;
   files?: string[];
+
+  // ---- v8: provas em modo referência (enunciado na fonte oficial) ----
+  /** Numeração oficial na prova, quando difere do índice. */
+  number?: number;
+  /**
+   * false quando o enunciado não está disponível em texto e precisa ser lido
+   * no documento oficial. A UI mostra a referência em vez de questão vazia.
+   */
+  statementAvailable?: boolean;
+  official?: {
+    official: boolean;
+    institution: string;
+    documentUrl: string;
+    page?: number;
+  };
 }
 
 export interface QuestionRef {
@@ -55,11 +74,20 @@ export interface QuestionRef {
   year?: number;
   language?: string | null;
   discipline: string;
+  /** Ausente nos dados anteriores à v8: resolve para ENEM na leitura. */
+  providerId?: string;
+  /** Identidade exata para provas com múltiplas edições/sessões no mesmo ano. */
+  questionKey?: string;
+  editionId?: string;
+  phase?: string;
+  examId?: string;
 }
 
 // ---- Correção ----
 export interface ResultRow {
   key: string;
+  /** Ausente nos dados anteriores a v8: resolve para ENEM na leitura. */
+  providerId?: string;
   index: number;
   year: number;
   area: string;
@@ -99,6 +127,8 @@ export interface DailyPlanStamp {
 
 export interface Attempt {
   id: string;
+  /** Prova de origem. Ausente nos dados antigos: resolve para ENEM. */
+  providerId?: string;
   year: number;
   lang: Language;
   mode: AttemptMode;
@@ -131,6 +161,7 @@ export interface Attempt {
 
 export interface SrsEntry {
   reps: number;
+  providerId?: string;
   interval: number;
   due: string;
   year: number;
@@ -180,6 +211,8 @@ export interface DB {
   srs: Record<string, SrsEntry>;
   sessions: StudySession[];
   goals: Goals;
+  /** Prova ativa na interface. Ausente = ENEM, como sempre foi. */
+  activeProvider?: string;
   lastOpened: string | null;
   lastBackupAt: string | null;
   migratedFrom?: string;

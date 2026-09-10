@@ -10,6 +10,9 @@ import {
   buildUnseenAcrossYears,
 } from "../api/enem";
 import { buildAdaptiveQuestions } from "../domain/adaptive";
+import { isQuestionUsableForPractice } from "../domain/question-quality";
+import { ENEM_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers";
+import { questionsFor } from "../providers/access";
 import { officialRows, questionDifficultyFromRow, rebuildSessions } from "../domain/stats";
 import { updateSRS } from "../domain/srs";
 import type {
@@ -36,6 +39,8 @@ export interface NewTrainingParams {
 function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" | "mode">): Attempt {
   return {
     id: uid(),
+    // Toda tentativa nasce carimbada com a prova de origem.
+    providerId: ENEM_PROVIDER_ID,
     area: "all",
     minutes: 50,
     strict: false,
@@ -60,8 +65,13 @@ function baseAttempt(partial: Partial<Attempt> & Pick<Attempt, "year" | "lang" |
   };
 }
 
-function refsFrom(qs: Question[], fallbackYear: number) {
+function refsFrom(qs: Question[], fallbackYear: number, providerId = ENEM_PROVIDER_ID) {
   return qs.map((q) => ({
+    providerId: resolveProviderId(q.providerId ?? providerId),
+    questionKey: questionKey(q),
+    editionId: q.editionId,
+    phase: q.phase,
+    examId: q.examId,
     index: q.index,
     year: q.year || fallbackYear,
     language: q.language || null,
@@ -75,13 +85,16 @@ export function attemptFromQuestions(
   lang: Language,
   qs: Question[],
   mode: AttemptMode,
+  providerId?: string | null,
 ): Attempt {
+  const scopedProviderId = resolveProviderId(providerId ?? qs.find((q) => q.providerId)?.providerId);
   return baseAttempt({
+    providerId: scopedProviderId,
     year,
     lang,
     mode,
     minutes: Math.max(30, Math.round(qs.length * 3.2)),
-    questionRefs: refsFrom(qs, year),
+    questionRefs: refsFrom(qs, year, scopedProviderId),
   });
 }
 
@@ -98,19 +111,21 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
   }
 
   const all = await fetchExam(year, lang);
+  const practiceAll = all.filter(isQuestionUsableForPractice);
 
   if (mode === "unseen15" || mode === "unseen30") {
     const n = mode === "unseen15" ? 15 : 30;
-    const pool = all.filter(
+    const pool = practiceAll.filter(
       (q) => (area === "all" || discipline(q) === area) && !seen.has(questionKey(q)),
     );
     const qs = sample(pool, n);
-    if (!qs.length) throw new Error("Você já viu todas as questões desse filtro.");
+    if (!qs.length) throw new Error("Você já viu todas as questões utilizáveis desse filtro.");
     return attemptFromQuestions(year, lang, qs, mode);
   }
 
   if (mode === "adaptive15") {
-    const qs = buildAdaptiveQuestions(db, all, 15);
+    const qs = buildAdaptiveQuestions(db, practiceAll, 15);
+    if (!qs.length) throw new Error("Não encontrei questões válidas para o treino adaptativo.");
     return attemptFromQuestions(year, lang, qs, "adaptive15");
   }
 
@@ -118,6 +133,8 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
     if (year < 2014)
       throw new Error("Use 2014–2023 para o ENEM Real (estrutura comparável ao formato atual).");
     const day = mode === "real1" ? 1 : 2;
+    // Provas reais preservam a estrutura oficial. Questões suspeitas são avisadas no runner,
+    // não removidas silenciosamente.
     const pool = buildRealDay(all, day, lang);
     return baseAttempt({
       year,
@@ -135,15 +152,19 @@ export async function buildTrainingAttempt(db: DB, p: NewTrainingParams): Promis
 
   let pool: Question[];
   if (mode === "full") {
+    // "full" também mantém a estrutura do ano; a auditoria fica visível durante a prova.
     pool = dedupeByIndex(all, lang).slice(0, 180);
   } else {
-    pool = area === "all" ? dedupeByIndex(all, lang) : all.filter((q) => discipline(q) === area);
+    pool =
+      area === "all"
+        ? dedupeByIndex(practiceAll, lang)
+        : practiceAll.filter((q) => discipline(q) === area);
     if (area !== "all" && pool.length > 45) pool = pool.slice(0, 45);
     if (mode === "sprint15") pool = sample(pool, 15);
     else if (mode === "sprint30") pool = sample(pool, 30);
     else pool.sort((a, b) => a.index - b.index);
   }
-  if (!pool.length) throw new Error("Nenhuma questão para este filtro.");
+  if (!pool.length) throw new Error("Nenhuma questão válida para este filtro.");
 
   return baseAttempt({
     year,
@@ -165,19 +186,30 @@ export async function buildAdaptiveAttempt(
   year = 2023,
   lang: Language = "ingles",
 ): Promise<Attempt> {
-  const all = await fetchExam(year, lang);
+  const all = (await fetchExam(year, lang)).filter(isQuestionUsableForPractice);
   const qs = buildAdaptiveQuestions(db, all, n);
+  if (!qs.length) throw new Error("Não encontrei questões válidas para o treino adaptativo.");
   return attemptFromQuestions(year, lang, qs, "adaptive");
 }
 
 // Bloco de revisões SRS vencidas.
-export async function buildDueReviewsAttempt(db: DB, limit = 30): Promise<Attempt> {
+export async function buildDueReviewsAttempt(
+  db: DB,
+  limit = 30,
+  providerId: string = ENEM_PROVIDER_ID,
+): Promise<Attempt> {
+  const scopedProviderId = resolveProviderId(providerId);
   const due = Object.entries(db.srs)
+    .filter(([, v]) => sameProvider(v.providerId, scopedProviderId))
     .filter(([, v]) => new Date(v.due).getTime() <= Date.now())
     .map(([key, v]) => ({ key, ...v }))
     .sort((a, b) => +new Date(a.due) - +new Date(b.due))
     .slice(0, limit);
   if (!due.length) throw new Error("Nenhuma revisão vencida.");
+
+  if (scopedProviderId !== ENEM_PROVIDER_ID) {
+    return buildProviderReviewAttempt(scopedProviderId, due);
+  }
   const groups: Record<string, typeof due> = {};
   due.forEach((x) => {
     const k = `${x.year}|${x.language || "ingles"}`;
@@ -199,21 +231,25 @@ export async function buildDueReviewsAttempt(db: DB, limit = 30): Promise<Attemp
 
 // Sprint focado de tamanho variável para o plano diário e treino manual.
 export async function buildContentSprintAttempt(content: string, n = 15): Promise<Attempt> {
-  const all = await fetchExam(2023, "ingles");
+  const all = (await fetchExam(2023, "ingles")).filter(isQuestionUsableForPractice);
   const qs = sample(all.filter((q) => classifyContent(q) === content), Math.max(1, n));
-  if (!qs.length) throw new Error("Não encontrei questões desse conteúdo em 2023.");
+  if (!qs.length) throw new Error("Não encontrei questões válidas desse conteúdo em 2023.");
   return attemptFromQuestions(2023, "ingles", qs, "content");
 }
 
 // Refazer um conjunto de linhas erradas.
 export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
+  const providerId = resolveProviderId(src.providerId);
   return baseAttempt({
+    providerId,
     year: src.year,
     lang: src.lang,
     mode: "retry",
     minutes: Math.max(20, Math.round(rows.length * 3)),
     retryOf: src.id,
     questionRefs: rows.map((x) => ({
+      providerId,
+      questionKey: x.key,
       index: x.index,
       year: x.year || src.year,
       language: x.language,
@@ -226,6 +262,10 @@ export function buildRetryAttempt(src: Attempt, rows: ResultRow[]): Attempt {
 export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Attempt> {
   const x = db.srs[key];
   if (!x) throw new Error("Item de revisão não encontrado.");
+  const providerId = resolveProviderId(x.providerId);
+  if (providerId !== ENEM_PROVIDER_ID) {
+    return buildProviderReviewAttempt(providerId, [{ key, ...x }], true);
+  }
   const lang = (x.language || "ingles") as Language;
   const all = await fetchExam(x.year, lang);
   const q =
@@ -238,12 +278,93 @@ export async function buildActiveRecallAttempt(db: DB, key: string): Promise<Att
     mode: "srs-recall",
     minutes: 10,
     activeRecall: true,
-    questionRefs: refsFrom([q], x.year),
+    questionRefs: refsFrom([q], x.year, providerId),
   });
+}
+
+function questionMatchesRef(q: Question, ref: Attempt["questionRefs"][number]): boolean {
+  if (ref.questionKey) return questionKey(q) === ref.questionKey;
+  return (
+    q.index === ref.index &&
+    (ref.editionId ? q.editionId === ref.editionId : true) &&
+    (ref.phase ? q.phase === ref.phase : true) &&
+    (ref.examId ? q.examId === ref.examId : true) &&
+    (ref.language ? q.language === ref.language : true) &&
+    discipline(q) === ref.discipline
+  );
+}
+
+async function buildProviderReviewAttempt(
+  providerId: string,
+  items: { key: string; year: number; index: number; area?: string; language?: string | null }[],
+  recall = false,
+): Promise<Attempt> {
+  const groups = new Map<string, typeof items>();
+  for (const item of items) {
+    const key = `${item.year}|${item.language ?? ""}`;
+    const group = groups.get(key) ?? [];
+    group.push(item);
+    groups.set(key, group);
+  }
+
+  const selected = [...groups.values()].sort((a, b) => b.length - a.length)[0];
+  const year = selected[0].year;
+  const lang = (selected[0].language || "ingles") as Language;
+  const all = await questionsFor(providerId, { year, language: lang });
+  const questions: Question[] = [];
+
+  for (const item of selected) {
+    const ref = {
+      providerId,
+      questionKey: item.key,
+      index: item.index,
+      year: item.year,
+      language: item.language ?? null,
+      discipline: item.area ?? "unknown",
+    };
+    const found = all.find((q) => questionMatchesRef(q, ref)) ?? all.find((q) => q.index === item.index);
+    if (found) questions.push(found);
+  }
+
+  if (!questions.length) throw new Error("Questão de revisão não encontrada.");
+  const attempt = attemptFromQuestions(year, lang, questions, recall ? "srs-recall" : "srs", providerId);
+  return {
+    ...attempt,
+    minutes: Math.max(10, questions.length * 5),
+    activeRecall: recall,
+  };
 }
 
 // Recupera as questões de uma tentativa (agrupando por ano) — usar dentro de React Query.
 export async function questionsForAttempt(a: Attempt): Promise<Question[]> {
+  const providerId = resolveProviderId(a.providerId);
+
+  // Providers não-ENEM montam questões a partir do próprio gabarito oficial.
+  if (providerId !== ENEM_PROVIDER_ID) {
+    const groups: Record<string, Attempt["questionRefs"]> = {};
+    for (const ref of a.questionRefs) {
+      const key = `${ref.year || a.year}|${ref.language || ""}|${ref.editionId || ""}`;
+      (groups[key] ??= []).push(ref);
+    }
+    const out: Question[] = [];
+    for (const [key, refs] of Object.entries(groups)) {
+      const [rawYear, rawLanguage, editionId] = key.split("|");
+      const all = await questionsFor(providerId, {
+        year: Number(rawYear),
+        editionId: editionId || undefined,
+        language: (rawLanguage || a.lang || "ingles") as Language,
+      });
+      for (const ref of refs) {
+        const question =
+          all.find((candidate) => questionMatchesRef(candidate, ref)) ||
+          all.find((candidate) => candidate.index === ref.index && discipline(candidate) === ref.discipline) ||
+          all.find((candidate) => candidate.index === ref.index);
+        if (question) out.push(question);
+      }
+    }
+    return out;
+  }
+
   const groups: Record<number, Attempt["questionRefs"]> = {};
   for (const r of a.questionRefs) {
     const y = r.year || a.year;
@@ -284,6 +405,9 @@ export function finishAttemptInDB(db: DB, attemptId: string, questions: Question
     const tags = finalTagRules(q);
     return {
       key: k,
+      // Cada linha corrigida carrega a prova: é o que permite não misturar
+      // estatística entre bancas depois.
+      providerId: resolveProviderId(a.providerId),
       index: q.index,
       year: q.year,
       area: discipline(q),

@@ -64,10 +64,45 @@ describe("registry", () => {
   });
 
   it("falha alto para provider desconhecido", () => {
-    expect(() => getProvider("fuvest")).toThrow(/não registrado/i);
+    expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
 
-  it("não traz nenhuma prova externa ainda", () => {
-    expect(listProviders().map((p) => p.id)).toEqual(["enem"]);
+  it("registra as onze provas desta versão", () => {
+    // A lista é explícita de propósito: provider entra por decisão, não por
+    // alguém importar um módulo sem querer. Ela já reprovou duas vezes — no
+    // IME e na FUVEST —, que é exatamente o trabalho dela.
+    expect(listProviders().map((p) => p.id).sort()).toEqual([
+      "acafe",
+      "afa",
+      "enem",
+      "epcar",
+      "fuvest",
+      "ime",
+      "ita",
+      "puc-sp",
+      "udesc",
+      "uel",
+      "unicamp",
+    ]);
+  });
+
+  it("não traz as provas que ficaram para depois", () => {
+    const ids = listProviders().map((p) => p.id);
+    for (const futuro of [
+      "eear",
+      "espcex",
+      "esa",
+      "mackenzie",
+      "puc-pr",
+      "puc-rio",
+      "uem",
+      "uepg",
+      "ufpr",
+      "ufrj",
+      "ufsc",
+      "unesp",
+    ]) {
+      expect(ids).not.toContain(futuro);
+    }
   });
 });

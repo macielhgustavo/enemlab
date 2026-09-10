@@ -1,3 +1,4 @@
+import { generatedQuestionIdentity } from "../pedagogy";
 import type { AIProvider, AIProviderRequest, AIResponse } from "../types";
 
 function selected(input: AIProviderRequest): string | null {
@@ -28,17 +29,27 @@ export class MockAIProvider implements AIProvider {
     }
 
     if (request.mode === "why-wrong") {
+      const matchesKey = !!chosen && !!correct && chosen === correct;
       return {
         mode: request.mode,
         level: policy.level,
         title: chosen ? `Reavalie a alternativa ${chosen}` : "Reavalie sua escolha",
-        explanation: chosen
-          ? `A alternativa ${chosen} deve ser comparada novamente com a condição central do enunciado. O ponto mais importante é verificar se ela realmente aplica ${topic}, e não apenas se parece plausível isoladamente.`
-          : "Marque uma alternativa primeiro para eu conseguir analisar especificamente sua escolha.",
+        explanation: !chosen
+          ? "Marque uma alternativa primeiro para eu conseguir analisar especificamente sua escolha."
+          : matchesKey
+            ? `A alternativa ${chosen} coincide com o gabarito disponível. O próximo passo é justificar por que ela satisfaz a condição central usando ${topic}.`
+            : `A alternativa ${chosen} não satisfaz completamente a condição central do enunciado. Verifique se ela realmente aplica ${topic}, e não apenas se parece plausível isoladamente.`,
         concepts: [topic],
         nextStep:
           "Volte ao trecho do enunciado que limita a resposta e teste sua alternativa contra essa condição, palavra por palavra.",
         revealAnswer: false,
+        diagnostic: matchesKey
+          ? undefined
+          : {
+              category: "unknown",
+              confidence: "low",
+              note: "O mock de desenvolvimento não classifica o tipo de erro sem inferência semântica.",
+            },
         provider: this.id,
       };
     }
@@ -58,13 +69,16 @@ export class MockAIProvider implements AIProvider {
     }
 
     if (request.mode === "explain-alternative") {
+      const matchesKey = !!chosen && !!correct && chosen === correct;
       return {
         mode: request.mode,
         level: policy.level,
         title: chosen ? `Alternativa ${chosen}` : "Explique uma alternativa",
-        explanation: chosen
-          ? `Para avaliar a alternativa ${chosen}, verifique se cada afirmação dela é compatível com ${topic} e com as restrições do enunciado. Uma alternativa pode conter um conceito verdadeiro e ainda assim não responder ao que foi perguntado.`
-          : "Selecione uma alternativa para analisá-la no contexto da questão.",
+        explanation: !chosen
+          ? "Selecione uma alternativa para analisá-la no contexto da questão."
+          : matchesKey
+            ? `A alternativa ${chosen} é compatível com o gabarito disponível. Para aprender com ela, identifique exatamente como sua afirmação aplica ${topic} ao comando da questão.`
+            : `A alternativa ${chosen} precisa ser confrontada com ${topic} e com as restrições do enunciado. Uma alternativa pode conter um conceito verdadeiro e ainda assim não responder ao que foi perguntado.`,
         concepts: [topic],
         nextStep: "Compare o verbo do comando da questão com o que essa alternativa realmente afirma.",
         revealAnswer: false,
@@ -86,6 +100,7 @@ export class MockAIProvider implements AIProvider {
     }
 
     if (request.mode === "similar-question") {
+      const identity = generatedQuestionIdentity(request.question);
       return {
         mode: request.mode,
         level: policy.level,
@@ -96,8 +111,8 @@ export class MockAIProvider implements AIProvider {
         revealAnswer: false,
         generatedQuestion: {
           origin: "ai-generated",
-          label: "Questão gerada por IA — estilo ENEM",
-          style: "ENEM",
+          label: identity.label,
+          style: identity.style,
           statement: `Questão de treino sobre ${topic}: identifique a alternativa que melhor aplica o conceito central apresentado no enunciado original.`,
           alternatives: [
             { letter: "A", text: "Aplica o conceito sem considerar a condição central do problema." },
