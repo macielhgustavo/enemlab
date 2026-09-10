@@ -120,20 +120,60 @@ class FuvestRegionalOcrRecoveryTest(unittest.TestCase):
                 [labels[0], {**labels[1], "number": 3}], {2: (595.0, 842.0)}, 2
             )
 
+    def test_layout_profiles_are_explicit_and_filter_label_geometry(self):
+        profile_2016 = MODULE["layout_profile"](2016)
+        profile_2017 = MODULE["layout_profile"](2017)
+        profile_2021 = MODULE["layout_profile"](2021)
+        self.assertIsNotNone(profile_2016)
+        self.assertIsNotNone(profile_2017)
+        self.assertIsNotNone(profile_2021)
+        self.assertIsNone(MODULE["layout_profile"](2020))
+
+        self.assertTrue(
+            MODULE["label_matches_profile"](
+                "1", {"Calibri-Bold"}, 55.6, profile_2016
+            )
+        )
+        self.assertTrue(
+            MODULE["label_matches_profile"](
+                "90", {"Calibri-Bold"}, 316.3, profile_2017
+            )
+        )
+        self.assertFalse(
+            MODULE["label_matches_profile"](
+                "20", {"Calibri-Bold"}, 411.1, profile_2016
+            )
+        )
+        self.assertTrue(
+            MODULE["label_matches_profile"](
+                "01", {"SegoeUIBlack"}, 40.0, profile_2021
+            )
+        )
+        self.assertFalse(
+            MODULE["label_matches_profile"](
+                "1", {"SegoeUIBlack"}, 40.0, profile_2021
+            )
+        )
+
     def test_bound_envelope_rejects_changed_exam_bytes(self):
         with self.assertRaisesRegex(ValueError, "SHA binding mismatch"):
             MODULE["validate_bound_envelope"](
                 envelope(), entry(), b"changed", b"key"
             )
 
-    def test_only_incomplete_2021_questions_are_targets(self):
+    def test_only_incomplete_supported_questions_are_targets(self):
         value = envelope()
         targets = MODULE["validate_bound_envelope"](value, entry(), b"exam", b"key")
         self.assertEqual(targets, [1])
         self.assertTrue(MODULE["should_attempt_region_recovery"](value, entry()))
-        other = entry()
-        other["year"] = 2020
-        self.assertFalse(MODULE["should_attempt_region_recovery"](value, other))
+
+        supported = entry()
+        supported["year"] = 2016
+        self.assertTrue(MODULE["should_attempt_region_recovery"](value, supported))
+
+        unsupported = entry()
+        unsupported["year"] = 2020
+        self.assertFalse(MODULE["should_attempt_region_recovery"](value, unsupported))
 
     def test_apply_recovery_preserves_key_and_keeps_ocr_semantically_blocked(self):
         value = envelope()
