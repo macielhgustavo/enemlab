@@ -6,6 +6,7 @@ on:
       - ".github/workflows/exception-cluster-benchmark.yml"
       - "scripts/inspect-fuvest-font-glyphs.py"
       - "scripts/recover-fuvest-font-map.py"
+      - "scripts/diagnose-fuvest-font-map.py"
 
 permissions:
   contents: read
@@ -48,6 +49,20 @@ jobs:
           assert compact['observations'] > 0
           PY
 
+      - name: Diagnose font-map proof chain
+        run: |
+          python scripts/diagnose-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-stages.json
+          python - <<'PY'
+          import json
+          report = json.load(open('/tmp/font-map-stages.json', encoding='utf-8'))
+          compact = [{
+              'year': item['year'],
+              'reasons': item['reasons'],
+              'samples': item['samples'][:20],
+          } for item in report]
+          print('FONT_MAP_STAGES=' + json.dumps(compact, ensure_ascii=True))
+          PY
+
       - name: Prove embedded-font mappings on 2014-2015
         run: |
           python scripts/recover-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-report.json
@@ -81,5 +96,6 @@ jobs:
           name: fuvest-font-diagnostic-reports
           path: |
             /tmp/glyph-report.json
+            /tmp/font-map-stages.json
             /tmp/font-map-report.json
           retention-days: 3
