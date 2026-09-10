@@ -211,11 +211,19 @@ function validateRecipe(recipe: OfficialSourceRecipe): void {
   if (!recipe.documents.length) throw new Error("source recipe requires document rules");
   if (!recipe.crawl) return;
 
-  if (!Number.isInteger(recipe.crawl.maxDepth) || recipe.crawl.maxDepth < 0 || recipe.crawl.maxDepth > 5) {
+  if (
+    !Number.isInteger(recipe.crawl.maxDepth) ||
+    recipe.crawl.maxDepth < 0 ||
+    recipe.crawl.maxDepth > 5
+  ) {
     throw new Error("source recipe crawl maxDepth must be an integer between 0 and 5");
   }
   const maxPages = recipe.crawl.maxPages ?? 100;
-  if (!Number.isInteger(maxPages) || maxPages < recipe.archiveUrls.length || maxPages > 500) {
+  if (
+    !Number.isInteger(maxPages) ||
+    maxPages < recipe.archiveUrls.length ||
+    maxPages > 500
+  ) {
     throw new Error("source recipe crawl maxPages must fit seed pages and be at most 500");
   }
   if (recipe.crawl.maxDepth > 0 && !recipe.crawl.follow.length) {
@@ -281,6 +289,21 @@ export async function harvestOfficialSource(
       continue;
     }
 
+    let sourcePageUrl: string;
+    try {
+      sourcePageUrl = normalizeUrl(fetched.url || page.url);
+    } catch {
+      issues.push({ archiveUrl: page.url, message: "crawl response URL is invalid" });
+      continue;
+    }
+    if (!hostAllowed(sourcePageUrl, recipe.allowedHosts)) {
+      issues.push({
+        archiveUrl: page.url,
+        message: `crawl redirected outside recipe allowlist (${sourcePageUrl})`,
+      });
+      continue;
+    }
+
     const contentType = fetched.headers["content-type"] ?? fetched.headers["Content-Type"] ?? "";
     if (contentType && !/html|text\//i.test(contentType)) {
       issues.push({
@@ -290,7 +313,6 @@ export async function harvestOfficialSource(
       continue;
     }
 
-    const sourcePageUrl = fetched.url || page.url;
     const html = new TextDecoder().decode(fetched.bytes);
     const links = extractHtmlLinks(html, sourcePageUrl);
     linksSeen += links.length;
