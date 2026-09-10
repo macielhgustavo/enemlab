@@ -53,3 +53,5 @@ html:has(body.public-shell) {
   background: color-mix(in oklab, var(--primary) 95%, transparent);
   filter: none;
 }
+
+/* no-op funcional: força um novo preview da branch na Vercel */
