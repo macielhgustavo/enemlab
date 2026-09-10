@@ -5,8 +5,7 @@ on:
     paths:
       - ".github/workflows/exception-cluster-benchmark.yml"
       - "scripts/recover-fuvest-font-map.py"
-      - "scripts/diagnose-fuvest-font-map.py"
-      - "scripts/diagnose-fuvest-cff-space.py"
+      - "scripts/tests/test_recover_fuvest_font_map.py"
 
 permissions:
   contents: read
@@ -27,31 +26,46 @@ jobs:
       - name: Install parser dependencies
         run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
 
-      - name: Diagnose font-map proof chain
+      - name: Test proof-aware font worker
+        run: python -m unittest scripts.tests.test_recover_fuvest_font_map
+
+      - name: Benchmark proven CFF whitespace recovery
         run: |
-          python scripts/diagnose-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-stages.json
+          python scripts/recover-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-report.json
           python - <<'PY'
           import json
-          report = json.load(open('/tmp/font-map-stages.json', encoding='utf-8'))
-          compact = [{
-              'year': item['year'],
-              'reasons': item['reasons'],
-              'samples': item['samples'][:20],
-          } for item in report]
-          print('FONT_MAP_STAGES=' + json.dumps(compact, ensure_ascii=True))
+          report = json.load(open('/tmp/font-map-report.json', encoding='utf-8'))
+          compact = {
+              'editions': report['editions'],
+              'resolvedOccurrences': report['resolvedOccurrences'],
+              'unresolvedOccurrences': report['unresolvedOccurrences'],
+              'parserClosedEditions': report['parserClosedEditions'],
+              'provenMappings': report['provenMappings'][:20],
+              'results': [{
+                  'year': item['year'],
+                  'resolvedOccurrences': item['resolvedOccurrences'],
+                  'unresolvedOccurrences': item['unresolvedOccurrences'],
+                  'parserClosed': item['parserClosed'],
+                  'questions': item['questions'],
+                  'semanticIssues': item['semanticIssues'],
+              } for item in report['results']],
+          }
+          print('FONT_MAP_REPORT=' + json.dumps(compact, ensure_ascii=True))
+          assert report['editions'] == 2
+          assert not report['failures'], report['failures']
+          assert report['parserClosedEditions'] == 0, report['results']
+          assert all(item['questions'] == 90 for item in report['results']), report['results']
+          assert report['resolvedOccurrences'] > 20_000, report['resolvedOccurrences']
+          assert all(
+              item['evidenceKind'] in {'cff-blank-advance', 'ttf-unique-unicode-cmap'}
+              for item in report['provenMappings']
+          )
           PY
 
-      - name: Probe blank CFF CID 3 evidence
-        run: |
-          python scripts/diagnose-fuvest-cff-space.py --years 2014,2015 --cid 3 --output /tmp/cff-space-report.json
-          cat /tmp/cff-space-report.json
-
-      - name: Upload diagnostic reports
+      - name: Upload recovery report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fuvest-font-diagnostic-reports
-          path: |
-            /tmp/font-map-stages.json
-            /tmp/cff-space-report.json
+          name: fuvest-font-map-report
+          path: /tmp/font-map-report.json
           retention-days: 3
