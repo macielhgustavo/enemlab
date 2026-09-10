@@ -29,6 +29,8 @@ import {
   UEL_PROVIDER_ID,
   pucSpAnswerKey,
   PUC_SP_PROVIDER_ID,
+  pucRioAnswerKey,
+  PUC_RIO_PROVIDER_ID,
   udescAnswerKeys,
   udescEditions,
   UDESC_PROVIDER_ID,
@@ -139,6 +141,11 @@ function medirEdicao(
 
   if (providerId === PUC_SP_PROVIDER_ID) {
     const k = pucSpAnswerKey(ano);
+    return k ? referenceMeasure(k) : null;
+  }
+
+  if (providerId === PUC_RIO_PROVIDER_ID) {
+    const k = pucRioAnswerKey(ano);
     return k ? referenceMeasure(k) : null;
   }
 

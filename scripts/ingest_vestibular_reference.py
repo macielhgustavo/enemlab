@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import html
 import json
+import logging
 import re
 import ssl
 import sys
@@ -50,7 +51,8 @@ class PdfDocument:
 
 
 def fetch_bytes(url: str) -> bytes:
-    req = urllib.request.Request(url, headers=HTTP_HEADERS)
+    request_url = urllib.parse.quote(url, safe=":/?&=%")
+    req = urllib.request.Request(request_url, headers=HTTP_HEADERS)
     context = ssl.create_default_context()
     with urllib.request.urlopen(req, context=context, timeout=60) as response:
         data = response.read()
@@ -60,7 +62,8 @@ def fetch_bytes(url: str) -> bytes:
 
 
 def fetch_text(url: str) -> str:
-    req = urllib.request.Request(url, headers=HTTP_HEADERS)
+    request_url = urllib.parse.quote(url, safe=":/?&=%")
+    req = urllib.request.Request(request_url, headers=HTTP_HEADERS)
     context = ssl.create_default_context()
     with urllib.request.urlopen(req, context=context, timeout=60) as response:
         return response.read().decode("utf-8", "replace")
@@ -146,8 +149,211 @@ def parse_pucsp_answer_key(text: str, total: int = 50) -> tuple[dict[str, str], 
     return pairs_to_answers(pairs, total)
 
 
+def parse_pucrio_text_answer_key(
+    text: str,
+    total: int,
+) -> tuple[dict[str, str], list[int]]:
+    normalized = ascii_upper(text)
+    if "VESTIBULAR" not in normalized or "RESPOSTA" not in normalized:
+        raise IngestionError("documento não é gabarito comentado PUC-Rio")
+    if "PRELIMINAR" in normalized or "PROVISORIO" in normalized:
+        raise IngestionError("gabarito PUC-Rio não é final")
+
+    pairs = re.findall(
+        r"(?m)^\s*([1-9]|[1-4][0-9])\)\s*"
+        r"(?:GABARITO\s+ALTERADO\s*)?RESPOSTA\s*:?\s*\(\s*([A-E])\s*\)",
+        normalized,
+    )
+    annulled = [
+        int(number)
+        for number in re.findall(
+            r"(?m)^\s*([1-9]|[1-4][0-9])\)\s*"
+            r"(?:RESPOSTA\s*:?\s*)?\(?QUESTAO\s+ANULADA\)?",
+            normalized,
+        )
+    ]
+    return pairs_to_answers(pairs + [(str(number), "ANULADA") for number in annulled], total)
+
+
 def ascii_upper(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().upper()
+
+
+def puc_rio_color_is_yellow(color: object) -> bool:
+    if not isinstance(color, tuple):
+        return False
+    if len(color) == 4:
+        cyan, magenta, yellow, black = color
+        return yellow >= 0.7 and cyan <= 0.3 and magenta <= 0.3 and black <= 0.3
+    if len(color) == 3:
+        red, green, blue = color
+        return red >= 0.7 and green >= 0.7 and blue <= 0.3
+    return False
+
+
+def extract_pdf_geometry(data: bytes) -> list[dict[str, object]]:
+    try:
+        import pdfplumber
+    except ImportError as exc:
+        raise IngestionError("pdfplumber ausente. Rode: pip install pdfplumber") from exc
+
+    logging.getLogger("pdfminer").setLevel(logging.ERROR)
+    pages: list[dict[str, object]] = []
+    with pdfplumber.open(BytesIO(data)) as document:
+        for page in document.pages:
+            pages.append(
+                {
+                    "width": float(page.width),
+                    "height": float(page.height),
+                    "words": page.extract_words(extra_attrs=["fontname", "size"]),
+                    "lines": page.lines,
+                    "rects": page.rects,
+                }
+            )
+    return pages
+
+
+def analyze_pucrio_pages(
+    pages: list[dict[str, object]],
+) -> tuple[dict[str, str], list[int], set[int]]:
+    answers: dict[str, str] = {}
+    annulled: set[int] = set()
+    question_options: dict[int, set[str]] = {}
+
+    for page_index, page in enumerate(pages, 1):
+        width = float(page["width"])
+        height = float(page["height"])
+        words = list(page["words"])
+        lines = list(page["lines"])
+        rects = list(page["rects"])
+        highlights: list[dict[str, float]] = []
+
+        for line in lines:
+            linewidth = float(line.get("linewidth") or 0)
+            if linewidth >= 6 and puc_rio_color_is_yellow(line.get("stroking_color")):
+                highlights.append(
+                    {
+                        "x0": float(line["x0"]),
+                        "x1": float(line["x1"]),
+                        "top": float(line["top"]) - linewidth / 2,
+                        "bottom": float(line["bottom"]) + linewidth / 2,
+                    }
+                )
+        for rect in rects:
+            if rect.get("fill") and puc_rio_color_is_yellow(rect.get("non_stroking_color")):
+                highlights.append(
+                    {
+                        "x0": float(rect["x0"]),
+                        "x1": float(rect["x1"]),
+                        "top": float(rect["top"]),
+                        "bottom": float(rect["bottom"]),
+                    }
+                )
+
+        column_count = 2 if any(
+            abs(float(line["x1"]) - float(line["x0"])) <= 3
+            and abs(float(line["bottom"]) - float(line["top"])) >= height * 0.45
+            and width * 0.4 <= float(line["x0"]) <= width * 0.6
+            for line in lines
+        ) else 1
+        page_options: list[dict[str, object]] = []
+
+        for column in range(column_count):
+            column_words = [
+                word
+                for word in words
+                if column_count == 1
+                or (column == 0 and float(word["x0"]) < width / 2)
+                or (column == 1 and float(word["x0"]) >= width / 2)
+            ]
+            events: list[tuple[float, int, dict[str, object]]] = []
+            for word in column_words:
+                token = str(word["text"]).strip()
+                font = str(word.get("fontname") or "")
+                size = float(word.get("size") or 0)
+                x0 = float(word["x0"])
+                column_start = 28 if column == 0 else width / 2 + 10
+                if (
+                    token.isdigit()
+                    and 1 <= int(token) <= 100
+                    and "BOLD" in font.upper()
+                    and size >= 10.5
+                    and abs(x0 - column_start) <= 35
+                ):
+                    events.append((float(word["top"]), 0, {"kind": "question", "number": int(token)}))
+                match = re.fullmatch(r"(?:\(([A-E])\)|([A-E])\))", token.upper())
+                if match:
+                    events.append(
+                        (
+                            float(word["top"]),
+                            1,
+                            {
+                                "kind": "option",
+                                "letter": match.group(1) or match.group(2),
+                                "word": word,
+                            },
+                        )
+                    )
+                if ascii_upper(token).startswith("ANULAD"):
+                    events.append((float(word["top"]), 2, {"kind": "annulled"}))
+
+            current_question: int | None = None
+            for _, _, event in sorted(events, key=lambda item: (item[0], item[1])):
+                if event["kind"] == "question":
+                    current_question = int(event["number"])
+                elif current_question is not None and event["kind"] == "annulled":
+                    annulled.add(current_question)
+                elif current_question is not None:
+                    letter = str(event["letter"])
+                    word = event["word"]
+                    question_options.setdefault(current_question, set()).add(letter)
+                    page_options.append(
+                        {"question": current_question, "letter": letter, "word": word}
+                    )
+
+        for region in highlights:
+            candidates = []
+            for option in page_options:
+                word = option["word"]
+                if (
+                    region["top"] <= float(word["bottom"])
+                    and region["bottom"] >= float(word["top"])
+                    and region["x0"] <= float(word["x1"])
+                    and region["x1"] >= float(word["x0"])
+                ):
+                    candidates.append(option)
+            if not candidates:
+                continue
+            selected = min(
+                candidates,
+                key=lambda option: abs(float(option["word"]["top"]) - region["top"]),
+            )
+            number = str(selected["question"])
+            letter = str(selected["letter"])
+            if number in answers and answers[number] != letter:
+                raise IngestionError(
+                    f"página {page_index}: questão {number} tem dois destaques "
+                    f"({answers[number]} e {letter})"
+                )
+            answers[number] = letter
+
+    objective = {number for number, options in question_options.items() if len(options) >= 4}
+    return answers, sorted(annulled), objective
+
+
+def parse_pucrio_highlighted_answer_key(
+    pages: list[dict[str, object]],
+    total: int,
+) -> tuple[dict[str, str], list[int]]:
+    answers, annulled, objective = analyze_pucrio_pages(pages)
+    validate_answers(answers, annulled, total)
+    expected = set(range(1, total + 1))
+    if objective != expected:
+        raise IngestionError(
+            f"numeração objetiva divergente: faltantes={sorted(expected - objective)}, "
+            f"extras={sorted(objective - expected)}"
+        )
+    return answers, annulled
 
 
 def parse_udesc_answer_key(
@@ -453,6 +659,91 @@ PUCSP = {
         "archive": "https://nucvest.com.br/pucsp/vestibular/2025/index.html",
         "exam": "https://nucvest.com.br/downloads/pucsp/vestibular/2024/verao/PUC-SP-Verao-2024-A4-v1.pdf",
         "answer": "https://nucvest.com.br/downloads/pucsp/vestibular/2024/verao/PUC-SP-Verao-2024-Gabarito.pdf",
+        "revision": "final",
+    },
+}
+
+
+PUC_RIO = {
+    2026: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/Vestibular2026_Download-Completo.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/PROVAS-2o-dia/Prova-2o-dia-Tarde-G1-3-4/2o-DIA-TARDE-GRUPO-1.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/GABARITOS-2o-dia/Gabarito 2o dia tarde G1-3-4/2o-DIA- TARDE-GRUPO-1- gabarito.pdf",
+        "total": 45,
+        "parser": "highlight",
+        "revision": "final",
+    },
+    2025: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/index.html",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/Vestibular2025_Download-Completo.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/03 - PROVAS 2o DIA/2o DIA - TARDE - GRUPO 1.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/04 - GABARITOS 2o DIA/GABARITO - 2o DIA - TARDE - GRUPO 1.pdf",
+        "total": 45,
+        "parser": "highlight",
+        "revision": "final",
+    },
+    2024: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/Vestibular2024-Provas-e-Gabaritos-v2.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/2oDIA-TARDE-GRUPO-1.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/GABARITO-2024-2oDIA-TARDE-GRUPO-1.pdf",
+        "total": 45,
+        "parser": "highlight",
+        "revision": "final",
+    },
+    2020: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/Vestibular2020_provasegabaritos_completo.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/PUC2020-2o DIA_TARDE_GRUPO1.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/gabarito_2020_G1_20OUT2019.pdf",
+        "total": 45,
+        "parser": "text",
+        "revision": "rectified",
+    },
+    2019: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/Vestibular2019_20181014_TodasProvasGabaritos.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/provas/Vestibular2019Tarde_20181014_Dia02_provaGRUPO1.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/gabaritos/Vestibular2019Tarde_20181014_Dia02_gabarito_Grupo1.pdf",
+        "total": 45,
+        "parser": "text",
+        "revision": "final",
+    },
+    2018: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/VEST2018PUCRio_PROVAS_GABARITOS_V7.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/provas/Vest2018_prova_G1_20171015.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/gabaritos/Vest2018_gabarito_G1_20171015_v2.pdf",
+        "total": 45,
+        "parser": "text",
+        "revision": "rectified",
+    },
+    2017: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/VEST2017PUCRio_PROVAS_GABARITOS_v4.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/provas/Vest2017_prova_G1_20161010.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/gabaritos/Vest2017_gabarito_G1_20161010.pdf",
+        "total": 20,
+        "parser": "text",
+        "revision": "final",
+    },
+    2016: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/VEST2016PUCRio_PROVAS_GABARITOS_V4.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/provas/Vest2016_prova_G1_20151012.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/gabaritos/Vest2016_gabarito_G1_20151012_v3.pdf",
+        "total": 20,
+        "parser": "text",
+        "revision": "rectified",
+    },
+    2015: {
+        "archive": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/",
+        "bundle": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/VEST2015PUCRio_PROVAS_GABARITOS_V3.zip",
+        "exam": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/provas/VEST2015PUCRio_GRUPO_1_13102014_completo.pdf",
+        "answer": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/gabaritos/VEST2015PUCRioGabarito G1_20141013_completoD.pdf",
+        "total": 20,
+        "parser": "text",
         "revision": "final",
     },
 }
@@ -774,6 +1065,82 @@ def ingest_pucsp() -> dict[str, object]:
     return catalog
 
 
+def ingest_pucrio() -> dict[str, object]:
+    parser_version = "puc-rio-answer-key@1.0.0"
+    catalog: dict[str, object] = {}
+    for year, config in sorted(PUC_RIO.items(), reverse=True):
+        discover_page_contains(
+            config["archive"],
+            [config["exam"], config["answer"]],
+        )
+        answer_doc = fetch_pdf(config["answer"])
+        exam_doc = fetch_pdf(config["exam"])
+        total = int(config["total"])
+        normalized_answer_text = ascii_upper(answer_doc.text)
+        if "PRELIMINAR" in normalized_answer_text or "PROVISORIO" in normalized_answer_text:
+            raise IngestionError(f"PUC-Rio {year}: gabarito não é final")
+
+        if config["parser"] == "highlight":
+            answers, annulled = parse_pucrio_highlighted_answer_key(
+                extract_pdf_geometry(answer_doc.bytes),
+                total,
+            )
+        else:
+            answers, annulled = parse_pucrio_text_answer_key(answer_doc.text, total)
+
+        _, _, exam_numbers = analyze_pucrio_pages(extract_pdf_geometry(exam_doc.bytes))
+        expected_numbers = set(range(1, total + 1))
+        text_numbers = {
+            int(number)
+            for number in re.findall(
+                r"(?m)^\s*([1-9]|[1-4][0-9])(?:\s|\))",
+                ascii_upper(exam_doc.text),
+            )
+            if int(number) <= total
+        }
+        confirmed_numbers = exam_numbers | text_numbers
+        if not expected_numbers.issubset(confirmed_numbers):
+            raise IngestionError(
+                f"PUC-Rio {year}: caderno objetivo divergente; "
+                f"faltantes={sorted(expected_numbers - confirmed_numbers)}"
+            )
+
+        revision = str(config["revision"])
+        catalog[str(year)] = entry(
+            edition=str(year),
+            year=year,
+            label=f"Vestibular PUC-Rio {year} - 2º dia - Grupo 1",
+            phase="day2",
+            total=total,
+            answers=answers,
+            annulled=annulled,
+            variants=[
+                {
+                    "id": "grupo-1",
+                    "label": "Grupo 1",
+                    "examUrl": config["exam"],
+                    "answerKeyUrl": config["answer"],
+                }
+            ],
+            canonical_variant="grupo-1",
+            variant_relation="unknown",
+            revision=revision,
+            archive_page=config["archive"],
+            subjects=subject_ranges(
+                ("conhecimentos-gerais", "Conhecimentos gerais", "conhecimentos-gerais", 1, total)
+            ),
+            parser_version=parser_version,
+            retrieval=make_retrieval(answer_doc, parser_version, revision),
+            validation_evidence=[
+                "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+                f"Caderno e gabarito cobrem exatamente {total} questões objetivas do 2º dia, Grupo 1.",
+                "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+                "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável.",
+            ],
+        )
+    return catalog
+
+
 def udesc_subjects(edition: str, session: str) -> list[dict[str, object]]:
     if session == "morning":
         return subject_ranges(
@@ -943,6 +1310,7 @@ IMPORTERS: dict[str, Callable[[], dict[str, object]]] = {
     "unicamp": ingest_unicamp,
     "uel": ingest_uel,
     "puc-sp": ingest_pucsp,
+    "puc-rio": ingest_pucrio,
     "udesc": ingest_udesc,
     "acafe": ingest_acafe,
 }

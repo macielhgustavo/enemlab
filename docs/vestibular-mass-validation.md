@@ -2,6 +2,11 @@
 
 Data da validação: 2026-09-08.
 
+> Atualização em 2026-09-09: a pesquisa PUC-Rio foi reaberta e resultou em nove
+> edições aceitas e 330 referências. Este documento preserva o corte original
+> da v8.8; o estado atual está em
+> [Vestibular Volume Wave 3](vestibular-volume-wave-3-validation.md).
+
 Esta wave investigou vestibulares brasileiros para ampliar o catálogo sem
 forçar edições ambíguas. A regra de corte foi simples: quando prova, gabarito,
 revisão, variantes, anuladas ou direitos não ficaram claros, a edição ficou

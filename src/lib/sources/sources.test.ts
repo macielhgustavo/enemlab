@@ -18,6 +18,8 @@ import {
   uelSource,
   pucSpImporter,
   pucSpSource,
+  pucRioImporter,
+  pucRioSource,
   udescImporter,
   udescSource,
   acafeImporter,
@@ -38,7 +40,7 @@ describe("registry de fontes", () => {
       "ita-official-archive",
       "mackenzie-research",
       "puc-pr-research",
-      "puc-rio-research",
+      "puc-rio-official-repository",
       "puc-sp-nucvest-archive",
       "udesc-official-archive",
       "uel-cops-archive",
@@ -66,6 +68,7 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("unicamp").map((s) => s.id)).toEqual(["unicamp-comvest-archive"]);
     expect(sourcesForProvider("uel").map((s) => s.id)).toEqual(["uel-cops-archive"]);
     expect(sourcesForProvider("puc-sp").map((s) => s.id)).toEqual(["puc-sp-nucvest-archive"]);
+    expect(sourcesForProvider("puc-rio").map((s) => s.id)).toEqual(["puc-rio-official-repository"]);
     expect(sourcesForProvider("udesc").map((s) => s.id)).toEqual(["udesc-official-archive"]);
     expect(sourcesForProvider("acafe").map((s) => s.id)).toEqual(["acafe-official-archive"]);
   });
@@ -114,7 +117,6 @@ describe("registry de fontes", () => {
       "eear-research",
       "mackenzie-research",
       "puc-pr-research",
-      "puc-rio-research",
       "uem-cvu-research",
       "uepg-cps-research",
       "ufpr-research",
@@ -144,7 +146,7 @@ describe("registry de fontes", () => {
   });
 
   it("descreve os novos vestibulares aceitos como referência oficial", () => {
-    for (const source of [unicampSource, uelSource, pucSpSource, udescSource, acafeSource]) {
+    for (const source of [unicampSource, uelSource, pucSpSource, pucRioSource, udescSource, acafeSource]) {
       expect(source).toMatchObject({
         statementMode: "reference-only",
         sourceType: "pdf-reference",
@@ -198,6 +200,7 @@ describe("procedência", () => {
     expect(importerForProvider("unicamp")?.sourceId).toBe("unicamp-comvest-archive");
     expect(importerForProvider("uel")?.sourceId).toBe("uel-cops-archive");
     expect(importerForProvider("puc-sp")?.sourceId).toBe("puc-sp-nucvest-archive");
+    expect(importerForProvider("puc-rio")?.sourceId).toBe("puc-rio-official-repository");
     expect(importerForProvider("udesc")?.sourceId).toBe("udesc-official-archive");
     expect(importerForProvider("acafe")?.sourceId).toBe("acafe-official-archive");
     // Prova futura ainda não tem importador: null é honesto, não um chute.
@@ -211,6 +214,7 @@ describe("procedência", () => {
     expect(unicampImporter.availableYears()).toEqual(unicampSource.years);
     expect(uelImporter.availableYears()).toEqual(uelSource.years);
     expect(pucSpImporter.availableYears()).toEqual(pucSpSource.years);
+    expect(pucRioImporter.availableYears()).toEqual(pucRioSource.years);
     expect(udescImporter.availableYears()).toEqual(udescSource.years);
     expect(acafeImporter.availableYears()).toEqual(acafeSource.years);
   });
@@ -219,6 +223,7 @@ describe("procedência", () => {
     expect(unicampImporter.provenanceFor(2025).documentUrl).toContain("comvest.unicamp.br");
     expect(uelImporter.provenanceFor(2026).documentUrl).toContain("cops.uel.br");
     expect(pucSpImporter.provenanceFor(2026).documentUrl).toContain("nucvest.com.br");
+    expect(pucRioImporter.provenanceFor(2026).documentUrl).toContain("puc-rio.br");
     expect(udescImporter.provenanceFor(2026, "morning").documentUrl).toContain("udesc.br");
     expect(acafeImporter.provenanceFor(2026).documentUrl).toContain("acafe.org.br");
   });

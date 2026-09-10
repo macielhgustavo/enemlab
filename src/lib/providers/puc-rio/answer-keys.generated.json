@@ -1,0 +1,838 @@
+{
+  "2026": {
+    "edition": "2026",
+    "year": 2026,
+    "label": "Vestibular PUC-Rio 2026 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "D",
+      "3": "E",
+      "4": "C",
+      "5": "B",
+      "6": "E",
+      "7": "D",
+      "8": "C",
+      "9": "C",
+      "10": "D",
+      "13": "B",
+      "11": "A",
+      "12": "B",
+      "14": "E",
+      "15": "B",
+      "16": "D",
+      "17": "B",
+      "18": "E",
+      "19": "C",
+      "20": "A",
+      "24": "A",
+      "21": "C",
+      "22": "D",
+      "23": "A",
+      "26": "A",
+      "27": "E",
+      "28": "C",
+      "25": "D",
+      "29": "B",
+      "30": "C",
+      "31": "B",
+      "32": "D",
+      "33": "D",
+      "34": "A",
+      "35": "D",
+      "38": "C",
+      "39": "D",
+      "36": "A",
+      "37": "A",
+      "40": "E",
+      "41": "C",
+      "42": "B",
+      "43": "E",
+      "44": "B",
+      "45": "C"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/PROVAS-2o-dia/Prova-2o-dia-Tarde-G1-3-4/2o-DIA-TARDE-GRUPO-1.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/GABARITOS-2o-dia/Gabarito 2o dia tarde G1-3-4/2o-DIA- TARDE-GRUPO-1- gabarito.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/GABARITOS-2o-dia/Gabarito 2o dia tarde G1-3-4/2o-DIA- TARDE-GRUPO-1- gabarito.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/PROVAS-2o-dia/Prova-2o-dia-Tarde-G1-3-4/2o-DIA-TARDE-GRUPO-1.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/GABARITOS-2o-dia/Gabarito 2o dia tarde G1-3-4/2o-DIA- TARDE-GRUPO-1- gabarito.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2026/download/GABARITOS-2o-dia/Gabarito 2o dia tarde G1-3-4/2o-DIA- TARDE-GRUPO-1- gabarito.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "61b748c50f55a7cdf7c65a991bf7f49f18c534c6075fe61ef004b43018e5c878",
+      "bytes": 4011631,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2025": {
+    "edition": "2025",
+    "year": 2025,
+    "label": "Vestibular PUC-Rio 2025 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "A",
+      "2": "B",
+      "3": "E",
+      "4": "D",
+      "5": "C",
+      "7": "C",
+      "6": "B",
+      "9": "E",
+      "10": "C",
+      "11": "E",
+      "12": "D",
+      "13": "A",
+      "14": "D",
+      "15": "E",
+      "18": "D",
+      "19": "C",
+      "16": "A",
+      "17": "E",
+      "20": "B",
+      "21": "D",
+      "23": "A",
+      "22": "C",
+      "24": "D",
+      "25": "E",
+      "26": "B",
+      "27": "A",
+      "28": "D",
+      "29": "C",
+      "30": "D",
+      "31": "A",
+      "32": "C",
+      "33": "E",
+      "34": "E",
+      "35": "B",
+      "36": "D",
+      "37": "B",
+      "38": "A",
+      "39": "B",
+      "40": "C",
+      "41": "D",
+      "42": "C",
+      "43": "E",
+      "44": "B",
+      "45": "C"
+    },
+    "annulled": [
+      8
+    ],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/03 - PROVAS 2o DIA/2o DIA - TARDE - GRUPO 1.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/04 - GABARITOS 2o DIA/GABARITO - 2o DIA - TARDE - GRUPO 1.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/04 - GABARITOS 2o DIA/GABARITO - 2o DIA - TARDE - GRUPO 1.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/03 - PROVAS 2o DIA/2o DIA - TARDE - GRUPO 1.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/index.html",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/04 - GABARITOS 2o DIA/GABARITO - 2o DIA - TARDE - GRUPO 1.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2025/download/04 - GABARITOS 2o DIA/GABARITO - 2o DIA - TARDE - GRUPO 1.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "03f618762cc3e198c6973e8df5f8453ffcd08b08cd7164f532b2ee25179237de",
+      "bytes": 3448325,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2024": {
+    "edition": "2024",
+    "year": 2024,
+    "label": "Vestibular PUC-Rio 2024 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "D",
+      "2": "E",
+      "3": "D",
+      "4": "E",
+      "5": "B",
+      "6": "B",
+      "7": "D",
+      "8": "C",
+      "9": "C",
+      "10": "E",
+      "11": "D",
+      "12": "A",
+      "13": "A",
+      "14": "E",
+      "15": "B",
+      "16": "B",
+      "17": "D",
+      "18": "D",
+      "19": "E",
+      "21": "B",
+      "20": "A",
+      "23": "C",
+      "22": "A",
+      "24": "B",
+      "25": "C",
+      "26": "A",
+      "27": "D",
+      "28": "C",
+      "29": "C",
+      "30": "E",
+      "31": "D",
+      "32": "A",
+      "33": "C",
+      "34": "B",
+      "35": "B",
+      "36": "A",
+      "37": "C",
+      "38": "E",
+      "39": "B",
+      "40": "D",
+      "41": "E",
+      "42": "B",
+      "43": "C",
+      "44": "A",
+      "45": "D"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/2oDIA-TARDE-GRUPO-1.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/GABARITO-2024-2oDIA-TARDE-GRUPO-1.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/GABARITO-2024-2oDIA-TARDE-GRUPO-1.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/2oDIA-TARDE-GRUPO-1.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/GABARITO-2024-2oDIA-TARDE-GRUPO-1.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2023-2/download/GABARITO-2024-2oDIA-TARDE-GRUPO-1.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "80916beb99143906f845a267d30497771f8d689cd66c4c770fcdcea1194e5f83",
+      "bytes": 3502809,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2020": {
+    "edition": "2020",
+    "year": 2020,
+    "label": "Vestibular PUC-Rio 2020 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "rectified",
+    "answers": {
+      "1": "C",
+      "2": "D",
+      "3": "A",
+      "4": "D",
+      "5": "B",
+      "6": "A",
+      "7": "D",
+      "8": "E",
+      "9": "B",
+      "10": "A",
+      "11": "C",
+      "12": "B",
+      "13": "C",
+      "14": "E",
+      "15": "D",
+      "16": "A",
+      "17": "C",
+      "18": "E",
+      "20": "E",
+      "21": "D",
+      "22": "E",
+      "23": "E",
+      "24": "D",
+      "25": "C",
+      "26": "B",
+      "27": "D",
+      "28": "A",
+      "29": "E",
+      "30": "D",
+      "31": "E",
+      "32": "A",
+      "33": "C",
+      "34": "C",
+      "35": "B",
+      "37": "C",
+      "38": "D",
+      "39": "B",
+      "40": "E",
+      "41": "B",
+      "42": "D",
+      "43": "C",
+      "44": "D",
+      "45": "A"
+    },
+    "annulled": [
+      19,
+      36
+    ],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/PUC2020-2o DIA_TARDE_GRUPO1.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/gabarito_2020_G1_20OUT2019.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/gabarito_2020_G1_20OUT2019.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/PUC2020-2o DIA_TARDE_GRUPO1.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/gabarito_2020_G1_20OUT2019.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2020/download/gabarito_2020_G1_20OUT2019.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "9f16f6c36ef84e0c1190d36d89331504de318e6371ec35c083aaefe711478dae",
+      "bytes": 1183705,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "rectified",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2019": {
+    "edition": "2019",
+    "year": 2019,
+    "label": "Vestibular PUC-Rio 2019 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "B",
+      "2": "E",
+      "3": "B",
+      "4": "D",
+      "5": "A",
+      "6": "B",
+      "7": "B",
+      "8": "A",
+      "9": "E",
+      "10": "C",
+      "11": "E",
+      "12": "E",
+      "13": "E",
+      "14": "D",
+      "15": "B",
+      "16": "B",
+      "17": "E",
+      "18": "D",
+      "19": "C",
+      "20": "C",
+      "21": "C",
+      "22": "B",
+      "23": "D",
+      "24": "B",
+      "25": "A",
+      "26": "A",
+      "27": "E",
+      "28": "C",
+      "29": "E",
+      "30": "A",
+      "31": "D",
+      "32": "C",
+      "33": "D",
+      "34": "B",
+      "35": "B",
+      "36": "A",
+      "37": "E",
+      "38": "D",
+      "39": "D",
+      "40": "B",
+      "41": "D",
+      "42": "A",
+      "43": "E",
+      "44": "D",
+      "45": "C"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/provas/Vestibular2019Tarde_20181014_Dia02_provaGRUPO1.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/gabaritos/Vestibular2019Tarde_20181014_Dia02_gabarito_Grupo1.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/gabaritos/Vestibular2019Tarde_20181014_Dia02_gabarito_Grupo1.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/provas/Vestibular2019Tarde_20181014_Dia02_provaGRUPO1.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/gabaritos/Vestibular2019Tarde_20181014_Dia02_gabarito_Grupo1.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2019/download/gabaritos/Vestibular2019Tarde_20181014_Dia02_gabarito_Grupo1.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "5ee5e95ad4e328e05563285d1805a744a5dff8d2750fbab6972939b60038c5e0",
+      "bytes": 430487,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2018": {
+    "edition": "2018",
+    "year": 2018,
+    "label": "Vestibular PUC-Rio 2018 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 45,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "rectified",
+    "answers": {
+      "1": "B",
+      "2": "A",
+      "3": "C",
+      "4": "E",
+      "5": "C",
+      "6": "E",
+      "7": "B",
+      "8": "B",
+      "9": "A",
+      "10": "D",
+      "11": "C",
+      "12": "C",
+      "13": "C",
+      "14": "D",
+      "15": "B",
+      "16": "D",
+      "17": "E",
+      "18": "A",
+      "19": "E",
+      "20": "A",
+      "21": "D",
+      "22": "D",
+      "23": "C",
+      "24": "C",
+      "25": "D",
+      "26": "D",
+      "27": "B",
+      "28": "A",
+      "29": "D",
+      "30": "C",
+      "31": "C",
+      "32": "D",
+      "33": "B",
+      "34": "A",
+      "35": "B",
+      "36": "C",
+      "37": "E",
+      "38": "B",
+      "39": "E",
+      "40": "B",
+      "41": "D",
+      "42": "C",
+      "43": "A",
+      "44": "D",
+      "45": "B"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/provas/Vest2018_prova_G1_20171015.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/gabaritos/Vest2018_gabarito_G1_20171015_v2.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/gabaritos/Vest2018_gabarito_G1_20171015_v2.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/provas/Vest2018_prova_G1_20171015.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          45
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 45 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/gabaritos/Vest2018_gabarito_G1_20171015_v2.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2018/download/gabaritos/Vest2018_gabarito_G1_20171015_v2.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "bee0629f13b981ac74cee9791b2772fa0eb3446502ff65f424ee125d75825ff4",
+      "bytes": 386778,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "rectified",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2017": {
+    "edition": "2017",
+    "year": 2017,
+    "label": "Vestibular PUC-Rio 2017 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 20,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "D",
+      "3": "D",
+      "4": "A",
+      "5": "E",
+      "6": "C",
+      "7": "E",
+      "8": "B",
+      "9": "A",
+      "10": "C",
+      "11": "E",
+      "12": "B",
+      "13": "C",
+      "14": "C",
+      "15": "D",
+      "16": "B",
+      "17": "D",
+      "18": "E",
+      "19": "E",
+      "20": "A"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/provas/Vest2017_prova_G1_20161010.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/gabaritos/Vest2017_gabarito_G1_20161010.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/gabaritos/Vest2017_gabarito_G1_20161010.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/provas/Vest2017_prova_G1_20161010.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          20
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 20 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/gabaritos/Vest2017_gabarito_G1_20161010.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2017/download/gabaritos/Vest2017_gabarito_G1_20161010.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "9b5b6c31ecd8f905fd84f9883eea3b36c9a3ebd87982e849ef1827c653bf9901",
+      "bytes": 285113,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2016": {
+    "edition": "2016",
+    "year": 2016,
+    "label": "Vestibular PUC-Rio 2016 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 20,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "rectified",
+    "answers": {
+      "1": "A",
+      "2": "C",
+      "3": "E",
+      "4": "E",
+      "5": "D",
+      "6": "B",
+      "7": "C",
+      "8": "D",
+      "9": "B",
+      "10": "C",
+      "11": "A",
+      "12": "A",
+      "13": "C",
+      "14": "E",
+      "15": "D",
+      "16": "B",
+      "17": "E",
+      "18": "A",
+      "19": "C",
+      "20": "D"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/provas/Vest2016_prova_G1_20151012.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/gabaritos/Vest2016_gabarito_G1_20151012_v3.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/gabaritos/Vest2016_gabarito_G1_20151012_v3.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/provas/Vest2016_prova_G1_20151012.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          20
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 20 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/gabaritos/Vest2016_gabarito_G1_20151012_v3.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2016/download/gabaritos/Vest2016_gabarito_G1_20151012_v3.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "5b2d34deeb7311e3ab5e8d08a5768a6aa6592fd75864622abff3949959f3594f",
+      "bytes": 431588,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "rectified",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  },
+  "2015": {
+    "edition": "2015",
+    "year": 2015,
+    "label": "Vestibular PUC-Rio 2015 - 2º dia - Grupo 1",
+    "phase": "day2",
+    "total": 20,
+    "canonicalVariant": "grupo-1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "E",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "E",
+      "6": "B",
+      "7": "A",
+      "8": "C",
+      "9": "A",
+      "10": "B",
+      "11": "E",
+      "12": "C",
+      "13": "B",
+      "14": "E",
+      "15": "C",
+      "16": "A",
+      "17": "D",
+      "18": "E",
+      "19": "B",
+      "20": "B"
+    },
+    "annulled": [],
+    "variants": [
+      {
+        "id": "grupo-1",
+        "label": "Grupo 1",
+        "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/provas/VEST2015PUCRio_GRUPO_1_13102014_completo.pdf",
+        "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/gabaritos/VEST2015PUCRioGabarito G1_20141013_completoD.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/gabaritos/VEST2015PUCRioGabarito G1_20141013_completoD.pdf",
+    "examUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/provas/VEST2015PUCRio_GRUPO_1_13102014_completo.pdf",
+    "archivePage": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/",
+    "subjects": [
+      {
+        "id": "conhecimentos-gerais",
+        "label": "Conhecimentos gerais",
+        "area": "conhecimentos-gerais",
+        "range": [
+          1,
+          20
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Página oficial PUC-Rio associa caderno limpo, gabarito e pacote completo da edição.",
+      "Caderno e gabarito cobrem exatamente 20 questões objetivas do 2º dia, Grupo 1.",
+      "Matérias não foram inferidas: a edição usa categoria ampla e preserva a taxonomia original no rótulo.",
+      "Outros grupos, 1º dia e edições ambíguas permanecem fora do provider executável."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/gabaritos/VEST2015PUCRioGabarito G1_20141013_completoD.pdf",
+      "effectiveSourceUrl": "https://www.puc-rio.br/vestibular/repositorio/provas/2015/download/gabaritos/VEST2015PUCRioGabarito G1_20141013_completoD.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-09",
+      "sha256": "caad51ba35725b54dae12513bc12e2df62ebc3360259f78323c47ecc155a017b",
+      "bytes": 394305,
+      "parserVersion": "puc-rio-answer-key@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "puc-rio-answer-key@1.0.0"
+  }
+}

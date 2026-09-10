@@ -7,6 +7,7 @@ import { epcarAnswerKey, epcarYears } from "../providers/epcar";
 import { unicampExamUrl, unicampYears } from "../providers/unicamp";
 import { uelExamUrl, uelYears } from "../providers/uel";
 import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
+import { pucRioExamUrl, pucRioYears } from "../providers/puc-rio";
 import { udescEditions, udescExamUrl, udescYears } from "../providers/udesc";
 import { acafeEditions, acafeExamUrl, acafeYears } from "../providers/acafe";
 import { examYears } from "../domain/constants";
@@ -22,6 +23,7 @@ const FAB_PARSER = "fab-answer-key@2.1.0";
 const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
 const UEL_PARSER = "uel-answer-key@1.0.0";
 const PUC_SP_PARSER = "puc-sp-answer-key@1.0.0";
+const PUC_RIO_PARSER = "puc-rio-answer-key@1.0.0";
 const UDESC_PARSER = "udesc-answer-key@1.0.0";
 const ACAFE_PARSER = "acafe-answer-key@1.0.0";
 
@@ -559,30 +561,31 @@ export const pucPrResearchSource: ExamSourceDefinition = {
     "arquivo oficial público e consistente de prova ↔ gabarito.",
 };
 
-/** PUC-Rio pesquisada sem prova própria pública atual. */
-export const pucRioResearchSource: ExamSourceDefinition = {
-  id: "puc-rio-research",
+/** PUC-Rio: arquivo oficial com cadernos e gabaritos por grupo. */
+export const pucRioSource: ExamSourceDefinition = {
+  id: "puc-rio-official-repository",
   providerId: "puc-rio",
   institution: "PUC-Rio",
-  archiveUrl: "https://www.puc-rio.br/ensinopesq/ccg/vestibular/",
-  sourceType: "official-html",
+  archiveUrl: "https://www.puc-rio.br/vestibular/repositorio/",
+  sourceType: "pdf-reference",
   statementMode: "reference-only",
-  extractionMethod: "manual",
-  rightsStatus: "unknown",
-  status: "blocked",
+  extractionMethod: "pdf-layout",
+  rightsStatus: "official-reference",
+  status: "active",
   family: "university",
-  discovery: "manual",
-  years: [],
-  phases: ["single"],
-  subjects: ["general"],
-  answerKeyAvailable: false,
+  discovery: "automatic",
+  years: pucRioYears(),
+  phases: ["day2"],
+  subjects: ["conhecimentos-gerais"],
+  answerKeyAvailable: true,
   expectedAnswersAvailable: false,
-  parserVersion: "puc-rio-research@0.1.0",
-  lastVerifiedAt: "2026-09-08",
-  confidence: "baixa",
+  parserVersion: PUC_RIO_PARSER,
+  lastVerifiedAt: "2026-09-09",
+  confidence: "alta",
   notes:
-    "Tratada como instituição separada. Não foi localizada fonte oficial pública " +
-    "com prova objetiva e gabarito final associáveis para ingestão.",
+    "Nove edições do 2º dia, Grupo 1 (2015–2020 e 2024–2026) entram com " +
+    "330 questões em modo referência. 2021–2022 não têm caderno limpo inequívoco " +
+    "no pacote publicado; 2023 tem layout de destaque ainda ambíguo e fica bloqueada.",
 };
 
 /** Mackenzie pesquisado sem archive público fechado. */
@@ -710,7 +713,7 @@ const SOURCES = new Map<string, ExamSourceDefinition>([
   [udescSource.id, udescSource],
   [acafeSource.id, acafeSource],
   [pucPrResearchSource.id, pucPrResearchSource],
-  [pucRioResearchSource.id, pucRioResearchSource],
+  [pucRioSource.id, pucRioSource],
   [mackenzieResearchSource.id, mackenzieResearchSource],
   [ufrjHistoricalResearchSource.id, ufrjHistoricalResearchSource],
   [ufprResearchSource.id, ufprResearchSource],
@@ -838,6 +841,15 @@ export const pucSpImporter: ExamImporter = {
   },
 };
 
+export const pucRioImporter: ExamImporter = {
+  sourceId: pucRioSource.id,
+  availableYears: () => pucRioYears(),
+  provenanceFor(year, phase = "day2", page) {
+    const url = phase === "day2" ? pucRioExamUrl(year) : pucRioSource.archiveUrl;
+    return provenance(pucRioSource, url ?? pucRioSource.archiveUrl, page);
+  },
+};
+
 export const udescImporter: ExamImporter = {
   sourceId: udescSource.id,
   availableYears: () => udescYears(),
@@ -869,6 +881,7 @@ export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "unicamp") return unicampImporter;
   if (providerId === "uel") return uelImporter;
   if (providerId === "puc-sp") return pucSpImporter;
+  if (providerId === "puc-rio") return pucRioImporter;
   if (providerId === "udesc") return udescImporter;
   if (providerId === "acafe") return acafeImporter;
   return null;

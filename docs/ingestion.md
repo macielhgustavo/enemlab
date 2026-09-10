@@ -268,6 +268,7 @@ pior, atribuiria a resposta à versão errada.
 | UNICAMP | 3 (1ª fase) | 216 | `reviewed` | referência | `unicamp-comvest-archive` |
 | UEL | 1 (1º dia Inglês) | 60 | `reviewed` | referência | `uel-cops-archive` |
 | PUC-SP | 3 (verão) | 150 | `reviewed` | referência | `puc-sp-nucvest-archive` |
+| PUC-Rio | 9 (2º dia, Grupo 1) | 330 | `reviewed` | referência | `puc-rio-official-repository` |
 | UDESC | 18 (manhã e tarde) | 1.800 | `reviewed` | referência | `udesc-official-archive` |
 | ACAFE | 9 (semestres) | 567 | `reviewed` | referência | `acafe-official-archive` |
 | ENEM | 30 (dia 1 e 2) | — | `reviewed` | no app | `enem-dev` |
@@ -344,6 +345,21 @@ Inglês é canônico; Espanhol é armazenado como variante `distinct`.
 O parser recusa preliminar mesmo quando o rótulo da página externa diz
 “oficial”. Isso excluiu 2022.1, cujo PDF contradiz o índice. Respostas `X` são
 registradas como anuladas, e edição só entra com cobertura exata 1..63.
+
+### PUC-Rio — adapter de texto e layout
+
+O adapter PUC-Rio descobre prova e gabarito nas páginas anuais do repositório
+oficial. Para 2015–2020, lê respostas comentadas e reconhece retificações e
+anuladas. Para 2024–2026, associa os destaques amarelos às alternativas pela
+geometria do PDF. Nos dois caminhos, a numeração precisa cobrir a edição inteira
+e o caderno limpo precisa confirmar as questões objetivas esperadas.
+
+O catálogo guarda somente gabarito, metadados, URL oficial e fingerprint. Não
+há PDF ou enunciado rehostado. A taxonomia fica ampla (`conhecimentos-gerais`)
+porque o gabarito não oferece separação confiável de matéria para todas as
+edições. 2021–2023, outros grupos e o 1º dia permanecem explicitamente fora do
+provider até que caderno, variantes e correção possam ser associados sem
+inferência. Veja o [relatório da wave](vestibular-volume-wave-3-validation.md).
 
 ### Fontes registradas e não ingeridas
 

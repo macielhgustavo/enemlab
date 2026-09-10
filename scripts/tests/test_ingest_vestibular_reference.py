@@ -53,6 +53,69 @@ class VestibularReferenceParserTests(unittest.TestCase):
         self.assertEqual(annulled, [12])
         self.assertNotIn("12", answers)
 
+    def test_pucrio_text_parser_preserves_rectifications_and_annulments(self):
+        text = "\n".join([
+            "Vestibular PUC-Rio",
+            "1) Resposta: (A)",
+            "2) GABARITO ALTERADO",
+            "Resposta: (E)",
+            "3) Resposta (C)",
+            "4) (QUESTÃO ANULADA)",
+        ])
+        answers, annulled = ingest.parse_pucrio_text_answer_key(text, 4)
+        self.assertEqual(answers, {"1": "A", "2": "E", "3": "C"})
+        self.assertEqual(annulled, [4])
+
+    def test_pucrio_text_parser_rejects_preliminary_key(self):
+        text = "Vestibular PUC-Rio - Gabarito preliminar\n1) Resposta: (A)"
+        with self.assertRaisesRegex(ingest.IngestionError, "não é final"):
+            ingest.parse_pucrio_text_answer_key(text, 1)
+
+    def test_pucrio_highlight_parser_is_deterministic(self):
+        words = [
+            {"text": "1", "x0": 28, "x1": 34, "top": 10, "bottom": 22, "fontname": "Arial-Bold", "size": 11},
+            *[
+                {"text": f"({letter})", "x0": 30, "x1": 45, "top": 30 + index * 20, "bottom": 42 + index * 20, "fontname": "Arial", "size": 10}
+                for index, letter in enumerate("ABCDE")
+            ],
+        ]
+        pages = [{
+            "width": 600.0,
+            "height": 800.0,
+            "words": words,
+            "lines": [{
+                "x0": 29,
+                "x1": 46,
+                "top": 48,
+                "bottom": 48,
+                "linewidth": 8,
+                "stroking_color": (0.0, 0.0, 1.0, 0.0),
+            }],
+            "rects": [],
+        }]
+
+        first = ingest.parse_pucrio_highlighted_answer_key(pages, 1)
+        second = ingest.parse_pucrio_highlighted_answer_key(pages, 1)
+        self.assertEqual(first, ({"1": "B"}, []))
+        self.assertEqual(second, first)
+
+    def test_pucrio_highlight_parser_fails_closed_when_answer_is_missing(self):
+        pages = [{
+            "width": 600.0,
+            "height": 800.0,
+            "words": [
+                {"text": "1", "x0": 28, "x1": 34, "top": 10, "bottom": 22, "fontname": "Arial-Bold", "size": 11},
+                *[
+                    {"text": f"({letter})", "x0": 30, "x1": 45, "top": 30 + index * 20, "bottom": 42 + index * 20, "fontname": "Arial", "size": 10}
+                    for index, letter in enumerate("ABCDE")
+                ],
+            ],
+            "lines": [],
+            "rects": [],
+        }]
+        with self.assertRaisesRegex(ingest.IngestionError, "faltantes"):
+            ingest.parse_pucrio_highlighted_answer_key(pages, 1)
+
     def test_duplicate_number_fails_closed(self):
         with self.assertRaisesRegex(ingest.IngestionError, "duplicada"):
             ingest.pairs_to_answers([("1", "A"), ("1", "B")], 1)
