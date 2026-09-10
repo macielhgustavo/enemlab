@@ -1,4 +1,4 @@
-name: FUVEST Full Recovery Benchmark
+name: FUVEST OCR Budget Benchmark
 
 on:
   pull_request:
@@ -25,22 +25,55 @@ jobs:
       - name: Run worker tests
         run: |
           python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
-      - name: Run full production batch
+      - name: Benchmark 2016 and 2017 with independent OCR budget
         run: |
-          rm -rf /tmp/enemlab-fuvest-full-cache
+          rm -rf /tmp/enemlab-fuvest-1617-budget-cache
+          START=$(date +%s)
           python scripts/fuvest-batch-lab.py \
-            --concurrency 4 \
+            --years 2016,2017 \
+            --concurrency 2 \
+            --ocr-concurrency 1 \
             --no-media \
-            --cache-dir /tmp/enemlab-fuvest-full-cache \
-            --output /tmp/fuvest-full.json
-          cat /tmp/fuvest-full.json
+            --cache-dir /tmp/enemlab-fuvest-1617-budget-cache \
+            --output /tmp/fuvest-1617-budget.json
+          END=$(date +%s)
+          echo "PAIR_ELAPSED_SECONDS=$((END-START))"
+          cat /tmp/fuvest-1617-budget.json
           python - <<'PY'
           import json
           from pathlib import Path
-          data = json.loads(Path('/tmp/fuvest-full.json').read_text())
+          data = json.loads(Path('/tmp/fuvest-1617-budget.json').read_text())
+          assert data['editions'] == 2, data
+          assert data['questions'] == 180, data
+          assert data['completeStructure'] == 173, data['completeStructure']
+          assert data['needsTextReview'] == 7, data['needsTextReview']
+          assert data['regionalRecoveryAppliedQuestions'] == 23, data
+          assert data['ocrConcurrency'] == 1, data
+          assert data['pipelineConcurrency'] == 2, data
+          assert not data['failures'], data['failures']
+          PY
+      - name: Run full production batch
+        run: |
+          rm -rf /tmp/enemlab-fuvest-full-budget-cache
+          START=$(date +%s)
+          python scripts/fuvest-batch-lab.py \
+            --concurrency 4 \
+            --ocr-concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-fuvest-full-budget-cache \
+            --output /tmp/fuvest-full-budget.json
+          END=$(date +%s)
+          echo "FULL_ELAPSED_SECONDS=$((END-START))"
+          cat /tmp/fuvest-full-budget.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/fuvest-full-budget.json').read_text())
           assert data['editions'] == 21, data
           assert data['questions'] == 1910, data
           assert not data['failures'], data['failures']
           assert data['completeStructure'] >= 1825, data['completeStructure']
           assert data['needsTextReview'] <= 85, data['needsTextReview']
+          assert data['ocrConcurrency'] == 1, data
+          assert data['pipelineConcurrency'] == 4, data
           PY
