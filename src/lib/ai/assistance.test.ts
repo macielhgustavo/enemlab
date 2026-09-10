@@ -48,7 +48,7 @@ function dbWithAttempt() {
 }
 
 describe("Student AI assistance trace", () => {
-  it("agrega nível, modos e revelação por questão sem persistir conteúdo", () => {
+  it("agrega assistência e persiste diagnóstico sem guardar conteúdo textual", () => {
     const db = dbWithAttempt();
     recordStudentAIAssistance(
       db,
@@ -61,7 +61,15 @@ describe("Student AI assistance trace", () => {
       db,
       "attempt-ai",
       "q-1",
-      response({ mode: "why-wrong", level: 4 }),
+      response({
+        mode: "why-wrong",
+        level: 4,
+        diagnostic: {
+          category: "content-gap",
+          confidence: "high",
+          note: "Texto explicativo do diagnóstico que não deve ser persistido.",
+        },
+      }),
       "2026-09-10T01:01:00.000Z",
     );
     recordStudentAIAssistance(
@@ -91,8 +99,13 @@ describe("Student AI assistance trace", () => {
       fallbackUsed: true,
     });
     expect(trace?.recent).toHaveLength(3);
+    expect(trace?.recent[1].diagnostic).toEqual({
+      category: "content-gap",
+      confidence: "high",
+    });
     expect(JSON.stringify(trace)).not.toContain("Explicação");
     expect(JSON.stringify(trace)).not.toContain("Porcentagem");
+    expect(JSON.stringify(trace)).not.toContain("Texto explicativo do diagnóstico");
     expect(isHighAssistance(trace)).toBe(true);
   });
 
