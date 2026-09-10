@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { DocumentFetcher } from "../sources/ingestion";
-import { createRecipeDiscovery, harvestOfficialSource, type OfficialSourceRecipe } from "./sourceRecipe";
+import {
+  createRecipeDiscovery,
+  harvestOfficialSource,
+  type OfficialSourceRecipe,
+} from "./sourceRecipe";
 
 const recipe: OfficialSourceRecipe = {
   sourceId: "test-official-archive",
@@ -26,6 +30,18 @@ function htmlFetcher(html: string): DocumentFetcher {
   });
 }
 
+function routeFetcher(routes: Record<string, string>): DocumentFetcher {
+  return async (url) => {
+    const html = routes[url];
+    if (html === undefined) throw new Error(`unexpected URL ${url}`);
+    return {
+      url,
+      bytes: new TextEncoder().encode(html),
+      headers: { "content-type": "text/html; charset=utf-8" },
+    };
+  };
+}
+
 describe("official source recipe harvesting", () => {
   it("discovers years and document roles from one official archive page", async () => {
     const result = await harvestOfficialSource(
@@ -40,6 +56,7 @@ describe("official source recipe harvesting", () => {
 
     expect(result.issues).toEqual([]);
     expect(result.pagesFetched).toBe(1);
+    expect(result.pagesAttempted).toBe(1);
     expect(result.linksSeen).toBe(4);
     expect(result.matchedDocuments).toBe(4);
     expect(result.editions.map((edition) => edition.year)).toEqual([2024, 2025]);
@@ -74,6 +91,66 @@ describe("official source recipe harvesting", () => {
 
     expect(result.editions).toHaveLength(1);
     expect(result.editions[0].year).toBe(2025);
+  });
+
+  it("crawls a bounded child page and can inherit the year from that page URL", async () => {
+    const crawlingRecipe: OfficialSourceRecipe = {
+      ...recipe,
+      archiveUrls: ["https://vest.test.edu.br/archive"],
+      crawl: {
+        maxDepth: 1,
+        maxPages: 3,
+        follow: [/\/editions\/20\d{2}$/i],
+      },
+    };
+
+    const result = await harvestOfficialSource(
+      crawlingRecipe,
+      routeFetcher({
+        "https://vest.test.edu.br/archive": `
+          <a href="/editions/2025">Abrir edição</a>
+          <a href="https://evil.example/editions/2025">Espelho</a>
+        `,
+        "https://vest.test.edu.br/editions/2025": `
+          <a href="https://static.test.edu.br/files/prova.pdf">Caderno</a>
+          <a href="https://static.test.edu.br/files/gabarito.pdf">Gabarito</a>
+        `,
+      }),
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.pagesFetched).toBe(2);
+    expect(result.pagesAttempted).toBe(2);
+    expect(result.editions).toHaveLength(1);
+    expect(result.editions[0].year).toBe(2025);
+    expect(result.editions[0].documents).toHaveLength(2);
+  });
+
+  it("lets one official file represent exam and answer-key roles", async () => {
+    const combinedRecipe: OfficialSourceRecipe = {
+      ...recipe,
+      documents: [
+        {
+          role: ["objective-exam", "answer-key"],
+          match: /definitivo/i,
+          phase: "first",
+        },
+      ],
+    };
+
+    const result = await harvestOfficialSource(
+      combinedRecipe,
+      htmlFetcher(
+        '<a href="https://static.test.edu.br/2025/definitivo.pdf">Definitivo 2025</a>',
+      ),
+    );
+
+    expect(result.editions).toHaveLength(1);
+    expect(result.editions[0].documents.map((document) => document.role).sort()).toEqual([
+      "answer-key",
+      "objective-exam",
+    ]);
+    expect(result.matchedDocuments).toBe(2);
   });
 
   it("adapts recipes to ExamSourceDiscovery without weakening allowlist checks", async () => {
