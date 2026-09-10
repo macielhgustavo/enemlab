@@ -1,16 +1,19 @@
 import type {
+  DiscoveredEdition,
   DocumentFetcher,
   ExamSourceDiscovery,
   FetchedDocument,
 } from "../sources/ingestion";
 import {
   createInventoryBackedDocumentFetcher,
-  DocumentInventory,
   type AcquisitionStats,
   type AcquisitionTransport,
   type ContentAddressedDocumentStore,
 } from "./acquisition";
-import type { DocumentInventoryStore } from "./documentInventory";
+import {
+  DocumentInventory,
+  type DocumentInventoryStore,
+} from "./documentInventory";
 import {
   createRecipeDiscovery,
   type OfficialSourceRecipe,
@@ -80,7 +83,7 @@ export async function openRecipeAcquisitionBridge(
 
   const discovery: ExamSourceDiscovery = {
     sourceId: recipe.sourceId,
-    async discover(fetcher): Promise<ReturnType<ExamSourceDiscovery["discover"]> extends Promise<infer T> ? T : never> {
+    async discover(fetcher): Promise<DiscoveredEdition[]> {
       const editions = await recipeDiscovery.discover(fetcher);
       const seenAt = now().toISOString();
       for (const edition of editions) {
