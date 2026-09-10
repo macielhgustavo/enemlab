@@ -21,6 +21,7 @@ import re
 import runpy
 import sys
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,7 +30,7 @@ from pypdf import PdfReader
 QUESTIONS = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 SUSPECT_CATEGORIES = {"Cc", "Cf", "Co"}
 IGNORED_CONTROLS = {"\n", "\r", "\t", "\u00ad"}
-WORKER_VERSION = "fuvest-font-glyph-inspector@0.1.0"
+WORKER_VERSION = "fuvest-font-glyph-inspector@0.1.1"
 
 
 def is_suspicious(char: str) -> bool:
@@ -92,11 +93,7 @@ def _decode_hex_unicode(value: str) -> str | None:
         raw = bytes.fromhex(value)
     except ValueError:
         return None
-    if not raw:
-        return None
-    # ToUnicode destinations are normally UTF-16BE. Single-byte values occur
-    # in malformed maps; they are diagnostic-only and not trusted as repairs.
-    if len(raw) % 2:
+    if not raw or len(raw) % 2:
         return None
     try:
         return raw.decode("utf-16-be")
@@ -107,9 +104,8 @@ def _decode_hex_unicode(value: str) -> str | None:
 def parse_tounicode_sources(data: bytes | None) -> dict[str, list[str]]:
     """Return destination Unicode text -> source CMap hex codes.
 
-    Supports the common bfchar and single-destination bfrange forms needed for
-    diagnostics. Array bfrange values are intentionally ignored rather than
-    guessed.
+    Supports common bfchar and single-destination bfrange forms. Array bfrange
+    values are intentionally ignored rather than guessed.
     """
     if not data:
         return {}
@@ -171,22 +167,28 @@ def font_identity(font_dict: Any) -> dict[str, Any]:
 def inspect_pdf(year: int, pdf_bytes: bytes) -> list[dict[str, Any]]:
     reader = PdfReader(io.BytesIO(pdf_bytes))
     observations: list[dict[str, Any]] = []
+    font_cache: dict[int, tuple[dict[str, Any], dict[str, list[str]]]] = {}
 
     for page_number, page in enumerate(reader.pages, start=1):
         def visitor(text: str, _cm: Any, _tm: Any, font_dict: Any, font_size: float) -> None:
             if not text or not any(is_suspicious(char) for char in text):
                 return
-            identity = font_identity(font_dict)
-            cmap = parse_tounicode_sources(to_unicode_bytes(font_dict))
+            cache_key = id(font_dict)
+            cached = font_cache.get(cache_key)
+            if cached is None:
+                identity = font_identity(font_dict)
+                cmap = parse_tounicode_sources(to_unicode_bytes(font_dict))
+                cached = (identity, cmap)
+                font_cache[cache_key] = cached
+            identity, cmap = cached
             for index, char in enumerate(text):
                 if not is_suspicious(char):
                     continue
-                codepoint = f"U+{ord(char):04X}"
                 observations.append(
                     {
                         "year": year,
                         "page": page_number,
-                        "codepoint": codepoint,
+                        "codepoint": f"U+{ord(char):04X}",
                         "category": unicodedata.category(char),
                         "unicodeName": unicodedata.name(char, "<unnamed>"),
                         **identity,
@@ -269,24 +271,34 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", default="all")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--concurrency", type=int, default=4)
     args = parser.parse_args(argv)
+    if args.concurrency < 1 or args.concurrency > 8:
+        raise ValueError("concurrency must be between 1 and 8")
 
     manifest = QUESTIONS["load_manifest"]()
     years = parse_years(args.years, manifest)
     observations: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
 
-    for year in years:
-        try:
-            pdf_bytes = QUESTIONS["fetch"](manifest[str(year)]["examUrl"])
-            observations.extend(inspect_pdf(year, pdf_bytes))
-        except Exception as error:  # noqa: BLE001
-            failures.append({"year": year, "error": str(error)})
-            print(f"FUVEST {year}: GLYPH INSPECTION BLOCKED — {error}", file=sys.stderr)
+    def inspect_year(year: int) -> tuple[int, list[dict[str, Any]]]:
+        pdf_bytes = QUESTIONS["fetch"](manifest[str(year)]["examUrl"])
+        return year, inspect_pdf(year, pdf_bytes)
+
+    with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+        futures = {executor.submit(inspect_year, year): year for year in years}
+        for future in as_completed(futures):
+            year = futures[future]
+            try:
+                _, found = future.result()
+                observations.extend(found)
+            except Exception as error:  # noqa: BLE001
+                failures.append({"year": year, "error": str(error)})
+                print(f"FUVEST {year}: GLYPH INSPECTION BLOCKED — {error}", file=sys.stderr)
 
     report = summarize(observations)
     report["requestedEditions"] = len(years)
-    report["failures"] = failures
+    report["failures"] = sorted(failures, key=lambda item: int(item["year"]))
     payload = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
