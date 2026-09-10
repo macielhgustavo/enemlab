@@ -1,0 +1,130 @@
+name: Exception Cluster Benchmark
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/exception-cluster-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fuvest-exception-clusters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install extraction dependencies
+        run: python -m pip install --disable-pip-version-check pypdf fonttools pymupdf pillow
+
+      - name: Build extraction cache
+        run: |
+          python scripts/fuvest-batch-lab.py \
+            --cache-dir /tmp/enemlab-ingestion-cache \
+            --media-dir /tmp/enemlab-ingestion-media \
+            --output /tmp/fuvest.json \
+            --concurrency 4 \
+            --no-media
+
+      - name: Cluster exception causes
+        run: |
+          python - <<'PY'
+          import collections
+          import json
+          import re
+          from pathlib import Path
+
+          def normalize(message):
+              value = message.lower()
+              value = re.sub(r'https?://\S+', '<url>', value)
+              value = re.sub(r'\b[0-9a-f]{32,64}\b', '<digest>', value)
+              value = re.sub(r'\b\d+\b', '#', value)
+              return ' '.join(value.split())
+
+          cause_counts = collections.Counter()
+          question_sets = collections.defaultdict(set)
+          clusters = collections.defaultdict(set)
+          editions = set()
+          files = sorted(Path('/tmp/enemlab-ingestion-cache/extraction').glob('*/*.json'))
+          assert len(files) == 21, len(files)
+
+          for path in files:
+              envelope = json.loads(path.read_text(encoding='utf-8'))
+              assert envelope['protocolVersion'] == 'enemlab-extraction/v1'
+              identity = envelope['identity']
+              extraction = envelope['extraction']
+              year = identity['year']
+              editions.add(year)
+
+              for question in extraction.get('questions', []):
+                  number = question.get('number')
+                  complete = bool(question.get('statement')) and len(question.get('alternatives') or []) == 5
+                  if not complete:
+                      cause_counts['structure-incomplete'] += 1
+                      question_sets['structure-incomplete'].add((year, number))
+                      clusters[('structure-incomplete', 'structure', 'estrutura objetiva incompleta')].add((year, number))
+
+              for number in extraction.get('questionsMissingMedia', []):
+                  cause_counts['media-unbound'] += 1
+                  question_sets['media-unbound'].add((year, number))
+                  clusters[('media-unbound', 'media', 'questão depende de mídia')].add((year, number))
+
+              seen_semantic = set()
+              for issue in extraction.get('semanticFidelityIssues', []):
+                  if issue.get('severity') == 'warning':
+                      continue
+                  code = issue.get('code', 'extractor-reported')
+                  cause = {
+                      'control-character': 'glyph-control',
+                      'replacement-character': 'glyph-replacement',
+                      'private-use-character': 'glyph-private-use',
+                      'formula-ambiguity': 'formula-ambiguity',
+                      'layout-ambiguity': 'layout-ambiguity',
+                      'extractor-reported': 'extractor-reported',
+                  }.get(code, 'extractor-reported')
+                  number = issue.get('questionNumber')
+                  page = issue.get('page')
+                  field = issue.get('field') or ('page' if page else 'global')
+                  field_scope = 'alternative' if str(field).startswith('alternative:') else field
+                  key = (cause, year, number, page, field_scope, normalize(issue.get('message', '')))
+                  if key in seen_semantic:
+                      continue
+                  seen_semantic.add(key)
+                  cause_counts[cause] += 1
+                  if number is not None:
+                      question_sets[cause].add((year, number))
+                  clusters[(cause, field_scope, normalize(issue.get('message', '')))].add((year, number if number is not None else f'p{page}'))
+
+          ranked_clusters = sorted(
+              (
+                  {
+                      'cause': key[0],
+                      'field': key[1],
+                      'signature': key[2],
+                      'affected': len(values),
+                  }
+                  for key, values in clusters.items()
+              ),
+              key=lambda item: (-item['affected'], item['cause'], item['field'], item['signature']),
+          )
+          report = {
+              'editions': len(editions),
+              'causeObservations': dict(cause_counts.most_common()),
+              'affectedQuestionsByCause': {
+                  cause: len(values)
+                  for cause, values in sorted(question_sets.items())
+              },
+              'clusterCount': len(ranked_clusters),
+              'topClusters': ranked_clusters[:20],
+          }
+          print('EXCEPTION_CLUSTER_REPORT=' + json.dumps(report, ensure_ascii=False))
+          assert report['editions'] == 21
+          assert report['clusterCount'] > 0
+          PY
