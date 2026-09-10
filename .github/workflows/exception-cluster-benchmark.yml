@@ -23,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install parser dependency
-        run: python -m pip install --disable-pip-version-check pypdf
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
 
       - name: Inspect suspicious glyph sources
         run: |
@@ -46,3 +46,11 @@ jobs:
           assert not compact['failures'], compact['failures']
           assert compact['observations'] > 0
           PY
+
+      - name: Upload glyph diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuvest-font-glyph-report
+          path: /tmp/glyph-report.json
+          retention-days: 3
