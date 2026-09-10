@@ -4,6 +4,7 @@ import type {
   StudentAIAssistanceLevel,
   StudentAIAssistanceTrace,
 } from "../domain/types";
+import { isHighStudentAIAssistance } from "../domain/ai-assistance";
 import type { AIResponse } from "./types";
 
 const MAX_RECENT_EVENTS = 12;
@@ -87,10 +88,5 @@ export function assistanceForQuestion(
   return db.attempts.find((item) => item.id === attemptId)?.aiAssistance?.[questionKey];
 }
 
-/**
- * Sinal para diagnósticos futuros. Ainda não altera nota, domínio, SRS ou TRI:
- * primeiro registramos evidência; a regra adaptativa será uma decisão separada.
- */
-export function isHighAssistance(trace?: StudentAIAssistanceTrace): boolean {
-  return !!trace && (trace.answerRevealed || trace.maxLevel >= 5);
-}
+/** Compatibilidade para consumidores já existentes do módulo de IA. */
+export const isHighAssistance = isHighStudentAIAssistance;
