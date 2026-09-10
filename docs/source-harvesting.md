@@ -13,6 +13,12 @@ host allowlist + year/role matching
       ↓
 document inventory
       ↓
+conditional acquisition (ETag / Last-Modified)
+      ↓
+SHA-256 content-addressed blob store
+      ↓
+existing extraction checkpoint (SHA + importer version)
+      ↓
 existing ingestion engine
 ```
 
@@ -126,24 +132,85 @@ A transient archive failure does not remove older records. Discovery knowledge s
 
 The shared code exposes a JSON-backed storage adapter without importing Node `fs`, so CLIs can persist to JSON/SQLite/object storage while browser callers can use IndexedDB.
 
+## Content-addressed acquisition
+
+`src/lib/discovery/acquisition.ts` turns an inventory entry into the `DocumentFetcher` already consumed by `IngestionEngine`.
+
+The cache has two separate identities on purpose:
+
+- **logical identity** stays in the inventory: source + edition + role + phase + variant + URL;
+- **physical identity** is only the SHA-256 of the bytes.
+
+That means two roles or even two official URLs serving byte-identical PDFs can share the same physical blob without losing provenance.
+
+### Revalidation path
+
+When an inventory record already has cached bytes:
+
+1. if the server supplied `ETag`, acquisition sends `If-None-Match`;
+2. if it supplied `Last-Modified`, acquisition also sends `If-Modified-Since`;
+3. HTTP `304 Not Modified` returns the local SHA-addressed bytes to the ingestion engine and downloads zero PDF bytes;
+4. HTTP `200` hashes the returned body and compares it with the previous SHA;
+5. a new SHA is retained as a new blob instead of overwriting the old evidence.
+
+If metadata exists but the corresponding SHA blob is missing, acquisition deliberately performs a full GET. Sending validators in that case could produce a `304` with no local body to use.
+
+If the server exposes neither ETag nor Last-Modified, the fail-safe path is a full body download followed by SHA comparison. Size or timestamp alone is never treated as proof that a PDF is unchanged.
+
+Within one run, repeated logical requests for the same URL are coalesced. This matters for multi-role documents such as UFPR definitive booklets: extraction may see separate logical definitions while the network performs only one physical fetch.
+
+Acquisition also re-checks the effective redirect URL against the source allowlist. Redirecting a known official URL to an unapproved host fails closed.
+
+### Discovery/engine bridge
+
+`openRecipeAcquisitionBridge()` connects the recipe, inventory and acquisition layers without changing `IngestionEngine.run()`.
+
+The engine historically receives one `DocumentFetcher` for both archive discovery and document downloads. The bridge preserves that contract:
+
+```text
+archive/index URL not in inventory
+        → plain allowlisted fetch
+        → recipe discovers documents
+        → documents are inserted into inventory
+        → subsequent PDF fetch
+        → conditional/SHA acquisition
+```
+
+A source adapter can therefore use `bridge.discovery` as its `discovery` implementation and pass `bridge.fetcher` to `IngestionEngine`. Calling `bridge.persist()` after the run stores the updated SHA/ETag/Last-Modified metadata for the next process.
+
+### Acquisition metrics
+
+Each acquisition fetcher exposes counters for:
+
+- logical requests and coalesced duplicates;
+- physical network requests;
+- conditional requests and HTTP 304 hits;
+- documents and bytes actually downloaded;
+- new, changed and byte-identical redownloads;
+- blob-store reads, hits, misses and writes;
+- acquisition failures.
+
+The most important steady-state metric is `downloadedBytes`: after a source is warm and its server supports validators, rerunning unchanged editions should approach zero PDF bytes downloaded. The existing extraction checkpoint then avoids reparsing because its key already includes exact document SHA plus importer version.
+
 ## Trust boundary
 
-The harvester only creates `DiscoveredEdition`/`DiscoveredDocument` candidates.
+The harvester and acquisition layers only produce/retrieve official document candidates.
 
-It does not:
+They do not:
 
 - publish questions;
 - trust aggregators as content authority;
 - infer answers;
 - use LLMs to guess document roles;
-- crawl outside recipe allowlists;
+- crawl or follow redirects outside recipe allowlists;
+- treat HTTP metadata as stronger evidence than SHA-256;
 - bypass the current ingestion/review/rights gates.
 
-The existing ingestion engine remains responsible for download fingerprints, extraction, semantic/media validation and review staging.
+The existing ingestion engine remains responsible for extraction, semantic/media validation and review staging.
 
 ## Benchmark metrics
 
-`runSourceHarvest()` now reports crawl throughput directly:
+`runSourceHarvest()` reports crawl throughput directly:
 
 - page fetch attempts;
 - pages fetched successfully;
@@ -160,6 +227,9 @@ For each new institution also track:
 - percentage entering ingestion without manual URL work;
 - structural completion after generic extraction;
 - exception clusters per 1,000 questions;
-- hosted-AI calls and cost per 1,000 questions.
+- hosted-AI calls and cost per 1,000 questions;
+- downloaded PDF bytes on cold and warm runs;
+- conditional-request hit rate;
+- extraction-checkpoint hit rate.
 
 The target is horizontal economics: adding 10–20 years of a new institution should become a small source-configuration task plus exception reduction, not a new scraping/extraction project per edition.
