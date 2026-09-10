@@ -76,14 +76,14 @@ export interface Alternative {
   isCorrect?: boolean;
 }
 
-  export interface Question {
-    providerId?: string;
-    examId?: string;
-    editionId?: string;
-    index: number;
-    year: number;
-    phase?: string;
-    language?: string | null;
+export interface Question {
+  providerId?: string;
+  examId?: string;
+  editionId?: string;
+  index: number;
+  year: number;
+  phase?: string;
+  language?: string | null;
   discipline?: string | { value?: string; label?: string };
   context?: string;
   alternativesIntroduction?: string;
@@ -175,6 +175,8 @@ export interface Attempt {
   strict: boolean;
   strategy?: boolean;
   alerts?: boolean;
+  /** false desativa o tutor sem transformar a tentativa em simulado strict. */
+  aiAllowed?: boolean;
   pass?: number;
   passByQuestion?: Record<string, number>;
   realDay?: 1 | 2 | null;
