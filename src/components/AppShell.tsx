@@ -7,6 +7,7 @@ import {
   Library,
   Sparkles,
   Map,
+  BrainCircuit,
   Gauge,
   RotateCcw,
   Clock,
@@ -39,6 +40,7 @@ const NAV = [
   { href: "/bank", label: "Banco", icon: Library, short: "Banco" },
   { href: "/adaptive", label: "Adaptive 2.0", icon: Sparkles, short: "Adaptive" },
   { href: "/plano", label: "Plano", icon: Map, short: "Plano" },
+  { href: "/ai", label: "Inteligência", icon: BrainCircuit, short: "IA" },
   { href: "/mastery", label: "Domínio", icon: Gauge, short: "Domínio" },
   { href: "/srs", label: "Revisões", icon: RotateCcw, short: "Revisões" },
   { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
@@ -48,16 +50,15 @@ const NAV = [
 ];
 
 /**
- * A nav era uma lista de onze itens sem hierarquia, e "Conta" ficava no fim
- * dela como se fosse mais uma ferramenta de estudo. Agrupar diz o que é
- * ação, o que é acompanhamento e o que é configuração — e encurta a busca
- * visual de onze itens para três blocos.
+ * A nav era uma lista sem hierarquia, e "Conta" ficava no fim dela como se
+ * fosse mais uma ferramenta de estudo. Agrupar diz o que é ação, o que é
+ * acompanhamento e o que é configuração — e encurta a busca visual.
  */
 const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
   {
     titulo: "Estudar",
     itens: NAV.filter((n) =>
-      ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href),
+      ["/", "/practice", "/bank", "/adaptive", "/plano", "/ai"].includes(n.href),
     ),
   },
   {
@@ -67,7 +68,7 @@ const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
   { titulo: "Sistema", itens: NAV.filter((n) => ["/data", "/account"].includes(n.href)) },
 ];
 
-const MOBILE = [NAV[0], NAV[1], NAV[2], NAV[6]];
+const MOBILE = NAV.filter((item) => ["/", "/practice", "/ai", "/srs"].includes(item.href));
 
 function openPalette() {
   window.dispatchEvent(
@@ -83,7 +84,7 @@ function openPalette() {
  * tabela que alguém tem que manter.
  */
 function densidadeDaRota(pathname: string): "compact" | "default" | "spacious" {
-  if (pathname === "/") return "spacious";
+  if (pathname === "/" || pathname.startsWith("/ai")) return "spacious";
   if (pathname.startsWith("/bank") || pathname.startsWith("/srs")) return "compact";
   return "default";
 }
