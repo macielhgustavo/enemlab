@@ -99,7 +99,16 @@ export default function StudentAIHost() {
     [attemptId, contextQuestionKey, mutate],
   );
 
-  if (!hydrated || !attempt || attempt.strict || !context) return null;
+  if (
+    !hydrated ||
+    !attempt ||
+    attempt.strict ||
+    attempt.aiAllowed === false ||
+    !context
+  ) {
+    return null;
+  }
+
   return (
     <StudentAITutor
       key={context.question.key}
