@@ -4,6 +4,23 @@ function selected(input: AIProviderRequest): string | null {
   return input.request.selectedAlternative || input.request.question.selectedAnswer || null;
 }
 
+function independenceNote(input: AIProviderRequest): string {
+  const student = input.request.student;
+  const signal = student?.topicIndependence;
+  if (!student || !signal || signal.highAssistanceQuestions === 0) return "";
+
+  const assistedCorrect = signal.correctWithHighAssistance;
+  const assistedLabel = assistedCorrect === 1 ? "1 acerto ocorreu" : `${assistedCorrect} acertos ocorreram`;
+  const independent = signal.independentAccuracy;
+  const raw = student.topicAccuracy;
+
+  if (independent === null) {
+    return ` Seu histórico deste assunto ainda não tem uma amostra sem assistência alta; ${assistedLabel} em questão com assistência alta.`;
+  }
+
+  return ` No histórico deste assunto, a taxa bruta é ${raw ?? 0}% e a evidência sem assistência alta é ${independent}%. ${assistedLabel} em questão com assistência alta; isso não altera sua nota oficial.`;
+}
+
 export class MockAIProvider implements AIProvider {
   readonly id = "mock";
 
@@ -76,9 +93,9 @@ export class MockAIProvider implements AIProvider {
     if (request.mode === "study-needed") {
       return {
         title: "O que estudar antes",
-        explanation: `Para ficar confortável com questões deste tipo, priorize ${topic} e revise os conceitos-base de ${request.question.subject} que levam até esse assunto.`,
+        explanation: `Para ficar confortável com questões deste tipo, priorize ${topic} e revise os conceitos-base de ${request.question.subject} que levam até esse assunto.${independenceNote(input)}`,
         concepts: [topic, request.question.subject],
-        nextStep: `Faça uma revisão curta de ${topic} e depois resolva 3 a 5 questões do mesmo assunto sem consultar a teoria.`,
+        nextStep: `Faça uma revisão curta de ${topic} e depois resolva 3 a 5 questões do mesmo assunto sem consultar a teoria nem usar assistência alta da IA.`,
         revealAnswer: false,
       };
     }
