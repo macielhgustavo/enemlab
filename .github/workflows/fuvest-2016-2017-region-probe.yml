@@ -1,4 +1,4 @@
-name: FUVEST 2016-2017 Region Probe
+name: FUVEST 2016-2017 Regional Recovery Benchmark
 
 on:
   pull_request:
@@ -17,43 +17,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install probe dependencies
+      - name: Install recovery dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Inspect labels and trial regional OCR
+      - name: Run worker tests
         run: |
-          python - <<'PY'
-          import collections, json, re, runpy
-          import pymupdf
-
-          base = runpy.run_path('scripts/extract-fuvest-questions.py')
-          worker = runpy.run_path('scripts/recover-fuvest-region-ocr.py')
-          manifest = base['load_manifest']()
-
-          for year in (2016, 2017):
-              entry, exam_bytes, key_bytes, pages = base['load_year_documents'](year, manifest)
-              envelope = base['build_envelope'](entry, exam_bytes, key_bytes, pages)
-              print('YEAR', year, 'BASE', base['metrics'](envelope))
-              doc = pymupdf.open(stream=exam_bytes, filetype='pdf')
-              fonts = collections.Counter()
-              candidates = []
-              for page_index in range(doc.page_count):
-                  page = doc.load_page(page_index)
-                  for block in page.get_text('dict').get('blocks', []):
-                      for line in block.get('lines', []):
-                          spans = line.get('spans', [])
-                          text = ''.join(str(span.get('text', '')) for span in spans).strip()
-                          bbox = line.get('bbox')
-                          if bbox and re.fullmatch(r'\d{1,3}', text):
-                              line_fonts = sorted({str(span.get('font', '')) for span in spans})
-                              for font in line_fonts:
-                                  fonts[font] += 1
-                              candidates.append((int(text), page_index + 1, tuple(round(float(v), 1) for v in bbox), line_fonts))
-              doc.close()
-              print('YEAR', year, 'NUMERIC_FONTS', fonts.most_common(20))
-              print('YEAR', year, 'CANDIDATES_COUNT', len(candidates))
-              print('YEAR', year, 'CANDIDATES_HEAD', candidates[:40])
-              print('YEAR', year, 'CANDIDATES_TAIL', candidates[-20:])
-          PY
+          python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
+      - name: Benchmark 2016 and 2017
+        run: |
+          rm -rf /tmp/enemlab-fuvest-1617-cache
+          python scripts/fuvest-batch-lab.py \
+            --years 2016,2017 \
+            --concurrency 2 \
+            --no-media \
+            --cache-dir /tmp/enemlab-fuvest-1617-cache \
+            --output /tmp/fuvest-1617.json
+          cat /tmp/fuvest-1617.json
