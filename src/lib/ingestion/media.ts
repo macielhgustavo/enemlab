@@ -36,6 +36,14 @@ export interface MediaManifest {
   warnings?: string[];
 }
 
+export interface ExpectedMediaBinding {
+  providerId: string;
+  sourceId: string;
+  editionId: string;
+  documentUrl: string;
+  documentSha256: string;
+}
+
 export interface MediaAssociationResult {
   extraction: ExtractedExamData;
   attachedAssets: string[];
@@ -106,16 +114,14 @@ function cloneExtraction(extraction: ExtractedExamData): ExtractedExamData {
 }
 
 /**
- * Attaches media candidates without silently claiming that a visual dependency
- * is solved. Only high-confidence `automatic` assets are attached. A preexisting
- * `questionsMissingMedia` flag is cleared only when the media extractor makes
- * the explicit `resolvesMissingMedia=true` assertion for that same question.
+ * Media is a separate extraction artifact and therefore needs the same trust
+ * boundary as text extraction. A manifest for another year, source or byte
+ * sequence is rejected before any asset can touch staged question data.
  */
-export function associateMediaWithExtraction(
-  extraction: ExtractedExamData,
+export function verifyMediaManifestBinding(
   manifest: MediaManifest,
-  minimumAutomaticConfidence = 0.98,
-): MediaAssociationResult {
+  expected: ExpectedMediaBinding,
+): void {
   if (manifest.protocolVersion !== "enemlab-media/v1") {
     throw new Error(`unsupported media protocol ${manifest.protocolVersion}`);
   }
@@ -128,6 +134,37 @@ export function associateMediaWithExtraction(
   if (!/^https:\/\//.test(manifest.document.url) || !/^[0-9a-f]{64}$/i.test(manifest.document.sha256)) {
     throw new Error("media manifest document binding is invalid");
   }
+  if (!/^[0-9a-f]{64}$/i.test(expected.documentSha256)) {
+    throw new Error("expected media documentSha256 is invalid");
+  }
+  if (
+    manifest.providerId !== expected.providerId ||
+    manifest.sourceId !== expected.sourceId ||
+    manifest.editionId !== expected.editionId
+  ) {
+    throw new Error("media manifest identity does not match ingestion job");
+  }
+  if (
+    manifest.document.url !== expected.documentUrl ||
+    manifest.document.sha256.toLowerCase() !== expected.documentSha256.toLowerCase()
+  ) {
+    throw new Error("media manifest document does not match ingestion SHA binding");
+  }
+}
+
+/**
+ * Attaches media candidates without silently claiming that a visual dependency
+ * is solved. Only high-confidence `automatic` assets are attached. A preexisting
+ * `questionsMissingMedia` flag is cleared only when the media extractor makes
+ * the explicit `resolvesMissingMedia=true` assertion for that same question.
+ */
+export function associateMediaWithExtraction(
+  extraction: ExtractedExamData,
+  manifest: MediaManifest,
+  expected: ExpectedMediaBinding,
+  minimumAutomaticConfidence = 0.98,
+): MediaAssociationResult {
+  verifyMediaManifestBinding(manifest, expected);
   if (!Number.isFinite(minimumAutomaticConfidence) || minimumAutomaticConfidence < 0 || minimumAutomaticConfidence > 1) {
     throw new Error("minimumAutomaticConfidence must be within 0..1");
   }
@@ -151,6 +188,11 @@ export function associateMediaWithExtraction(
       continue;
     }
     seenIds.add(asset.id);
+
+    if (asset.sourceDocumentUrl !== manifest.document.url) {
+      rejectedAssets.push({ id: asset.id, reason: "asset source document does not match media manifest" });
+      continue;
+    }
 
     if (
       asset.association !== "automatic" ||
