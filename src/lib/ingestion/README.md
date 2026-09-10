@@ -199,7 +199,7 @@ Local generated artifacts are ignored by Git:
 
 ## Full 21-edition benchmark — 2026-09-10
 
-A temporary GitHub Actions laboratory processed every FUVEST edition currently eligible for native extraction: **21 editions / 1,910 questions**. The benchmark ran once with a cold cache and immediately again with the same cache.
+A temporary GitHub Actions laboratory **processed** every FUVEST edition currently eligible for extraction: **21 editions / 1,910 questions**. Here, processed means the documents produced a staged extraction result; it does not mean every question is structurally or semantically publishable. Those remain separate gates.
 
 Aggregate cold-pass result:
 
@@ -241,7 +241,7 @@ npm run ingest:fuvest:batch
 npm run ingest:fuvest:batch -- --years 2005,2010,2018,2025 --concurrency 4
 ```
 
-The runner defaults to all currently eligible FUVEST editions, supports concurrency 1–8, writes optional JSON metrics and returns nonzero when an edition cannot be processed.
+The runner defaults to all currently eligible FUVEST editions, supports concurrency 1–8, writes optional JSON metrics and returns nonzero only when an edition cannot produce a staged extraction result. Structural, media and semantic readiness remain independently reported.
 
 ## Scale interpretation
 
