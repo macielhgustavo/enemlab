@@ -23,3 +23,33 @@ html:has(body.public-shell) {
     linear-gradient(to right, var(--technical-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--technical-line) 1px, transparent 1px);
 }
+
+/* Recupera os poucos usos em que a primeira portabilidade aproximou
+   `secondary` por `surface-raised`. */
+.landing-page .landing-panel-shadow aside > div.mb-1:nth-of-type(2),
+.landing-page div[class~="h-1.5"][class*="surface-3"],
+.landing-page div[class~="h-1"][class*="surface-3"] {
+  background: var(--secondary);
+}
+
+.landing-page div[class*="bg-[var(--surface-3)]/35"] {
+  background: color-mix(in oklab, var(--secondary) 35%, transparent);
+}
+
+/* Botões com as mesmas cores do componente Button do protótipo original. */
+.landing-page a[class*="backdrop-blur-sm"] {
+  background: color-mix(in oklab, var(--secondary) 60%, transparent);
+}
+
+.landing-page a[class*="backdrop-blur-sm"]:hover {
+  background: var(--secondary);
+}
+
+.landing-page a[class*="bg-brand"][class*="shadow-"] {
+  color: var(--primary-foreground);
+}
+
+.landing-page a[class*="bg-brand"][class*="shadow-"]:hover {
+  background: color-mix(in oklab, var(--primary) 95%, transparent);
+  filter: none;
+}
