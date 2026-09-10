@@ -78,7 +78,13 @@ export default function StudentAIHost() {
 
   const context = useMemo(() => {
     if (!question || !attempt || !hasUsableText(question)) return null;
-    return buildStudentSnapshot(db, question, selectedAnswer, attempt.providerId);
+    return buildStudentSnapshot(
+      db,
+      question,
+      selectedAnswer,
+      attempt.providerId,
+      attempt.id,
+    );
   }, [db, question, selectedAnswer, attempt]);
 
   const attemptId = attempt?.id || "";
