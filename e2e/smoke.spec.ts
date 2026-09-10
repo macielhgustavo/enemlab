@@ -125,7 +125,7 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
   const composer = page.getByRole("textbox", { name: "Mensagem para o tutor IA" });
   await composer.fill("Resolva completamente essa questão");
   await page.getByRole("button", { name: "Enviar pergunta" }).click();
-  await expect(page.getByText("Solução completa")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Solução completa", exact: true })).toBeVisible();
   await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(6);
   await expect(page.locator(".studentAIRevealedAnswer")).toContainText("B");
 
