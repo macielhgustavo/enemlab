@@ -40,13 +40,13 @@ export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
       // alternatives marked in the same PDF, so one URL is both source exam
       // and factual answer-key source.
       role: ["objective-exam", "answer-key"],
-      match: /\/documentos\/ps20\d{2}\/provas\/definitivo\/Geral\.pdf(?:$|[?#])/i,
+      match: /\/documentos\/ps20\d{2}\/provas\/definitivo\/Geral\.pdf\b/i,
       phase: "first",
       variant: "general",
     },
     {
       role: "answer-key-preliminary",
-      match: /\/documentos\/ps20\d{2}\/provas\/provisorio\/Geral\.pdf(?:$|[?#])/i,
+      match: /\/documentos\/ps20\d{2}\/provas\/provisorio\/Geral\.pdf\b/i,
       phase: "first",
       variant: "general",
     },
@@ -55,7 +55,7 @@ export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
       // definitive link also carries the marked answers inside the booklet.
       role: ["objective-exam", "answer-key"],
       match:
-        /\/concursos_institucionais\/ufpr\/ps20\d{2}\/provas1fase\/[^?#]*conhecimentos[^?#]*\.pdf(?:$|[?#])/i,
+        /\/concursos_institucionais\/ufpr\/ps20\d{2}\/provas1fase\/[^?#]*conhecimentos[^?#]*\.pdf\b/i,
       phase: "first",
       variant: "general",
     },
@@ -64,7 +64,7 @@ export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
       // Keep the path restriction strong enough to avoid second-phase files.
       role: ["objective-exam", "answer-key"],
       match:
-        /\/concursos_institucionais\/ufpr\/ps20\d{2}\/provas1fase\/[^?#]*\.pdf(?:$|[?#])/i,
+        /\/concursos_institucionais\/ufpr\/ps20\d{2}\/provas1fase\/[^?#]*\.pdf\b/i,
       phase: "first",
       variant: "general",
     },
