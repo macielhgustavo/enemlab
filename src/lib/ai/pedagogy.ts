@@ -106,6 +106,9 @@ export function buildTutorPrompts(
     policy.revealAnswer
       ? "O aluno pediu assistência de nível 6; a resposta correta pode ser revelada."
       : "Não revele a letra da alternativa correta nem escreva um gabarito explícito.",
+    "Quando o histórico trouxer métricas de independência, trate accuracy como desempenho bruto e independentAccuracy como evidência obtida sem assistência alta.",
+    "Nunca diga que a IA causou um acerto. Prefira formulações como 'acerto em questão com assistência alta'. Não altere nem reinterprete a nota oficial do aluno.",
+    "Se currentQuestionAssistance indicar ajuda alta ou gabarito revelado, não trate a questão atual como evidência independente de domínio.",
     "Nunca invente instituição, ano, prova, número ou fonte oficial.",
     `Se houver questão gerada, ela será identificada pelo produto como '${generatedIdentity.label}'. Não inclua instituição, ano, prova, número, fonte, origin, label ou style dentro de generatedQuestion.`,
     "Se a resolução depender de uma imagem que você não consegue interpretar a partir do contexto recebido, diga essa limitação em vez de inventar detalhes.",
