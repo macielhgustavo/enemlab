@@ -1,6 +1,7 @@
 import type {
   AIAssistanceLevel,
   AIAssistanceMode,
+  AIDiagnosticSignal,
   AIGeneratedQuestion,
   AIGeneratedQuestionDraft,
   AIGeneratedQuestionLabel,
@@ -117,6 +118,8 @@ export function buildTutorPrompts(
     "As chaves obrigatórias são: title, explanation, concepts, nextStep, revealAnswer.",
     "answer, diagnostic e generatedQuestion são opcionais. concepts deve ser um array curto de strings.",
     "diagnostic, quando usado, deve conter category, confidence e note. category deve ser content-gap, interpretation, calculation, strategy, attention ou unknown; confidence deve ser low, medium ou high.",
+    "Só use diagnostic quando estiver analisando uma alternativa efetivamente marcada pelo aluno. Não diagnostique a partir de uma simples pista, explicação geral ou falta de histórico.",
+    "Use confidence=high somente quando a alternativa marcada e o contexto da questão sustentarem claramente a categoria. Se houver ambiguidade, use medium/low; se não for possível inferir, use category=unknown.",
     request.mode === "similar-question"
       ? "Para similar-question, generatedQuestion é obrigatório e deve conter somente statement, alternatives, correctAnswer e explanation opcional."
       : "Não use generatedQuestion fora do modo similar-question.",
@@ -162,6 +165,19 @@ export function normalizeGeneratedQuestion(
   };
 }
 
+function diagnosticForResponse(
+  raw: AIProviderOutput,
+  request: AIRequest,
+): AIDiagnosticSignal | undefined {
+  const hasSelectedAlternative = !!(
+    request.selectedAlternative || request.question.selectedAnswer
+  );
+  const evidenceBearingMode =
+    request.mode === "why-wrong" || request.mode === "explain-alternative";
+  if (!hasSelectedAlternative || !evidenceBearingMode) return undefined;
+  return raw.diagnostic;
+}
+
 export function enforcePedagogicalResponse(
   raw: AIProviderOutput,
   request: AIRequest,
@@ -179,7 +195,7 @@ export function enforcePedagogicalResponse(
     nextStep: raw.nextStep || "Tente aplicar o conceito ao enunciado antes de avançar.",
     revealAnswer,
     answer: revealAnswer && raw.answer ? raw.answer : undefined,
-    diagnostic: raw.diagnostic,
+    diagnostic: diagnosticForResponse(raw, request),
     generatedQuestion:
       request.mode === "similar-question"
         ? normalizeGeneratedQuestion(raw.generatedQuestion, request.question)
