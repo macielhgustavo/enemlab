@@ -14,6 +14,15 @@ const assistanceModeSchema = z.enum([
   "chat",
 ]);
 
+const assistanceLevelSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+  z.literal(6),
+]);
+
 const alternativeSchema = z.object({
   letter: z.string().min(1).max(3),
   text: z.string().max(10_000),
@@ -43,6 +52,21 @@ const generatedOriginSchema = z.object({
   style: z.string().min(1).max(160),
 });
 
+const independenceSchema = z.object({
+  independentQuestions: z.number().int().nonnegative(),
+  independentAccuracy: z.number().min(0).max(100).nullable(),
+  highAssistanceQuestions: z.number().int().nonnegative(),
+  correctWithHighAssistance: z.number().int().nonnegative(),
+  correctWithHighAssistanceShare: z.number().min(0).max(100).nullable(),
+});
+
+const currentQuestionAssistanceSchema = z.object({
+  requests: z.number().int().positive(),
+  maxLevel: assistanceLevelSchema,
+  answerRevealed: z.boolean(),
+  highAssistance: z.boolean(),
+});
+
 const requestSchema = z.object({
   mode: assistanceModeSchema,
   question: z.object({
@@ -64,10 +88,14 @@ const requestSchema = z.object({
       completedAttempts: z.number().int().nonnegative(),
       recentQuestions: z.number().int().nonnegative(),
       recentAccuracy: z.number().min(0).max(100).nullable(),
+      recentIndependence: independenceSchema,
       topicQuestions: z.number().int().nonnegative(),
       topicAccuracy: z.number().min(0).max(100).nullable(),
+      topicIndependence: independenceSchema,
       subjectQuestions: z.number().int().nonnegative(),
       subjectAccuracy: z.number().min(0).max(100).nullable(),
+      subjectIndependence: independenceSchema,
+      currentQuestionAssistance: currentQuestionAssistanceSchema.nullable(),
       highConfidenceErrors: z.number().int().nonnegative(),
       weakTopics: z
         .array(
@@ -75,6 +103,9 @@ const requestSchema = z.object({
             topic: z.string().max(180),
             accuracy: z.number().min(0).max(100),
             questions: z.number().int().nonnegative(),
+            independentAccuracy: z.number().min(0).max(100).nullable(),
+            highAssistanceQuestions: z.number().int().nonnegative(),
+            correctWithHighAssistance: z.number().int().nonnegative(),
           }),
         )
         .max(5),
@@ -82,14 +113,7 @@ const requestSchema = z.object({
     .optional(),
   message: z.string().max(4_000).optional(),
   selectedAlternative: z.string().max(3).nullable().optional(),
-  requestedLevel: z.union([
-    z.literal(1),
-    z.literal(2),
-    z.literal(3),
-    z.literal(4),
-    z.literal(5),
-    z.literal(6),
-  ]).optional(),
+  requestedLevel: assistanceLevelSchema.optional(),
   conversation: z
     .array(
       z.object({
