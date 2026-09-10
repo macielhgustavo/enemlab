@@ -16,6 +16,13 @@ OCR regional local. Esse fallback usa a geometria oficial para fixar a identidad
 da questão e só aplica uma substituição quando recupera enunciado + A-E completos.
 Conteúdo OCR continua semanticamente bloqueado até revisão e nunca altera gabarito.
 
+Exceções com alternativas predominantemente gráficas podem, depois disso, ser
+fechadas como cinco crops A-E quando a geometria dos marcadores é inequívoca.
+Esses assets fazem parte da recuperação estrutural mesmo com `--no-media`; a flag
+desliga a associação ampla de mídia, não os crops necessários para representar as
+próprias alternativas. Eles continuam em `questionsMissingMedia` e sob gate
+semântico até revisão.
+
 A concorrência do pipeline e a concorrência de OCR são orçamentos separados.
 Downloads/parsing podem continuar paralelos enquanto recoveries pesados de
 Tesseract/PyMuPDF são limitados independentemente para evitar oversubscription.
@@ -46,6 +53,10 @@ QUESTIONS = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-question
 RECOVERY = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-ocr.py")))
 FONTMAP = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-font-map.py")))
 REGIONAL = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-region-ocr.py")))
+VISUAL = runpy.run_path(
+    str(Path(__file__).with_name("recover-fuvest-visual-alternatives.py")),
+    run_name="fuvest_batch_visual_alternatives",
+)
 MEDIA = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-media.py")))
 
 
@@ -78,6 +89,7 @@ def load_valid_extraction_cache(
     exam_sha: str,
     key_url: str,
     key_sha: str,
+    media_dir: Path | None = None,
 ) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -95,9 +107,39 @@ def load_valid_extraction_cache(
         }
         if documents != {exam_url: exam_sha, key_url: key_sha}:
             return None
+        if not visual_assets_are_valid(envelope, media_dir):
+            return None
         return envelope
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return None
+
+
+def visual_assets_are_valid(
+    envelope: dict[str, Any], media_dir: Path | None
+) -> bool:
+    report = envelope.get("visualAlternativeRecovery", {})
+    if not bool(report.get("applied")):
+        return True
+    if media_dir is None:
+        return False
+    applied = {int(number) for number in report.get("appliedQuestions", [])}
+    assets = report.get("assets", [])
+    expected = {(number, letter) for number in applied for letter in "ABCDE"}
+    actual = {
+        (int(asset.get("questionNumber", -1)), str(asset.get("alternativeId", "")))
+        for asset in assets
+        if isinstance(asset, dict)
+    }
+    if not applied or actual != expected or len(assets) != len(expected):
+        return False
+    year = str(envelope.get("identity", {}).get("year", ""))
+    for asset in assets:
+        path = media_dir / year / "visual-alternatives" / Path(str(asset["path"])).name
+        if not path.is_file():
+            return False
+        if hashlib.sha256(path.read_bytes()).hexdigest() != str(asset.get("sha256", "")):
+            return False
+    return True
 
 
 def pages_have_suspicious_glyphs(pages: list[str]) -> bool:
@@ -153,6 +195,19 @@ def empty_regional_report(envelope: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def empty_visual_report() -> dict[str, Any]:
+    return {
+        "workerVersion": VISUAL["WORKER_VERSION"],
+        "attempted": False,
+        "applied": False,
+        "targetedQuestions": [],
+        "appliedQuestions": [],
+        "unresolvedQuestions": [],
+        "assets": [],
+        "regions": [],
+    }
+
+
 def regional_result_is_cacheable(report: dict[str, Any]) -> bool:
     reason = str(report.get("rejectedReason", ""))
     dependency_failures = {
@@ -163,6 +218,15 @@ def regional_result_is_cacheable(report: dict[str, Any]) -> bool:
         "PyMuPDF is required for regional OCR geometry",
     }
     return reason not in dependency_failures
+
+
+def visual_result_is_cacheable(report: dict[str, Any]) -> bool:
+    reason = str(report.get("rejectedReason", ""))
+    return reason not in {
+        "tesseract-not-installed",
+        "tesseract-language-probe-failed",
+        "tesseract-portuguese-language-missing",
+    } and not reason.startswith("visual-dependency-unavailable:")
 
 
 def run_boundary_recovery(
@@ -196,6 +260,7 @@ def extraction_for_year(
     entry: dict[str, Any],
     manifest: dict[str, dict[str, Any]],
     cache_dir: Path,
+    media_dir: Path,
     ocr_limiter: BoundedSemaphore,
 ) -> tuple[dict[str, Any], bytes, bool, float]:
     started = time.perf_counter()
@@ -209,7 +274,8 @@ def extraction_for_year(
         f"{QUESTIONS['EXTRACTOR_VERSION']}|"
         f"{FONTMAP['WORKER_VERSION']}|"
         f"{RECOVERY['WORKER_VERSION']}|"
-        f"{REGIONAL['WORKER_VERSION']}"
+        f"{REGIONAL['WORKER_VERSION']}|"
+        f"{VISUAL['WORKER_VERSION']}"
     )
     cache_key = content_cache_key("fuvest-extraction", version, str(year), exam_sha, key_sha)
     cache_path = cache_dir / "extraction" / str(year) / f"{cache_key}.json"
@@ -220,6 +286,7 @@ def extraction_for_year(
         exam_sha,
         entry["answerKeyUrl"],
         key_sha,
+        media_dir,
     )
     if cached is not None:
         return cached, exam_bytes, True, time.perf_counter() - started
@@ -275,7 +342,22 @@ def extraction_for_year(
             )
     envelope["regionalContentRecovery"] = regional_report
 
-    if regional_result_is_cacheable(regional_report):
+    visual_report = empty_visual_report()
+    if REGIONAL["should_attempt_region_recovery"](envelope, entry):
+        with ocr_limiter:
+            envelope, visual_report = VISUAL["recover_visual_alternatives"](
+                envelope,
+                entry,
+                exam_bytes,
+                key_bytes,
+                media_dir / str(year) / "visual-alternatives",
+                f"/ingestion-media/fuvest/{year}/visual-alternatives",
+            )
+    envelope["visualAlternativeRecovery"] = visual_report
+
+    if regional_result_is_cacheable(regional_report) and visual_result_is_cacheable(
+        visual_report
+    ):
         write_json(cache_path, envelope)
     return envelope, exam_bytes, False, time.perf_counter() - started
 
@@ -331,11 +413,12 @@ def process_year(
 ) -> dict[str, Any]:
     QUESTIONS["validate_manifest_entry"](entry, year)
     envelope, exam_bytes, extraction_hit, elapsed = extraction_for_year(
-        year, entry, manifest, cache_dir, ocr_limiter
+        year, entry, manifest, cache_dir, media_dir, ocr_limiter
     )
     extraction_metrics = QUESTIONS["metrics"](envelope)
     font_map = envelope.get("fontMapRecovery", {})
     regional = envelope.get("regionalContentRecovery", {})
+    visual = envelope.get("visualAlternativeRecovery", {})
     result: dict[str, Any] = {
         "year": year,
         "questions": extraction_metrics["questions"],
@@ -353,6 +436,12 @@ def process_year(
         "regionalRecoveryTargetedQuestions": len(regional.get("targetedQuestions", [])),
         "regionalRecoveryAppliedQuestions": len(regional.get("appliedQuestions", [])),
         "regionalRecoveryUnresolvedQuestions": len(regional.get("unresolvedQuestions", [])),
+        "visualRecoveryAttempted": bool(visual.get("attempted")),
+        "visualRecoveryApplied": bool(visual.get("applied")),
+        "visualRecoveryTargetedQuestions": len(visual.get("targetedQuestions", [])),
+        "visualRecoveryAppliedQuestions": len(visual.get("appliedQuestions", [])),
+        "visualRecoveryUnresolvedQuestions": len(visual.get("unresolvedQuestions", [])),
+        "visualRecoveryAssets": len(visual.get("assets", [])),
         "extractionCacheHit": extraction_hit,
         "elapsedSeconds": round(elapsed, 3),
     }
@@ -408,6 +497,24 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "regionalRecoveryUnresolvedQuestions": sum(
             int(item.get("regionalRecoveryUnresolvedQuestions", 0)) for item in ordered
+        ),
+        "visualRecoveryAttemptedEditions": sum(
+            bool(item.get("visualRecoveryAttempted")) for item in ordered
+        ),
+        "visualRecoveryAppliedEditions": sum(
+            bool(item.get("visualRecoveryApplied")) for item in ordered
+        ),
+        "visualRecoveryTargetedQuestions": sum(
+            int(item.get("visualRecoveryTargetedQuestions", 0)) for item in ordered
+        ),
+        "visualRecoveryAppliedQuestions": sum(
+            int(item.get("visualRecoveryAppliedQuestions", 0)) for item in ordered
+        ),
+        "visualRecoveryUnresolvedQuestions": sum(
+            int(item.get("visualRecoveryUnresolvedQuestions", 0)) for item in ordered
+        ),
+        "visualRecoveryAssets": sum(
+            int(item.get("visualRecoveryAssets", 0)) for item in ordered
         ),
         "extractionCacheHits": sum(bool(item["extractionCacheHit"]) for item in ordered),
         "mediaAssets": sum(int(item.get("mediaAssets", 0)) for item in ordered),

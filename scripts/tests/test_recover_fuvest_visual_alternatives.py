@@ -29,6 +29,18 @@ class FuvestVisualAlternativeRecoveryTest(unittest.TestCase):
         labels = MODULE["parse_tsv_labels"](tsv)
         self.assertEqual([item["letter"] for item in labels], ["A"])
 
+    def test_adaptive_tsv_filter_accepts_only_explicit_lower_confidence_labels(self):
+        header = "\t".join(
+            ["level", "page_num", "block_num", "par_num", "line_num", "word_num", "left", "top", "width", "height", "conf", "text"]
+        ) + "\n"
+        tsv = header
+        tsv += "5\t1\t1\t1\t1\t1\t20\t100\t24\t26\t60.0\t(A)\n"
+        tsv += "5\t1\t1\t1\t1\t2\t20\t200\t24\t26\t99.0\tB\n"
+        labels = MODULE["parse_tsv_labels"](
+            tsv, minimum_confidence=55.0, explicit_only=True
+        )
+        self.assertEqual([item["letter"] for item in labels], ["A"])
+
     def test_selects_unique_vertical_A_to_E_layout(self):
         labels = [
             label("A", 40, 100),
@@ -101,6 +113,45 @@ class FuvestVisualAlternativeRecoveryTest(unittest.TestCase):
             label("C", 570, 400),
         ]
         self.assertIsNone(MODULE["select_unique_layout"](wrong))
+
+    def test_infers_one_row_from_two_adjacent_explicit_bottom_labels(self):
+        labels = [
+            {**label("B", 200, 1000), "explicit": True},
+            {**label("C", 330, 1001), "explicit": True},
+            {**label("A", 50, 100), "explicit": False},
+        ]
+        layout = MODULE["infer_one_row_layout"](labels, 800, 1125)
+        self.assertIsNotNone(layout)
+        self.assertEqual(layout["layout"], "one-row")
+        self.assertEqual(layout["inferredLabels"], ["A", "D", "E"])
+        boxes = MODULE["alternative_boxes"](800, 1125, layout)
+        self.assertLess(boxes["A"][1], 950)
+        self.assertEqual(set(boxes), set("ABCDE"))
+
+    def test_does_not_infer_row_from_bare_or_non_bottom_labels(self):
+        bare = [
+            {**label("B", 200, 1000), "explicit": False},
+            {**label("C", 330, 1000), "explicit": False},
+        ]
+        self.assertIsNone(MODULE["infer_one_row_layout"](bare, 800, 1125))
+        statement = [
+            {**label("B", 200, 200), "explicit": True},
+            {**label("C", 330, 200), "explicit": True},
+        ]
+        self.assertIsNone(MODULE["infer_one_row_layout"](statement, 800, 1125))
+
+    def test_consensus_rejects_conflicting_layouts(self):
+        vertical = {
+            "layout": "vertical",
+            "labels": {letter: label(letter, 40, index * 180 + 100) for index, letter in enumerate("ABCDE")},
+            "mode": 11,
+        }
+        row = {
+            "layout": "one-row",
+            "labels": {letter: label(letter, index * 130 + 50, 400) for index, letter in enumerate("ABCDE")},
+            "mode": 6,
+        }
+        self.assertIsNone(MODULE["_select_consensus_layout"]([vertical, row]))
 
 
 if __name__ == "__main__":

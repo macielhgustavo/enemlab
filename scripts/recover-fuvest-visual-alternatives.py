@@ -44,10 +44,12 @@ REGIONAL = runpy.run_path(
 BASE = REGIONAL["BASE"]
 
 WORKER_NAME = "fuvest-visual-alternatives"
-WORKER_VERSION = "fuvest-visual-alternatives@0.1.0"
+WORKER_VERSION = "fuvest-visual-alternatives@0.2.0"
 LETTERS = tuple("ABCDE")
 RENDER_SCALE = 3.0
+OCR_MODES = (11, 6, 4, 3)
 MIN_LABEL_CONFIDENCE = 85.0
+ADAPTIVE_MIN_LABEL_CONFIDENCE = 55.0
 MIN_LABEL_HEIGHT = 22
 MAX_LABEL_WIDTH = 50
 LABEL_RE = re.compile(r"^[\(\[\{]?([A-Ea-e])[\)\]\}\.]?$")
@@ -72,7 +74,12 @@ def _label_y(label: dict[str, Any]) -> float:
     return _label_center(label)[1]
 
 
-def parse_tsv_labels(tsv: str) -> list[dict[str, Any]]:
+def parse_tsv_labels(
+    tsv: str,
+    *,
+    minimum_confidence: float = MIN_LABEL_CONFIDENCE,
+    explicit_only: bool = False,
+) -> list[dict[str, Any]]:
     labels: list[dict[str, Any]] = []
     for row in csv.DictReader(io.StringIO(tsv), delimiter="\t"):
         token = str(row.get("text") or "").strip()
@@ -87,7 +94,8 @@ def parse_tsv_labels(tsv: str) -> list[dict[str, Any]]:
             height = int(row.get("height") or 0)
         except (TypeError, ValueError):
             continue
-        if confidence < MIN_LABEL_CONFIDENCE:
+        explicit = len(token) > 1
+        if confidence < minimum_confidence or (explicit_only and not explicit):
             continue
         if height < MIN_LABEL_HEIGHT or width <= 0 or width > MAX_LABEL_WIDTH:
             continue
@@ -99,6 +107,7 @@ def parse_tsv_labels(tsv: str) -> list[dict[str, Any]]:
                 "w": width,
                 "h": height,
                 "confidence": confidence,
+                "explicit": explicit,
             }
         )
     return labels
@@ -172,6 +181,195 @@ def select_unique_layout(labels: list[dict[str, Any]]) -> dict[str, Any] | None:
     return valid[0] if len(valid) == 1 else None
 
 
+def infer_one_row_layout(
+    labels: list[dict[str, Any]],
+    image_width: int,
+    image_height: int,
+) -> dict[str, Any] | None:
+    """Infer a five-cell row only from a consistent run of explicit labels.
+
+    FUVEST occasionally prints graphical one-row choices whose arrow/diagram is
+    recognized but whose tiny option letter is not. Two adjacent, punctuated
+    labels provide enough scale and origin to prove the row without interpreting
+    any option content. Bare A-E glyphs are deliberately excluded because they
+    are common in statement prose and diagrams.
+    """
+
+    explicit = [
+        label
+        for label in labels
+        if bool(label.get("explicit"))
+        and float(label.get("confidence", -1)) >= MIN_LABEL_CONFIDENCE
+        and _label_y(label) >= image_height * 0.65
+    ]
+    by_letter = {
+        letter: [label for label in explicit if label.get("letter") == letter]
+        for letter in LETTERS
+    }
+    observed_letters = [letter for letter in LETTERS if by_letter[letter]]
+    if len(observed_letters) < 2:
+        return None
+    if not any(
+        LETTERS.index(right) - LETTERS.index(left) == 1
+        for left, right in zip(observed_letters, observed_letters[1:])
+    ):
+        return None
+
+    valid: list[dict[str, Any]] = []
+    for choices in itertools.product(*(by_letter[letter] for letter in observed_letters)):
+        observed = dict(zip(observed_letters, choices))
+        indices = [LETTERS.index(letter) for letter in observed_letters]
+        centers_x = [_label_x(observed[letter]) for letter in observed_letters]
+        centers_y = [_label_y(observed[letter]) for letter in observed_letters]
+        if max(centers_y) - min(centers_y) > 40.0:
+            continue
+        span = indices[-1] - indices[0]
+        if span <= 0:
+            continue
+        step = (centers_x[-1] - centers_x[0]) / span
+        if not 45.0 <= step <= 300.0:
+            continue
+        origin = centers_x[0] - indices[0] * step
+        if any(
+            abs(_label_x(observed[letter]) - (origin + LETTERS.index(letter) * step))
+            > 25.0
+            for letter in observed_letters
+        ):
+            continue
+        expected = [origin + index * step for index in range(len(LETTERS))]
+        if expected[0] - step * 0.45 < 0 or expected[-1] + step * 0.45 > image_width:
+            continue
+
+        median_width = max(1, int(statistics.median(label["w"] for label in choices)))
+        median_height = max(1, int(statistics.median(label["h"] for label in choices)))
+        common_y = int(statistics.median(label["y"] for label in choices))
+        selection: dict[str, dict[str, Any]] = {}
+        inferred_letters: list[str] = []
+        for index, letter in enumerate(LETTERS):
+            if letter in observed:
+                selection[letter] = observed[letter]
+                continue
+            inferred_letters.append(letter)
+            selection[letter] = {
+                "letter": letter,
+                "x": int(round(expected[index] - median_width / 2.0)),
+                "y": common_y,
+                "w": median_width,
+                "h": median_height,
+                "confidence": 0.0,
+                "explicit": True,
+                "inferred": True,
+            }
+        if classify_layout(selection) != "one-row":
+            continue
+        valid.append(
+            {
+                "layout": "one-row",
+                "labels": selection,
+                "inferredLabels": inferred_letters,
+            }
+        )
+        if len(valid) > 1:
+            return None
+    return valid[0] if len(valid) == 1 else None
+
+
+def _layouts_are_compatible(first: dict[str, Any], second: dict[str, Any]) -> bool:
+    if first.get("layout") != second.get("layout"):
+        return False
+    return all(
+        abs(_label_x(first["labels"][letter]) - _label_x(second["labels"][letter])) <= 35.0
+        and abs(_label_y(first["labels"][letter]) - _label_y(second["labels"][letter])) <= 35.0
+        for letter in LETTERS
+    )
+
+
+def _layout_confidence(layout: dict[str, Any]) -> float:
+    return sum(float(layout["labels"][letter].get("confidence", 0)) for letter in LETTERS)
+
+
+def _select_consensus_layout(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not candidates:
+        return None
+    reference = candidates[0]
+    if any(not _layouts_are_compatible(reference, candidate) for candidate in candidates[1:]):
+        return None
+    return max(candidates, key=lambda candidate: (_layout_confidence(candidate), -int(candidate["mode"])))
+
+
+def detect_visual_layout(
+    executable: str,
+    image_path: Path,
+    language: str,
+    image_width: int,
+    image_height: int,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    direct: list[dict[str, Any]] = []
+    inferred: list[dict[str, Any]] = []
+    observations: list[dict[str, Any]] = []
+
+    for mode in OCR_MODES:
+        tsv = _run_tsv(executable, image_path, language, mode)
+        strict_labels = parse_tsv_labels(tsv)
+        adaptive_labels = parse_tsv_labels(
+            tsv,
+            minimum_confidence=ADAPTIVE_MIN_LABEL_CONFIDENCE,
+            explicit_only=True,
+        )
+        layout = select_unique_layout(strict_labels)
+        detection_pass = "strict"
+        if layout is None:
+            layout = select_unique_layout(adaptive_labels)
+            detection_pass = "explicit-adaptive"
+        if layout is not None:
+            direct.append({**layout, "mode": mode, "detectionPass": detection_pass})
+        else:
+            inferred_layout = infer_one_row_layout(
+                adaptive_labels, image_width, image_height
+            )
+            if inferred_layout is not None:
+                inferred.append(
+                    {
+                        **inferred_layout,
+                        "mode": mode,
+                        "detectionPass": "inferred-one-row",
+                    }
+                )
+        observed = adaptive_labels if detection_pass == "explicit-adaptive" else strict_labels
+        observations.append(
+            {
+                "mode": mode,
+                "markerCount": len(observed),
+                "detectedLetters": sorted({str(label["letter"]) for label in observed}),
+                "directLayout": layout.get("layout") if layout else None,
+            }
+        )
+
+    pool = direct if direct else inferred
+    selected = _select_consensus_layout(pool)
+    if selected is None:
+        detected = sorted(
+            {
+                letter
+                for observation in observations
+                for letter in observation["detectedLetters"]
+            }
+        )
+        reason = "ambiguous-layout" if pool else (
+            "incomplete-marker-set" if detected else "no-option-markers"
+        )
+    else:
+        reason = None
+    return selected, {
+        "observations": observations,
+        "bestScore": [
+            len(pool),
+            round(_layout_confidence(selected), 3) if selected else 0.0,
+        ],
+        "structuralFailureReason": reason,
+    }
+
+
 def _median_positive_gap(values: list[float], fallback: float) -> float:
     positive = [value for value in values if value > 0]
     return float(statistics.median(positive)) if positive else fallback
@@ -229,7 +427,9 @@ def alternative_boxes(
         boundaries = [0]
         boundaries.extend(int((xs[index] + xs[index + 1]) / 2.0) for index in range(4))
         boundaries.append(image_width)
-        top = max(0, int(min(float(labels[letter]["y"]) for letter in LETTERS)) - margin)
+        label_top = min(float(labels[letter]["y"]) for letter in LETTERS)
+        label_height = statistics.median(float(labels[letter]["h"]) for letter in LETTERS)
+        top = max(0, int(label_top - max(90.0, label_height * 4.0)))
         for index, letter in enumerate(LETTERS):
             result[letter] = (boundaries[index], top, boundaries[index + 1], image_height)
     else:
@@ -251,9 +451,18 @@ def _render_primary(document: Any, region: dict[str, Any], path: Path) -> dict[s
     return primary
 
 
-def _run_tsv(executable: str, image_path: Path, language: str) -> str:
+def _run_tsv(executable: str, image_path: Path, language: str, mode: int) -> str:
     return subprocess.run(
-        [executable, str(image_path), "stdout", "-l", language, "--psm", "11", "tsv"],
+        [
+            executable,
+            str(image_path),
+            "stdout",
+            "-l",
+            language,
+            "--psm",
+            str(mode),
+            "tsv",
+        ],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
@@ -261,14 +470,18 @@ def _run_tsv(executable: str, image_path: Path, language: str) -> str:
     ).stdout
 
 
-def _pdf_bbox(primary: dict[str, Any], box: tuple[int, int, int, int]) -> list[float]:
+def _pdf_bbox(
+    primary: dict[str, Any],
+    box: tuple[int, int, int, int],
+    render_scale: float = RENDER_SCALE,
+) -> list[float]:
     px0, py0, px1, py1 = box
     bx0, by0, _, _ = [float(value) for value in primary["bbox"]]
     return [
-        round(bx0 + px0 / RENDER_SCALE, 3),
-        round(by0 + py0 / RENDER_SCALE, 3),
-        round(bx0 + px1 / RENDER_SCALE, 3),
-        round(by0 + py1 / RENDER_SCALE, 3),
+        round(bx0 + px0 / render_scale, 3),
+        round(by0 + py0 / render_scale, 3),
+        round(bx0 + px1 / render_scale, 3),
+        round(by0 + py1 / render_scale, 3),
     ]
 
 
@@ -291,6 +504,7 @@ def recover_visual_alternatives(
         "appliedQuestions": [],
         "unresolvedQuestions": targets,
         "assets": [],
+        "regions": [],
     }
     if not targets or REGIONAL["layout_profile"](int(entry["year"])) is None:
         return envelope, report
@@ -319,6 +533,7 @@ def recover_visual_alternatives(
     output_dir.mkdir(parents=True, exist_ok=True)
     recovered: dict[int, list[dict[str, str]]] = {}
     assets: list[dict[str, Any]] = []
+    region_reports: list[dict[str, Any]] = []
     document = pymupdf.open(stream=exam_bytes, filetype="pdf")
     report["attempted"] = True
 
@@ -333,12 +548,30 @@ def recover_visual_alternatives(
 
                 full_image_path = temporary / f"q{number:03d}.png"
                 primary = _render_primary(document, region, full_image_path)
-                labels = parse_tsv_labels(_run_tsv(executable, full_image_path, language))
-                layout = select_unique_layout(labels)
+                image = Image.open(full_image_path).convert("RGB")
+                layout, detection = detect_visual_layout(
+                    executable,
+                    full_image_path,
+                    language,
+                    image.width,
+                    image.height,
+                )
+                region_report = {
+                    "questionNumber": number,
+                    "page": int(primary["page"]),
+                    "column": primary.get("column"),
+                    "bbox": primary["bbox"],
+                    "cropDimensions": {
+                        "renderScale": RENDER_SCALE,
+                        "width": image.width,
+                        "height": image.height,
+                    },
+                    **detection,
+                }
                 if layout is None:
+                    region_reports.append(region_report)
                     continue
 
-                image = Image.open(full_image_path).convert("RGB")
                 boxes = alternative_boxes(image.width, image.height, layout)
                 question_alternatives: list[dict[str, str]] = []
                 question_assets: list[dict[str, Any]] = []
@@ -355,7 +588,7 @@ def recover_visual_alternatives(
                     crop.save(path, format="PNG", optimize=True)
                     png = path.read_bytes()
                     public_path = f"{public_prefix.rstrip('/')}/{filename}"
-                    pdf_bbox = _pdf_bbox(primary, box)
+                    pdf_bbox = _pdf_bbox(primary, box, RENDER_SCALE)
                     question_alternatives.append({"id": letter, "file": public_path})
                     question_assets.append(
                         {
@@ -368,6 +601,9 @@ def recover_visual_alternatives(
                             "page": int(primary["page"]),
                             "bbox": pdf_bbox,
                             "layout": layout["layout"],
+                            "detectionMode": int(layout["mode"]),
+                            "detectionPass": str(layout["detectionPass"]),
+                            "inferredLabels": list(layout.get("inferredLabels", [])),
                         }
                     )
                 if not valid:
@@ -375,14 +611,28 @@ def recover_visual_alternatives(
                         generated = output_dir / Path(str(asset["path"])).name
                         if generated.exists():
                             generated.unlink()
+                    region_report["structuralFailureReason"] = "blank-alternative-crop"
+                    region_reports.append(region_report)
                     continue
                 recovered[number] = question_alternatives
                 assets.extend(question_assets)
+                region_report.update(
+                    {
+                        "structurallyComplete": True,
+                        "layout": layout["layout"],
+                        "selectedMode": int(layout["mode"]),
+                        "detectionPass": str(layout["detectionPass"]),
+                        "inferredLabels": list(layout.get("inferredLabels", [])),
+                        "structuralFailureReason": None,
+                    }
+                )
+                region_reports.append(region_report)
     finally:
         document.close()
 
     if not recovered:
         report["assets"] = []
+        report["regions"] = region_reports
         return envelope, report
 
     value = copy.deepcopy(envelope)
@@ -424,6 +674,7 @@ def recover_visual_alternatives(
             "appliedQuestions": sorted(applied),
             "unresolvedQuestions": [number for number in targets if number not in applied],
             "assets": assets,
+            "regions": region_reports,
             "answerKeyPreserved": True,
             "semanticVerificationRequired": True,
             "mediaVerificationRequired": True,

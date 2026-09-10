@@ -11,7 +11,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,104 +22,31 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Probe adaptive visual-label variants
+      - name: Benchmark integrated visual recovery
         run: |
-          python -m unittest scripts.tests.test_recover_fuvest_visual_alternatives
+          rm -rf /tmp/enemlab-exception-probe
+          python -m unittest discover -s scripts/tests
+          python scripts/fuvest-batch-lab.py \
+            --years 2016,2017,2021 \
+            --concurrency 3 \
+            --ocr-concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-exception-probe/cache \
+            --media-dir /tmp/enemlab-exception-probe/media \
+            --output /tmp/enemlab-exception-probe/summary.json
           python - <<'PY'
-          import csv
-          import io
           import json
-          import re
-          import runpy
-          import subprocess
-          import tempfile
           from pathlib import Path
 
-          import pymupdf
-          from PIL import Image, ImageOps
-
-          regional = runpy.run_path('scripts/recover-fuvest-region-ocr.py')
-          base = regional['BASE']
-          manifest = base['load_manifest']()
-          targets = {2016: [16], 2017: [57, 58], 2021: [2]}
-          token_re = re.compile(r'^[\(\[\{]?[A-Ea-e](?:[\)\]\}\.\:,;|IJj1])?$')
-
-          for year, numbers in targets.items():
-              entry, pdf_bytes, _, _ = base['load_year_documents'](year, manifest)
-              regions = regional['discover_question_regions'](
-                  pdf_bytes, int(entry['total']), year
-              )
-              by_number = {int(item['number']): item for item in regions}
-              document = pymupdf.open(stream=pdf_bytes, filetype='pdf')
-              try:
-                  with tempfile.TemporaryDirectory() as directory:
-                      root = Path(directory)
-                      for number in numbers:
-                          region = by_number[number]
-                          primary = (region.get('segments') or [region])[0]
-                          for scale in (3.0, 4.0):
-                              source = root / f'q{number:03d}-s{scale:g}.png'
-                              regional['_render_segment'](
-                                  document, primary, source, scale=scale
-                              )
-                              original = Image.open(source).convert('RGB')
-                              gray = ImageOps.autocontrast(original.convert('L'))
-                              variants = {
-                                  'original': original,
-                                  'grayscale': gray,
-                                  'threshold-180': gray.point(
-                                      lambda value: 255 if value >= 180 else 0
-                                  ),
-                              }
-                              for variant_name, image in variants.items():
-                                  path = root / (
-                                      f'q{number:03d}-s{scale:g}-{variant_name}.png'
-                                  )
-                                  image.save(path)
-                                  for mode in (11, 6, 4, 3):
-                                      tsv = subprocess.run(
-                                          [
-                                              'tesseract', str(path), 'stdout',
-                                              '-l', 'por+eng', '--psm', str(mode), 'tsv',
-                                          ],
-                                          check=True,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.DEVNULL,
-                                          text=True,
-                                      ).stdout
-                                      labels = []
-                                      for row in csv.DictReader(
-                                          io.StringIO(tsv), delimiter='\t'
-                                      ):
-                                          token = str(row.get('text') or '').strip()
-                                          if not token_re.fullmatch(token):
-                                              continue
-                                          match = re.search(r'[A-Ea-e]', token)
-                                          labels.append({
-                                              'letter': match.group(0).upper(),
-                                              'token': token,
-                                              'confidence': round(
-                                                  float(row.get('conf') or -1), 3
-                                              ),
-                                              'x': int(row.get('left') or 0),
-                                              'y': int(row.get('top') or 0),
-                                              'w': int(row.get('width') or 0),
-                                              'h': int(row.get('height') or 0),
-                                          })
-                                      distinct = sorted(
-                                          {item['letter'] for item in labels}
-                                      )
-                                      if len(distinct) >= 4:
-                                          print(json.dumps({
-                                              'year': year,
-                                              'questionNumber': number,
-                                              'scale': scale,
-                                              'variant': variant_name,
-                                              'mode': mode,
-                                              'imageSize': list(image.size),
-                                              'distinctLetters': distinct,
-                                              'labels': labels,
-                                          }, ensure_ascii=False))
-              finally:
-                  document.close()
+          root = Path('/tmp/enemlab-exception-probe')
+          print(json.dumps(json.loads((root / 'summary.json').read_text()), ensure_ascii=False))
+          for path in sorted((root / 'cache' / 'extraction').glob('*/*.json')):
+              envelope = json.loads(path.read_text())
+              report = envelope.get('visualAlternativeRecovery', {})
+              print(json.dumps({
+                  'year': envelope['identity']['year'],
+                  'visualApplied': report.get('appliedQuestions', []),
+                  'visualUnresolved': report.get('unresolvedQuestions', []),
+                  'regions': report.get('regions', []),
+              }, ensure_ascii=False))
           PY

@@ -13,6 +13,8 @@ content_cache_key = MODULE["content_cache_key"]
 load_valid_extraction_cache = MODULE["load_valid_extraction_cache"]
 parse_years = MODULE["parse_years"]
 regional_result_is_cacheable = MODULE["regional_result_is_cacheable"]
+visual_assets_are_valid = MODULE["visual_assets_are_valid"]
+visual_result_is_cacheable = MODULE["visual_result_is_cacheable"]
 summarize = MODULE["summarize"]
 validate_concurrency = MODULE["validate_concurrency"]
 
@@ -75,6 +77,37 @@ class FuvestBatchLabTest(unittest.TestCase):
             regional_result_is_cacheable({"rejectedReason": "no-structural-improvement"})
         )
 
+    def test_missing_visual_dependency_is_not_checkpointed(self):
+        self.assertFalse(
+            visual_result_is_cacheable({"rejectedReason": "tesseract-not-installed"})
+        )
+        self.assertFalse(
+            visual_result_is_cacheable(
+                {"rejectedReason": "visual-dependency-unavailable:PIL"}
+            )
+        )
+        self.assertTrue(visual_result_is_cacheable({"attempted": True, "applied": True}))
+
+    def test_visual_cache_requires_all_sha_bound_assets(self):
+        envelope = {
+            "identity": {"year": 2025},
+            "visualAlternativeRecovery": {
+                "applied": True,
+                "appliedQuestions": [1],
+                "assets": [
+                    {
+                        "questionNumber": 1,
+                        "alternativeId": letter,
+                        "path": f"/media/q001-alt-{letter}.png",
+                        "sha256": "missing",
+                    }
+                    for letter in "ABCDE"
+                ],
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(visual_assets_are_valid(envelope, Path(directory)))
+
     def test_pipeline_and_ocr_concurrency_use_same_bounds_but_are_independent(self):
         self.assertEqual(validate_concurrency(4, "concurrency"), 4)
         self.assertEqual(validate_concurrency(1, "ocr-concurrency"), 1)
@@ -115,6 +148,12 @@ class FuvestBatchLabTest(unittest.TestCase):
                     "regionalRecoveryTargetedQuestions": 10,
                     "regionalRecoveryAppliedQuestions": 8,
                     "regionalRecoveryUnresolvedQuestions": 2,
+                    "visualRecoveryAttempted": True,
+                    "visualRecoveryApplied": True,
+                    "visualRecoveryTargetedQuestions": 2,
+                    "visualRecoveryAppliedQuestions": 1,
+                    "visualRecoveryUnresolvedQuestions": 1,
+                    "visualRecoveryAssets": 5,
                     "extractionCacheHit": True,
                     "mediaAssets": 65,
                     "mediaAutomatic": 46,
@@ -137,6 +176,12 @@ class FuvestBatchLabTest(unittest.TestCase):
         self.assertEqual(value["regionalRecoveryTargetedQuestions"], 10)
         self.assertEqual(value["regionalRecoveryAppliedQuestions"], 8)
         self.assertEqual(value["regionalRecoveryUnresolvedQuestions"], 2)
+        self.assertEqual(value["visualRecoveryAttemptedEditions"], 1)
+        self.assertEqual(value["visualRecoveryAppliedEditions"], 1)
+        self.assertEqual(value["visualRecoveryTargetedQuestions"], 2)
+        self.assertEqual(value["visualRecoveryAppliedQuestions"], 1)
+        self.assertEqual(value["visualRecoveryUnresolvedQuestions"], 1)
+        self.assertEqual(value["visualRecoveryAssets"], 5)
         self.assertEqual(value["extractionCacheHits"], 1)
         self.assertEqual(value["mediaCacheHits"], 1)
 
