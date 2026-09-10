@@ -152,6 +152,24 @@ describe("exception reducer", () => {
     expect(route.at(-1)?.strategyId).toBe("human-review");
   });
 
+  it("never routes control glyphs through blind cleanup", () => {
+    const route = routeRepairStrategies({
+      rootCause: "glyph-control",
+      occurrenceCount: 629,
+      affectedQuestions: 530,
+      affectedPages: 180,
+    });
+
+    expect(route.map((step) => step.strategyId)).toEqual([
+      "font-map-recovery",
+      "local-ocr-region",
+      "vision-region",
+      "llm-structured-repair",
+      "human-review",
+    ]);
+    expect(route.some((step) => step.strategyId.includes("cleanup"))).toBe(false);
+  });
+
   it("builds a cross-job plan from actual staged structural, media and semantic failures", () => {
     const plan = buildExceptionReductionPlan([stagedJob()]);
 
