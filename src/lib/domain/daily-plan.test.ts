@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildDailyPlan, estimatedQuestionMinutes } from "./daily-plan";
-import type { Attempt, DB, ResultRow } from "./types";
+import {
+  buildDailyPlan,
+  estimatedQuestionMinutes,
+  validationPriorities,
+} from "./daily-plan";
+import type {
+  Attempt,
+  DB,
+  ResultRow,
+  StudentAIAssistanceTrace,
+} from "./types";
 
 function db(): DB {
   return {
@@ -64,6 +73,28 @@ function attempt(id: string, rows: ResultRow[], finishedAt: string, elapsed = 0)
   };
 }
 
+function highAssistanceTrace(): StudentAIAssistanceTrace {
+  return {
+    requests: 2,
+    maxLevel: 6,
+    answerRevealed: true,
+    modes: ["hint", "chat"],
+    firstAt: "2026-09-02T11:30:00.000Z",
+    lastAt: "2026-09-02T11:32:00.000Z",
+    lastProvider: "mock",
+    fallbackUsed: false,
+    recent: [
+      {
+        at: "2026-09-02T11:32:00.000Z",
+        mode: "chat",
+        level: 6,
+        answerRevealed: true,
+        provider: "mock",
+      },
+    ],
+  };
+}
+
 describe("buildDailyPlan", () => {
   it("uses an adaptive calibration block when there is no study history", () => {
     const plan = buildDailyPlan(db(), 60, new Date("2026-09-05T14:00:00"));
@@ -99,6 +130,69 @@ describe("buildDailyPlan", () => {
     expect(plan.blocks[0].kind).toBe("srs");
     expect(plan.blocks.some((block) => block.kind === "weak" && block.content === "Porcentagem")).toBe(true);
     expect(plan.signals.highConfidenceErrors).toBeGreaterThan(0);
+  });
+
+  it("prioritizes a short tutor-free validation when raw accuracy overstates independent evidence", () => {
+    const state = db();
+    const rows = [
+      row(1, "Funções", true),
+      row(2, "Funções", true),
+      row(3, "Funções", true),
+      row(4, "Funções", true),
+      row(5, "Funções", true),
+      row(6, "Funções", false),
+    ];
+    const history = attempt("assisted", rows, "2026-09-02T12:00:00.000Z");
+    history.aiAssistance = {
+      "2023|1": highAssistanceTrace(),
+      "2023|2": highAssistanceTrace(),
+      "2023|3": highAssistanceTrace(),
+    };
+    state.attempts.push(history);
+
+    const priorities = validationPriorities(state);
+    expect(priorities[0]).toMatchObject({
+      name: "Funções",
+      rawAccuracy: 83,
+      independentAccuracy: 67,
+      independentQuestions: 3,
+      highAssistanceQuestions: 3,
+      correctWithHighAssistance: 3,
+    });
+
+    const plan = buildDailyPlan(state, 60, new Date("2026-09-05T14:00:00"));
+    expect(plan.signals.assistedTopicsToValidate).toBe(1);
+    expect(plan.blocks[0]).toMatchObject({
+      kind: "validation",
+      content: "Funções",
+      aiAllowed: false,
+    });
+    expect(plan.blocks[0].reason).toContain("Acerto bruto 83%");
+    expect(plan.blocks[0].reason).toContain("67%");
+    expect(
+      plan.blocks.filter((block) => block.content === "Funções"),
+    ).toHaveLength(1);
+  });
+
+  it("does not create validation from a tiny independent sample", () => {
+    const state = db();
+    const rows = [
+      row(1, "Trigonometria", true),
+      row(2, "Trigonometria", true),
+      row(3, "Trigonometria", true),
+      row(4, "Trigonometria", true),
+    ];
+    const history = attempt("tiny", rows, "2026-09-02T12:00:00.000Z");
+    history.aiAssistance = {
+      "2023|1": highAssistanceTrace(),
+      "2023|2": highAssistanceTrace(),
+      "2023|3": highAssistanceTrace(),
+    };
+    state.attempts.push(history);
+
+    expect(validationPriorities(state)).toEqual([]);
+    const plan = buildDailyPlan(state, 60, new Date("2026-09-05T14:00:00"));
+    expect(plan.blocks.some((block) => block.kind === "validation")).toBe(false);
   });
 
   it("subtracts study time already spent today from the available budget", () => {
