@@ -25,6 +25,16 @@ class FuvestProofFontMapTest(unittest.TestCase):
         self.assertIsNone(MODULE["unique_gid_unicode"](glyphs, reverse, 2))
         self.assertIsNone(MODULE["unique_gid_unicode"](glyphs, reverse, 99))
 
+    def test_blank_advancing_glyph_can_normalize_to_space(self):
+        self.assertEqual(MODULE["blank_advance_replacement"](0, 226), " ")
+        self.assertEqual(MODULE["blank_advance_replacement"](0, 220.0), " ")
+
+    def test_blank_rule_rejects_outlines_and_non_positive_or_unknown_width(self):
+        self.assertIsNone(MODULE["blank_advance_replacement"](1, 226))
+        self.assertIsNone(MODULE["blank_advance_replacement"](0, 0))
+        self.assertIsNone(MODULE["blank_advance_replacement"](0, -1))
+        self.assertIsNone(MODULE["blank_advance_replacement"](0, None))
+
     def test_portable_replacement_rejects_control_private_and_replacement_chars(self):
         self.assertTrue(MODULE["is_portable_replacement"](" "))
         self.assertTrue(MODULE["is_portable_replacement"]("²"))
