@@ -21,6 +21,8 @@
     "ingest": "node scripts/ingest.mjs",
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
+    "ingest:fuvest:questions": "python scripts/extract-fuvest-questions.py",
+    "ingest:fuvest:ocr": "python scripts/recover-fuvest-ocr.py",
     "ingest:vestibular": "python scripts/ingest_vestibular_reference.py",
     "sources:audit": "node --use-system-ca scripts/sources-audit.mjs"
   },
