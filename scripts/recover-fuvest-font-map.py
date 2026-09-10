@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Recupera glifos FUVEST somente quando a própria fonte embutida prova o Unicode.
+"""Recupera glifos FUVEST apenas quando a própria fonte prova o reparo.
 
-Este worker existe para reduzir exceções de fidelidade semântica sem fazer
-substituições globais como ``U+0003 -> espaço``. Uma correção automática só é
-permitida quando conseguimos provar a cadeia:
+O worker evita substituições globais como ``U+0003 -> espaço``. Um reparo só é
+aceito com evidência ligada ao SHA-256 da fonte embutida.
 
-    fonte embutida (SHA-256) + CID -> GID -> glyph -> único Unicode portátil
+Dois caminhos são suportados:
 
-O caminho inicial aceita fontes Type0 com Identity-H e CIDFontType2. Type3 sem
-fonte embutida/ToUnicode não é adivinhada: fica explicitamente sem resolução e
-deve seguir para OCR/vision regional. Todo envelope reparado precisa voltar ao
-parser e aos gates canônicos do ENEMLab.
+1. CIDFontType2/TrueType: ``CID -> GID -> glyph -> único Unicode portátil`` no
+   cmap Unicode da própria fonte;
+2. CIDFontType0/CFF: para fontes Identity-H sem ToUnicode, um CID pode ser
+   normalizado para U+0020 *somente* quando o CFF prova que a charstring desse
+   CID não desenha contorno algum e possui avanço horizontal positivo. Isso
+   prova semântica de whitespace sem adivinhar um símbolo.
+
+Type3, fontes sem bytes embutidos, mapeamentos ambíguos e glifos CFF com desenho
+permanecem intocados e devem seguir para OCR/vision regional. Todo texto
+reparado volta ao parser e aos gates canônicos do ENEMLab.
 """
 
 from __future__ import annotations
@@ -20,6 +25,7 @@ import collections
 import hashlib
 import io
 import json
+import re
 import runpy
 import sys
 import unicodedata
@@ -29,8 +35,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 QUESTIONS = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 WORKER_NAME = "fuvest-proof-font-map"
-WORKER_VERSION = "fuvest-proof-font-map@0.1.0"
+WORKER_VERSION = "fuvest-proof-font-map@0.2.0"
 IGNORED_CONTROLS = {"\n", "\r", "\t", "\u00ad"}
+CID_NAME_RE = re.compile(r"^cid0*(\d+)$", re.IGNORECASE)
 
 
 def is_suspicious(char: str) -> bool:
@@ -45,6 +52,13 @@ def is_portable_replacement(value: str) -> bool:
     if value == "\ufffd":
         return False
     return unicodedata.category(value) not in {"Cc", "Cf", "Co", "Cs", "Cn"}
+
+
+def blank_advance_replacement(outline_commands: int, width: float | int | None) -> str | None:
+    """Return an ordinary space only for a proven blank, advancing glyph."""
+    if outline_commands != 0 or not isinstance(width, (int, float)) or width <= 0:
+        return None
+    return " "
 
 
 def dereference(value: Any) -> Any:
@@ -65,7 +79,7 @@ def to_unicode_bytes(font_dict: Any) -> bytes | None:
         return None
     try:
         return bytes(getter())
-    except Exception:  # noqa: BLE001 - recovery must fail closed per font
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -120,9 +134,6 @@ def cid_to_gid(font_dict: Any, cid: int) -> int | None:
         return None
     mapping = descendant.get("/CIDToGIDMap")
     if mapping is None:
-        # PDF CIDFontType2 defaults to identity only when no explicit map is
-        # present. We still require Identity-H at the parent before reaching
-        # this function.
         return cid
     resolved = dereference(mapping)
     if str(resolved) == "/Identity":
@@ -139,7 +150,7 @@ def cid_to_gid(font_dict: Any, cid: int) -> int | None:
 def reverse_unicode_cmap(font_bytes: bytes) -> tuple[list[str], dict[str, set[str]]]:
     try:
         from fontTools.ttLib import TTFont
-    except ImportError as error:  # pragma: no cover - exercised by benchmark/CLI
+    except ImportError as error:  # pragma: no cover
         raise RuntimeError("fontTools is required for proof-aware font recovery") from error
 
     font = TTFont(io.BytesIO(font_bytes), lazy=True, recalcBBoxes=False, recalcTimestamp=False)
@@ -177,6 +188,58 @@ def unique_gid_unicode(
     return next(iter(candidates))
 
 
+def cff_blank_cid_evidence(font_bytes: bytes, cid: int) -> dict[str, Any] | None:
+    """Prove that an Adobe-Identity CFF CID is blank but advances horizontally."""
+    try:
+        from fontTools.cffLib import CFFFontSet
+        from fontTools.pens.recordingPen import RecordingPen
+    except ImportError as error:  # pragma: no cover
+        raise RuntimeError("fontTools is required for proof-aware CFF recovery") from error
+
+    try:
+        cff = CFFFontSet()
+        cff.decompile(io.BytesIO(font_bytes), None, isCFF2=False)
+        top = cff[0]
+    except Exception:  # noqa: BLE001
+        return None
+
+    ros = tuple(top.ROS) if hasattr(top, "ROS") else None
+    if ros != ("Adobe", "Identity", 0):
+        return None
+
+    charset = list(top.charset)
+    glyph_name: str | None = None
+    gid: int | None = None
+    for index, name in enumerate(charset):
+        match = CID_NAME_RE.match(str(name))
+        if match and int(match.group(1)) == cid:
+            glyph_name = str(name)
+            gid = index
+            break
+    if glyph_name is None or gid is None:
+        return None
+
+    try:
+        charstring = top.CharStrings[glyph_name]
+        pen = RecordingPen()
+        charstring.draw(pen)
+        width = getattr(charstring, "width", None)
+    except Exception:  # noqa: BLE001
+        return None
+
+    replacement = blank_advance_replacement(len(pen.value), width)
+    if replacement is None:
+        return None
+    return {
+        "gid": gid,
+        "glyphName": glyph_name,
+        "outlineCommands": len(pen.value),
+        "advanceWidth": float(width),
+        "replacement": replacement,
+        "evidenceKind": "cff-blank-advance",
+    }
+
+
 def font_identity(font_dict: Any, embedded: bytes | None) -> dict[str, Any]:
     font = dereference(font_dict) if font_dict else {}
     descendant = descendant_font(font_dict)
@@ -193,7 +256,8 @@ def font_identity(font_dict: Any, embedded: bytes | None) -> dict[str, Any]:
 def resolve_char(
     font_dict: Any,
     char: str,
-    cache: dict[str, tuple[list[str], dict[str, set[str]]]],
+    ttf_cache: dict[str, tuple[list[str], dict[str, set[str]]]],
+    cff_cache: dict[tuple[str, int], dict[str, Any] | None],
 ) -> dict[str, Any] | None:
     if not is_suspicious(char) or not font_dict:
         return None
@@ -203,38 +267,63 @@ def resolve_char(
     if str(dereference(font.get("/Encoding"))) != "/Identity-H":
         return None
     if to_unicode_bytes(font_dict) is not None:
-        # A malformed ToUnicode needs a separate source-code-aware path. Do not
-        # assume the decoded suspicious character is the source CID.
         return None
 
     embedded = embedded_font_bytes(font_dict)
     if not embedded:
         return None
     font_sha = hashlib.sha256(embedded).hexdigest()
-    glyph_data = cache.get(font_sha)
-    if glyph_data is None:
-        try:
-            glyph_data = reverse_unicode_cmap(embedded)
-        except Exception:  # noqa: BLE001 - unsupported/corrupt font remains unresolved
-            return None
-        cache[font_sha] = glyph_data
-
+    descendant = descendant_font(font_dict)
+    descendant_subtype = str(descendant.get("/Subtype", "")) if descendant else ""
     cid = ord(char)
-    gid = cid_to_gid(font_dict, cid)
-    if gid is None:
-        return None
-    replacement = unique_gid_unicode(glyph_data[0], glyph_data[1], gid)
-    if replacement is None:
-        return None
     identity = font_identity(font_dict, embedded)
-    return {
-        **identity,
-        "sourceCodepoint": f"U+{cid:04X}",
-        "cid": cid,
-        "gid": gid,
-        "replacement": replacement,
-        "replacementCodepoint": f"U+{ord(replacement):04X}",
-    }
+
+    if descendant_subtype == "/CIDFontType2":
+        glyph_data = ttf_cache.get(font_sha)
+        if glyph_data is None:
+            try:
+                glyph_data = reverse_unicode_cmap(embedded)
+            except Exception:  # noqa: BLE001
+                return None
+            ttf_cache[font_sha] = glyph_data
+        gid = cid_to_gid(font_dict, cid)
+        if gid is None:
+            return None
+        replacement = unique_gid_unicode(glyph_data[0], glyph_data[1], gid)
+        if replacement is None:
+            return None
+        return {
+            **identity,
+            "sourceCodepoint": f"U+{cid:04X}",
+            "cid": cid,
+            "gid": gid,
+            "replacement": replacement,
+            "replacementCodepoint": f"U+{ord(replacement):04X}",
+            "evidenceKind": "ttf-unique-unicode-cmap",
+        }
+
+    if descendant_subtype == "/CIDFontType0":
+        key = (font_sha, cid)
+        if key not in cff_cache:
+            cff_cache[key] = cff_blank_cid_evidence(embedded, cid)
+        evidence = cff_cache[key]
+        if evidence is None:
+            return None
+        replacement = str(evidence["replacement"])
+        return {
+            **identity,
+            "sourceCodepoint": f"U+{cid:04X}",
+            "cid": cid,
+            "gid": int(evidence["gid"]),
+            "glyphName": evidence["glyphName"],
+            "outlineCommands": int(evidence["outlineCommands"]),
+            "advanceWidth": float(evidence["advanceWidth"]),
+            "replacement": replacement,
+            "replacementCodepoint": f"U+{ord(replacement):04X}",
+            "evidenceKind": evidence["evidenceKind"],
+        }
+
+    return None
 
 
 def repair_pdf_pages(pdf_bytes: bytes) -> tuple[list[str], dict[str, Any]]:
@@ -244,9 +333,11 @@ def repair_pdf_pages(pdf_bytes: bytes) -> tuple[list[str], dict[str, Any]]:
         raise RuntimeError("pypdf is required for font-map recovery") from error
 
     reader = PdfReader(io.BytesIO(pdf_bytes))
-    font_cache: dict[str, tuple[list[str], dict[str, set[str]]]] = {}
+    ttf_cache: dict[str, tuple[list[str], dict[str, set[str]]]] = {}
+    cff_cache: dict[tuple[str, int], dict[str, Any] | None] = {}
     pages: list[str] = []
-    mapping_counts: collections.Counter[tuple[str, int, int, str]] = collections.Counter()
+    mapping_counts: collections.Counter[tuple[str, int, int, str, str]] = collections.Counter()
+    mapping_evidence: dict[tuple[str, int, int, str, str], dict[str, Any]] = {}
     unresolved_counts: collections.Counter[tuple[str, str, str]] = collections.Counter()
     resolved = 0
     unresolved = 0
@@ -265,7 +356,7 @@ def repair_pdf_pages(pdf_bytes: bytes) -> tuple[list[str], dict[str, Any]]:
                 if not is_suspicious(char):
                     output.append(char)
                     continue
-                resolution = resolve_char(font_dict, char, font_cache)
+                resolution = resolve_char(font_dict, char, ttf_cache, cff_cache)
                 if resolution is None:
                     output.append(char)
                     unresolved += 1
@@ -279,30 +370,38 @@ def repair_pdf_pages(pdf_bytes: bytes) -> tuple[list[str], dict[str, Any]]:
                     continue
                 output.append(str(resolution["replacement"]))
                 resolved += 1
-                mapping_counts[
-                    (
-                        str(resolution["fontSha256"]),
-                        int(resolution["cid"]),
-                        int(resolution["gid"]),
-                        str(resolution["replacement"]),
-                    )
-                ] += 1
+                key = (
+                    str(resolution["fontSha256"]),
+                    int(resolution["cid"]),
+                    int(resolution["gid"]),
+                    str(resolution["replacement"]),
+                    str(resolution["evidenceKind"]),
+                )
+                mapping_counts[key] += 1
+                mapping_evidence[key] = {
+                    field: resolution[field]
+                    for field in ("glyphName", "outlineCommands", "advanceWidth")
+                    if field in resolution
+                }
             fragments.append("".join(output))
 
         page.extract_text(visitor_text=visitor)
         pages.append("".join(fragments))
 
-    mappings = [
-        {
+    mappings = []
+    for key, count in mapping_counts.most_common():
+        mapping = {
             "fontSha256": key[0],
             "cid": key[1],
             "gid": key[2],
             "replacement": key[3],
             "replacementCodepoint": f"U+{ord(key[3]):04X}",
+            "evidenceKind": key[4],
             "occurrences": count,
         }
-        for key, count in mapping_counts.most_common()
-    ]
+        mapping.update(mapping_evidence.get(key, {}))
+        mappings.append(mapping)
+
     unresolved_clusters = [
         {
             "codepoint": key[0],
@@ -364,34 +463,45 @@ def parse_years(raw: str, manifest: dict[str, dict[str, Any]]) -> list[int]:
 
 
 def summarize(results: list[dict[str, Any]], failures: list[dict[str, Any]]) -> dict[str, Any]:
-    mappings: collections.Counter[tuple[str, int, int, str]] = collections.Counter()
+    mappings: collections.Counter[tuple[str, int, int, str, str]] = collections.Counter()
+    mapping_evidence: dict[tuple[str, int, int, str, str], dict[str, Any]] = {}
     for result in results:
         for mapping in result.get("provenMappings", []):
-            mappings[
-                (
-                    mapping["fontSha256"],
-                    int(mapping["cid"]),
-                    int(mapping["gid"]),
-                    mapping["replacement"],
-                )
-            ] += int(mapping["occurrences"])
+            key = (
+                mapping["fontSha256"],
+                int(mapping["cid"]),
+                int(mapping["gid"]),
+                mapping["replacement"],
+                mapping["evidenceKind"],
+            )
+            mappings[key] += int(mapping["occurrences"])
+            mapping_evidence[key] = {
+                field: mapping[field]
+                for field in ("glyphName", "outlineCommands", "advanceWidth")
+                if field in mapping
+            }
+
+    proven = []
+    for key, count in mappings.most_common():
+        item = {
+            "fontSha256": key[0],
+            "cid": key[1],
+            "gid": key[2],
+            "replacement": key[3],
+            "replacementCodepoint": f"U+{ord(key[3]):04X}",
+            "evidenceKind": key[4],
+            "occurrences": count,
+        }
+        item.update(mapping_evidence.get(key, {}))
+        proven.append(item)
+
     return {
         "workerVersion": WORKER_VERSION,
         "editions": len(results),
         "resolvedOccurrences": sum(int(item["resolvedOccurrences"]) for item in results),
         "unresolvedOccurrences": sum(int(item["unresolvedOccurrences"]) for item in results),
         "parserClosedEditions": sum(bool(item["parserClosed"]) for item in results),
-        "provenMappings": [
-            {
-                "fontSha256": key[0],
-                "cid": key[1],
-                "gid": key[2],
-                "replacement": key[3],
-                "replacementCodepoint": f"U+{ord(key[3]):04X}",
-                "occurrences": count,
-            }
-            for key, count in mappings.most_common()
-        ],
+        "provenMappings": proven,
         "failures": sorted(failures, key=lambda item: int(item["year"])),
         "results": sorted(results, key=lambda item: int(item["year"])),
     }
