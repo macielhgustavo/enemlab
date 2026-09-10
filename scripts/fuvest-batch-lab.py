@@ -8,6 +8,10 @@ qualquer troca de SHA ou versão cria uma chave nova.
 
 Por padrão cobre todas as edições revisadas com caderno canônico. FUVEST 2022 é
 naturalmente excluída porque só possui referência/gabarito no manifesto atual.
+
+`editions` no resumo significa edições processadas pelo pipeline. Não significa
+que todas as questões da edição estejam prontas para publicação; cobertura
+estrutural, mídia e fidelidade semântica permanecem métricas/gates separados.
 """
 
 from __future__ import annotations
