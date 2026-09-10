@@ -1,4 +1,5 @@
-import type { AIProvider, AIProviderRequest, AIResponse } from "../types";
+import { parseAIProviderOutput } from "../provider-output";
+import type { AIProvider, AIProviderOutput, AIProviderRequest } from "../types";
 
 interface ChatCompletionResponse {
   choices?: Array<{
@@ -11,17 +12,29 @@ interface ChatCompletionResponse {
   };
 }
 
-function parseJsonObject(content: string): Partial<AIResponse> {
+function extractJsonObject(content: string): unknown {
   const trimmed = content.trim();
   try {
-    return JSON.parse(trimmed) as Partial<AIResponse>;
+    return JSON.parse(trimmed) as unknown;
   } catch {
     const start = trimmed.indexOf("{");
     const end = trimmed.lastIndexOf("}");
     if (start >= 0 && end > start) {
-      return JSON.parse(trimmed.slice(start, end + 1)) as Partial<AIResponse>;
+      try {
+        return JSON.parse(trimmed.slice(start, end + 1)) as unknown;
+      } catch {
+        // Cai no erro estável abaixo.
+      }
     }
     throw new Error("O provider retornou uma resposta fora do formato JSON esperado.");
+  }
+}
+
+function parseCompletionBody(raw: string): ChatCompletionResponse {
+  try {
+    return JSON.parse(raw) as ChatCompletionResponse;
+  } catch {
+    throw new Error("O provider de IA retornou uma resposta HTTP inválida.");
   }
 }
 
@@ -34,7 +47,7 @@ export class OpenAICompatibleProvider implements AIProvider {
     private readonly baseUrl: string,
   ) {}
 
-  async generate(input: AIProviderRequest): Promise<AIResponse> {
+  async generate(input: AIProviderRequest): Promise<AIProviderOutput> {
     const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
@@ -52,13 +65,15 @@ export class OpenAICompatibleProvider implements AIProvider {
       signal: AbortSignal.timeout(30_000),
     });
 
-    const body = (await response.json()) as ChatCompletionResponse;
+    const rawBody = await response.text();
+    const body = parseCompletionBody(rawBody);
     if (!response.ok) {
       throw new Error(body.error?.message || `Falha no provider de IA (${response.status}).`);
     }
 
     const content = body.choices?.[0]?.message?.content;
     if (!content) throw new Error("O provider de IA retornou uma resposta vazia.");
-    return parseJsonObject(content) as AIResponse;
+
+    return parseAIProviderOutput(extractJsonObject(content));
   }
 }

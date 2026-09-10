@@ -2,8 +2,10 @@ import type {
   AIAssistanceLevel,
   AIAssistanceMode,
   AIGeneratedQuestion,
+  AIGeneratedQuestionDraft,
   AIGeneratedQuestionLabel,
   AIPedagogicalPolicy,
+  AIProviderOutput,
   AIQuestionContext,
   AIRequest,
   AIResponse,
@@ -105,14 +107,16 @@ export function buildTutorPrompts(
       ? "O aluno pediu assistência de nível 6; a resposta correta pode ser revelada."
       : "Não revele a letra da alternativa correta nem escreva um gabarito explícito.",
     "Nunca invente instituição, ano, prova, número ou fonte oficial.",
-    `Se houver questão gerada, identifique-a como '${generatedIdentity.label}' e nunca como questão oficial.`,
+    `Se houver questão gerada, ela será identificada pelo produto como '${generatedIdentity.label}'. Não inclua instituição, ano, prova, número, fonte, origin, label ou style dentro de generatedQuestion.`,
     "Se a resolução depender de uma imagem que você não consegue interpretar a partir do contexto recebido, diga essa limitação em vez de inventar detalhes.",
     "Use linguagem clara, progressiva e adequada ao ensino médio.",
-    "Retorne somente JSON válido com as chaves: title, explanation, concepts, nextStep, revealAnswer, answer, diagnostic, generatedQuestion.",
-    "concepts deve ser um array curto de strings. diagnostic é opcional.",
+    "Retorne somente um objeto JSON válido. Não use Markdown fora do JSON.",
+    "As chaves obrigatórias são: title, explanation, concepts, nextStep, revealAnswer.",
+    "answer, diagnostic e generatedQuestion são opcionais. concepts deve ser um array curto de strings.",
+    "diagnostic, quando usado, deve conter category, confidence e note. category deve ser content-gap, interpretation, calculation, strategy, attention ou unknown; confidence deve ser low, medium ou high.",
     request.mode === "similar-question"
-      ? "Para similar-question, generatedQuestion é obrigatório e deve conter statement, alternatives e correctAnswer sem atribuir instituição, ano, prova, número ou fonte oficial."
-      : "generatedQuestion só deve ser usado no modo similar-question.",
+      ? "Para similar-question, generatedQuestion é obrigatório e deve conter somente statement, alternatives, correctAnswer e explanation opcional."
+      : "Não use generatedQuestion fora do modo similar-question.",
   ].join("\n");
 
   const userPrompt = JSON.stringify(
@@ -133,7 +137,7 @@ export function buildTutorPrompts(
 }
 
 export function normalizeGeneratedQuestion(
-  generated: Partial<AIGeneratedQuestion> | undefined,
+  generated: AIGeneratedQuestionDraft | undefined,
   sourceQuestion: AIQuestionContext,
 ): AIGeneratedQuestion | undefined {
   if (!generated?.statement || !generated.alternatives?.length || !generated.correctAnswer) {
@@ -144,40 +148,34 @@ export function normalizeGeneratedQuestion(
     origin: "ai-generated",
     label: identity.label,
     style: identity.style,
-    statement: String(generated.statement),
-    alternatives: generated.alternatives
-      .filter((alternative) => alternative?.letter && alternative?.text)
-      .slice(0, 5)
-      .map((alternative) => ({
-        letter: String(alternative.letter),
-        text: String(alternative.text),
-        file: alternative.file ? String(alternative.file) : null,
-      })),
-    correctAnswer: String(generated.correctAnswer),
-    explanation: generated.explanation ? String(generated.explanation) : undefined,
+    statement: generated.statement,
+    alternatives: generated.alternatives.slice(0, 5).map((alternative) => ({
+      letter: alternative.letter,
+      text: alternative.text,
+      file: alternative.file || null,
+    })),
+    correctAnswer: generated.correctAnswer,
+    explanation: generated.explanation,
   };
 }
 
 export function enforcePedagogicalResponse(
-  raw: Partial<AIResponse>,
+  raw: AIProviderOutput,
   request: AIRequest,
   policy: AIPedagogicalPolicy,
   provider: string,
 ): AIResponse {
   const revealAnswer = policy.revealAnswer && raw.revealAnswer !== false;
-  const concepts = Array.isArray(raw.concepts)
-    ? raw.concepts.map(String).filter(Boolean).slice(0, 6)
-    : [];
 
   return {
     mode: request.mode,
     level: policy.level,
-    title: String(raw.title || "Tutor ENEMLab"),
-    explanation: String(raw.explanation || "Não foi possível gerar uma explicação útil."),
-    concepts,
-    nextStep: String(raw.nextStep || "Tente aplicar o conceito ao enunciado antes de avançar."),
+    title: raw.title || "Tutor ENEMLab",
+    explanation: raw.explanation || "Não foi possível gerar uma explicação útil.",
+    concepts: raw.concepts.filter(Boolean).slice(0, 6),
+    nextStep: raw.nextStep || "Tente aplicar o conceito ao enunciado antes de avançar.",
     revealAnswer,
-    answer: revealAnswer && raw.answer ? String(raw.answer) : undefined,
+    answer: revealAnswer && raw.answer ? raw.answer : undefined,
     diagnostic: raw.diagnostic,
     generatedQuestion:
       request.mode === "similar-question"

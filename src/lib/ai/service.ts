@@ -1,17 +1,55 @@
-import { buildPedagogicalPolicy, buildTutorPrompts, enforcePedagogicalResponse } from "./pedagogy";
+import {
+  buildPedagogicalPolicy,
+  buildTutorPrompts,
+  enforcePedagogicalResponse,
+  questionContextForModel,
+} from "./pedagogy";
+import { parseAIProviderOutput } from "./provider-output";
 import { getAIProvider } from "./providers";
-import type { AIProvider, AIRequest, AIResponse } from "./types";
+import { MockAIProvider } from "./providers/mock";
+import type { AIProvider, AIProviderRequest, AIRequest, AIResponse } from "./types";
+
+export function shouldFallbackToMock(
+  providerId: string,
+  configured = process.env.ENEMLAB_AI_FALLBACK_TO_MOCK,
+  nodeEnv = process.env.NODE_ENV,
+): boolean {
+  if (providerId === "mock") return false;
+  const explicit = configured?.trim().toLowerCase();
+  if (explicit === "true") return true;
+  if (explicit === "false") return false;
+  return nodeEnv !== "production";
+}
 
 export async function runStudentAI(
   request: AIRequest,
-  provider: AIProvider = getAIProvider(),
+  provider?: AIProvider,
 ): Promise<AIResponse> {
+  const selectedProvider = provider ?? getAIProvider();
   const policy = buildPedagogicalPolicy(request);
   const prompts = buildTutorPrompts(request, policy);
-  const raw = await provider.generate({
-    request,
+  const safeRequest: AIRequest = {
+    ...request,
+    question: questionContextForModel(request.question, policy),
+  };
+  const providerRequest: AIProviderRequest = {
+    request: safeRequest,
     policy,
     ...prompts,
-  });
-  return enforcePedagogicalResponse(raw, request, policy, provider.id);
+  };
+
+  try {
+    const raw = parseAIProviderOutput(await selectedProvider.generate(providerRequest));
+    return enforcePedagogicalResponse(raw, request, policy, selectedProvider.id);
+  } catch (error) {
+    if (!shouldFallbackToMock(selectedProvider.id)) throw error;
+
+    console.warn(`student-ai:fallback ${selectedProvider.id} -> mock`, error);
+    const fallback = new MockAIProvider();
+    const raw = parseAIProviderOutput(await fallback.generate(providerRequest));
+    return {
+      ...enforcePedagogicalResponse(raw, request, policy, fallback.id),
+      fallbackFrom: selectedProvider.id,
+    };
+  }
 }

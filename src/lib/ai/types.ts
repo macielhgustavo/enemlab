@@ -90,14 +90,36 @@ export interface AIDiagnosticSignal {
   note: string;
 }
 
-export interface AIGeneratedQuestion {
-  origin: "ai-generated";
-  label: AIGeneratedQuestionLabel;
-  style: string;
+/**
+ * Forma que um LLM pode sugerir. Não contém procedência oficial por design:
+ * instituição, ano, prova e número nunca podem nascer do provider de IA.
+ */
+export interface AIGeneratedQuestionDraft {
   statement: string;
   alternatives: AIQuestionAlternative[];
   correctAnswer: string;
   explanation?: string;
+}
+
+export interface AIGeneratedQuestion extends AIGeneratedQuestionDraft {
+  origin: "ai-generated";
+  label: AIGeneratedQuestionLabel;
+  style: string;
+}
+
+/**
+ * Contrato cru de saída do provider. mode, level, provider e procedência são
+ * decisões do ENEMLab e, portanto, não são aceitas do modelo.
+ */
+export interface AIProviderOutput {
+  title: string;
+  explanation: string;
+  concepts: string[];
+  nextStep: string;
+  revealAnswer: boolean;
+  answer?: string;
+  diagnostic?: AIDiagnosticSignal;
+  generatedQuestion?: AIGeneratedQuestionDraft;
 }
 
 export interface AIResponse {
@@ -112,6 +134,8 @@ export interface AIResponse {
   diagnostic?: AIDiagnosticSignal;
   generatedQuestion?: AIGeneratedQuestion;
   provider: string;
+  /** Provider que falhou antes de um fallback explícito para o mock. */
+  fallbackFrom?: string;
 }
 
 export interface AIPedagogicalPolicy {
@@ -131,5 +155,5 @@ export interface AIProviderRequest {
 
 export interface AIProvider {
   readonly id: string;
-  generate(request: AIProviderRequest): Promise<AIResponse>;
+  generate(request: AIProviderRequest): Promise<AIProviderOutput>;
 }

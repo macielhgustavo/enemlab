@@ -204,7 +204,11 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
                   <h3>{latest.title}</h3>
                 </div>
                 <small>
-                  {latest.provider === "mock" ? "modo de desenvolvimento" : latest.provider}
+                  {latest.fallbackFrom
+                    ? `contingência · ${latest.fallbackFrom} → mock`
+                    : latest.provider === "mock"
+                      ? "modo de desenvolvimento"
+                      : latest.provider}
                 </small>
               </div>
               <p>{latest.explanation}</p>
