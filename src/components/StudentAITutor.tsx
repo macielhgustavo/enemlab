@@ -199,6 +199,7 @@ export default function StudentAITutor({
   const [selectionResponse, setSelectionResponse] = useState<AIResponse | null>(null);
   const [selectionAnchor, setSelectionAnchor] = useState<FloatingAnchor | null>(null);
   const [diagnosticAnchor, setDiagnosticAnchor] = useState<FloatingAnchor | null>(null);
+  const [diagnosticFor, setDiagnosticFor] = useState<string | null>(null);
   const [railAnchor, setRailAnchor] = useState({ left: 24, top: 104 });
 
   const latest = responses[responses.length - 1];
@@ -306,6 +307,12 @@ export default function StudentAITutor({
         } else {
           setVisibleResponse(ai);
           setMenuOpen(false);
+          if (ai.diagnostic && selected) {
+            setDiagnosticFor(selected);
+          } else {
+            setDiagnosticFor(null);
+            setDiagnosticAnchor(null);
+          }
         }
         return ai;
       } catch (cause) {
@@ -344,6 +351,9 @@ export default function StudentAITutor({
 
       setActivated(true);
       setMenuOpen(false);
+      setVisibleResponse(null);
+      setDiagnosticFor(null);
+      setDiagnosticAnchor(null);
       setSelectionResponse(null);
       setSelectionAnchor({
         left: clampPopoverLeft(rect.left, 390),
@@ -359,21 +369,18 @@ export default function StudentAITutor({
       );
     }
 
-    document.addEventListener("mouseup", inspectSelection);
-    return () => document.removeEventListener("mouseup", inspectSelection);
+    document.addEventListener("pointerup", inspectSelection);
+    return () => document.removeEventListener("pointerup", inspectSelection);
   }, [ask, busy, currentLevel]);
 
   useEffect(() => {
-    if (!visibleResponse?.diagnostic || !selected) {
-      setDiagnosticAnchor(null);
-      return;
-    }
+    if (!visibleResponse?.diagnostic || !diagnosticFor || selected !== diagnosticFor) return;
 
     const answers = Array.from(
       document.querySelectorAll<HTMLButtonElement>(".examContent .answers button.answer"),
     );
     const target = answers.find(
-      (answer) => answer.querySelector(".letter")?.textContent?.trim() === selected,
+      (answer) => answer.querySelector(".letter")?.textContent?.trim() === diagnosticFor,
     );
     if (!target) return;
 
@@ -391,19 +398,32 @@ export default function StudentAITutor({
       });
     };
 
-    sync();
+    const frame = window.requestAnimationFrame(sync);
     window.addEventListener("resize", sync);
     window.addEventListener("scroll", sync, { passive: true });
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", sync);
       window.removeEventListener("scroll", sync);
     };
-  }, [selected, visibleResponse]);
+  }, [diagnosticFor, selected, visibleResponse]);
 
   function closeSelection() {
     setSelectionAnchor(null);
     setSelectionResponse(null);
     window.getSelection()?.removeAllRanges();
+  }
+
+  function toggleActionMenu() {
+    const next = !menuOpen;
+    setActivated(true);
+    setMenuOpen(next);
+    if (next) {
+      setVisibleResponse(null);
+      setDiagnosticFor(null);
+      setDiagnosticAnchor(null);
+      closeSelection();
+    }
   }
 
   return (
@@ -416,10 +436,7 @@ export default function StudentAITutor({
         <button
           type="button"
           className="studentAIOrb"
-          onClick={() => {
-            setActivated(true);
-            setMenuOpen((value) => !value);
-          }}
+          onClick={toggleActionMenu}
           aria-expanded={menuOpen}
           aria-controls="student-ai-actions"
           title="Abrir Tutor IA"
@@ -526,13 +543,14 @@ export default function StudentAITutor({
           </section>
         )}
 
-        {visibleResponse && (
+        {visibleResponse && !menuOpen && (
           <article className="studentAIInsight" data-level={visibleResponse.level}>
             <button
               type="button"
               className="studentAIClose"
               onClick={() => {
                 setVisibleResponse(null);
+                setDiagnosticFor(null);
                 setDiagnosticAnchor(null);
               }}
               aria-label="Fechar explicação"
@@ -567,13 +585,13 @@ export default function StudentAITutor({
           </article>
         )}
 
-        {busy && !selectionAnchor && (
+        {busy && !selectionAnchor && !menuOpen && (
           <div className="studentAILoading" role="status">
             <span /> calibrando a próxima intervenção…
           </div>
         )}
 
-        {error && !selectionAnchor && <div className="studentAIError">{error}</div>}
+        {error && !selectionAnchor && !menuOpen && <div className="studentAIError">{error}</div>}
       </aside>
 
       {selectionAnchor && (
@@ -628,7 +646,7 @@ export default function StudentAITutor({
         </article>
       )}
 
-      {diagnosticAnchor && visibleResponse?.diagnostic && (
+      {diagnosticAnchor && visibleResponse?.diagnostic && selected === diagnosticFor && (
         <aside
           className="studentAIDiagnosticBubble"
           style={{ left: diagnosticAnchor.left, top: diagnosticAnchor.top }}
