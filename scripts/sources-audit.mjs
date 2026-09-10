@@ -311,9 +311,16 @@ const FONTES = [
   },
   {
     providerId: "puc-rio",
-    sourceId: "puc-rio-research",
-    archiveUrl: "https://www.puc-rio.br/ensinopesq/ccg/",
-    documentos: [{ role: "archive-page", url: "https://www.puc-rio.br/ensinopesq/ccg/", method: "GET" }],
+    sourceId: "puc-rio-official-repository",
+    archiveUrl: "https://www.puc-rio.br/vestibular/repositorio/",
+    generatedReferenceManifest: true,
+    documentos: [
+      {
+        role: "archive-index",
+        url: "https://www.puc-rio.br/vestibular/repositorio/",
+        method: "GET",
+      },
+    ],
   },
   {
     providerId: "mackenzie",

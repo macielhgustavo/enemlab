@@ -74,6 +74,7 @@ const VESTIBULARES_REFERENCIA = [
   { id: "unicamp", alternatives: 5 },
   { id: "uel", alternatives: 5 },
   { id: "puc-sp", alternatives: 5 },
+  { id: "puc-rio", alternatives: 5 },
   { id: "udesc", alternatives: 5 },
   { id: "acafe", alternatives: 5 },
 ];

@@ -44,6 +44,7 @@ export type ExtractionMethod =
   | "api"
   | "html-parse"
   | "pdf-text-layer"
+  | "pdf-layout"
   | "manual"
   | "none";
 

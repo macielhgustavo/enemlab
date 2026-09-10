@@ -37,8 +37,19 @@ describe("catálogo v8.8", () => {
       50,
       50,
     ]);
-    expect(catalog.countQuestions({ providerIds: ["unicamp", "uel", "puc-sp"] })).toEqual({
-      known: 426,
+    expect(catalog.query({ providerId: "puc-rio" }).map((entry) => entry.questionCount)).toEqual([
+      45,
+      45,
+      45,
+      45,
+      45,
+      45,
+      20,
+      20,
+      20,
+    ]);
+    expect(catalog.countQuestions({ providerIds: ["unicamp", "uel", "puc-sp", "puc-rio"] })).toEqual({
+      known: 756,
       unknownEditions: 0,
     });
     expect(catalog.query({ providerId: "unicamp" }).every((entry) => !entry.statementAvailable)).toBe(true);

@@ -138,6 +138,7 @@ Correção errada é pior que ausência de dado.
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
 | PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
+| PUC-Rio | `puc-rio.br/vestibular/repositorio` | `pdf-reference` | na fonte oficial | 2015–2020 e 2024–2026, 2º dia Grupo 1 |
 | UDESC | `udesc.br/vestibular/provasanteriores` | `pdf-reference` | na fonte oficial | 2015.1–2026.2 (18 edições) |
 | ACAFE | `acafe.org.br` / `storage.acafe.org.br` | `pdf-reference` | na fonte oficial | 2022.2–2026.2 (9 edições) |
 
@@ -240,6 +241,7 @@ provider. Parser atual:
 - `unicamp-answer-key@1.0.0`
 - `uel-answer-key@1.0.0`
 - `puc-sp-answer-key@1.0.0`
+- `puc-rio-answer-key@1.0.0`
 
 Fontes, fingerprints, recusas e pendências estão no
 [relatório da wave v8.8](vestibular-mass-validation.md).
@@ -282,7 +284,7 @@ anulação, exige cobertura 1..63 e duas respostas somente no bloco 15..21.
   contornar.
 - **UFSC:** a Coperve publica gabaritos definitivos, porém a prova usa itens por
   proposição/somatório. Fica `reference-only` bloqueada até modelagem própria.
-- **PUC-PR, PUC-Rio e Mackenzie:** não entraram por falta de arquivo público
+- **PUC-PR e Mackenzie:** não entraram por falta de arquivo público
   consistente com prova, gabarito final e direitos de referência fechados.
 - **UFRJ histórica:** cobertura histórica exige investigação própria. Não há
   provider atual inventado porque o processo vigente não expõe vestibular
@@ -295,6 +297,23 @@ anulação, exige cobertura 1..63 e duas respostas somente no bloco 15..21.
   reúne cursos, ciclos, códigos e opções diferentes. A associação prova↔chave
   final não foi fechada com segurança nesta wave; fica documentada para
   v8.5.4, sem provider.
+
+### PUC-Rio — expansão de volume
+
+O [repositório oficial da PUC-Rio](https://www.puc-rio.br/vestibular/repositorio/)
+publica páginas anuais com links explícitos para prova e gabarito por dia e
+grupo. Entram nove edições do 2º dia, Grupo 1: 2015–2020 e 2024–2026, somando
+330 questões objetivas em `reference-only`.
+
+Os gabaritos de 2015–2020 são comentados em texto; os de 2024–2026 marcam a
+alternativa correta por destaque amarelo. O adapter usa parser textual ou
+geométrico conforme a edição e falha se não houver cobertura contígua. 2021 e
+2022 ficam bloqueadas por não apresentarem um caderno limpo inequívoco no
+pacote publicado; 2023 fica bloqueada porque o layout atual não permite extrair
+as 45 respostas sem ambiguidade. Outros grupos e o 1º dia não foram
+canonicalizados nesta wave.
+
+Detalhes: [relatório de validação PUC-Rio](vestibular-volume-wave-3-validation.md).
 
 ### Cobertura verificada do arquivo do ITA
 
