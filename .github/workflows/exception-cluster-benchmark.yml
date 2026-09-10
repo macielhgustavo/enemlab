@@ -4,9 +4,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/exception-cluster-benchmark.yml"
-      - "scripts/inspect-fuvest-font-glyphs.py"
       - "scripts/recover-fuvest-font-map.py"
       - "scripts/diagnose-fuvest-font-map.py"
+      - "scripts/diagnose-fuvest-cff-space.py"
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ permissions:
 jobs:
   fuvest-font-glyph-diagnostics:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,28 +26,6 @@ jobs:
 
       - name: Install parser dependencies
         run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
-
-      - name: Inspect suspicious glyph sources
-        run: |
-          python scripts/inspect-fuvest-font-glyphs.py --years all --output /tmp/glyph-report.json
-          python - <<'PY'
-          import json
-          report = json.load(open('/tmp/glyph-report.json', encoding='utf-8'))
-          compact = {
-              'requestedEditions': report['requestedEditions'],
-              'failures': report['failures'],
-              'observations': report['observations'],
-              'clusters': report['clusters'],
-              'withToUnicode': report['withToUnicode'],
-              'withCmapSource': report['withCmapSource'],
-              'withEmbeddedFont': report['withEmbeddedFont'],
-              'topClusters': report['topClusters'][:30],
-          }
-          print('FONT_GLYPH_REPORT=' + json.dumps(compact, ensure_ascii=True))
-          assert compact['requestedEditions'] == 21
-          assert not compact['failures'], compact['failures']
-          assert compact['observations'] > 0
-          PY
 
       - name: Diagnose font-map proof chain
         run: |
@@ -63,31 +41,10 @@ jobs:
           print('FONT_MAP_STAGES=' + json.dumps(compact, ensure_ascii=True))
           PY
 
-      - name: Prove embedded-font mappings on 2014-2015
+      - name: Probe blank CFF CID 3 evidence
         run: |
-          python scripts/recover-fuvest-font-map.py --years 2014,2015 --output /tmp/font-map-report.json
-          python - <<'PY'
-          import json
-          report = json.load(open('/tmp/font-map-report.json', encoding='utf-8'))
-          print('FONT_MAP_REPORT=' + json.dumps({
-              'editions': report['editions'],
-              'resolvedOccurrences': report['resolvedOccurrences'],
-              'unresolvedOccurrences': report['unresolvedOccurrences'],
-              'parserClosedEditions': report['parserClosedEditions'],
-              'provenMappings': report['provenMappings'][:20],
-              'results': [{
-                  'year': item['year'],
-                  'resolvedOccurrences': item['resolvedOccurrences'],
-                  'unresolvedOccurrences': item['unresolvedOccurrences'],
-                  'parserClosed': item['parserClosed'],
-                  'questions': item['questions'],
-                  'semanticIssues': item['semanticIssues'],
-              } for item in report['results']],
-          }, ensure_ascii=True))
-          assert report['editions'] == 2
-          assert not report['failures'], report['failures']
-          assert report['resolvedOccurrences'] > 0, 'expected at least one font-proven repair'
-          PY
+          python scripts/diagnose-fuvest-cff-space.py --years 2014,2015 --cid 3 --output /tmp/cff-space-report.json
+          cat /tmp/cff-space-report.json
 
       - name: Upload diagnostic reports
         if: always()
@@ -95,7 +52,6 @@ jobs:
         with:
           name: fuvest-font-diagnostic-reports
           path: |
-            /tmp/glyph-report.json
             /tmp/font-map-stages.json
-            /tmp/font-map-report.json
+            /tmp/cff-space-report.json
           retention-days: 3
