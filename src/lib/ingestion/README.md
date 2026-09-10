@@ -232,7 +232,7 @@ The immediate second pass returned:
 - identical 1,910-question and 1,722-complete outputs;
 - no parser/recovery/media recomputation for unchanged document bytes and extractor versions.
 
-Network verification still occurs on the warm pass by design. A future HTTP conditional-fetch/document-byte cache can reduce that cost without trusting stale remote content.
+In the benchmark runner, the cold pass took about **63 s wall-clock** and the warm pass about **43 s**. The remaining time is dominated by deliberate remote-document verification/download. The current cache therefore proves deterministic computational reuse, while HTTP conditional requests/document-byte caching remain the next step for reducing network cost without trusting stale source content.
 
 ## Full batch command
 
