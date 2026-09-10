@@ -6,6 +6,11 @@ repete parsing/recovery/media quando os bytes e as versões dos extratores são
 idênticos a um checkpoint existente. O cache é desempenho, nunca autoridade:
 qualquer troca de SHA ou versão cria uma chave nova.
 
+Antes do parser, glifos semanticamente suspeitos podem passar por recuperação
+determinística baseada na própria fonte embutida. A página reparada só é usada
+quando existe evidência positiva e o parser continua fechando; caso contrário,
+o texto nativo original é preservado e os gates semânticos continuam bloqueando.
+
 Por padrão cobre todas as edições revisadas com caderno canônico. FUVEST 2022 é
 naturalmente excluída porque só possui referência/gabarito no manifesto atual.
 
@@ -29,6 +34,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 QUESTIONS = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 RECOVERY = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-ocr.py")))
+FONTMAP = runpy.run_path(str(Path(__file__).with_name("recover-fuvest-font-map.py")))
 MEDIA = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-media.py")))
 
 
@@ -77,6 +83,46 @@ def load_valid_extraction_cache(
         return None
 
 
+def pages_have_suspicious_glyphs(pages: list[str]) -> bool:
+    detector = FONTMAP["is_suspicious"]
+    return any(detector(char) for page in pages for char in page)
+
+
+def attempt_proven_font_recovery(
+    pdf_bytes: bytes,
+    native_pages: list[str],
+) -> tuple[list[str], dict[str, Any]]:
+    base = {
+        "workerVersion": FONTMAP["WORKER_VERSION"],
+        "attempted": False,
+        "applied": False,
+        "resolvedOccurrences": 0,
+        "unresolvedOccurrences": 0,
+        "provenMappings": [],
+        "unresolvedClusters": [],
+    }
+    if not pages_have_suspicious_glyphs(native_pages):
+        return native_pages, base
+
+    repaired_pages, report = FONTMAP["repair_pdf_pages"](pdf_bytes)
+    normalized = {**base, **report, "attempted": True, "applied": False}
+    if len(repaired_pages) != len(native_pages):
+        normalized["rejectedReason"] = "page-count-changed"
+        return native_pages, normalized
+    if int(report.get("resolvedOccurrences", 0)) <= 0:
+        normalized["rejectedReason"] = "no-proven-mapping"
+        return native_pages, normalized
+    normalized["applied"] = True
+    return repaired_pages, normalized
+
+
+def attach_font_recovery_metadata(
+    envelope: dict[str, Any], report: dict[str, Any]
+) -> dict[str, Any]:
+    envelope["fontMapRecovery"] = report
+    return envelope
+
+
 def extraction_for_year(
     year: int,
     entry: dict[str, Any],
@@ -90,7 +136,11 @@ def extraction_for_year(
     exam_sha = QUESTIONS["sha256_bytes"](exam_bytes)
     key_sha = QUESTIONS["sha256_bytes"](key_bytes)
 
-    version = f"{QUESTIONS['EXTRACTOR_VERSION']}|{RECOVERY['WORKER_VERSION']}"
+    version = (
+        f"{QUESTIONS['EXTRACTOR_VERSION']}|"
+        f"{FONTMAP['WORKER_VERSION']}|"
+        f"{RECOVERY['WORKER_VERSION']}"
+    )
     cache_key = content_cache_key("fuvest-extraction", version, str(year), exam_sha, key_sha)
     cache_path = cache_dir / "extraction" / str(year) / f"{cache_key}.json"
     cached = load_valid_extraction_cache(
@@ -104,29 +154,64 @@ def extraction_for_year(
     if cached is not None:
         return cached, exam_bytes, True, time.perf_counter() - started
 
-    pages = QUESTIONS["extract_pdf_pages"](exam_bytes)
-    try:
-        envelope = QUESTIONS["build_envelope"](entry, exam_bytes, key_bytes, pages)
-    except Exception as primary_error:  # fail-closed recovery is still attempted selectively
-        failure = QUESTIONS["build_failure_envelope"](
-            entry, exam_bytes, key_bytes, pages, primary_error
-        )
-        _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
-        recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
-            exam_bytes,
-            target_pages,
-            int(entry["total"]),
-        )
-        envelope = RECOVERY["build_recovery_envelope"](
-            failure,
-            entry,
-            exam_bytes,
-            key_bytes,
-            recovered_pages,
-            boundary_labels=labels,
-            geometry=geometry,
-        )
+    native_pages = QUESTIONS["extract_pdf_pages"](exam_bytes)
+    candidate_pages, font_report = attempt_proven_font_recovery(exam_bytes, native_pages)
 
+    try:
+        envelope = QUESTIONS["build_envelope"](
+            entry, exam_bytes, key_bytes, candidate_pages
+        )
+    except Exception as repaired_error:
+        if bool(font_report.get("applied")):
+            # A font repair is useful only if it preserves structural closure.
+            # Revert to the untouched text layer before invoking boundary recovery.
+            font_report["applied"] = False
+            font_report["rejectedReason"] = "parser-regression"
+            font_report["parserRegression"] = str(repaired_error)
+            try:
+                envelope = QUESTIONS["build_envelope"](
+                    entry, exam_bytes, key_bytes, native_pages
+                )
+            except Exception as primary_error:
+                failure = QUESTIONS["build_failure_envelope"](
+                    entry, exam_bytes, key_bytes, native_pages, primary_error
+                )
+                _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
+                recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
+                    exam_bytes,
+                    target_pages,
+                    int(entry["total"]),
+                )
+                envelope = RECOVERY["build_recovery_envelope"](
+                    failure,
+                    entry,
+                    exam_bytes,
+                    key_bytes,
+                    recovered_pages,
+                    boundary_labels=labels,
+                    geometry=geometry,
+                )
+        else:
+            failure = QUESTIONS["build_failure_envelope"](
+                entry, exam_bytes, key_bytes, native_pages, repaired_error
+            )
+            _, target_pages = RECOVERY["validate_failure_envelope"](failure, manifest)
+            recovered_pages, labels, geometry = RECOVERY["reconstruct_target_pages"](
+                exam_bytes,
+                target_pages,
+                int(entry["total"]),
+            )
+            envelope = RECOVERY["build_recovery_envelope"](
+                failure,
+                entry,
+                exam_bytes,
+                key_bytes,
+                recovered_pages,
+                boundary_labels=labels,
+                geometry=geometry,
+            )
+
+    attach_font_recovery_metadata(envelope, font_report)
     write_json(cache_path, envelope)
     return envelope, exam_bytes, False, time.perf_counter() - started
 
@@ -184,6 +269,7 @@ def process_year(
         year, entry, manifest, cache_dir
     )
     extraction_metrics = QUESTIONS["metrics"](envelope)
+    font_map = envelope.get("fontMapRecovery", {})
     result: dict[str, Any] = {
         "year": year,
         "questions": extraction_metrics["questions"],
@@ -192,6 +278,10 @@ def process_year(
         "semanticIssues": extraction_metrics["semanticUnsafe"],
         "needsTextReview": extraction_metrics["needsTextReview"],
         "recovered": bool(envelope.get("recovery")),
+        "fontMapAttempted": bool(font_map.get("attempted")),
+        "fontMapApplied": bool(font_map.get("applied")),
+        "fontMapResolvedOccurrences": int(font_map.get("resolvedOccurrences", 0)),
+        "fontMapUnresolvedOccurrences": int(font_map.get("unresolvedOccurrences", 0)),
         "extractionCacheHit": extraction_hit,
         "elapsedSeconds": round(elapsed, 3),
     }
@@ -225,6 +315,14 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         "semanticIssues": sum(int(item["semanticIssues"]) for item in ordered),
         "needsTextReview": sum(int(item["needsTextReview"]) for item in ordered),
         "recoveredEditions": sum(bool(item["recovered"]) for item in ordered),
+        "fontMapAttemptedEditions": sum(bool(item.get("fontMapAttempted")) for item in ordered),
+        "fontMapAppliedEditions": sum(bool(item.get("fontMapApplied")) for item in ordered),
+        "fontMapResolvedOccurrences": sum(
+            int(item.get("fontMapResolvedOccurrences", 0)) for item in ordered
+        ),
+        "fontMapUnresolvedOccurrences": sum(
+            int(item.get("fontMapUnresolvedOccurrences", 0)) for item in ordered
+        ),
         "extractionCacheHits": sum(bool(item["extractionCacheHit"]) for item in ordered),
         "mediaAssets": sum(int(item.get("mediaAssets", 0)) for item in ordered),
         "mediaAutomatic": sum(int(item.get("mediaAutomatic", 0)) for item in ordered),
