@@ -80,6 +80,25 @@ describe("official source recipe harvesting", () => {
     expect(result.editions[0].documents[0].role).toBe("answer-key");
   });
 
+  it("rejects an allowed crawl URL that redirects outside the host allowlist", async () => {
+    const redirectingFetcher: DocumentFetcher = async () => ({
+      url: "https://evil.example/archive",
+      bytes: new TextEncoder().encode(`
+        <a href="https://static.test.edu.br/2025/prova.pdf">Prova 2025</a>
+      `),
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+
+    const result = await harvestOfficialSource(recipe, redirectingFetcher);
+
+    expect(result.pagesAttempted).toBe(1);
+    expect(result.pagesFetched).toBe(1);
+    expect(result.linksSeen).toBe(0);
+    expect(result.editions).toEqual([]);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].message).toContain("redirected outside recipe allowlist");
+  });
+
   it("ignores years outside the recipe range", async () => {
     const result = await harvestOfficialSource(
       recipe,
