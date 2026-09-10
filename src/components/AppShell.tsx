@@ -31,6 +31,7 @@ import ProviderSwitcher from "@/components/enem-lab/ProviderSwitcher";
 import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 import ExamExperienceHost from "@/components/ExamExperienceHost";
+import StudentAIHost from "@/components/StudentAIHost";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -130,6 +131,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <ImageZoomHost />
         <QuestionIssueReporter />
         <ExamExperienceHost />
+        <StudentAIHost />
       </div>
     );
   }
