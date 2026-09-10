@@ -9,6 +9,7 @@ import "./result-review.css";
 import "./experience-polish.css";
 import "./daily-plan.css";
 import "./account.css";
+import "./student-ai.css";
 import "../styles/refinement.css";
 import { PRODUCT_BRAND } from "@/components/Brand";
 import Providers from "@/components/Providers";
