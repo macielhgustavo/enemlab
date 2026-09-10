@@ -24,6 +24,7 @@ import type {
 interface StudentAITutorProps {
   question: AIQuestionContext;
   student: AIStudentSnapshot;
+  onAssistance?: (response: AIResponse) => void;
 }
 
 const ACTIONS: Array<{
@@ -65,7 +66,11 @@ function actionMessage(mode: AIAssistanceMode): string {
   return labels[mode];
 }
 
-export default function StudentAITutor({ question, student }: StudentAITutorProps) {
+export default function StudentAITutor({
+  question,
+  student,
+  onAssistance,
+}: StudentAITutorProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -117,6 +122,7 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
         role: "assistant",
         content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}`,
       };
+      onAssistance?.(ai);
       setResponses((current) => [...current, ai].slice(-6));
       setConversation([...nextConversation, assistantTurn].slice(-10));
       setInput("");

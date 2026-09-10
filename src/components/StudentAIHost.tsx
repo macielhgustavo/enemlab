@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { buildStudentSnapshot } from "@/lib/ai/context";
+import { recordStudentAIAssistance } from "@/lib/ai/assistance";
+import type { AIResponse } from "@/lib/ai/types";
 import { questionKey } from "@/lib/domain/classify";
 import { questionsForAttempt } from "@/lib/services/attempts";
 import StudentAITutor from "@/components/StudentAITutor";
@@ -29,6 +31,7 @@ export default function StudentAIHost() {
   const id = typeof params.id === "string" ? params.id : "";
   const hydrated = useHydrated();
   const db = useStore((state) => state.db);
+  const mutate = useStore((state) => state.mutate);
   const attempt = db.attempts.find((item) => item.id === id);
   const [current, setCurrent] = useState(0);
   const [selectedFromDom, setSelectedFromDom] = useState<string | null>(null);
@@ -78,12 +81,25 @@ export default function StudentAIHost() {
     return buildStudentSnapshot(db, question, selectedAnswer, attempt.providerId);
   }, [db, question, selectedAnswer, attempt]);
 
+  const attemptId = attempt?.id || "";
+  const contextQuestionKey = context?.question.key || "";
+  const persistAssistance = useCallback(
+    (response: AIResponse) => {
+      if (!attemptId || !contextQuestionKey) return;
+      mutate((draft) => {
+        recordStudentAIAssistance(draft, attemptId, contextQuestionKey, response);
+      });
+    },
+    [attemptId, contextQuestionKey, mutate],
+  );
+
   if (!hydrated || !attempt || attempt.strict || !context) return null;
   return (
     <StudentAITutor
       key={context.question.key}
       question={context.question}
       student={context.student}
+      onAssistance={persistAssistance}
     />
   );
 }

@@ -1,14 +1,10 @@
-export type AIAssistanceMode =
-  | "hint"
-  | "explain"
-  | "guided-solve"
-  | "why-wrong"
-  | "explain-alternative"
-  | "study-needed"
-  | "similar-question"
-  | "chat";
+import type {
+  StudentAIAssistanceLevel,
+  StudentAIAssistanceMode,
+} from "../domain/types";
 
-export type AIAssistanceLevel = 1 | 2 | 3 | 4 | 5 | 6;
+export type AIAssistanceMode = StudentAIAssistanceMode;
+export type AIAssistanceLevel = StudentAIAssistanceLevel;
 export type AIGeneratedQuestionLabel = `Questão gerada por IA — estilo ${string}`;
 
 export interface AIQuestionAlternative {

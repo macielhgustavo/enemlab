@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { aguardarApp, prepare } from "./fixtures";
+import { aguardarApp, prepare, STORE_KEY } from "./fixtures";
 
 /**
  * Fumaça: cada rota abre, hidrata e mostra o conteúdo dela — não um erro,
@@ -124,6 +124,41 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
   await expect(page.getByText("Solução completa")).toBeVisible();
   await expect(page.getByText("NÍVEL 6/6")).toBeVisible();
   await expect(page.getByText(/Resposta revelada: B/)).toBeVisible();
+
+  const trace = await page.evaluate((storageKey) => {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const persisted = JSON.parse(raw) as {
+      state?: {
+        db?: {
+          attempts?: Array<{
+            id: string;
+            aiAssistance?: Record<
+              string,
+              {
+                requests: number;
+                maxLevel: number;
+                answerRevealed: boolean;
+                modes: string[];
+                recent: unknown[];
+              }
+            >;
+          }>;
+        };
+      };
+    };
+    const attemptId = window.location.pathname.split("/").filter(Boolean).at(-1);
+    const attempt = persisted.state?.db?.attempts?.find((item) => item.id === attemptId);
+    return Object.values(attempt?.aiAssistance || {})[0] || null;
+  }, STORE_KEY);
+
+  expect(trace).toMatchObject({
+    requests: 3,
+    maxLevel: 6,
+    answerRevealed: true,
+    modes: ["hint", "why-wrong", "chat"],
+  });
+  expect(trace?.recent).toHaveLength(3);
 });
 
 test("o tema alterna e fica", async ({ page }) => {

@@ -12,6 +12,44 @@ export type Confidence = "certeza" | "duvida" | "chute";
 export type Difficulty = "facil" | "media" | "dificil";
 export type KnewChoice = "sabia" | "quase" | "nao" | "pressa" | "";
 
+export type StudentAIAssistanceMode =
+  | "hint"
+  | "explain"
+  | "guided-solve"
+  | "why-wrong"
+  | "explain-alternative"
+  | "study-needed"
+  | "similar-question"
+  | "chat";
+
+export type StudentAIAssistanceLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Evento mínimo persistido. Não guarda texto da conversa nem resposta da IA. */
+export interface StudentAIAssistanceEvent {
+  at: string;
+  mode: StudentAIAssistanceMode;
+  level: StudentAIAssistanceLevel;
+  answerRevealed: boolean;
+  provider: string;
+  fallbackFrom?: string;
+}
+
+/**
+ * Rastro agregado por questão. Mantém contadores completos e só uma janela
+ * recente de eventos para não deixar o armazenamento crescer sem limite.
+ */
+export interface StudentAIAssistanceTrace {
+  requests: number;
+  maxLevel: StudentAIAssistanceLevel;
+  answerRevealed: boolean;
+  modes: StudentAIAssistanceMode[];
+  firstAt: string;
+  lastAt: string;
+  lastProvider: string;
+  fallbackUsed: boolean;
+  recent: StudentAIAssistanceEvent[];
+}
+
 export type AttemptMode =
   | "sprint15"
   | "sprint30"
@@ -149,6 +187,8 @@ export interface Attempt {
   confidence: Record<string, Confidence>;
   flags: Record<string, boolean>;
   timeQ: Record<string, number>;
+  /** Assistência recebida por questionKey; ausente em tentativas antigas. */
+  aiAssistance?: Record<string, StudentAIAssistanceTrace>;
   elapsed: number;
   questionSec?: number;
   essaySec?: number;
