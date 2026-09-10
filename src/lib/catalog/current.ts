@@ -10,6 +10,7 @@
 // ter um índice.
 
 import { CatalogIndex, type CatalogEntry } from "./index";
+import { withNativeCoverage } from "../native/catalog";
 import {
   listProviders,
   itaAnswerKey,
@@ -226,5 +227,5 @@ export function buildCurrentCatalog(): CatalogIndex {
     listProviders().map((p) => [p.id, familiaDe(p.id)]),
   );
 
-  return new CatalogIndex(entradas, familias);
+  return new CatalogIndex(entradas.map((entry) => withNativeCoverage(entry)), familias);
 }

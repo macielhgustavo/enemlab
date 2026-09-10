@@ -499,6 +499,13 @@ export default function ExamPage() {
             {q.alternativesIntroduction && (
               <MathContent className="intro" html={richText(q.alternativesIntroduction)} />
             )}
+            {q.sources?.map((source, index) => (
+              <p className="muted" key={`${index}-${source.label}`}>
+                {source.url && safeUrl(source.url) ? (
+                  <a href={safeUrl(source.url)} target="_blank" rel="noopener noreferrer">{source.label}</a>
+                ) : source.label}
+              </p>
+            ))}
 
             <div className="answers">
               {(q.alternatives || []).map((alt) => {

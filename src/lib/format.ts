@@ -132,8 +132,10 @@ export function normalizeText(x: unknown): string {
 }
 
 export function safeUrl(raw: unknown): string {
+  const value = String(raw || "").trim();
+  if (/^\/native\/assets\/[a-zA-Z0-9_./-]+$/.test(value) && !value.includes("..")) return value;
   try {
-    const u = new URL(String(raw || "").trim());
+    const u = new URL(value);
     return u.protocol === "https:" || u.protocol === "http:" ? u.href : "";
   } catch {
     return "";
@@ -143,7 +145,7 @@ export function safeUrl(raw: unknown): string {
 export function markdownImageUrls(x: unknown): string[] {
   const out: string[] = [];
   const raw = repairQuestionText(x);
-  const re = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/gi;
+  const re = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/native\/assets\/[^)\s]+)\)/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(raw))) {
     const u = safeUrl(m[2]);
@@ -267,7 +269,7 @@ export function richText(x: unknown): string {
   raw = protectInlineHtml(raw, token);
   raw = protectMath(raw, token);
 
-  raw = raw.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/gi, (all, alt, url) => {
+  raw = raw.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/native\/assets\/[^)\s]+)\)/gi, (all, alt, url) => {
     const u = safeUrl(url);
     if (!u) return all;
     return token(

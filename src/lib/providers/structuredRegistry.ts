@@ -64,7 +64,7 @@ function cloneQuestion(question: UniversalStructuredQuestion): UniversalStructur
   };
 }
 
-function validateStructuredQuestion(question: UniversalStructuredQuestion): void {
+export function validateStructuredQuestion(question: UniversalStructuredQuestion): void {
   if (!question.providerId.trim()) throw new Error("structured question: providerId is required");
   if (!Number.isInteger(question.year) || question.year < 1900) {
     throw new Error(`structured question: invalid year ${question.year}`);
@@ -205,8 +205,7 @@ export function withStructuredQuestionContent(
 
   return {
     ...base,
-    content: structured.statement,
-    context: structured.context ?? null,
+    context: [structured.context, structured.statement].filter(Boolean).join("\n\n"),
     alternativesIntroduction: structured.alternativesIntroduction ?? null,
     alternatives: base.alternatives.map((alternative) => {
       const native = structured.alternatives.find((item) => item.letter === alternative.letter)!;

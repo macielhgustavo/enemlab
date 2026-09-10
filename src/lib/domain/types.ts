@@ -52,6 +52,7 @@ export interface Alternative {
   alternatives?: Alternative[];
   correctAlternative?: string;
   files?: string[];
+  sources?: { label: string; url?: string }[];
 
   // ---- v8: provas em modo referência (enunciado na fonte oficial) ----
   /** Numeração oficial na prova, quando difere do índice. */

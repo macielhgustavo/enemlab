@@ -1,5 +1,9 @@
 # Fontes, importadores e providers
 
+A [entrega de questões nativas](native-questions.md) permite publicar conteúdo
+revisado por edição sobre os gabaritos existentes. O manifesto inicial está
+vazio; fontes de referência não mudam automaticamente de status ou de direitos.
+
 Este documento existe porque a v8.0 misturou dois conceitos e isso deixou o
 ENEM embutido no aplicativo inteiro. A v8.0.1 separou.
 

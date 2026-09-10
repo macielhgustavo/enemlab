@@ -19,6 +19,7 @@
     "test:a11y": "playwright test e2e/a11y.spec.ts",
     "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
     "ingest": "node scripts/ingest.mjs",
+    "native:validate": "node scripts/native-content.mjs",
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
     "ingest:vestibular": "python scripts/ingest_vestibular_reference.py",

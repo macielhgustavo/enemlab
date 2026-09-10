@@ -1,5 +1,9 @@
 # Plataforma de ingestão
 
+Para entregar enunciados diretamente no resolvedor, consulte
+[Entrega de questões nativas](native-questions.md): publicação por edição,
+integridade dos arquivos e validação contra os providers existentes.
+
 Como uma prova nova entra no ENEM Lab.
 
 ## O caminho

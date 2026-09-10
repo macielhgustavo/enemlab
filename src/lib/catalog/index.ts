@@ -15,6 +15,8 @@ import type { ValidationLevel } from "../sources/ingestion";
 
 /** Uma edição, do ponto de vista de quem só precisa listá-la. */
 export interface CatalogEntry {
+  nativeQuestionCount?: number;
+  contentMode?: "structured" | "hybrid" | "reference-only";
   providerId: string;
   /** Identidade da edição como a banca escreve ("2026", "2025-2026"). */
   editionId: string;
