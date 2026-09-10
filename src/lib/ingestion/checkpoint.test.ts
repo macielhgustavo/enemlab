@@ -61,7 +61,7 @@ function adapter(version = "adapter@1"): IngestionAdapter {
       },
     },
     statementMode: "structured",
-    extractionMethod: "pdf-text",
+    extractionMethod: "pdf-text-layer",
     rightsStatus: "allowed",
     async plan() {
       return [];
