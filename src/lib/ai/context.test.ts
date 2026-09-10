@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyContent } from "../domain/classify";
+import { classifyContent, questionKey } from "../domain/classify";
 import { makeAttempt, makeDB, makeRow } from "../domain/__fixtures__/db";
 import type { Question, StudentAIAssistanceTrace } from "../domain/types";
 import { buildStudentSnapshot } from "./context";
@@ -67,7 +67,7 @@ describe("Student AI context with assistance-aware performance", () => {
       finishedAt: null,
       result: null,
       aiAssistance: {
-        "2023-1": highAssistanceTrace(),
+        [questionKey(question)]: highAssistanceTrace(),
       },
     });
     const db = makeDB({ attempts: [attempt, active] });
