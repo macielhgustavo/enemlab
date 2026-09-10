@@ -1,0 +1,61 @@
+name: FUVEST Regional Exception Probe
+
+on:
+  pull_request:
+    branches:
+      - refactor/codebase-formatting-and-verification-3935114647598910324
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install OCR dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
+          python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
+      - name: Run focused production batch
+        run: |
+          rm -rf /tmp/enemlab-fuvest-exception-cache
+          python scripts/fuvest-batch-lab.py \
+            --years 2016,2017,2021 \
+            --concurrency 3 \
+            --ocr-concurrency 1 \
+            --no-media \
+            --cache-dir /tmp/enemlab-fuvest-exception-cache \
+            --output /tmp/fuvest-exceptions.json
+      - name: Print unresolved regional reports
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('/tmp/enemlab-fuvest-exception-cache/extraction')
+          for year in (2016, 2017, 2021):
+              files = list((root / str(year)).glob('*.json'))
+              assert len(files) == 1, (year, files)
+              envelope = json.loads(files[0].read_text())
+              report = envelope.get('regionalContentRecovery', {})
+              unresolved = report.get('unresolvedQuestions', [])
+              regions = {
+                  int(item['questionNumber']): item
+                  for item in report.get('regions', [])
+                  if int(item.get('questionNumber', 0)) in set(unresolved)
+              }
+              print(json.dumps({
+                  'year': year,
+                  'targeted': report.get('targetedQuestions', []),
+                  'applied': report.get('appliedQuestions', []),
+                  'unresolved': unresolved,
+                  'unresolvedRegionReports': [regions[n] for n in unresolved if n in regions],
+                  'attemptsByMode': report.get('attemptsByMode', {}),
+              }, ensure_ascii=False))
+          PY
