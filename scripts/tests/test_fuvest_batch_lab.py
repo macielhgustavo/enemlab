@@ -14,6 +14,7 @@ load_valid_extraction_cache = MODULE["load_valid_extraction_cache"]
 parse_years = MODULE["parse_years"]
 regional_result_is_cacheable = MODULE["regional_result_is_cacheable"]
 summarize = MODULE["summarize"]
+validate_concurrency = MODULE["validate_concurrency"]
 
 
 class FuvestBatchLabTest(unittest.TestCase):
@@ -73,6 +74,14 @@ class FuvestBatchLabTest(unittest.TestCase):
         self.assertTrue(
             regional_result_is_cacheable({"rejectedReason": "no-structural-improvement"})
         )
+
+    def test_pipeline_and_ocr_concurrency_use_same_bounds_but_are_independent(self):
+        self.assertEqual(validate_concurrency(4, "concurrency"), 4)
+        self.assertEqual(validate_concurrency(1, "ocr-concurrency"), 1)
+        with self.assertRaisesRegex(ValueError, "ocr-concurrency"):
+            validate_concurrency(0, "ocr-concurrency")
+        with self.assertRaisesRegex(ValueError, "concurrency"):
+            validate_concurrency(9, "concurrency")
 
     def test_default_years_skip_reference_only_edition_without_exam_pdf(self):
         manifest = {
