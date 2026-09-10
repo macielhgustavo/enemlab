@@ -109,6 +109,33 @@ FUVEST 2018 preserves much of the body text but rasterizes question-number label
 
 Real result: 90/90 boundaries recovered, 84/90 structurally complete, 6/90 requiring text/structure review, 19/90 with media pending and zero hosted OCR/LLM API calls for boundary recovery.
 
+## Regional content recovery: FUVEST 2021
+
+FUVEST 2021 preserves all 90 question identities as trustworthy geometric labels, but its body text layer contains **37,134 suspicious control-code occurrences** and the deterministic parser initially produced **0/90 structurally complete questions**.
+
+`scripts/recover-fuvest-region-ocr.py` treats those labels as immutable anchors and OCRs only the rendered region belonging to each question. It does not derive question numbers from OCR and never touches the canonical answer key.
+
+The worker is fail-closed:
+
+- geometry must close exactly at the reviewed sequence 1..90;
+- a question is replaced only when OCR recovers a non-empty statement plus exactly A–E in order;
+- OCR modes are attempted adaptively only while a region remains unresolved;
+- unresolved regions keep their previous blocked representation;
+- every OCR-applied question remains semantic-review-gated;
+- missing Tesseract/PyMuPDF is reported as worker unavailability rather than cached as a successful recovery.
+
+Real production-batch result:
+
+- **90/90** geometric identities preserved;
+- **80/90** questions structurally complete after regional OCR;
+- **10/90** still requiring text/structure review;
+- **17/90** flagged with media dependency;
+- **90/90** still carrying semantic-review pressure by design;
+- cold extraction checkpoint: **122.1 s** in the isolated 2021 benchmark;
+- warm checkpoint hit: **8.34 s**, with the same extraction result.
+
+The improvement is structural recovery, not semantic approval. The raw suspicious-glyph count remains visible because the native PDF layer is not rewritten or declared trustworthy by OCR.
+
 ## Semantic Fidelity Gate
 
 Structure is not semantic correctness. The gate detects:
@@ -163,7 +190,7 @@ There are two cache layers:
 
 A cache hit never bypasses validation. If source bytes or any parser/recovery version changes, the relevant extraction key changes and old output is not reused.
 
-The FUVEST batch cache now includes the proof-aware font-recovery worker version as part of the extraction key. This prevents a pre-font-repair checkpoint from masking a newer deterministic recovery rule.
+The FUVEST batch cache includes the question extractor, proof-aware font recovery, raster-boundary recovery and regional-OCR worker versions in the extraction key. This prevents an older checkpoint from masking a newer deterministic or regional recovery rule.
 
 ## Full 21-edition text/semantic benchmark — 2026-09-10
 
@@ -174,11 +201,13 @@ A temporary GitHub Actions benchmark ran the current integrated pipeline against
 | Editions processed | **21/21** |
 | Failures | **0** |
 | Questions extracted | **1,910** |
-| Structurally complete | **1,722 (90.2%)** |
-| Needs text/structure review | **188 (9.8%)** |
-| Questions flagged missing media | **456 (23.9%)** |
+| Structurally complete | **1,802 (94.3%)** |
+| Needs text/structure review | **108 (5.7%)** |
+| Questions flagged missing media | **473 (24.8%)** |
 | Questions with blocking semantic finding | **783 (41.0%)** |
-| Editions requiring raster-boundary recovery | **1** |
+| Editions requiring recovery | **2** |
+| Editions with regional OCR attempted/applied | **1 / 1** |
+| Regional OCR questions applied | **80/90 targeted** |
 | Editions where font-map was attempted | **16** |
 | Editions where a proven font-map was applied | **7** |
 | Suspicious glyph occurrences proven/repaired | **25,303** |
@@ -187,8 +216,10 @@ A temporary GitHub Actions benchmark ran the current integrated pipeline against
 Operational pressure per 1,000 questions:
 
 - semantic-fidelity blocks: **409.9 / 1,000**;
-- text/structure review: **98.4 / 1,000**;
-- missing-media flags: **238.7 / 1,000**.
+- text/structure review: **56.5 / 1,000**;
+- missing-media flags: **247.6 / 1,000**.
+
+Compared with the immediately previous full benchmark, regional OCR for 2021 increased structural closure from **1,722 to 1,802 questions** and reduced text/structure review from **188 to 108 questions**. The semantic-block count stayed at **783**, which is the intended behavior: structural recovery did not bypass semantic review.
 
 The font worker reduced the measured suspicious-glyph occurrence pool from 66,995 to 41,692: **25,303 occurrences removed with source-level proof (~37.8%)**. This is an occurrence reduction, not a claim that 37.8% of questions became publishable.
 
@@ -196,15 +227,15 @@ The font worker reduced the measured suspicious-glyph occurrence pool from 66,99
 
 | Edition | Structure | Semantic blocks | Text review | Unresolved suspicious glyphs | Route |
 |---|---:|---:|---:|---:|---|
-| 2021 | **0/90** | **90/90** | **90/90** | **37,134** | regional OCR / alternate extraction |
 | 2016 | 72/90 | 88/90 | 18/90 | 802 | regional OCR / layout recovery |
 | 2017 | 78/90 | 90/90 | 12/90 | 1,565 | regional OCR / layout recovery |
+| 2021 | **80/90** | **90/90** | **10/90** | **37,134** | regional OCR applied; 10 structural exceptions + semantic review |
 | 2018 | 84/90 | 90/90 | 6/90 | 1,677 | boundary recovery done; semantic regions next |
 | 2019 | 82/90 | 90/90 | 8/90 | 45 | targeted semantic/layout repair |
 | 2020 | 85/90 | 90/90 | 5/90 | 34 | targeted semantic/layout repair |
 | 2012 | 88/90 | 90/90 | 2/90 | 88 | targeted semantic repair |
 
-FUVEST 2021 is the dominant remaining source of raw glyph corruption: its 37,134 unresolved occurrences represent almost 89% of the unresolved suspicious-glyph pool. The PDF does not provide enough embedded-font/ToUnicode evidence for safe deterministic replacement, so weakening the semantic gate would be incorrect. The next specialized worker should operate on selected rendered regions/pages while retaining native text wherever it is trustworthy.
+FUVEST 2021 remains the dominant source of raw glyph corruption, but it is no longer the dominant **structural** failure: regional OCR recovered 80 questions without weakening provenance or semantic gates. The next structural priorities are 2016 and 2017, followed by the 10 unresolved 2021 regions. Semantic/layout cleanup for 2018–2021 remains a separate gate.
 
 ## Full batch command
 
@@ -220,21 +251,23 @@ The runner defaults to all currently eligible FUVEST editions, supports concurre
 ```text
 1,910 historical questions
        ↓
-1,722 structurally complete without per-year hand coding
+1,802 structurally complete without per-year hand coding
        ↓
 font proof removes cheap deterministic corruption
        ↓
-media + semantic gates expose the exception set
+regional OCR recovers damaged text only where supported
        ↓
-regional OCR / vision / human review only where required
+media + semantic gates expose the remaining exception set
+       ↓
+vision / human review only where required
 ```
 
 The engine now demonstrates the core property needed for large question-bank growth: **adding volume is a batch-data operation, not a new coding project for every exam edition**.
 
 The next optimization targets are:
 
-1. FUVEST 2021 regional structural/semantic recovery;
-2. FUVEST 2016–2020 targeted semantic/layout recovery;
+1. regional structural/layout recovery for FUVEST 2016–2017 and the 10 unresolved 2021 regions;
+2. targeted semantic recovery for 2018–2021 and 2012;
 3. precise proof that all required visual content for a question has been recovered;
 4. persistent review decisions so accepted corrections are never reviewed twice;
 5. conditional HTTP/document caching to reduce repeated download cost;
