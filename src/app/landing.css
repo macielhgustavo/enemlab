@@ -1,0 +1,155 @@
+/* Landing page importada do protótipo Lovable e isolada do design system do painel. */
+.landing-page {
+  --bg: oklch(0.145 0.012 185);
+  --text: oklch(0.94 0.01 175);
+  --surface-1: oklch(0.17 0.014 185);
+  --surface-3: oklch(0.205 0.017 185);
+  --muted: oklch(0.68 0.025 180);
+  --text-faint: oklch(0.52 0.022 185);
+  --line: oklch(0.32 0.02 185 / 0.6);
+  --brand: oklch(0.78 0.15 162);
+  --cyan: oklch(0.78 0.12 198);
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --landing-shadow-action: 0 1px 0 oklch(1 0 0 / 0.14) inset,
+    0 8px 28px oklch(0.78 0.15 162 / 0.16);
+  --landing-shadow-action-hover: 0 1px 0 oklch(1 0 0 / 0.18) inset,
+    0 14px 40px oklch(0.78 0.15 162 / 0.26);
+  --landing-shadow-panel: 0 40px 120px -24px oklch(0.04 0.015 185 / 0.75);
+  --landing-shadow-soft: 0 1px 0 oklch(1 0 0 / 0.04) inset,
+    0 18px 48px -28px oklch(0.03 0.01 185 / 0.9);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.landing-page h1,
+.landing-page h2 {
+  letter-spacing: -0.032em;
+  text-wrap: balance;
+}
+
+.landing-page h3 { letter-spacing: -0.018em; }
+.landing-page p { text-wrap: pretty; }
+.landing-page ::selection { background: color-mix(in oklab, var(--brand) 35%, transparent); }
+
+.landing-page .landing-technical-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--text) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--text) 13%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.landing-page .landing-panel-shadow { box-shadow: var(--landing-shadow-panel); }
+.landing-page .landing-soft-shadow { box-shadow: var(--landing-shadow-soft); }
+.landing-page .landing-glass {
+  background: color-mix(in oklab, var(--bg) 62%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  border-bottom: 1px solid var(--line);
+}
+.landing-page .landing-surface-gradient {
+  background-image: linear-gradient(160deg, oklch(0.205 0.017 185 / 0.9), oklch(0.165 0.013 185 / 0.9));
+}
+.landing-page .landing-text-accent-gradient {
+  background-image: linear-gradient(100deg, oklch(0.82 0.15 162), oklch(0.78 0.13 190));
+  background-clip: text;
+  color: transparent;
+}
+.landing-page .landing-hairline-top::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--brand) 40%, transparent), transparent);
+}
+.landing-page .landing-lift {
+  transition: transform 0.5s var(--ease-premium), background-color 0.5s var(--ease-premium),
+    box-shadow 0.5s var(--ease-premium), border-color 0.5s var(--ease-premium);
+}
+.landing-page .landing-lift:hover { transform: translateY(-3px); }
+
+@keyframes landing-signal-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.landing-page .landing-signal-pulse { animation: landing-signal-pulse 2.8s ease-in-out infinite; }
+
+@keyframes landing-rise-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+.landing-page .landing-reveal {
+  animation: landing-rise-in 0.9s var(--ease-premium) both;
+  animation-delay: calc(var(--d, 0) * 90ms);
+}
+.landing-page .landing-reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s var(--ease-premium), transform 0.9s var(--ease-premium);
+  transition-delay: calc(var(--d, 0) * 80ms);
+}
+.landing-page .landing-reveal-on-scroll[data-visible="true"] { opacity: 1; transform: none; }
+
+.login-page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+}
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 430px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 32px;
+  background: color-mix(in oklab, var(--surface-1) 92%, transparent);
+  box-shadow: var(--landing-shadow-panel);
+  backdrop-filter: blur(18px);
+}
+.login-field { display: grid; gap: 8px; margin-top: 18px; }
+.login-field label { color: var(--muted); font-size: 12px; font-weight: 600; }
+.login-field input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  color: var(--text);
+  padding: 12px 13px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.login-field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 15%, transparent); }
+.login-submit {
+  display: inline-flex;
+  width: 100%;
+  height: 46px;
+  margin-top: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #04120d;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--landing-shadow-action);
+}
+.login-submit:disabled { cursor: wait; opacity: 0.72; }
+.login-error { margin-top: 12px; color: #ff8291; font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page { scroll-behavior: auto; }
+  .landing-page *, .landing-page *::before, .landing-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
