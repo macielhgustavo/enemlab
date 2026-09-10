@@ -11,6 +11,7 @@ import "./experience-polish.css";
 import "./daily-plan.css";
 import "./account.css";
 import "./landing.css";
+import "./landing-fidelity.css";
 import "../styles/refinement.css";
 import { PRODUCT_BRAND } from "@/components/Brand";
 import Providers from "@/components/Providers";
