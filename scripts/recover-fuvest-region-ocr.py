@@ -2,9 +2,9 @@
 """Recupera conteúdo textual por OCR local em regiões de questão da FUVEST.
 
 Este worker existe para PDFs cuja identidade das questões continua legível, mas a
-camada textual do corpo está semanticamente corrompida. O primeiro layout
-suportado é a FUVEST 2021: os rótulos 01..90 aparecem em fonte/posições estáveis,
-enquanto o corpo usa fontes que a extração textual expõe como controles.
+camada textual do corpo está semanticamente corrompida ou estruturalmente
+incompleta. Os layouts suportados são explicitamente versionados e só entram no
+fallback quando os rótulos oficiais fecham exatamente a sequência 1..N.
 
 Regras de segurança do pipeline:
 
@@ -41,15 +41,56 @@ from typing import Any
 BASE = runpy.run_path(str(Path(__file__).with_name("extract-fuvest-questions.py")))
 
 WORKER_NAME = "fuvest-regional-content-ocr"
-WORKER_VERSION = "fuvest-regional-content-ocr@0.1.0"
-TARGET_YEAR = 2021
-QUESTION_LABEL_FONT_TOKEN = "SegoeUIBlack"
+WORKER_VERSION = "fuvest-regional-content-ocr@0.2.0"
+DEFAULT_YEAR = 2021
 OCR_MODES = (6, 4, 3, 11)
 LETTERS = ("A", "B", "C", "D", "E")
+
+# Layout support is intentionally explicit. A new year does not enter OCR just
+# because it resembles another booklet: its label font/position profile must be
+# measured first and the final geometry must still close exactly at 1..N.
+LAYOUT_PROFILES: dict[int, dict[str, Any]] = {
+    2016: {
+        "labelFontTokens": ("Calibri-Bold",),
+        "labelPattern": r"\d{1,2}",
+        "labelXBands": ((48.0, 68.0), (308.0, 330.0)),
+    },
+    2017: {
+        "labelFontTokens": ("Calibri-Bold",),
+        "labelPattern": r"\d{1,2}",
+        "labelXBands": ((48.0, 68.0), (308.0, 330.0)),
+    },
+    2021: {
+        "labelFontTokens": ("SegoeUIBlack",),
+        "labelPattern": r"\d{2}",
+        "labelXBands": None,
+    },
+}
 
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def layout_profile(year: int) -> dict[str, Any] | None:
+    return LAYOUT_PROFILES.get(int(year))
+
+
+def label_matches_profile(
+    text: str,
+    fonts: set[str],
+    x0: float,
+    profile: dict[str, Any],
+) -> bool:
+    if not re.fullmatch(str(profile["labelPattern"]), text):
+        return False
+    tokens = tuple(str(token) for token in profile["labelFontTokens"])
+    if not any(any(token in font for token in tokens) for font in fonts):
+        return False
+    bands = profile.get("labelXBands")
+    if bands is not None and not any(float(start) <= x0 <= float(end) for start, end in bands):
+        return False
+    return True
 
 
 def structurally_complete(question: dict[str, Any]) -> bool:
@@ -62,7 +103,8 @@ def structurally_complete(question: dict[str, Any]) -> bool:
 def should_attempt_region_recovery(
     envelope: dict[str, Any], entry: dict[str, Any]
 ) -> bool:
-    if int(entry.get("year", 0)) != TARGET_YEAR:
+    year = int(entry.get("year", 0))
+    if layout_profile(year) is None:
         return False
     questions = envelope.get("extraction", {}).get("questions", [])
     if len(questions) != int(entry.get("total", 0)):
@@ -225,8 +267,12 @@ def build_question_regions(
 
 
 def discover_question_regions(
-    pdf_bytes: bytes, expected_count: int
+    pdf_bytes: bytes, expected_count: int, year: int = DEFAULT_YEAR
 ) -> list[dict[str, Any]]:
+    profile = layout_profile(year)
+    if profile is None:
+        raise ValueError(f"regional OCR layout unsupported for FUVEST {year}")
+
     try:
         import pymupdf
     except ImportError as error:  # pragma: no cover - depends on runtime package
@@ -245,15 +291,18 @@ def discover_question_regions(
                 spans = line.get("spans", [])
                 text = "".join(str(span.get("text", "")) for span in spans).strip()
                 bbox = line.get("bbox")
-                if not bbox or not re.fullmatch(r"\d{2}", text):
+                if not bbox:
                     continue
                 fonts = {str(span.get("font", "")) for span in spans}
-                if not any(QUESTION_LABEL_FONT_TOKEN in font for font in fonts):
-                    continue
                 x0, y0, x1, y1 = map(float, bbox)
+                if not label_matches_profile(text, fonts, x0, profile):
+                    continue
+                number = int(text)
+                if number < 1 or number > expected_count:
+                    continue
                 labels.append(
                     {
-                        "number": int(text),
+                        "number": number,
                         "page": page_number,
                         "x0": x0,
                         "y0": y0,
@@ -500,12 +549,14 @@ def recover_envelope(
     if not should_attempt_region_recovery(envelope, entry) or not targets:
         return envelope, base_report
 
+    year = int(entry["year"])
     try:
-        regions = discover_question_regions(exam_bytes, int(entry["total"]))
+        regions = discover_question_regions(exam_bytes, int(entry["total"]), year)
     except (RuntimeError, ValueError) as error:
         return envelope, {**base_report, "rejectedReason": str(error)}
 
     recovered, report = ocr_question_regions(exam_bytes, regions, targets)
+    report["layoutYear"] = year
     if not recovered:
         return envelope, report
 
@@ -525,7 +576,7 @@ def recover_envelope(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--year", type=int, default=TARGET_YEAR)
+    parser.add_argument("--year", type=int, default=DEFAULT_YEAR)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--metrics", action="store_true")
     args = parser.parse_args()
