@@ -96,6 +96,36 @@ for (const provider of VESTIBULARES_REFERENCIA) {
   });
 }
 
+test("o tutor IA usa o contexto da questão e respeita a escada de assistência", async ({ page }) => {
+  await prepare(page, { provider: "enem", comHistorico: true });
+  await page.goto("/practice");
+  await aguardarApp(page);
+
+  await page.getByRole("button", { name: "Começar", exact: true }).click();
+  await expect(page).toHaveURL(/\/exam\//);
+  await expect(page.locator(".studentAITrigger")).toBeVisible();
+
+  await page.locator(".studentAITrigger").click();
+  await page.getByRole("button", { name: "Me dê uma pista" }).click();
+  await expect(page.getByText("Pista 1 de 6")).toBeVisible();
+  await expect(page.getByText("NÍVEL 1/6")).toBeVisible();
+  await expect(page.getByText(/Resposta revelada:/)).toHaveCount(0);
+
+  const primeiraAlternativa = page.locator(".answer").first();
+  await primeiraAlternativa.click();
+  await expect(primeiraAlternativa).toHaveClass(/selected/);
+  await page.getByRole("button", { name: "Por que minha resposta está errada?" }).click();
+  await expect(page.getByText(/Reavalie a alternativa A/)).toBeVisible();
+  await expect(page.getByText(/Resposta revelada:/)).toHaveCount(0);
+
+  const composer = page.getByRole("textbox", { name: "Mensagem para o tutor IA" });
+  await composer.fill("Resolva completamente essa questão");
+  await page.getByRole("button", { name: "Enviar para o tutor" }).click();
+  await expect(page.getByText("Solução completa")).toBeVisible();
+  await expect(page.getByText("NÍVEL 6/6")).toBeVisible();
+  await expect(page.getByText(/Resposta revelada: B/)).toBeVisible();
+});
+
 test("o tema alterna e fica", async ({ page }) => {
   await prepare(page, { theme: "dark" });
   await page.goto("/");
