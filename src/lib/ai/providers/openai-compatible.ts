@@ -12,6 +12,11 @@ interface ChatCompletionResponse {
   };
 }
 
+export interface OpenAICompatibleProviderOptions {
+  id?: string;
+  headers?: Record<string, string>;
+}
+
 function extractJsonObject(content: string): unknown {
   const trimmed = content.trim();
   try {
@@ -39,13 +44,18 @@ function parseCompletionBody(raw: string): ChatCompletionResponse {
 }
 
 export class OpenAICompatibleProvider implements AIProvider {
-  readonly id = "openai-compatible";
+  readonly id: string;
+  private readonly extraHeaders: Record<string, string>;
 
   constructor(
     private readonly apiKey: string,
     private readonly model: string,
     private readonly baseUrl: string,
-  ) {}
+    options: OpenAICompatibleProviderOptions = {},
+  ) {
+    this.id = options.id || "openai-compatible";
+    this.extraHeaders = options.headers || {};
+  }
 
   async generate(input: AIProviderRequest): Promise<AIProviderOutput> {
     const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -53,6 +63,7 @@ export class OpenAICompatibleProvider implements AIProvider {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
+        ...this.extraHeaders,
       },
       body: JSON.stringify({
         model: this.model,
