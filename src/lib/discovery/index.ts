@@ -3,5 +3,6 @@ export * from "./documentInventory";
 export * from "./engine";
 export * from "./fingerprint";
 export * from "./harvestRunner";
+export * from "./recipes";
 export * from "./sourceRecipe";
 export * from "./types";
