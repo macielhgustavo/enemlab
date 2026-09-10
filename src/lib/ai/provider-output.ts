@@ -34,6 +34,73 @@ const generatedQuestionDraftSchema = z
   .strict();
 
 /**
+ * JSON Schema enviado ao OpenRouter. Mantemos a validação Zod abaixo como
+ * segunda barreira, porque o provider externo nunca é uma fronteira confiável.
+ */
+export const aiProviderOutputJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 1, maxLength: 240 },
+    explanation: { type: "string", minLength: 1, maxLength: 20_000 },
+    concepts: {
+      type: "array",
+      maxItems: 8,
+      items: { type: "string", minLength: 1, maxLength: 180 },
+    },
+    nextStep: { type: "string", minLength: 1, maxLength: 4_000 },
+    revealAnswer: { type: "boolean" },
+    answer: { type: "string", maxLength: 3 },
+    diagnostic: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        category: {
+          type: "string",
+          enum: [
+            "content-gap",
+            "interpretation",
+            "calculation",
+            "strategy",
+            "attention",
+            "unknown",
+          ],
+        },
+        confidence: { type: "string", enum: ["low", "medium", "high"] },
+        note: { type: "string", minLength: 1, maxLength: 1_500 },
+      },
+      required: ["category", "confidence", "note"],
+    },
+    generatedQuestion: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        statement: { type: "string", minLength: 1, maxLength: 20_000 },
+        alternatives: {
+          type: "array",
+          minItems: 2,
+          maxItems: 8,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              letter: { type: "string", minLength: 1, maxLength: 3 },
+              text: { type: "string", minLength: 1, maxLength: 8_000 },
+              file: { type: ["string", "null"], maxLength: 2_000 },
+            },
+            required: ["letter", "text"],
+          },
+        },
+        correctAnswer: { type: "string", minLength: 1, maxLength: 3 },
+        explanation: { type: "string", maxLength: 8_000 },
+      },
+      required: ["statement", "alternatives", "correctAnswer"],
+    },
+  },
+  required: ["title", "explanation", "concepts", "nextStep", "revealAnswer"],
+} as const;
+
+/**
  * Fronteira de confiança entre um LLM externo e o produto. O modelo só pode
  * preencher conteúdo pedagógico; decisões de política e procedência ficam
  * fora deste schema e são impostas pelo ENEMLab depois.

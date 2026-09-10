@@ -36,9 +36,11 @@ function providerRequest(): AIProviderRequest {
   };
 }
 
-function successfulResponse() {
+function successResponse() {
   return new Response(
     JSON.stringify({
+      model: "free/structured-model",
+      provider: "Example",
       choices: [
         {
           message: {
@@ -57,14 +59,30 @@ function successfulResponse() {
   );
 }
 
+const responseFormat = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "test",
+    strict: true,
+    schema: {
+      type: "object",
+      properties: { title: { type: "string" } },
+      required: ["title"],
+      additionalProperties: false,
+    },
+  },
+};
+
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 describe("OpenAICompatibleProvider", () => {
-  it("permite identidade, headers e roteamento específicos sem duplicar o transporte", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
+  it("envia structured output, healing e roteamento exigido pelo OpenRouter", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(successResponse());
     vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
 
     const provider = new OpenAICompatibleProvider(
       "secret",
@@ -76,10 +94,14 @@ describe("OpenAICompatibleProvider", () => {
           "HTTP-Referer": "https://enemlab.example",
           "X-Title": "ENEMLab",
         },
-        maxTokens: 700,
+        timeoutMs: 12_000,
+        maxTokens: 1_200,
+        responseFormat,
+        plugins: [{ id: "response-healing" }],
         providerRouting: {
           sort: "latency",
           allowFallbacks: true,
+          requireParameters: true,
         },
       },
     );
@@ -98,32 +120,53 @@ describe("OpenAICompatibleProvider", () => {
 
     const body = JSON.parse(String(init.body)) as {
       model: string;
-      max_tokens?: number;
-      provider?: { sort?: string; allow_fallbacks?: boolean };
+      max_tokens: number;
       messages: Array<{ role: string; content: string }>;
+      provider: {
+        sort: string;
+        allow_fallbacks: boolean;
+        require_parameters: boolean;
+      };
+      response_format: { type: string; json_schema: { strict: boolean } };
+      plugins: Array<{ id: string }>;
     };
     expect(body.model).toBe("provider/model");
-    expect(body.max_tokens).toBe(700);
-    expect(body.provider).toEqual({ sort: "latency", allow_fallbacks: true });
+    expect(body.max_tokens).toBe(1_200);
     expect(body.messages.map((message) => message.role)).toEqual(["system", "user"]);
+    expect(body.provider).toEqual({
+      sort: "latency",
+      allow_fallbacks: true,
+      require_parameters: true,
+    });
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.strict).toBe(true);
+    expect(body.plugins).toEqual([{ id: "response-healing" }]);
   });
 
-  it("tenta um modelo alternativo quando o modelo principal excede o tempo", async () => {
-    const timeout = Object.assign(new Error("slow provider"), { name: "TimeoutError" });
+  it("mantém o contrato estruturado ao cair para outro modelo", async () => {
     const fetchMock = vi
       .fn()
-      .mockRejectedValueOnce(timeout)
-      .mockResolvedValueOnce(successfulResponse());
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "response_format não suportado" } }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(successResponse());
     vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
 
     const provider = new OpenAICompatibleProvider(
       "secret",
-      "provider/slow-free",
+      "provider/sem-structured-output",
       "https://openrouter.ai/api/v1",
       {
         id: "openrouter",
-        timeoutMs: 12_000,
         fallbackModels: ["openrouter/free"],
+        responseFormat,
+        plugins: [{ id: "response-healing" }],
+        providerRouting: { requireParameters: true },
       },
     );
 
@@ -131,9 +174,22 @@ describe("OpenAICompatibleProvider", () => {
     expect(result.title).toBe("Pista");
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as { model: string };
-    const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body)) as { model: string };
-    expect(firstBody.model).toBe("provider/slow-free");
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      model: string;
+      response_format: { type: string };
+      provider: { require_parameters: boolean };
+    };
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as {
+      model: string;
+      response_format: { type: string };
+      provider: { require_parameters: boolean };
+    };
+
+    expect(firstBody.model).toBe("provider/sem-structured-output");
     expect(secondBody.model).toBe("openrouter/free");
+    expect(firstBody.response_format.type).toBe("json_schema");
+    expect(secondBody.response_format.type).toBe("json_schema");
+    expect(firstBody.provider.require_parameters).toBe(true);
+    expect(secondBody.provider.require_parameters).toBe(true);
   });
 });

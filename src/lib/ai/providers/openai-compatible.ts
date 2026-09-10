@@ -2,6 +2,8 @@ import { parseAIProviderOutput } from "../provider-output";
 import type { AIProvider, AIProviderOutput, AIProviderRequest } from "../types";
 
 interface ChatCompletionResponse {
+  model?: string;
+  provider?: string;
   choices?: Array<{
     message?: {
       content?: string | null;
@@ -17,6 +19,20 @@ type ProviderSort = "price" | "throughput" | "latency";
 interface ProviderRoutingPreference {
   sort?: ProviderSort;
   allowFallbacks?: boolean;
+  requireParameters?: boolean;
+}
+
+interface StructuredResponseFormat {
+  type: "json_schema";
+  json_schema: {
+    name: string;
+    strict?: boolean;
+    schema: unknown;
+  };
+}
+
+interface ProviderPlugin {
+  id: string;
 }
 
 interface ChatCompletionRequest {
@@ -27,7 +43,10 @@ interface ChatCompletionRequest {
   provider?: {
     sort?: ProviderSort;
     allow_fallbacks?: boolean;
+    require_parameters?: boolean;
   };
+  response_format?: StructuredResponseFormat;
+  plugins?: ProviderPlugin[];
 }
 
 export interface OpenAICompatibleProviderOptions {
@@ -37,6 +56,8 @@ export interface OpenAICompatibleProviderOptions {
   maxTokens?: number;
   fallbackModels?: string[];
   providerRouting?: ProviderRoutingPreference;
+  responseFormat?: StructuredResponseFormat;
+  plugins?: ProviderPlugin[];
 }
 
 function extractJsonObject(content: string): unknown {
@@ -76,6 +97,8 @@ export class OpenAICompatibleProvider implements AIProvider {
   private readonly maxTokens?: number;
   private readonly fallbackModels: string[];
   private readonly providerRouting?: ProviderRoutingPreference;
+  private readonly responseFormat?: StructuredResponseFormat;
+  private readonly plugins: ProviderPlugin[];
 
   constructor(
     private readonly apiKey: string,
@@ -91,6 +114,8 @@ export class OpenAICompatibleProvider implements AIProvider {
       (candidate, index, models) => candidate !== model && models.indexOf(candidate) === index,
     );
     this.providerRouting = options.providerRouting;
+    this.responseFormat = options.responseFormat;
+    this.plugins = options.plugins || [];
   }
 
   private async generateWithModel(
@@ -112,9 +137,14 @@ export class OpenAICompatibleProvider implements AIProvider {
               ...(this.providerRouting.allowFallbacks !== undefined
                 ? { allow_fallbacks: this.providerRouting.allowFallbacks }
                 : {}),
+              ...(this.providerRouting.requireParameters !== undefined
+                ? { require_parameters: this.providerRouting.requireParameters }
+                : {}),
             },
           }
         : {}),
+      ...(this.responseFormat ? { response_format: this.responseFormat } : {}),
+      ...(this.plugins.length ? { plugins: this.plugins } : {}),
     };
 
     let response: Response;
@@ -148,7 +178,14 @@ export class OpenAICompatibleProvider implements AIProvider {
     const content = body.choices?.[0]?.message?.content;
     if (!content) throw new Error("O provider de IA retornou uma resposta vazia.");
 
-    return parseAIProviderOutput(extractJsonObject(content));
+    const parsed = parseAIProviderOutput(extractJsonObject(content));
+    if (this.id === "openrouter") {
+      console.info("student-ai:provider-success", {
+        model: body.model || model,
+        endpoint: body.provider || null,
+      });
+    }
+    return parsed;
   }
 
   async generate(input: AIProviderRequest): Promise<AIProviderOutput> {

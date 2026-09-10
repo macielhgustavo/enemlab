@@ -1,3 +1,4 @@
+import { aiProviderOutputJsonSchema } from "../provider-output";
 import type { AIProvider } from "../types";
 import { MockAIProvider } from "./mock";
 import { OpenAICompatibleProvider } from "./openai-compatible";
@@ -36,12 +37,22 @@ export function getAIProvider(): AIProvider {
           ...(appName ? { "X-Title": appName } : {}),
         },
         timeoutMs: 12_000,
-        maxTokens: 700,
+        maxTokens: 1_200,
         fallbackModels: model === OPENROUTER_FREE_ROUTER ? [] : [OPENROUTER_FREE_ROUTER],
         providerRouting: {
           sort: "latency",
           allowFallbacks: true,
+          requireParameters: true,
         },
+        responseFormat: {
+          type: "json_schema",
+          json_schema: {
+            name: "enemlab_student_ai",
+            strict: true,
+            schema: aiProviderOutputJsonSchema,
+          },
+        },
+        plugins: [{ id: "response-healing" }],
       },
     );
   }
