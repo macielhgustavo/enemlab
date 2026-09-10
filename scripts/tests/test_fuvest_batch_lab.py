@@ -8,6 +8,7 @@ MODULE = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "fuvest-batch-lab.py"),
     run_name="fuvest_batch_lab_test",
 )
+attempt_proven_font_recovery = MODULE["attempt_proven_font_recovery"]
 content_cache_key = MODULE["content_cache_key"]
 load_valid_extraction_cache = MODULE["load_valid_extraction_cache"]
 parse_years = MODULE["parse_years"]
@@ -52,6 +53,14 @@ class FuvestBatchLabTest(unittest.TestCase):
             )
             self.assertIsNone(stale)
 
+    def test_font_recovery_is_not_attempted_for_clean_pages(self):
+        pages = ["Questão 01\nTexto sem glifo suspeito"]
+        repaired, report = attempt_proven_font_recovery(b"not-a-pdf", pages)
+        self.assertIs(repaired, pages)
+        self.assertFalse(report["attempted"])
+        self.assertFalse(report["applied"])
+        self.assertEqual(report["resolvedOccurrences"], 0)
+
     def test_default_years_skip_reference_only_edition_without_exam_pdf(self):
         manifest = {
             "2022": {"examUrl": None, "answerKeyUrl": "https://example.test/key.pdf"},
@@ -75,6 +84,10 @@ class FuvestBatchLabTest(unittest.TestCase):
                     "semanticIssues": 2,
                     "needsTextReview": 2,
                     "recovered": False,
+                    "fontMapAttempted": True,
+                    "fontMapApplied": True,
+                    "fontMapResolvedOccurrences": 123,
+                    "fontMapUnresolvedOccurrences": 4,
                     "extractionCacheHit": True,
                     "mediaAssets": 65,
                     "mediaAutomatic": 46,
@@ -88,6 +101,10 @@ class FuvestBatchLabTest(unittest.TestCase):
         self.assertEqual(value["questions"], 90)
         self.assertEqual(value["completeStructure"], 88)
         self.assertEqual(value["needsTextReview"], 2)
+        self.assertEqual(value["fontMapAttemptedEditions"], 1)
+        self.assertEqual(value["fontMapAppliedEditions"], 1)
+        self.assertEqual(value["fontMapResolvedOccurrences"], 123)
+        self.assertEqual(value["fontMapUnresolvedOccurrences"], 4)
         self.assertEqual(value["extractionCacheHits"], 1)
         self.assertEqual(value["mediaCacheHits"], 1)
 
