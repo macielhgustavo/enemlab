@@ -24,6 +24,7 @@
     "ingest:fuvest:questions": "python scripts/extract-fuvest-questions.py",
     "ingest:fuvest:ocr": "python scripts/recover-fuvest-ocr.py",
     "ingest:fuvest:media": "python scripts/extract-fuvest-media.py",
+    "ingest:fuvest:batch": "python scripts/fuvest-batch-lab.py",
     "ingest:vestibular": "python scripts/ingest_vestibular_reference.py",
     "sources:audit": "node --use-system-ca scripts/sources-audit.mjs"
   },
