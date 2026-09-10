@@ -1,0 +1,25 @@
+/* Correções de fidelidade para neutralizar regras globais do dashboard. */
+html:has(body.public-shell) {
+  scrollbar-gutter: auto;
+}
+
+.landing-page {
+  /* O componente portado usa text-muted e border-line como aliases dos
+     tokens originais muted-foreground e border. */
+  --muted: oklch(0.68 0.025 180);
+  --line: oklch(0.32 0.02 185 / 0.6);
+  --technical-line: oklch(0.7 0.03 180 / 0.13);
+}
+
+/* O ENEMLab colore todo <a> com --brand. No protótipo Lovable os links
+   herdam a cor do contexto; sem isso a navegação e a marca ficam verdes. */
+.landing-page a {
+  color: inherit;
+}
+
+.landing-page .technical-grid,
+.landing-page .landing-technical-grid {
+  background-image:
+    linear-gradient(to right, var(--technical-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--technical-line) 1px, transparent 1px);
+}
