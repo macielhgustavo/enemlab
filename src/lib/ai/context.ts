@@ -4,10 +4,30 @@ import { AREA_LABELS } from "@/lib/domain/constants";
 import { officialRowsOf, weakestContents } from "@/lib/domain/stats";
 import { resolveProviderId, sameProvider } from "@/lib/providers/registry";
 import type { DB, Difficulty, Question, ResultRow } from "@/lib/domain/types";
-import type { AIQuestionContext, AIStudentSnapshot } from "./types";
+import { assistanceForQuestion, isHighAssistance } from "./assistance";
+import { assistanceAwarePerformance } from "./independence";
+import type {
+  AIIndependenceSnapshot,
+  AIQuestionContext,
+  AIStudentSnapshot,
+} from "./types";
 
 function accuracy(correct: number, total: number): number | null {
   return total ? pct(correct, total) : null;
+}
+
+function independenceSnapshot(
+  db: DB,
+  rows: ResultRow[],
+): AIIndependenceSnapshot {
+  const performance = assistanceAwarePerformance(db, rows);
+  return {
+    independentQuestions: performance.independentQuestions,
+    independentAccuracy: performance.independentAccuracy,
+    highAssistanceQuestions: performance.highAssistanceQuestions,
+    correctWithHighAssistance: performance.correctWithHighAssistance,
+    correctWithHighAssistanceShare: performance.correctWithHighAssistanceShare,
+  };
 }
 
 function personalDifficultyForRows(
@@ -56,6 +76,7 @@ export function buildStudentSnapshot(
   question: Question,
   selectedAnswer?: string | null,
   attemptProviderId?: string | null,
+  attemptId?: string | null,
 ): { question: AIQuestionContext; student: AIStudentSnapshot } {
   const providerId = resolveProviderId(question.providerId ?? attemptProviderId);
   const topic = classifyContent(question);
@@ -68,6 +89,9 @@ export function buildStudentSnapshot(
   );
   const subjectRows = rows.filter((row) => row.area === subjectId);
   const key = questionKey(question);
+  const currentTrace = attemptId
+    ? assistanceForQuestion(db, attemptId, key)
+    : undefined;
 
   const questionContext: AIQuestionContext = {
     key,
@@ -104,21 +128,41 @@ export function buildStudentSnapshot(
     ).length,
     recentQuestions: recent.length,
     recentAccuracy: accuracy(recent.filter((row) => row.isCorrect).length, recent.length),
+    recentIndependence: independenceSnapshot(db, recent),
     topicQuestions: topicRows.length,
     topicAccuracy: accuracy(topicRows.filter((row) => row.isCorrect).length, topicRows.length),
+    topicIndependence: independenceSnapshot(db, topicRows),
     subjectQuestions: subjectRows.length,
     subjectAccuracy: accuracy(
       subjectRows.filter((row) => row.isCorrect).length,
       subjectRows.length,
     ),
+    subjectIndependence: independenceSnapshot(db, subjectRows),
+    currentQuestionAssistance: currentTrace
+      ? {
+          requests: currentTrace.requests,
+          maxLevel: currentTrace.maxLevel,
+          answerRevealed: currentTrace.answerRevealed,
+          highAssistance: isHighAssistance(currentTrace),
+        }
+      : null,
     highConfidenceErrors: recent.filter(
       (row) => row.isCorrect === false && row.confidence === "certeza",
     ).length,
-    weakTopics: weakestContents(db, 3, providerId).map((item) => ({
-      topic: item.name,
-      accuracy: item.p,
-      questions: item.t,
-    })),
+    weakTopics: weakestContents(db, 3, providerId).map((item) => {
+      const itemRows = rows.filter(
+        (row) => row.content === item.name || row.tags?.includes(item.name),
+      );
+      const independent = assistanceAwarePerformance(db, itemRows);
+      return {
+        topic: item.name,
+        accuracy: item.p,
+        questions: item.t,
+        independentAccuracy: independent.independentAccuracy,
+        highAssistanceQuestions: independent.highAssistanceQuestions,
+        correctWithHighAssistance: independent.correctWithHighAssistance,
+      };
+    }),
   };
 
   return { question: questionContext, student };
