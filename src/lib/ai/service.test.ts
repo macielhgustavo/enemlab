@@ -40,16 +40,18 @@ afterEach(() => {
 });
 
 describe("Student AI provider fallback", () => {
-  it("é automático fora de produção e fechado por padrão em produção", () => {
+  it("é automático fora de produção, inclusive em Preview da Vercel", () => {
     expect(shouldFallbackToMock("external", undefined, "development")).toBe(true);
     expect(shouldFallbackToMock("external", undefined, "test")).toBe(true);
+    expect(shouldFallbackToMock("external", undefined, "production", "preview")).toBe(true);
+    expect(shouldFallbackToMock("external", undefined, "production", "production")).toBe(false);
     expect(shouldFallbackToMock("external", undefined, "production")).toBe(false);
-    expect(shouldFallbackToMock("mock", "true", "production")).toBe(false);
+    expect(shouldFallbackToMock("mock", "true", "production", "preview")).toBe(false);
   });
 
   it("respeita configuração explícita", () => {
-    expect(shouldFallbackToMock("external", "true", "production")).toBe(true);
-    expect(shouldFallbackToMock("external", "false", "development")).toBe(false);
+    expect(shouldFallbackToMock("external", "true", "production", "production")).toBe(true);
+    expect(shouldFallbackToMock("external", "false", "development", "preview")).toBe(false);
   });
 
   it("usa mock de contingência e informa qual provider falhou", async () => {

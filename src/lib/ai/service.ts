@@ -13,11 +13,13 @@ export function shouldFallbackToMock(
   providerId: string,
   configured = process.env.ENEMLAB_AI_FALLBACK_TO_MOCK,
   nodeEnv = process.env.NODE_ENV,
+  vercelEnv = process.env.VERCEL_ENV,
 ): boolean {
   if (providerId === "mock") return false;
   const explicit = configured?.trim().toLowerCase();
   if (explicit === "true") return true;
   if (explicit === "false") return false;
+  if (vercelEnv === "preview" || vercelEnv === "development") return true;
   return nodeEnv !== "production";
 }
 

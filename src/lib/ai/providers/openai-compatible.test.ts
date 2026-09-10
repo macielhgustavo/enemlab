@@ -36,32 +36,34 @@ function providerRequest(): AIProviderRequest {
   };
 }
 
+function successfulResponse() {
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              title: "Pista",
+              explanation: "Observe a relação entre os valores.",
+              concepts: ["Porcentagem"],
+              nextStep: "Monte a proporção.",
+              revealAnswer: false,
+            }),
+          },
+        },
+      ],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("OpenAICompatibleProvider", () => {
-  it("permite identidade e headers específicos sem duplicar o transporte", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  title: "Pista",
-                  explanation: "Observe a relação entre os valores.",
-                  concepts: ["Porcentagem"],
-                  nextStep: "Monte a proporção.",
-                  revealAnswer: false,
-                }),
-              },
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+  it("permite identidade, headers e roteamento específicos sem duplicar o transporte", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(successfulResponse());
     vi.stubGlobal("fetch", fetchMock);
 
     const provider = new OpenAICompatibleProvider(
@@ -73,6 +75,11 @@ describe("OpenAICompatibleProvider", () => {
         headers: {
           "HTTP-Referer": "https://enemlab.example",
           "X-Title": "ENEMLab",
+        },
+        maxTokens: 700,
+        providerRouting: {
+          sort: "latency",
+          allowFallbacks: true,
         },
       },
     );
@@ -91,9 +98,42 @@ describe("OpenAICompatibleProvider", () => {
 
     const body = JSON.parse(String(init.body)) as {
       model: string;
+      max_tokens?: number;
+      provider?: { sort?: string; allow_fallbacks?: boolean };
       messages: Array<{ role: string; content: string }>;
     };
     expect(body.model).toBe("provider/model");
+    expect(body.max_tokens).toBe(700);
+    expect(body.provider).toEqual({ sort: "latency", allow_fallbacks: true });
     expect(body.messages.map((message) => message.role)).toEqual(["system", "user"]);
+  });
+
+  it("tenta um modelo alternativo quando o modelo principal excede o tempo", async () => {
+    const timeout = Object.assign(new Error("slow provider"), { name: "TimeoutError" });
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(timeout)
+      .mockResolvedValueOnce(successfulResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new OpenAICompatibleProvider(
+      "secret",
+      "provider/slow-free",
+      "https://openrouter.ai/api/v1",
+      {
+        id: "openrouter",
+        timeoutMs: 12_000,
+        fallbackModels: ["openrouter/free"],
+      },
+    );
+
+    const result = await provider.generate(providerRequest());
+    expect(result.title).toBe("Pista");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as { model: string };
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body)) as { model: string };
+    expect(firstBody.model).toBe("provider/slow-free");
+    expect(secondBody.model).toBe("openrouter/free");
   });
 });

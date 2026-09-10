@@ -2,6 +2,8 @@ import type { AIProvider } from "../types";
 import { MockAIProvider } from "./mock";
 import { OpenAICompatibleProvider } from "./openai-compatible";
 
+const OPENROUTER_FREE_ROUTER = "openrouter/free";
+
 function optionalHeader(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized || undefined;
@@ -32,6 +34,13 @@ export function getAIProvider(): AIProvider {
         headers: {
           ...(siteUrl ? { "HTTP-Referer": siteUrl } : {}),
           ...(appName ? { "X-Title": appName } : {}),
+        },
+        timeoutMs: 12_000,
+        maxTokens: 700,
+        fallbackModels: model === OPENROUTER_FREE_ROUTER ? [] : [OPENROUTER_FREE_ROUTER],
+        providerRouting: {
+          sort: "latency",
+          allowFallbacks: true,
         },
       },
     );

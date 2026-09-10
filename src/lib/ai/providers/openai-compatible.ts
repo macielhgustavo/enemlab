@@ -12,9 +12,31 @@ interface ChatCompletionResponse {
   };
 }
 
+type ProviderSort = "price" | "throughput" | "latency";
+
+interface ProviderRoutingPreference {
+  sort?: ProviderSort;
+  allowFallbacks?: boolean;
+}
+
+interface ChatCompletionRequest {
+  model: string;
+  temperature: number;
+  messages: Array<{ role: "system" | "user"; content: string }>;
+  max_tokens?: number;
+  provider?: {
+    sort?: ProviderSort;
+    allow_fallbacks?: boolean;
+  };
+}
+
 export interface OpenAICompatibleProviderOptions {
   id?: string;
   headers?: Record<string, string>;
+  timeoutMs?: number;
+  maxTokens?: number;
+  fallbackModels?: string[];
+  providerRouting?: ProviderRoutingPreference;
 }
 
 function extractJsonObject(content: string): unknown {
@@ -43,9 +65,17 @@ function parseCompletionBody(raw: string): ChatCompletionResponse {
   }
 }
 
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+}
+
 export class OpenAICompatibleProvider implements AIProvider {
   readonly id: string;
   private readonly extraHeaders: Record<string, string>;
+  private readonly timeoutMs: number;
+  private readonly maxTokens?: number;
+  private readonly fallbackModels: string[];
+  private readonly providerRouting?: ProviderRoutingPreference;
 
   constructor(
     private readonly apiKey: string,
@@ -55,26 +85,59 @@ export class OpenAICompatibleProvider implements AIProvider {
   ) {
     this.id = options.id || "openai-compatible";
     this.extraHeaders = options.headers || {};
+    this.timeoutMs = options.timeoutMs ?? 30_000;
+    this.maxTokens = options.maxTokens;
+    this.fallbackModels = (options.fallbackModels || []).filter(
+      (candidate, index, models) => candidate !== model && models.indexOf(candidate) === index,
+    );
+    this.providerRouting = options.providerRouting;
   }
 
-  async generate(input: AIProviderRequest): Promise<AIProviderOutput> {
-    const response = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-        ...this.extraHeaders,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        temperature: 0.25,
-        messages: [
-          { role: "system", content: input.systemPrompt },
-          { role: "user", content: input.userPrompt },
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
+  private async generateWithModel(
+    model: string,
+    input: AIProviderRequest,
+  ): Promise<AIProviderOutput> {
+    const payload: ChatCompletionRequest = {
+      model,
+      temperature: 0.25,
+      messages: [
+        { role: "system", content: input.systemPrompt },
+        { role: "user", content: input.userPrompt },
+      ],
+      ...(this.maxTokens ? { max_tokens: this.maxTokens } : {}),
+      ...(this.providerRouting
+        ? {
+            provider: {
+              ...(this.providerRouting.sort ? { sort: this.providerRouting.sort } : {}),
+              ...(this.providerRouting.allowFallbacks !== undefined
+                ? { allow_fallbacks: this.providerRouting.allowFallbacks }
+                : {}),
+            },
+          }
+        : {}),
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          ...this.extraHeaders,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        throw new Error(
+          `O provider de IA excedeu o limite de ${Math.round(this.timeoutMs / 1000)}s.`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
 
     const rawBody = await response.text();
     const body = parseCompletionBody(rawBody);
@@ -86,5 +149,24 @@ export class OpenAICompatibleProvider implements AIProvider {
     if (!content) throw new Error("O provider de IA retornou uma resposta vazia.");
 
     return parseAIProviderOutput(extractJsonObject(content));
+  }
+
+  async generate(input: AIProviderRequest): Promise<AIProviderOutput> {
+    const models = [this.model, ...this.fallbackModels];
+    let lastError: unknown;
+
+    for (let index = 0; index < models.length; index += 1) {
+      const model = models[index];
+      try {
+        return await this.generateWithModel(model, input);
+      } catch (error) {
+        lastError = error;
+        const nextModel = models[index + 1];
+        if (!nextModel) throw error;
+        console.warn(`student-ai:model-fallback ${model} -> ${nextModel}`, error);
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Falha no provider de IA.");
   }
 }
