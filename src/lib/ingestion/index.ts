@@ -13,8 +13,9 @@ export type {
   ExtractionCheckpointStats,
   ExtractionCheckpointStore,
 } from "./checkpoint";
-export { associateMediaWithExtraction } from "./media";
+export { associateMediaWithExtraction, verifyMediaManifestBinding } from "./media";
 export type {
+  ExpectedMediaBinding,
   ExtractedMediaAsset,
   MediaAssociationMode,
   MediaAssociationResult,
