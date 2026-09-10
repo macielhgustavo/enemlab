@@ -89,10 +89,8 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
     setError("");
 
     const userContent = cleanMessage || actionMessage(mode);
-    const nextConversation: AIConversationTurn[] = [
-      ...conversation,
-      { role: "user", content: userContent },
-    ].slice(-10);
+    const userTurn: AIConversationTurn = { role: "user", content: userContent };
+    const nextConversation = [...conversation, userTurn].slice(-10);
 
     try {
       const response = await fetch("/api/ai/tutor", {
@@ -115,16 +113,12 @@ export default function StudentAITutor({ question, student }: StudentAITutorProp
       }
 
       const ai = body as AIResponse;
+      const assistantTurn: AIConversationTurn = {
+        role: "assistant",
+        content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}`,
+      };
       setResponses((current) => [...current, ai].slice(-6));
-      setConversation(
-        [
-          ...nextConversation,
-          {
-            role: "assistant",
-            content: `${ai.title}\n${ai.explanation}\n${ai.nextStep}`,
-          },
-        ].slice(-10),
-      );
+      setConversation([...nextConversation, assistantTurn].slice(-10));
       setInput("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha ao consultar o tutor.");
