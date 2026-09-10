@@ -9,7 +9,11 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  benchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2016, 2017]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -25,13 +29,13 @@ jobs:
       - name: Run worker tests
         run: |
           python -m unittest scripts.tests.test_recover_fuvest_region_ocr scripts.tests.test_fuvest_batch_lab
-      - name: Benchmark 2016 and 2017
+      - name: Benchmark FUVEST ${{ matrix.year }}
         run: |
-          rm -rf /tmp/enemlab-fuvest-1617-cache
+          rm -rf /tmp/enemlab-fuvest-${{ matrix.year }}-cache
           python scripts/fuvest-batch-lab.py \
-            --years 2016,2017 \
-            --concurrency 2 \
+            --years ${{ matrix.year }} \
+            --concurrency 1 \
             --no-media \
-            --cache-dir /tmp/enemlab-fuvest-1617-cache \
-            --output /tmp/fuvest-1617.json
-          cat /tmp/fuvest-1617.json
+            --cache-dir /tmp/enemlab-fuvest-${{ matrix.year }}-cache \
+            --output /tmp/fuvest-${{ matrix.year }}.json
+          cat /tmp/fuvest-${{ matrix.year }}.json
