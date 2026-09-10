@@ -27,13 +27,19 @@ export function assistanceEventFromResponse(
     answerRevealed: response.revealAnswer,
     provider: response.provider,
     fallbackFrom: response.fallbackFrom,
+    diagnostic: response.diagnostic
+      ? {
+          category: response.diagnostic.category,
+          confidence: response.diagnostic.confidence,
+        }
+      : undefined,
   };
 }
 
 /**
  * Persiste somente metadados pedagógicos da interação. O texto digitado pelo
- * aluno e a resposta do modelo não entram no histórico, reduzindo exposição
- * de conteúdo pessoal e evitando crescimento ilimitado do localStorage.
+ * aluno, a resposta e a nota textual do diagnóstico não entram no histórico,
+ * reduzindo exposição de conteúdo pessoal e evitando crescimento ilimitado.
  */
 export function recordStudentAIAssistance(
   db: DB,
