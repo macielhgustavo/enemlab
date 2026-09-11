@@ -1,0 +1,87 @@
+name: Brasil Escola Nordeste Benchmark
+
+on:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - .github/workflows/brasil-escola-nordeste-benchmark.yml
+      - scripts/harvest-brasil-escola.py
+      - scripts/tests/test_harvest_brasil_escola.py
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate harvester tests
+        run: python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola.py'
+
+      - name: Catalog Nordeste and prove ZIP acquisition
+        run: |
+          python scripts/harvest-brasil-escola.py \
+            --region nordeste \
+            --download \
+            --institution universidade-estadual-ceara \
+            --limit 1 \
+            --workers 4 \
+            --strict \
+            --catalog .cache/brasil-escola-nordeste.json \
+            --download-root .cache/brasil-escola-sample
+
+      - name: Print catalog summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path(".cache/brasil-escola-nordeste.json").read_text(encoding="utf-8"))
+          institutions = [
+              {
+                  "name": item["name"],
+                  "slug": item["slug"],
+                  "entries": len(item["entries"]),
+              }
+              for item in catalog["institutions"]
+          ]
+          institutions.sort(key=lambda item: (-item["entries"], item["slug"]))
+          acquisition = catalog.get("acquisition") or {}
+          summary = {
+              "providerId": catalog["providerId"],
+              "region": catalog["region"],
+              "institutionCount": catalog["institutionCount"],
+              "entryCount": catalog["entryCount"],
+              "knownYearRange": catalog["knownYearRange"],
+              "unknownYearEntries": catalog["unknownYearEntries"],
+              "catalogIssues": len(catalog["issues"]),
+              "sampleAcquisition": acquisition,
+              "largestCatalogs": institutions[:10],
+          }
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          Path("brasil-escola-nordeste-summary.json").write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload catalog report
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-nordeste-benchmark
+          path: |
+            .cache/brasil-escola-nordeste.json
+            brasil-escola-nordeste-summary.json
+          if-no-files-found: error
+          retention-days: 7

@@ -20,6 +20,7 @@
     "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
     "ingest": "node scripts/ingest.mjs",
     "ingest:source": "tsc -p tsconfig.ingest-cli.json && node .cache/ingest-cli/scripts/ingest-source.js",
+    "harvest:brasil-escola": "python scripts/harvest-brasil-escola.py",
     "ingest:inbox": "python scripts/ingest-inbox.py",
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
