@@ -1,0 +1,98 @@
+name: Brasil Escola Nordeste Bulk Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/harvest-uece-brasil-escola.py'
+      - 'scripts/harvest-brasil-escola.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - 'scripts/ingest-uece-mirror.py'
+      - 'scripts/ingest-urca-safe.py'
+      - 'scripts/tests/test_harvest_brasil_escola_bulk.py'
+      - '.github/workflows/brasil-escola-nordeste-bulk-benchmark.yml'
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PDF dependency
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
+      - name: Report compressed archive support
+        run: command -v 7zz || command -v 7z || true
+      - name: Validate bulk mirror tests
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola_bulk.py'
+          python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola.py'
+      - name: Acquire high-volume Nordeste mirrors
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --institution UPE \
+            --institution URCA \
+            --institution UEMA \
+            --institution UFPE \
+            --workers 8 \
+            --catalog .cache/brasil-escola-bulk.json \
+            --download-root .cache/brasil-escola-inbox
+      - name: Inspect live package families
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input .cache/brasil-escola-inbox \
+            --output .cache/brasil-escola-bulk-inspection.json
+      - name: Extract URCA objective corpus
+        run: |
+          python scripts/ingest-urca-safe.py \
+            --input .cache/brasil-escola-inbox/universidade-regional-cariri \
+            --output .cache/urca-extracted
+      - name: Enforce bulk accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path('.cache/brasil-escola-bulk.json').read_text(encoding='utf-8'))
+          acquisition = payload.get('bulkAcquisition', {})
+          institutions = acquisition.get('institutions', [])
+          if len(institutions) != 4:
+              raise SystemExit(f'expected 4 target institutions, got {institutions}')
+          if acquisition.get('selected', 0) < 80:
+              raise SystemExit(f'expected at least 80 selected packages, got {acquisition.get("selected")}')
+          accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0) + len(acquisition.get('errors', []))
+          if accounted != acquisition.get('selected'):
+              raise SystemExit(f'bulk accounting mismatch: {accounted} != {acquisition.get("selected")}')
+          if acquisition.get('acquired', 0) < 10:
+              raise SystemExit(f'expected at least 10 live packages, got {acquisition.get("acquired")}')
+
+          inspection = json.loads(Path('.cache/brasil-escola-bulk-inspection.json').read_text(encoding='utf-8'))
+          if inspection.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(f'inspector coverage mismatch: {inspection.get("packagesScanned")} != {acquisition.get("acquired")}')
+          if inspection.get('failures'):
+              raise SystemExit(f'inspector failures: {inspection["failures"]}')
+
+          urca = json.loads(Path('.cache/urca-extracted/urca-summary.json').read_text(encoding='utf-8'))
+          if urca.get('failures'):
+              raise SystemExit(f'URCA failures: {urca["failures"]}')
+          if urca.get('editions', 0) < 6:
+              raise SystemExit(f'expected at least 6 URCA editions, got {urca.get("editions")}')
+          if urca.get('extractedQuestions', 0) < 300:
+              raise SystemExit(f'expected at least 300 URCA questions, got {urca.get("extractedQuestions")}')
+          print(json.dumps({"acquisition": acquisition, "inspection": inspection.get('institutions', {}), "urca": urca}, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload bulk catalog report
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-nordeste-bulk-benchmark
+          path: |
+            .cache/brasil-escola-bulk.json
+            .cache/brasil-escola-bulk-inspection.json
+            .cache/urca-extracted/urca-summary.json
+            .cache/urca-extracted/urca/**/bundle.json
+          retention-days: 7
