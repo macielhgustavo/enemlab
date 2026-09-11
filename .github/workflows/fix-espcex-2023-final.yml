@@ -1,0 +1,38 @@
+name: Verify EsPCEx 2023 final-key correction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-espcex-2023-final.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply final-key correction
+        run: python .github/scripts/fix-espcex-2023-final.py
+
+      - name: Verify tests and build
+        run: |
+          npm test
+          npm run build
+
+      - name: Commit verified correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/providers/espcex/answer-keys.generated.json src/lib/providers/espcex/espcex.test.ts src/lib/sources/index.ts
+          git commit -m "fix(espcex): use final 2023 day-2 annulment [skip ci]"
+          git pull --rebase origin main
+          git push origin main
