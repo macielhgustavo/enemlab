@@ -10,7 +10,13 @@ import {
 
 describe("ESA Geral — Tipo A", () => {
   it("expõe somente as edições validadas", () => {
-    expect(esaYears()).toEqual([2025, 2024, 2023]);
+    expect(esaYears()).toEqual([2025, 2024, 2023, 2022]);
+
+    const k22 = esaAnswerKey(2022)!;
+    expect(k22.revision).toBe("qconcursos-final-current-2022");
+    expect(k22.variant).toBe("A");
+    expect(k22.total).toBe(50);
+    expect(k22.annulled).toEqual([5, 18]);
 
     const k23 = esaAnswerKey(2023)!;
     expect(k23.revision).toBe("qconcursos-final-current-2023");
@@ -55,6 +61,7 @@ describe("ESA Geral — Tipo A", () => {
 
   it("mantém as anuladas sem alternativa correta", () => {
     const cases: Array<[number, number[]]> = [
+      [2022, [5, 18]],
       [2023, []],
       [2024, [40]],
       [2025, [1, 4, 10]],
@@ -69,6 +76,13 @@ describe("ESA Geral — Tipo A", () => {
   });
 
   it("carrega respostas do Tipo A conferidas no espelho", () => {
+    const q22 = esaQuestions(2022);
+    expect(q22.find((q) => q.number === 1)?.correctAlternative).toBe("E");
+    expect(q22.find((q) => q.number === 5)?.correctAlternative).toBeNull();
+    expect(q22.find((q) => q.number === 21)?.correctAlternative).toBe("A");
+    expect(q22.find((q) => q.number === 41)?.correctAlternative).toBe("D");
+    expect(q22.find((q) => q.number === 50)?.correctAlternative).toBe("C");
+
     const q23 = esaQuestions(2023);
     expect(q23.find((q) => q.number === 1)?.correctAlternative).toBe("C");
     expect(q23.find((q) => q.number === 21)?.correctAlternative).toBe("E");
@@ -103,12 +117,14 @@ describe("ESA Geral — Tipo A", () => {
     expect(esaQuestionKey(esaQuestions(2025)[0])).toBe("esa-2025-single-1");
     expect(esaQuestionKey(esaQuestions(2024)[0])).toBe("esa-2024-single-1");
     expect(esaQuestionKey(esaQuestions(2023)[0])).toBe("esa-2023-single-1");
+    expect(esaQuestionKey(esaQuestions(2022)[0])).toBe("esa-2022-single-1");
   });
 
   it("provider entrega as edições ingeridas e recusa ano ausente", async () => {
     expect(await esaProvider.fetchQuestions({ year: 2025 })).toHaveLength(50);
     expect(await esaProvider.fetchQuestions({ year: 2024 })).toHaveLength(50);
     expect(await esaProvider.fetchQuestions({ year: 2023 })).toHaveLength(50);
-    expect(await esaProvider.fetchQuestions({ year: 2022 })).toEqual([]);
+    expect(await esaProvider.fetchQuestions({ year: 2022 })).toHaveLength(50);
+    expect(await esaProvider.fetchQuestions({ year: 2021 })).toEqual([]);
   });
 });
