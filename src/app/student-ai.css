@@ -1,0 +1,1039 @@
+/* Student AI — native intelligence layer for the exam experience. */
+
+html[data-student-ai="active"] .examContent .questionCard {
+  border-color: color-mix(in srgb, var(--brand) 18%, var(--line));
+}
+
+html[data-student-ai="active"] .examContent #questionContent ::selection {
+  color: var(--text);
+  background: color-mix(in srgb, var(--brand) 24%, var(--surface-3));
+}
+
+.studentAIActivator,
+.studentAIStatus {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 74;
+}
+
+.studentAIActivator {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 252px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(22px);
+  cursor: pointer;
+  transition: transform 180ms var(--ease), border-color 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.studentAIActivator:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-glow);
+  box-shadow: var(--shadow-lg), var(--glow);
+}
+
+.studentAIActivator:focus-visible,
+.studentAIStatus button:focus-visible,
+.studentAIRailStage:focus-visible,
+.studentAIRailWorkspace:focus-visible,
+.studentAIWorkspace button:focus-visible,
+.studentAISelectionPopover button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.studentAIActivator > span:nth-child(2) {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  text-align: left;
+}
+
+.studentAIActivator b {
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.studentAIActivator small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentAIActivatorIcon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line-glow);
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.studentAIStatus {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--line-glow);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(22px);
+}
+
+.studentAIStatus > button {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.studentAIStatus > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+}
+
+.studentAIStatus > button:first-child > svg {
+  color: var(--brand-strong);
+}
+
+.studentAIStatus > button:first-child > span {
+  display: grid;
+  min-width: 92px;
+  gap: 1px;
+  text-align: left;
+}
+
+.studentAIStatus b {
+  font-size: 10px;
+}
+
+.studentAIStatus small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.studentAIStatus > button:last-child {
+  width: 34px;
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--line);
+  color: var(--text-faint);
+}
+
+.studentAIStatus > button:hover {
+  background: var(--brand-soft);
+  color: var(--text);
+}
+
+/* Rail contextual: fica fisicamente alinhada à questão, mas fora do fluxo. */
+.studentAIRail {
+  position: fixed;
+  z-index: 78;
+  width: 42px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.studentAIRail > * {
+  pointer-events: auto;
+}
+
+.studentAIRailMark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+  border: 1px solid var(--line-glow);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-soft) 78%, var(--panel-solid));
+  color: var(--brand-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.studentAIRailLine {
+  position: absolute;
+  top: 49px;
+  bottom: 45px;
+  left: 20px;
+  z-index: -1;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.studentAIRailStage {
+  position: relative;
+  width: 40px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.studentAIRailStage:disabled {
+  cursor: wait;
+}
+
+.studentAIRailNode {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--text-faint);
+  box-shadow: 0 0 0 4px var(--surface-1);
+  transition: width 160ms var(--ease), height 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease), background 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.studentAIRailStage[data-status="complete"] .studentAIRailNode {
+  border-color: color-mix(in srgb, var(--brand) 44%, var(--line-strong));
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--panel-solid));
+  color: var(--brand-strong);
+}
+
+.studentAIRailStage[data-status="current"] .studentAIRailNode {
+  width: 34px;
+  height: 34px;
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  box-shadow: 0 0 0 4px var(--surface-1), 0 0 24px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.studentAIRailStage:hover .studentAIRailNode,
+.studentAIRailStage:focus-visible .studentAIRailNode {
+  border-color: var(--line-glow);
+  color: var(--brand-strong);
+}
+
+.studentAIRailStage:focus-visible {
+  outline: none;
+}
+
+.studentAIRailLabel {
+  position: absolute;
+  right: calc(100% + 9px);
+  top: 50%;
+  width: 220px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel-solid) 97%, transparent);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(5px, -50%);
+  transition: opacity 140ms var(--ease), transform 140ms var(--ease);
+  text-align: left;
+  backdrop-filter: blur(18px);
+}
+
+.studentAIRailLabel b {
+  color: var(--text);
+  font-size: 9px;
+}
+
+.studentAIRailLabel small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.studentAIRailStage:hover .studentAIRailLabel,
+.studentAIRailStage:focus-visible .studentAIRailLabel {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.studentAIRailWorkspace {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  margin-top: 4px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--panel-solid);
+  color: var(--text-dim);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.studentAIRailWorkspace span {
+  position: absolute;
+  right: calc(100% + 9px);
+  top: 50%;
+  width: max-content;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-solid);
+  color: var(--text-dim);
+  font-size: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(5px, -50%);
+  transition: opacity 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.studentAIRailWorkspace:hover,
+.studentAIRailWorkspace[aria-expanded="true"] {
+  border-color: var(--line-glow);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.studentAIRailWorkspace:hover span,
+.studentAIRailWorkspace:focus-visible span {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+/* Workspace: consequência do raciocínio; nunca a superfície principal. */
+.studentAIWorkspace {
+  position: fixed;
+  right: 22px;
+  bottom: 72px;
+  z-index: 76;
+  width: min(430px, calc(100vw - 32px));
+  max-height: min(72dvh, 680px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--panel-solid) 97%, transparent);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(26px);
+  animation: studentAIArrive 160ms var(--ease) both;
+}
+
+.studentAIWorkspaceHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 16px 11px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.studentAIWorkspaceHead > div {
+  display: grid;
+  gap: 4px;
+}
+
+.studentAIWorkspaceHead span,
+.studentAIInsightEyebrow > span,
+.studentAINextStep > span,
+.studentAIRevealedAnswer > span,
+.studentAIGenerated > span,
+.studentAISelectedActions > div:first-child > span {
+  color: var(--brand);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.studentAIWorkspaceHead h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -.02em;
+}
+
+.studentAIWorkspaceHead > button,
+.studentAISelectionPopover header > button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.studentAIWorkspaceHead > button:hover,
+.studentAISelectionPopover header > button:hover {
+  border-color: var(--line-glow);
+  color: var(--text);
+}
+
+.studentAIWorkspaceMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px 0;
+  color: var(--text-faint);
+  font-size: 8px;
+}
+
+.studentAIWorkspaceMeta span:last-child {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentAIDepthMeter {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 11px 16px 13px;
+}
+
+.studentAIDepthMeter > span {
+  height: 3px;
+  border-radius: 99px;
+  background: var(--line-strong);
+  transition: background 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.studentAIDepthMeter > span.active {
+  background: var(--brand);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand) 28%, transparent);
+}
+
+.studentAISelectedActions {
+  margin: 0 14px 12px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-1);
+}
+
+.studentAISelectedActions > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.studentAISelectedActions small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.studentAISelectedActions button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--line-glow);
+  border-radius: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.studentAISelectedActions button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
+.studentAIEmptyState {
+  margin: 0 14px 14px;
+  padding: 18px;
+  display: grid;
+  gap: 7px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--brand-soft) 36%, transparent);
+}
+
+.studentAIEmptyState > svg {
+  color: var(--brand-strong);
+}
+
+.studentAIEmptyState b {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.studentAIEmptyState p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.studentAIThinking,
+.studentAIError {
+  margin: 0 14px 14px;
+  padding: 11px 12px;
+  border-radius: 11px;
+}
+
+.studentAIThinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line-glow);
+  background: var(--brand-soft);
+}
+
+.studentAIThinking > span,
+.studentAISelectionLoading > span {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--brand);
+  box-shadow: 0 0 16px var(--brand);
+  animation: studentAIPulse 900ms ease-in-out infinite alternate;
+}
+
+.studentAIThinking > div {
+  display: grid;
+  gap: 2px;
+}
+
+.studentAIThinking b {
+  font-size: 9px;
+}
+
+.studentAIThinking small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.studentAIError {
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, var(--line));
+  background: color-mix(in srgb, var(--bad) 9%, transparent);
+  color: var(--bad);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.studentAIInsight {
+  margin: 0 14px 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-1);
+}
+
+.studentAIInsightEyebrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.studentAIInsightEyebrow small {
+  color: var(--text-faint);
+  font-size: 7px;
+}
+
+.studentAIInsight h3 {
+  margin: 7px 0 0;
+  font-size: 14px;
+  letter-spacing: -.02em;
+}
+
+.studentAIInsight > p {
+  margin: 10px 0 12px;
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1.68;
+}
+
+.studentAIConcepts,
+.studentAISelectionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.studentAIConcepts {
+  margin-bottom: 12px;
+}
+
+.studentAIConcepts span,
+.studentAISelectionChips span {
+  padding: 4px 7px;
+  border: 1px solid var(--line-glow);
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  font-size: 7px;
+  font-weight: 650;
+}
+
+.studentAINextStep {
+  padding: 10px 11px;
+  border-left: 2px solid var(--brand);
+  background: var(--panel-2);
+}
+
+.studentAINextStep p {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.studentAIRevealedAnswer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 26%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+}
+
+.studentAIRevealedAnswer > span {
+  color: var(--warn);
+}
+
+.studentAIRevealedAnswer b {
+  font-size: 16px;
+}
+
+.studentAIGenerated {
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.studentAIGenerated > span {
+  color: var(--warn);
+}
+
+.studentAIGenerated p,
+.studentAIGenerated div {
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.studentAIGenerated div {
+  margin-top: 4px;
+  color: var(--text-dim);
+}
+
+.studentAIWorkspaceFooter {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 14px 13px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.studentAIFreeQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studentAIFreeQuestion svg:last-child {
+  margin-left: auto;
+  transition: transform 150ms var(--ease);
+}
+
+.studentAIFreeQuestion[aria-expanded="true"] svg:last-child {
+  transform: rotate(90deg);
+}
+
+.studentAIFreeQuestion:hover {
+  color: var(--text);
+}
+
+.studentAIComposer {
+  display: grid;
+  grid-template-columns: 1fr 36px;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+.studentAIComposer input {
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 9px;
+  outline: none;
+}
+
+.studentAIComposer input:focus {
+  border-color: var(--line-glow);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+}
+
+.studentAIComposer button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-glow);
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  cursor: pointer;
+}
+
+.studentAIComposer button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* Popover que nasce da seleção do próprio enunciado. */
+.studentAISelectionPopover {
+  position: fixed;
+  z-index: 82;
+  width: min(390px, calc(100vw - 24px));
+  overflow: hidden;
+  border: 1px solid var(--line-glow);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-solid) 97%, transparent);
+  box-shadow: var(--shadow-lg), 0 0 36px color-mix(in srgb, var(--brand) 10%, transparent);
+  backdrop-filter: blur(26px);
+  animation: studentAIArrive 160ms var(--ease) both;
+}
+
+.studentAISelectionPopover header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 11px 9px 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.studentAISelectionPopover header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.studentAISelectionPopover header span {
+  color: var(--brand);
+  font-size: 7px;
+  font-weight: 820;
+  letter-spacing: .13em;
+}
+
+.studentAISelectionPopover header small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 8px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentAISelectionLoading {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.studentAISelectionBody {
+  padding: 12px 13px 8px;
+}
+
+.studentAISelectionBody b {
+  display: block;
+  font-size: 11px;
+}
+
+.studentAISelectionBody p {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 9px;
+  line-height: 1.62;
+}
+
+.studentAISelectionChips {
+  padding: 0 13px 10px;
+}
+
+.studentAISelectionActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-1);
+}
+
+.studentAISelectionActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 7px;
+  cursor: pointer;
+}
+
+.studentAISelectionActions button:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+/* O diagnóstico fica ligado visualmente à alternativa que originou a evidência. */
+.studentAIDiagnostic {
+  position: fixed;
+  z-index: 80;
+  width: min(390px, calc(100vw - 24px));
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 28%, var(--line-strong));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-solid) 97%, transparent);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(22px);
+  animation: studentAIArrive 160ms var(--ease) both;
+}
+
+.studentAIDiagnosticIcon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--warn) 28%, var(--line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  color: var(--warn);
+}
+
+.studentAIDiagnostic > div:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.studentAIDiagnostic span {
+  color: var(--warn);
+  font-size: 7px;
+  font-weight: 820;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.studentAIDiagnostic b {
+  font-size: 10px;
+}
+
+.studentAIDiagnostic p {
+  margin: 2px 0 0;
+  color: var(--text-dim);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+@keyframes studentAIPulse {
+  to { opacity: .36; transform: scale(.74); }
+}
+
+@keyframes studentAIArrive {
+  from { opacity: 0; transform: translateY(4px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 800px) {
+  .studentAIActivator,
+  .studentAIStatus {
+    right: 12px;
+    bottom: 66px;
+  }
+
+  .studentAIRail {
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+    bottom: 64px;
+    z-index: 78;
+    width: auto;
+    min-height: 48px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--panel-solid) 94%, transparent);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px);
+  }
+
+  .studentAIRailMark {
+    width: 32px;
+    height: 32px;
+    margin: 0 2px 0 0;
+    flex: 0 0 32px;
+    border-radius: 10px;
+  }
+
+  .studentAIRailLine,
+  .studentAIRailLabel,
+  .studentAIRailWorkspace span {
+    display: none;
+  }
+
+  .studentAIRailStage {
+    width: 36px;
+    height: 36px;
+    flex: 1 1 0;
+  }
+
+  .studentAIRailNode {
+    width: 28px;
+    height: 28px;
+    box-shadow: none;
+  }
+
+  .studentAIRailStage[data-status="current"] .studentAIRailNode {
+    width: 31px;
+    height: 31px;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--brand) 24%, transparent);
+  }
+
+  .studentAIRailWorkspace {
+    width: 34px;
+    height: 34px;
+    margin: 0 0 0 2px;
+    flex: 0 0 34px;
+  }
+
+  .studentAIStatus {
+    bottom: 120px;
+  }
+
+  .studentAIWorkspace {
+    right: 10px;
+    bottom: 168px;
+    width: calc(100vw - 20px);
+    max-height: min(62dvh, 620px);
+    border-radius: 15px;
+  }
+}
+
+@media (max-width: 620px) {
+  .studentAIActivator {
+    min-width: 0;
+    width: min(252px, calc(100vw - 24px));
+  }
+
+  .studentAIWorkspaceMeta {
+    display: grid;
+    gap: 4px;
+  }
+
+  .studentAIWorkspaceMeta span:last-child {
+    text-align: left;
+  }
+
+  .studentAISelectedActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .studentAISelectedActions button {
+    justify-content: center;
+  }
+
+  .studentAISelectionPopover,
+  .studentAIDiagnostic {
+    left: 10px !important;
+    width: calc(100vw - 20px);
+  }
+
+  .studentAISelectionActions {
+    overflow-x: auto;
+  }
+
+  .studentAISelectionActions button {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studentAIActivator,
+  .studentAIRailNode,
+  .studentAIRailLabel,
+  .studentAIRailWorkspace span,
+  .studentAIDepthMeter > span,
+  .studentAIFreeQuestion svg:last-child {
+    transition: none;
+  }
+
+  .studentAIThinking > span,
+  .studentAISelectionLoading > span,
+  .studentAIWorkspace,
+  .studentAISelectionPopover,
+  .studentAIDiagnostic {
+    animation: none;
+  }
+}

@@ -12,6 +12,61 @@ export type Confidence = "certeza" | "duvida" | "chute";
 export type Difficulty = "facil" | "media" | "dificil";
 export type KnewChoice = "sabia" | "quase" | "nao" | "pressa" | "";
 
+export type StudentAIAssistanceMode =
+  | "hint"
+  | "explain"
+  | "guided-solve"
+  | "why-wrong"
+  | "explain-alternative"
+  | "study-needed"
+  | "similar-question"
+  | "chat";
+
+export type StudentAIAssistanceLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+export type StudentAIDiagnosticCategory =
+  | "content-gap"
+  | "interpretation"
+  | "calculation"
+  | "strategy"
+  | "attention"
+  | "unknown";
+
+export type StudentAIDiagnosticConfidence = "low" | "medium" | "high";
+
+/** Evidência mínima do diagnóstico: não persiste a explicação textual do LLM. */
+export interface StudentAIDiagnosticEvidence {
+  category: StudentAIDiagnosticCategory;
+  confidence: StudentAIDiagnosticConfidence;
+}
+
+/** Evento mínimo persistido. Não guarda texto da conversa nem resposta da IA. */
+export interface StudentAIAssistanceEvent {
+  at: string;
+  mode: StudentAIAssistanceMode;
+  level: StudentAIAssistanceLevel;
+  answerRevealed: boolean;
+  provider: string;
+  fallbackFrom?: string;
+  diagnostic?: StudentAIDiagnosticEvidence;
+}
+
+/**
+ * Rastro agregado por questão. Mantém contadores completos e só uma janela
+ * recente de eventos para não deixar o armazenamento crescer sem limite.
+ */
+export interface StudentAIAssistanceTrace {
+  requests: number;
+  maxLevel: StudentAIAssistanceLevel;
+  answerRevealed: boolean;
+  modes: StudentAIAssistanceMode[];
+  firstAt: string;
+  lastAt: string;
+  lastProvider: string;
+  fallbackUsed: boolean;
+  recent: StudentAIAssistanceEvent[];
+}
+
 export type AttemptMode =
   | "sprint15"
   | "sprint30"
@@ -38,14 +93,14 @@ export interface Alternative {
   isCorrect?: boolean;
 }
 
-  export interface Question {
-    providerId?: string;
-    examId?: string;
-    editionId?: string;
-    index: number;
-    year: number;
-    phase?: string;
-    language?: string | null;
+export interface Question {
+  providerId?: string;
+  examId?: string;
+  editionId?: string;
+  index: number;
+  year: number;
+  phase?: string;
+  language?: string | null;
   discipline?: string | { value?: string; label?: string };
   context?: string;
   alternativesIntroduction?: string;
@@ -137,6 +192,8 @@ export interface Attempt {
   strict: boolean;
   strategy?: boolean;
   alerts?: boolean;
+  /** false desativa o tutor sem transformar a tentativa em simulado strict. */
+  aiAllowed?: boolean;
   pass?: number;
   passByQuestion?: Record<string, number>;
   realDay?: 1 | 2 | null;
@@ -149,6 +206,8 @@ export interface Attempt {
   confidence: Record<string, Confidence>;
   flags: Record<string, boolean>;
   timeQ: Record<string, number>;
+  /** Assistência recebida por questionKey; ausente em tentativas antigas. */
+  aiAssistance?: Record<string, StudentAIAssistanceTrace>;
   elapsed: number;
   questionSec?: number;
   essaySec?: number;

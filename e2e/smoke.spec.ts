@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { aguardarApp, prepare } from "./fixtures";
+import { aguardarApp, prepare, STORE_KEY } from "./fixtures";
 
 /**
  * Fumaça: cada rota abre, hidrata e mostra o conteúdo dela — não um erro,
@@ -13,6 +13,7 @@ const ROTAS: { url: string; nome: string; marca: RegExp }[] = [
   { url: "/", nome: "Início", marca: /centro de controle/i },
   { url: "/practice", nome: "Treinar", marca: /novo treino/i },
   { url: "/bank", nome: "Banco", marca: /banco/i },
+  { url: "/ai", nome: "Centro de IA", marca: /centro de ia|inteligência/i },
   { url: "/plano", nome: "Plano", marca: /plano|prontidão/i },
   { url: "/mastery", nome: "Domínio", marca: /mapa de domínio/i },
   { url: "/srs", nome: "Revisões", marca: /revis/i },
@@ -96,6 +97,83 @@ for (const provider of VESTIBULARES_REFERENCIA) {
   });
 }
 
+test("o tutor IA usa o contexto da questão e respeita a escada de assistência", async ({ page }) => {
+  await prepare(page, { provider: "enem", comHistorico: true });
+  await page.goto("/practice");
+  await aguardarApp(page);
+
+  await page.getByRole("button", { name: "Começar", exact: true }).click();
+  await expect(page).toHaveURL(/\/exam\//);
+
+  const ativador = page.getByRole("button", { name: /Ativar camada IA/ });
+  await expect(ativador).toBeVisible();
+  await ativador.click();
+  await expect(page.getByRole("complementary", { name: "Profundidade da assistência da IA" })).toBeVisible();
+
+  await page.getByRole("button", { name: /^Orientação:/ }).click();
+  await expect(page.getByText("Pista 1 de 6")).toBeVisible();
+  await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(1);
+  await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
+  await expect(page.locator(".studentAISemanticLegend > span")).toHaveCount(1);
+
+  const semanticHighlightApplied = await page.evaluate(() => {
+    const css = CSS as unknown as { highlights?: { has(name: string): boolean } };
+    return css.highlights?.has("student-ai-signal") ?? false;
+  });
+  expect(semanticHighlightApplied).toBe(true);
+  await expect(page.locator("style[data-student-ai-highlight-rules]")).toHaveCount(1);
+
+  const primeiraAlternativa = page.locator(".answer").first();
+  await primeiraAlternativa.click();
+  await expect(primeiraAlternativa).toHaveClass(/selected/);
+  await page.getByRole("button", { name: "Analisar escolha" }).click();
+  await expect(page.getByText("Alternativa A", { exact: true })).toBeVisible();
+  await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Fazer uma pergunta livre" }).click();
+  const composer = page.getByRole("textbox", { name: "Mensagem para o tutor IA" });
+  await composer.fill("Resolva completamente essa questão");
+  await page.getByRole("button", { name: "Enviar pergunta" }).click();
+  await expect(page.getByRole("heading", { name: "Solução completa", exact: true })).toBeVisible();
+  await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(6);
+  await expect(page.locator(".studentAIRevealedAnswer")).toContainText("B");
+
+  const trace = await page.evaluate((storageKey) => {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const persisted = JSON.parse(raw) as {
+      state?: {
+        db?: {
+          attempts?: Array<{
+            id: string;
+            aiAssistance?: Record<
+              string,
+              {
+                requests: number;
+                maxLevel: number;
+                answerRevealed: boolean;
+                modes: string[];
+                recent: unknown[];
+              }
+            >;
+          }>;
+        };
+      };
+    };
+    const attemptId = window.location.pathname.split("/").filter(Boolean).at(-1);
+    const attempt = persisted.state?.db?.attempts?.find((item) => item.id === attemptId);
+    return Object.values(attempt?.aiAssistance || {})[0] || null;
+  }, STORE_KEY);
+
+  expect(trace).toMatchObject({
+    requests: 3,
+    maxLevel: 6,
+    answerRevealed: true,
+    modes: ["hint", "explain-alternative", "chat"],
+  });
+  expect(trace?.recent).toHaveLength(3);
+});
+
 test("o tema alterna e fica", async ({ page }) => {
   await prepare(page, { theme: "dark" });
   await page.goto("/");
@@ -127,4 +205,10 @@ test("a paleta de comandos abre, busca e fecha no Esc", async ({ page }) => {
 
   await page.keyboard.press("Escape");
   await expect(busca).toBeHidden();
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await busca.fill("centro de ia");
+  await expect(page.getByRole("option").first()).toContainText(/Centro de IA/i);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/ai$/);
 });

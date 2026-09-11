@@ -2,9 +2,32 @@ import { describe, expect, it } from "vitest";
 import { updateSRS, dueSRS, allSrs } from "./srs";
 import { SRS_INTERVALS } from "./constants";
 import { makeDB, makeRow, makeAttempt } from "./__fixtures__/db";
-import type { SrsEntry } from "./types";
+import type { SrsEntry, StudentAIAssistanceTrace } from "./types";
 
 const DAY = 86400000;
+
+function aiTrace(maxLevel: 4 | 5 = 5): StudentAIAssistanceTrace {
+  return {
+    requests: 1,
+    maxLevel,
+    answerRevealed: false,
+    modes: ["why-wrong"],
+    firstAt: "2026-01-10T11:30:00.000Z",
+    lastAt: "2026-01-10T11:30:00.000Z",
+    lastProvider: "openrouter",
+    fallbackUsed: false,
+    recent: [
+      {
+        at: "2026-01-10T11:30:00.000Z",
+        mode: "why-wrong",
+        level: maxLevel,
+        answerRevealed: false,
+        provider: "openrouter",
+        diagnostic: { category: "content-gap", confidence: "high" },
+      },
+    ],
+  };
+}
 
 describe("updateSRS", () => {
   it("ignora linhas sem gabarito", () => {
@@ -16,6 +39,28 @@ describe("updateSRS", () => {
   it("não enfileira acerto na primeira exposição", () => {
     const db = makeDB();
     updateSRS(db, makeRow({ key: "k1", isCorrect: true }), makeAttempt());
+    expect(db.srs).toEqual({});
+  });
+
+  it("agenda confirmação curta quando acerto teve assistência alta e diagnóstico alto", () => {
+    const db = makeDB();
+    const before = Date.now();
+    const attempt = makeAttempt({ aiAssistance: { k1: aiTrace(5) } });
+    updateSRS(db, makeRow({ key: "k1", isCorrect: true }), attempt);
+
+    expect(db.srs.k1).toBeDefined();
+    expect(db.srs.k1.reps).toBe(0);
+    expect(db.srs.k1.interval).toBe(2);
+    expect(db.srs.k1.lastResult).toBe("correct");
+    const delta = new Date(db.srs.k1.due).getTime() - before;
+    expect(delta).toBeGreaterThan(1.9 * DAY);
+    expect(delta).toBeLessThan(2.1 * DAY);
+  });
+
+  it("não deixa diagnóstico alto isolado interferir sem assistência alta", () => {
+    const db = makeDB();
+    const attempt = makeAttempt({ aiAssistance: { k1: aiTrace(4) } });
+    updateSRS(db, makeRow({ key: "k1", isCorrect: true }), attempt);
     expect(db.srs).toEqual({});
   });
 

@@ -1,0 +1,66 @@
+/* Semantic highlight legend. The actual ::highlight rules are injected at runtime
+   because Turbopack currently rejects the CSS Custom Highlight pseudo-element. */
+
+.studentAISemanticLegend {
+  display: grid;
+  gap: 6px;
+  margin: 0 14px 13px;
+}
+
+.studentAISemanticLegend > span {
+  --semantic-color: var(--text-dim);
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--semantic-color) 24%, var(--line));
+  border-left: 2px solid var(--semantic-color);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--semantic-color) 6%, var(--surface-1));
+}
+
+.studentAISemanticLegend > span[data-role="objective"] {
+  --semantic-color: var(--brand);
+}
+
+.studentAISemanticLegend > span[data-role="condition"] {
+  --semantic-color: var(--warn);
+}
+
+.studentAISemanticLegend > span[data-role="data"] {
+  --semantic-color: var(--cyan);
+}
+
+.studentAISemanticLegend > span[data-role="concept"] {
+  --semantic-color: var(--violet);
+}
+
+.studentAISemanticLegend > span[data-role="trap"] {
+  --semantic-color: var(--bad);
+}
+
+.studentAISemanticLegend > span[data-role="signal"] {
+  --semantic-color: var(--text-dim);
+}
+
+.studentAISemanticLegend b {
+  color: var(--semantic-color);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.studentAISemanticLegend small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .studentAISemanticLegend > span {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}

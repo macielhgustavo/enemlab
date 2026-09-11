@@ -55,7 +55,11 @@ export default function PlanoPage() {
 
   async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
     if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
-    if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
+    if (block.kind === "weak" || block.kind === "validation") {
+      const attempt = await buildContentSprintAttempt(block.content!, block.questions);
+      if (block.kind === "validation" || block.aiAllowed === false) attempt.aiAllowed = false;
+      return attempt;
+    }
     if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
     return buildTrainingAttempt(db, {
       year: 2023,
@@ -266,6 +270,7 @@ export default function PlanoPage() {
                     <span>{block.questions} questões</span>
                     <span>~{block.minutes} min</span>
                     {block.metric && <span>{block.metric}</span>}
+                    {block.aiAllowed === false && <span>tutor IA desativado</span>}
                   </div>
                 </div>
                 <div className="dailyPlanAction">

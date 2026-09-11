@@ -1,15 +1,16 @@
 import { pct } from "../format";
 import { DEFAULT_PROVIDER_ID, sameProvider } from "../providers/registry";
 import { dueSRS } from "./srs";
+import { isHighStudentAIAssistance } from "./ai-assistance";
 import {
   masteryStats,
   officialRowsOf,
   questionTagsByRow,
   wilsonInterval,
 } from "./stats";
-import type { DB } from "./types";
+import type { DB, ResultRow } from "./types";
 
-export type DailyPlanBlockKind = "srs" | "weak" | "adaptive" | "unseen";
+export type DailyPlanBlockKind = "srs" | "validation" | "weak" | "adaptive" | "unseen";
 
 export interface DailyPlanBlock {
   id: string;
@@ -22,6 +23,7 @@ export interface DailyPlanBlock {
   minutes: number;
   content?: string;
   metric?: string;
+  aiAllowed?: boolean;
 }
 
 export interface DailyPlanSignals {
@@ -33,6 +35,7 @@ export interface DailyPlanSignals {
   paceDeficit: number;
   completedPlanBlocks: number;
   highConfidenceErrors: number;
+  assistedTopicsToValidate: number;
 }
 
 export interface DailyPlan {
@@ -55,6 +58,18 @@ interface WeakPriority {
   low: number;
   high: number;
   certainWrong: number;
+  score: number;
+}
+
+interface ValidationPriority {
+  name: string;
+  rawAccuracy: number;
+  independentAccuracy: number;
+  independentQuestions: number;
+  highAssistanceQuestions: number;
+  correctWithHighAssistance: number;
+  correctWithHighAssistanceShare: number;
+  gap: number;
   score: number;
 }
 
@@ -135,6 +150,82 @@ function weakPriorities(db: DB, providerId: string = DEFAULT_PROVIDER_ID): WeakP
     .sort((a, b) => b.score - a.score || a.p - b.p || b.t - a.t);
 }
 
+function traceForRow(db: DB, row: ResultRow) {
+  if (!row.attemptId) return undefined;
+  return db.attempts.find((attempt) => attempt.id === row.attemptId)?.aiAssistance?.[row.key];
+}
+
+/**
+ * Procura conteúdos cujo acerto bruto parece saudável, mas cuja evidência
+ * independente é materialmente menor por causa de assistência alta. Requer
+ * amostra mínima para evitar reagir a um único uso casual do tutor.
+ */
+export function validationPriorities(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): ValidationPriority[] {
+  const rows = officialRowsOf(db, providerId).filter(
+    (row) => !!row.correct && typeof row.isCorrect === "boolean",
+  );
+  const mastery = masteryStats(db, providerId);
+
+  return Object.entries(mastery)
+    .filter(([, value]) => value.t >= 4)
+    .map(([name, value]) => {
+      const itemRows = rows.filter((row) => questionTagsByRow(db, row).includes(name));
+      let independentQuestions = 0;
+      let independentCorrect = 0;
+      let highAssistanceQuestions = 0;
+      let correctWithHighAssistance = 0;
+
+      for (const row of itemRows) {
+        const high = isHighStudentAIAssistance(traceForRow(db, row));
+        if (high) {
+          highAssistanceQuestions++;
+          if (row.isCorrect) correctWithHighAssistance++;
+          continue;
+        }
+        independentQuestions++;
+        if (row.isCorrect) independentCorrect++;
+      }
+
+      const rawAccuracy = pct(value.c, value.t);
+      const independentAccuracy = independentQuestions
+        ? pct(independentCorrect, independentQuestions)
+        : 0;
+      const correctWithHighAssistanceShare = value.c
+        ? pct(correctWithHighAssistance, value.c)
+        : 0;
+      const gap = Math.max(0, rawAccuracy - independentAccuracy);
+      const score = gap * 2 + correctWithHighAssistanceShare + highAssistanceQuestions * 4;
+
+      return {
+        name,
+        rawAccuracy,
+        independentAccuracy,
+        independentQuestions,
+        highAssistanceQuestions,
+        correctWithHighAssistance,
+        correctWithHighAssistanceShare,
+        gap,
+        score,
+      };
+    })
+    .filter(
+      (item) =>
+        item.rawAccuracy >= 70 &&
+        item.independentQuestions >= 2 &&
+        item.correctWithHighAssistance >= 1 &&
+        (item.gap >= 10 || item.correctWithHighAssistanceShare >= 25),
+    )
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        b.gap - a.gap ||
+        b.correctWithHighAssistanceShare - a.correctWithHighAssistanceShare,
+    );
+}
+
 function addBlock(blocks: DailyPlanBlock[], block: DailyPlanBlock, remaining: number): number {
   if (block.minutes > remaining || block.questions <= 0) return remaining;
   blocks.push(block);
@@ -174,6 +265,7 @@ export function buildDailyPlan(
   const due = dueSRS(db, providerId);
   const avgQuestionMinutes = estimatedQuestionMinutes(db, providerId);
   const weak = weakPriorities(db, providerId);
+  const validations = validationPriorities(db, providerId);
   const highConfidenceErrors = weak.reduce((sum, item) => sum + item.certainWrong, 0);
   const completedPlanBlocks = today.filter((a) => a.plan?.source === "daily-plan").length;
 
@@ -202,8 +294,34 @@ export function buildDailyPlan(
     );
   }
 
+  // O sprint focado por conteúdo ainda usa o banco textual do ENEM. Quando os
+  // demais providers tiverem banco nativo equivalente, esta restrição pode cair.
+  if (providerId === DEFAULT_PROVIDER_ID && validations.length && remaining >= 12) {
+    const item = validations[0];
+    const questions = clamp(Math.floor(Math.min(24, remaining * 0.4) / avgQuestionMinutes), 4, 7);
+    const minutes = Math.max(10, Math.round(questions * avgQuestionMinutes));
+    remaining = addBlock(
+      blocks,
+      {
+        id: `validation-${slug(item.name)}-${dateKey}`,
+        kind: "validation",
+        priority: 2,
+        eyebrow: "validação sem IA",
+        title: item.name,
+        reason: `Acerto bruto ${item.rawAccuracy}%, mas ${item.independentAccuracy}% nas ${item.independentQuestions} questão(ões) sem assistência alta. Faça uma amostra curta sem tutor antes de tratar esse desempenho como consolidado.`,
+        questions,
+        minutes,
+        content: item.name,
+        metric: `${item.gap} p.p. de diferença`,
+        aiAllowed: false,
+      },
+      remaining,
+    );
+  }
+
   for (const item of weak.slice(0, 2)) {
     if (remaining < 12) break;
+    if (blocks.some((block) => block.kind === "validation" && block.content === item.name)) continue;
     const targetMinutes = Math.min(28, Math.max(12, Math.round(remaining * 0.48)));
     const questions = clamp(Math.floor(targetMinutes / avgQuestionMinutes), 4, 10);
     const minutes = Math.max(10, Math.round(questions * avgQuestionMinutes));
@@ -215,7 +333,7 @@ export function buildDailyPlan(
       {
         id: `weak-${slug(item.name)}-${dateKey}`,
         kind: "weak",
-        priority: 2,
+        priority: 3,
         eyebrow: "conteúdo frágil",
         title: item.name,
         reason: `Acerto ${item.p}% em ${item.t} questão(ões); IC95% ${item.low}–${item.high}%.${certain}`,
@@ -237,11 +355,11 @@ export function buildDailyPlan(
       {
         id: `adaptive-${dateKey}`,
         kind: "adaptive",
-        priority: 3,
+        priority: 4,
         eyebrow: "calibração adaptativa",
         title: `Adaptive · ${n} questões`,
         reason:
-          weak.length || due.length
+          weak.length || due.length || validations.length
             ? "Fecha a sessão misturando fraqueza, amostra pequena, recência, ineditismo e dificuldade pessoal."
             : "Sem gargalo forte detectado: use o Adaptive para ampliar a amostra e encontrar a próxima prioridade.",
         questions: n,
@@ -263,7 +381,7 @@ export function buildDailyPlan(
       {
         id: `unseen-${dateKey}`,
         kind: "unseen",
-        priority: 4,
+        priority: 5,
         eyebrow: "volume novo",
         title: "15 questões inéditas",
         reason: `Você está ${questionsNeededToday} questão(ões) abaixo do alvo calculado para hoje; este bloco amplia a amostra sem repetir itens já vistos.`,
@@ -293,6 +411,7 @@ export function buildDailyPlan(
       paceDeficit,
       completedPlanBlocks,
       highConfidenceErrors,
+      assistedTopicsToValidate: validations.length,
     },
     blocks,
     totalQuestions,
