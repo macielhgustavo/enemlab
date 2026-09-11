@@ -31,6 +31,17 @@ describe("ESA Geral — Tipo A", () => {
     expect(k25.annulled).toEqual([1, 4, 10]);
   });
 
+  it("cada edição cobre exatamente 1..50 sem buracos", () => {
+    for (const year of esaYears()) {
+      const key = esaAnswerKey(year)!;
+      const answered = Object.keys(key.answers).map(Number);
+      const covered = [...answered, ...key.annulled].sort((a, b) => a - b);
+      expect(covered).toEqual(Array.from({ length: key.total }, (_, i) => i + 1));
+      expect(new Set(covered).size).toBe(key.total);
+      expect(Object.values(key.answers).every((answer) => /^[A-E]$/.test(answer))).toBe(true);
+    }
+  });
+
   it("gera 50 questões por edição e respeita as faixas de matéria", () => {
     for (const year of esaYears()) {
       const questions = esaQuestions(year);
