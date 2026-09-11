@@ -253,6 +253,19 @@ const FONTES = [
         role: "answer-key-definitive-mirror",
         url: "https://cursozeroum.com.br/wp-content/uploads/2024/04/Espcex2022_Gabarito-1.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2021/provas/2021%20-%20EsPCEx%20-%20PORTFISQUI%20-%20MODELO%20A.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2021/provas/2021%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D.pdf",
+      },
+      {
+        role: "answer-key-final-mirror",
+        url: "https://www.indagacao.com.br/2023/03/prova-espcex-2021-1-e-2-dias-com-gabarito.html",
+        method: "GET",
+      },
     ],
   },
   {
