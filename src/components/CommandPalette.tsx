@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Library,
   Sparkles,
+  BrainCircuit,
   Map,
   Gauge,
   RotateCcw,
@@ -60,6 +61,13 @@ export default function CommandPalette() {
         label: "Adaptive 2.0",
         icon: Sparkles,
         run: () => router.push("/adaptive"),
+      },
+      {
+        id: "ai",
+        label: "Centro de IA",
+        hint: "inteligência e próxima ação",
+        icon: BrainCircuit,
+        run: () => router.push("/ai"),
       },
       { id: "plano", label: "Plano de estudo", icon: Map, run: () => router.push("/plano") },
       {

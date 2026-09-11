@@ -59,6 +59,78 @@ describe("pedagogical engine", () => {
     expect(result.answer).toBeUndefined();
   });
 
+  it("só mantém highlights que existem na questão e respeita a profundidade", () => {
+    const input = request({
+      mode: "hint",
+      question: {
+        ...request().question,
+        statement: "Uma loja aumentou o preço de 100 para 120 reais.",
+        alternativesIntroduction: "Calcule a variação percentual do preço.",
+      },
+    });
+    const result = enforcePedagogicalResponse(
+      output({
+        highlights: [
+          {
+            text: "aumentou o preço de 100 para 120 reais",
+            role: "data",
+            note: "Dados que precisam ser comparados.",
+          },
+          {
+            text: "trecho que não existe na questão",
+            role: "trap",
+            note: "Invenção do provider.",
+          },
+          {
+            text: "variação percentual do preço",
+            role: "objective",
+            note: "Objetivo da questão.",
+          },
+        ],
+      }),
+      input,
+      buildPedagogicalPolicy(input),
+      "fake",
+    );
+
+    expect(result.highlights).toEqual([
+      {
+        text: "aumentou o preço de 100 para 120 reais",
+        role: "data",
+        note: "Dados que precisam ser comparados.",
+      },
+    ]);
+  });
+
+  it("permite mais regiões semânticas quando a assistência aprofunda", () => {
+    const input = request({
+      mode: "explain",
+      requestedLevel: 2,
+      question: {
+        ...request().question,
+        statement: "Uma loja aumentou o preço de 100 para 120 reais.",
+        alternativesIntroduction: "Calcule a variação percentual do preço.",
+      },
+    });
+    const result = enforcePedagogicalResponse(
+      output({
+        highlights: [
+          { text: "preço de 100", role: "data", note: "Valor inicial." },
+          { text: "120 reais", role: "data", note: "Valor final." },
+          {
+            text: "variação percentual do preço",
+            role: "objective",
+            note: "O que precisa ser calculado.",
+          },
+        ],
+      }),
+      input,
+      buildPedagogicalPolicy(input),
+      "fake",
+    );
+    expect(result.highlights).toHaveLength(3);
+  });
+
   it("permite solução completa quando o aluno pede explicitamente", () => {
     const input = request({ mode: "chat", message: "Resolva completamente essa questão" });
     const policy = buildPedagogicalPolicy(input);

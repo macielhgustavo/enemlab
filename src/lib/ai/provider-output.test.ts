@@ -14,6 +14,35 @@ describe("AI provider output boundary", () => {
     expect(parseAIProviderOutput(validOutput)).toEqual(validOutput);
   });
 
+  it("aceita highlights semânticos dentro do contrato", () => {
+    const withHighlights = {
+      ...validOutput,
+      highlights: [
+        {
+          text: "a variação relativa",
+          role: "concept" as const,
+          note: "Conceito que organiza a leitura deste trecho.",
+        },
+      ],
+    };
+    expect(parseAIProviderOutput(withHighlights)).toEqual(withHighlights);
+  });
+
+  it("rejeita papel semântico fora do vocabulário permitido", () => {
+    expect(() =>
+      parseAIProviderOutput({
+        ...validOutput,
+        highlights: [
+          {
+            text: "a variação relativa",
+            role: "answer",
+            note: "Não pode transformar highlight em gabarito.",
+          },
+        ],
+      }),
+    ).toThrow(/contrato estruturado/i);
+  });
+
   it("rejeita campos de política que pertencem ao ENEMLab", () => {
     expect(() =>
       parseAIProviderOutput({

@@ -1,0 +1,95 @@
+/* Semantic highlights emitted by the Student AI provider. */
+
+::highlight(student-ai-objective) {
+  background-color: color-mix(in srgb, var(--brand) 26%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--brand) 76%, transparent);
+}
+
+::highlight(student-ai-condition) {
+  background-color: color-mix(in srgb, var(--warn) 22%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--warn) 72%, transparent);
+}
+
+::highlight(student-ai-data) {
+  background-color: color-mix(in srgb, var(--cyan) 20%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--cyan) 66%, transparent);
+}
+
+::highlight(student-ai-concept) {
+  background-color: color-mix(in srgb, var(--violet) 19%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--violet) 68%, transparent);
+}
+
+::highlight(student-ai-trap) {
+  background-color: color-mix(in srgb, var(--bad) 18%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--bad) 70%, transparent);
+}
+
+::highlight(student-ai-signal) {
+  background-color: color-mix(in srgb, var(--text-dim) 16%, transparent);
+  text-decoration: underline 1px color-mix(in srgb, var(--text-dim) 58%, transparent);
+}
+
+.studentAISemanticLegend {
+  display: grid;
+  gap: 6px;
+  margin: 0 14px 13px;
+}
+
+.studentAISemanticLegend > span {
+  --semantic-color: var(--text-dim);
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--semantic-color) 24%, var(--line));
+  border-left: 2px solid var(--semantic-color);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--semantic-color) 6%, var(--surface-1));
+}
+
+.studentAISemanticLegend > span[data-role="objective"] {
+  --semantic-color: var(--brand);
+}
+
+.studentAISemanticLegend > span[data-role="condition"] {
+  --semantic-color: var(--warn);
+}
+
+.studentAISemanticLegend > span[data-role="data"] {
+  --semantic-color: var(--cyan);
+}
+
+.studentAISemanticLegend > span[data-role="concept"] {
+  --semantic-color: var(--violet);
+}
+
+.studentAISemanticLegend > span[data-role="trap"] {
+  --semantic-color: var(--bad);
+}
+
+.studentAISemanticLegend > span[data-role="signal"] {
+  --semantic-color: var(--text-dim);
+}
+
+.studentAISemanticLegend b {
+  color: var(--semantic-color);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.studentAISemanticLegend small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .studentAISemanticLegend > span {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}

@@ -24,6 +24,14 @@ const diagnosticSchema = z
   })
   .strict();
 
+const semanticHighlightSchema = z
+  .object({
+    text: z.string().min(4).max(240),
+    role: z.enum(["objective", "condition", "data", "concept", "trap", "signal"]),
+    note: z.string().min(1).max(600),
+  })
+  .strict();
+
 const generatedQuestionDraftSchema = z
   .object({
     statement: z.string().min(1).max(20_000),
@@ -71,6 +79,23 @@ export const aiProviderOutputJsonSchema = {
       },
       required: ["category", "confidence", "note"],
     },
+    highlights: {
+      type: "array",
+      maxItems: 6,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          text: { type: "string", minLength: 4, maxLength: 240 },
+          role: {
+            type: "string",
+            enum: ["objective", "condition", "data", "concept", "trap", "signal"],
+          },
+          note: { type: "string", minLength: 1, maxLength: 600 },
+        },
+        required: ["text", "role", "note"],
+      },
+    },
     generatedQuestion: {
       type: "object",
       additionalProperties: false,
@@ -114,6 +139,7 @@ export const aiProviderOutputSchema = z
     revealAnswer: z.boolean(),
     answer: z.string().max(3).optional(),
     diagnostic: diagnosticSchema.optional(),
+    highlights: z.array(semanticHighlightSchema).max(6).optional(),
     generatedQuestion: generatedQuestionDraftSchema.optional(),
   })
   .strict();

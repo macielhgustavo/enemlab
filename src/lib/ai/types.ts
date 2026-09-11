@@ -8,6 +8,21 @@ import type {
 export type AIAssistanceMode = StudentAIAssistanceMode;
 export type AIAssistanceLevel = StudentAIAssistanceLevel;
 export type AIGeneratedQuestionLabel = `Questão gerada por IA — estilo ${string}`;
+export type AISemanticHighlightRole =
+  | "objective"
+  | "condition"
+  | "data"
+  | "concept"
+  | "trap"
+  | "signal";
+
+export interface AISemanticHighlight {
+  /** Trecho literal do enunciado ou da introdução das alternativas. */
+  text: string;
+  role: AISemanticHighlightRole;
+  /** Explicação curta da função pedagógica daquele trecho. */
+  note: string;
+}
 
 export interface AIQuestionAlternative {
   letter: string;
@@ -133,6 +148,7 @@ export interface AIProviderOutput {
   revealAnswer: boolean;
   answer?: string;
   diagnostic?: AIDiagnosticSignal;
+  highlights?: AISemanticHighlight[];
   generatedQuestion?: AIGeneratedQuestionDraft;
 }
 
@@ -146,6 +162,7 @@ export interface AIResponse {
   revealAnswer: boolean;
   answer?: string;
   diagnostic?: AIDiagnosticSignal;
+  highlights?: AISemanticHighlight[];
   generatedQuestion?: AIGeneratedQuestion;
   provider: string;
   /** Provider que falhou antes de um fallback explícito para o mock. */

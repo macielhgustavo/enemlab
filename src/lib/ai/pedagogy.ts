@@ -1,3 +1,4 @@
+import { sanitizeSemanticHighlights } from "./semantic-highlights";
 import type {
   AIAssistanceLevel,
   AIAssistanceMode,
@@ -116,7 +117,9 @@ export function buildTutorPrompts(
     "Use linguagem clara, progressiva e adequada ao ensino médio.",
     "Retorne somente um objeto JSON válido. Não use Markdown fora do JSON.",
     "As chaves obrigatórias são: title, explanation, concepts, nextStep, revealAnswer.",
-    "answer, diagnostic e generatedQuestion são opcionais. concepts deve ser um array curto de strings.",
+    "answer, diagnostic, highlights e generatedQuestion são opcionais. concepts deve ser um array curto de strings.",
+    "highlights, quando útil, deve conter no máximo 6 itens com text, role e note. text deve ser uma citação curta e contínua que exista literalmente em question.statement ou question.alternativesIntroduction; nunca cite texto das alternativas. role deve ser objective, condition, data, concept, trap ou signal. note deve explicar em uma frase a função daquele trecho no raciocínio.",
+    "Use highlights de modo progressivo: em nível 1 marque no máximo um sinal essencial; nos níveis seguintes você pode separar objetivo, condições, dados, conceitos e armadilhas quando isso realmente ajudar. Não marque o enunciado inteiro.",
     "diagnostic, quando usado, deve conter category, confidence e note. category deve ser content-gap, interpretation, calculation, strategy, attention ou unknown; confidence deve ser low, medium ou high.",
     "Só use diagnostic quando estiver analisando uma alternativa efetivamente marcada pelo aluno. Não diagnostique a partir de uma simples pista, explicação geral ou falta de histórico.",
     "Use confidence=high somente quando a alternativa marcada e o contexto da questão sustentarem claramente a categoria. Se houver ambiguidade, use medium/low; se não for possível inferir, use category=unknown.",
@@ -196,6 +199,7 @@ export function enforcePedagogicalResponse(
     revealAnswer,
     answer: revealAnswer && raw.answer ? raw.answer : undefined,
     diagnostic: diagnosticForResponse(raw, request),
+    highlights: sanitizeSemanticHighlights(raw.highlights, request.question, policy.level),
     generatedQuestion:
       request.mode === "similar-question"
         ? normalizeGeneratedQuestion(raw.generatedQuestion, request.question)

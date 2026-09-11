@@ -13,6 +13,7 @@ const ROTAS: { url: string; nome: string; marca: RegExp }[] = [
   { url: "/", nome: "Início", marca: /centro de controle/i },
   { url: "/practice", nome: "Treinar", marca: /novo treino/i },
   { url: "/bank", nome: "Banco", marca: /banco/i },
+  { url: "/ai", nome: "Centro de IA", marca: /centro de ia|inteligência/i },
   { url: "/plano", nome: "Plano", marca: /plano|prontidão/i },
   { url: "/mastery", nome: "Domínio", marca: /mapa de domínio/i },
   { url: "/srs", nome: "Revisões", marca: /revis/i },
@@ -113,6 +114,7 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
   await expect(page.getByText("Pista 1 de 6")).toBeVisible();
   await expect(page.locator(".studentAIDepthMeter span.active")).toHaveCount(1);
   await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
+  await expect(page.locator(".studentAISemanticLegend > span")).toHaveCount(1);
 
   const primeiraAlternativa = page.locator(".answer").first();
   await primeiraAlternativa.click();
@@ -196,4 +198,10 @@ test("a paleta de comandos abre, busca e fecha no Esc", async ({ page }) => {
 
   await page.keyboard.press("Escape");
   await expect(busca).toBeHidden();
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await busca.fill("centro de ia");
+  await expect(page.getByRole("option").first()).toContainText(/Centro de IA/i);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/ai$/);
 });

@@ -17,12 +17,14 @@ import {
   Target,
   X,
 } from "lucide-react";
+import { applySemanticHighlights } from "@/lib/ai/dom-highlights";
 import type {
   AIAssistanceLevel,
   AIAssistanceMode,
   AIConversationTurn,
   AIQuestionContext,
   AIResponse,
+  AISemanticHighlightRole,
   AIStudentSnapshot,
 } from "@/lib/ai/types";
 
@@ -116,6 +118,15 @@ const CONFIDENCE_LABELS: Record<string, string> = {
   high: "alta",
 };
 
+const HIGHLIGHT_LABELS: Record<AISemanticHighlightRole, string> = {
+  objective: "objetivo",
+  condition: "condição",
+  data: "dado",
+  concept: "conceito",
+  trap: "armadilha",
+  signal: "sinal",
+};
+
 function responseText(response: AIResponse): string {
   return `${response.title}\n${response.explanation}\n${response.nextStep}`;
 }
@@ -198,6 +209,11 @@ export default function StudentAITutor({
       delete root.dataset.studentAi;
     };
   }, [active]);
+
+  useEffect(() => {
+    if (!active || !latest?.highlights?.length) return;
+    return applySemanticHighlights(latest.highlights);
+  }, [active, latest?.highlights]);
 
   const requestTutor = useCallback(
     async ({
@@ -583,6 +599,21 @@ export default function StudentAITutor({
                 <div className="studentAIConcepts">
                   {latest.concepts.map((concept, index) => (
                     <span key={`${concept}-${index}`}>{concept}</span>
+                  ))}
+                </div>
+              )}
+
+              {!!latest.highlights?.length && (
+                <div className="studentAISemanticLegend" aria-label="Mapa semântico do enunciado">
+                  {latest.highlights.map((highlight, index) => (
+                    <span
+                      key={`${highlight.role}-${highlight.text}-${index}`}
+                      data-role={highlight.role}
+                      title={highlight.text}
+                    >
+                      <b>{HIGHLIGHT_LABELS[highlight.role]}</b>
+                      <small>{highlight.note}</small>
+                    </span>
                   ))}
                 </div>
               )}
