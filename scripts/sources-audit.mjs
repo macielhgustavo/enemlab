@@ -241,6 +241,18 @@ const FONTES = [
         role: "answer-key-day2-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/gabarito/2023-gabarito-2-dia-de-prova.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2022/provas/2022%20PROVA%20DIA%201%20MODELO%20A.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2022/provas/2022%20PROVA%20DIA%202%20MODELO%20D.pdf",
+      },
+      {
+        role: "answer-key-definitive-mirror",
+        url: "https://cursozeroum.com.br/wp-content/uploads/2024/04/Espcex2022_Gabarito-1.pdf",
+      },
     ],
   },
   {
