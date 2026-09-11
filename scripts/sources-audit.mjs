@@ -225,6 +225,22 @@ const FONTES = [
         url: "https://espcex.eb.mil.br/images/concurso/2024_publConcurso/gabaritos/Gabarito_2024_Dia_2_Final.pdf",
         informativo: true,
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/provas/2023-modelo-a-1-dia-de-prova.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/gabarito/2023-gabarito-1-dia-de-prova.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/provas/2023-modelo-d-2-dia-de-prova.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/gabarito/2023-gabarito-2-dia-de-prova.pdf",
+      },
     ],
   },
   {

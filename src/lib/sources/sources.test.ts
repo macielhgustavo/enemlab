@@ -160,7 +160,7 @@ describe("registry de fontes", () => {
       family: "army",
       status: "active",
       rightsStatus: "official-reference",
-      years: [2025, 2024],
+      years: [2025, 2024, 2023],
     });
   });
 
@@ -266,6 +266,9 @@ describe("procedência", () => {
     expect(epcarImporter.provenanceFor(2025).documentUrl).toContain("cpcar2025_gab_oficial.pdf");
     expect(espcexImporter.provenanceFor(2025, "day1").documentUrl).toContain("espcex.eb.mil.br");
     expect(espcexImporter.provenanceFor(2025, "day2").documentUrl).toContain("MODELO%20D.pdf");
+    expect(espcexImporter.provenanceFor(2025, "day1").official).toBe(true);
+    expect(espcexImporter.provenanceFor(2024, "day1").official).toBe(false);
+    expect(espcexImporter.provenanceFor(2023, "day1").official).toBe(false);
     expect(esaImporter.provenanceFor(2025).documentUrl).toContain("arquivos.qconcursos.com");
     expect(esaImporter.provenanceFor(2025).official).toBe(false);
   });

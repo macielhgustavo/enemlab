@@ -10,7 +10,14 @@ import {
 
 describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
-    expect(espcexYears()).toEqual([2025, 2024]);
+    expect(espcexYears()).toEqual([2025, 2024, 2023]);
+    const k23 = espcexAnswerKey(2023)!;
+    expect(k23.revision).toBe("mirror-reviewed-2023");
+    expect(k23.days.day1.model).toBe("A");
+    expect(k23.days.day2.model).toBe("D");
+    expect(k23.days.day1.total).toBe(44);
+    expect(k23.days.day2.total).toBe(56);
+
     const k24 = espcexAnswerKey(2024)!;
     expect(k24.revision).toBe("final-2024-10-21");
     expect(k24.days.day1.model).toBe("A");
@@ -57,6 +64,11 @@ describe("EsPCEx", () => {
   });
 
   it("não chama caderno espelhado de oficial", () => {
+    const q23 = espcexQuestions(2023)[0];
+    expect(q23.statementAvailable).toBe(false);
+    expect(q23.official?.official).toBe(false);
+    expect(q23.official?.documentUrl).toContain("hdocurso.com.br");
+
     const q24 = espcexQuestions(2024)[0];
     expect(q24.statementAvailable).toBe(false);
     expect(q24.official?.official).toBe(false);
@@ -71,11 +83,13 @@ describe("EsPCEx", () => {
   it("usa chave estável por ano, dia e número", () => {
     expect(espcexQuestionKey(espcexQuestions(2025)[0])).toBe("espcex-2025-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2024)[0])).toBe("espcex-2024-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2023)[0])).toBe("espcex-2023-day1-1");
   });
 
   it("provider entrega as edições completas e recusa ano ausente", async () => {
     expect(await espcexProvider.fetchQuestions({ year: 2025 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2024 })).toHaveLength(100);
-    expect(await espcexProvider.fetchQuestions({ year: 2023 })).toEqual([]);
+    expect(await espcexProvider.fetchQuestions({ year: 2023 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2022 })).toEqual([]);
   });
 });

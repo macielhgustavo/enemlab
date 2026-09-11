@@ -4,7 +4,7 @@ import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../prov
 import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/fuvest";
 import { afaAnswerKey, afaYears } from "../providers/afa";
 import { epcarAnswerKey, epcarYears } from "../providers/epcar";
-import { espcexExamUrl, espcexYears } from "../providers/espcex";
+import { espcexExamOfficial, espcexExamUrl, espcexYears } from "../providers/espcex";
 import { esaExamUrl, esaYears } from "../providers/esa";
 import { unicampExamUrl, unicampYears } from "../providers/unicamp";
 import { uelExamUrl, uelYears } from "../providers/uel";
@@ -317,10 +317,10 @@ export const espcexSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "alta",
   notes:
-    "Entram 2024–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
-    "Os gabaritos finais apontam para URLs da EsPCEx. Em 2025 os cadernos também têm " +
-    "URL oficial; em 2024 os cadernos verificáveis usados pelo app são espelhos públicos " +
-    "e por isso as questões desse ano carregam `official: false`. O app não redistribui PDFs.",
+    "Entram 2023–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
+    "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2023–2024 os cadernos " +
+    "verificáveis são espelhos públicos, por isso essas questões e sua procedência carregam " +
+    "`official: false`. Gabaritos são dados factuais e o app não redistribui PDFs.",
 };
 
 /** ESA: Área Geral, Tipo A, mantida em modo referência. */
@@ -880,7 +880,10 @@ export const espcexImporter: ExamImporter = {
   provenanceFor(year, phase = "day1", page) {
     const selectedPhase = phase === "day2" ? "day2" : "day1";
     const url = espcexExamUrl(year, selectedPhase) ?? espcexSource.archiveUrl;
-    return provenance(espcexSource, url, page);
+    return {
+      ...provenance(espcexSource, url, page),
+      official: espcexExamOfficial(year, selectedPhase),
+    };
   },
 };
 

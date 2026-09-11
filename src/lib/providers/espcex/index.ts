@@ -59,6 +59,11 @@ export function espcexExamUrl(year: number, phase: "day1" | "day2"): string | nu
   return espcexAnswerKey(year)?.days[phase].examUrl ?? null;
 }
 
+export function espcexExamOfficial(year: number, phase: "day1" | "day2"): boolean {
+  const day = espcexAnswerKey(year)?.days[phase];
+  return day ? (day.examOfficial ?? true) : false;
+}
+
 export function espcexAnswerKeyUrl(year: number, phase: "day1" | "day2"): string | null {
   return espcexAnswerKey(year)?.days[phase].answerKeyUrl ?? null;
 }
