@@ -207,6 +207,24 @@ const FONTES = [
         url: "https://espcex.eb.mil.br/images/concurso/2025_publConcurso/gabarito/gabarito_segundo_dia_final.pdf",
         informativo: true,
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://onlineespecifico.com.br/wp-content/uploads/2025/01/2024-Prova-EsPCEx-1-dia.pdf",
+      },
+      {
+        role: "answer-key-day1",
+        url: "https://espcex.eb.mil.br/images/concurso/2024_publConcurso/gabaritos/Gabarito_2024_Dia_1_Final.pdf",
+        informativo: true,
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://onlineespecifico.com.br/wp-content/uploads/2025/01/2024-Prova-EsPCEx-2-dia.pdf",
+      },
+      {
+        role: "answer-key-day2",
+        url: "https://espcex.eb.mil.br/images/concurso/2024_publConcurso/gabaritos/Gabarito_2024_Dia_2_Final.pdf",
+        informativo: true,
+      },
     ],
   },
   {

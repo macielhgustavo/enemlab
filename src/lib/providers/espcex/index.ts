@@ -25,6 +25,7 @@ export interface EspcexDayKey {
   model: string;
   total: number;
   examUrl: string;
+  examOfficial?: boolean;
   answerKeyUrl: string;
   verificationUrl: string;
   annulled: number[];
@@ -111,7 +112,7 @@ function questionsForDay(year: number, phase: "day1" | "day2"): NormalizedQuesti
       type: "multiple_choice" as const,
       statementAvailable: false,
       official: {
-        official: true,
+        official: day.examOfficial ?? true,
         institution: "EsPCEx",
         documentUrl: day.examUrl,
       },

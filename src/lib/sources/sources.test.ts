@@ -160,7 +160,7 @@ describe("registry de fontes", () => {
       family: "army",
       status: "active",
       rightsStatus: "official-reference",
-      years: [2025],
+      years: [2025, 2024],
     });
   });
 

@@ -317,11 +317,10 @@ export const espcexSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "alta",
   notes:
-    "Entra 2025 completo: 44 questões objetivas no 1º dia e 56 no 2º. " +
-    "Os cadernos e gabaritos finais têm URLs oficiais da EsPCEx; o servidor oficial " +
-    "rejeita clientes automatizados neste ambiente, então a transcrição do gabarito " +
-    "foi conferida também contra uma cópia pública datada de 13/10/2025. " +
-    "O enunciado não é redistribuído pelo app: permanece no documento oficial.",
+    "Entram 2024–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
+    "Os gabaritos finais apontam para URLs da EsPCEx. Em 2025 os cadernos também têm " +
+    "URL oficial; em 2024 os cadernos verificáveis usados pelo app são espelhos públicos " +
+    "e por isso as questões desse ano carregam `official: false`. O app não redistribui PDFs.",
 };
 
 /** ESA: Área Geral, Tipo A, mantida em modo referência. */
