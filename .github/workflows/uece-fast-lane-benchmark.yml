@@ -1,0 +1,81 @@
+name: UECE Fast Lane Benchmark
+
+on:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - .github/workflows/uece-fast-lane-benchmark.yml
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PDF dependency
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
+
+      - name: Validate inbox and UECE tests
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_ingest_inbox.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uece_inbox.py'
+          python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola.py'
+          python -m unittest discover -s scripts/tests -p 'test_uece_mirror_adapters.py'
+
+      - name: Acquire representative UECE mirror batch
+        run: |
+          python scripts/harvest-uece-brasil-escola.py \
+            --limit 18 \
+            --workers 4 \
+            --catalog .cache/uece-catalog.json \
+            --download-root .cache/uece-inbox
+
+      - name: Run UECE fast lane
+        run: |
+          python scripts/ingest-uece-mirror.py \
+            --input .cache/uece-inbox \
+            --output .cache/uece-extracted \
+            --workers 2
+
+      - name: Enforce benchmark integrity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('.cache/uece-extracted/uece-summary.json')
+          if not path.exists():
+              raise SystemExit('missing UECE summary')
+          summary = json.loads(path.read_text(encoding='utf-8'))
+          if summary.get('editions', 0) < 1:
+              raise SystemExit('expected at least one grouped UECE edition')
+          if summary.get('extractedQuestions', 0) < 1:
+              raise SystemExit('expected at least one extracted UECE question')
+          if summary.get('failures'):
+              raise SystemExit(f"archive failures: {summary['failures']}")
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload UECE benchmark reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uece-fast-lane-benchmark
+          path: |
+            .cache/uece-catalog.json
+            .cache/uece-extracted/uece-summary.json
+            .cache/uece-extracted/uece/**/bundle.json
+          if-no-files-found: warn
+          retention-days: 7
