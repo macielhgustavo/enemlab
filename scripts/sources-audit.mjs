@@ -314,6 +314,22 @@ const FONTES = [
         role: "answer-key-day2-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2018/gabarito/2018-gabarito-espcex-2-dia-matgeohising.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/provas/2017-espcex-1-dia-portquifis-modelo-a.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/gabarito/2017-gabarito-espcex-1-dia-portquifis.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/provas/2017-espcex-2-dia-matgeohising-modelo-d.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/gabarito/2017-gabarito-espcex-2-dia-matgeohising.pdf",
+      },
     ],
   },
   {
