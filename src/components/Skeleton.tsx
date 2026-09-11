@@ -17,38 +17,50 @@ export function Sk({
 // Skeleton do dashboard da Home.
 export function DashboardSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Carregando seu painel">
-      <div className="el-head" aria-hidden="true">
-        <Sk w={180} h={12} />
-        <Sk w={220} h={40} style={{ marginTop: 12 }} />
-        <Sk w="65%" h={20} style={{ marginTop: 8 }} />
+    <div className="performance-dashboard" aria-busy="true" aria-label="Carregando seu painel">
+      <div className="dashboard-intro" aria-hidden="true">
+        <div>
+          <Sk w={220} h={11} />
+          <Sk w={210} h={46} style={{ marginTop: 10 }} />
+          <Sk w={310} h={15} style={{ marginTop: 8 }} />
+        </div>
       </div>
-      <div className="hrow hrow-1" aria-hidden="true">
-        <div className="hcard mission">
-          <Sk w={120} h={12} />
-          <Sk w="90%" h={56} style={{ marginTop: 16 }} />
-          <Sk w="75%" h={16} style={{ marginTop: 12 }} />
-          <Sk w={152} h={44} style={{ marginTop: 24 }} />
+      <div className="dashboard-grid" aria-hidden="true">
+        <div className="dash-panel dash-mission">
+          <div className="dash-mission__content" style={{ width: "72%" }}>
+            <Sk w={150} h={11} />
+            <Sk w="88%" h={48} style={{ marginTop: 18 }} />
+            <Sk w="68%" h={15} style={{ marginTop: 12 }} />
+            <Sk w={168} h={40} style={{ marginTop: 24 }} />
+          </div>
+          <Sk w={116} h={116} r={999} />
         </div>
-        <div className="hcard goal">
-          <Sk w={136} h={136} r={999} />
+        <div className="dash-panel dash-readiness">
+          <div style={{ padding: 22 }}>
+            <Sk w={110} h={17} />
+            <Sk w={154} h={154} r={999} style={{ margin: "24px auto 0" }} />
+          </div>
         </div>
-        <div className="statcol el-stack">
-          {[0, 1, 2].map((i) => (
-            <div className="el-metric el-metric--plain" key={i}>
-              <Sk w="70%" h={16} />
-              <Sk w={64} h={34} />
+        <div className="dash-loop">
+          {[0, 1, 2, 3].map((index) => (
+            <div className="dash-loop__step" key={index}>
+              <Sk w={32} h={32} r={9} />
+              <Sk w="70%" h={13} />
             </div>
           ))}
         </div>
-      </div>
-      <div className="hrow hrow-2" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div className="hcard" key={i}>
-            <Sk w="60%" h={20} />
-            <Sk h={230} style={{ marginTop: 16 }} />
+        <div className="dash-panel dash-evolution">
+          <div style={{ padding: 22 }}>
+            <Sk w={190} h={18} />
+            <Sk h={220} style={{ marginTop: 18 }} />
           </div>
-        ))}
+        </div>
+        <div className="dash-panel dash-reviews">
+          <div style={{ padding: 22 }}>
+            <Sk w={120} h={18} />
+            <Sk h={220} style={{ marginTop: 18 }} />
+          </div>
+        </div>
       </div>
     </div>
   );
