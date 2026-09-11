@@ -8,6 +8,7 @@ import io
 import json
 import re
 import sys
+import urllib.error
 import zipfile
 from pathlib import Path
 
@@ -104,6 +105,13 @@ def download_entry(entry, *, root: Path, timeout: float, refresh: bool):
     return entry, extension
 
 
+def unavailable(error: Exception) -> int | None:
+    if isinstance(error, urllib.error.HTTPError) and error.code in (404, 410):
+        return int(error.code)
+    match = re.search(r"HTTP Error\s+(404|410)\b", str(error), re.I)
+    return int(match.group(1)) if match else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Acquire UECE mirror files from Brasil Escola without assuming ZIP-only packaging."
@@ -130,22 +138,30 @@ def main() -> int:
 
     root = Path(args.download_root)
     results = {}
+    unavailable_entries: list[dict] = []
     errors: list[dict] = []
     formats: dict[str, int] = {}
 
     def one(entry):
         return download_entry(entry, root=root, timeout=args.timeout, refresh=args.refresh)
 
+    def record_error(entry, error: Exception) -> None:
+        status = unavailable(error)
+        payload = {"downloadId": entry.download_id, "title": entry.title}
+        if status is not None:
+            unavailable_entries.append({**payload, "httpStatus": status})
+        else:
+            errors.append({**payload, "error": str(error)})
+
     workers = max(1, min(args.workers, 8))
     if workers == 1:
-        futures = None
         for entry in selected:
             try:
                 downloaded, extension = one(entry)
                 results[downloaded.download_id] = downloaded
                 formats[extension] = formats.get(extension, 0) + 1
             except Exception as error:
-                errors.append({"downloadId": entry.download_id, "title": entry.title, "error": str(error)})
+                record_error(entry, error)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             future_map = {pool.submit(one, entry): entry for entry in selected}
@@ -156,27 +172,35 @@ def main() -> int:
                     results[downloaded.download_id] = downloaded
                     formats[extension] = formats.get(extension, 0) + 1
                 except Exception as error:
-                    errors.append({"downloadId": entry.download_id, "title": entry.title, "error": str(error)})
+                    record_error(entry, error)
 
+    unavailable_by_id = {item["downloadId"]: item for item in unavailable_entries}
     for institution in catalog["institutions"]:
         for payload in institution["entries"]:
             download_id = int(payload["downloadId"])
             if download_id in results:
                 payload.update(base.entry_to_json(results[download_id]))
+                payload["availability"] = "available"
+            elif download_id in unavailable_by_id:
+                payload["availability"] = "unavailable"
+                payload["httpStatus"] = unavailable_by_id[download_id]["httpStatus"]
 
     catalog["acquisition"] = {
         "selected": len(selected),
+        "acquired": len(results),
         "downloaded": sum(1 for item in results.values() if item.acquisition == "network"),
         "cacheHits": sum(1 for item in results.values() if item.acquisition == "cache"),
+        "unavailable": len(unavailable_entries),
         "bytes": sum(item.bytes or 0 for item in results.values()),
         "formats": {key.removeprefix("."): value for key, value in sorted(formats.items())},
+        "unavailableEntries": sorted(unavailable_entries, key=lambda item: item["downloadId"], reverse=True),
         "errors": sorted(errors, key=lambda item: item["downloadId"], reverse=True),
     }
     base.write_catalog(catalog, Path(args.catalog))
     print(json.dumps({
         "providerId": base.PROVIDER_ID,
         "institution": "UECE",
-        "availableEntries": len([entry for entry in base.iter_entries(catalog) if entry.institution_slug == UECE_SLUG]),
+        "cataloguedEntries": len([entry for entry in base.iter_entries(catalog) if entry.institution_slug == UECE_SLUG]),
         **catalog["acquisition"],
     }, ensure_ascii=False, indent=2))
     return 1 if args.strict and errors else 0

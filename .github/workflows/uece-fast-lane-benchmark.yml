@@ -6,6 +6,13 @@ on:
       - feat/generic-source-harvesting
     paths:
       - .github/workflows/uece-fast-lane-benchmark.yml
+      - scripts/harvest-uece-brasil-escola.py
+      - scripts/ingest-uece-inbox.py
+      - scripts/ingest-uece-mirror.py
+      - scripts/ingest-uece-safe.py
+      - scripts/tests/test_ingest_uece_inbox.py
+      - scripts/tests/test_uece_mirror_adapters.py
+      - scripts/tests/test_uece_phase_guard.py
 
 permissions:
   contents: read
@@ -13,7 +20,7 @@ permissions:
 jobs:
   benchmark:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,27 +33,32 @@ jobs:
       - name: Install PDF dependency
         run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
 
+      - name: Report compressed archive support
+        run: |
+          command -v 7zz || command -v 7z || true
+
       - name: Validate inbox and UECE tests
         run: |
           python -m unittest discover -s scripts/tests -p 'test_ingest_inbox.py'
           python -m unittest discover -s scripts/tests -p 'test_ingest_uece_inbox.py'
           python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola.py'
           python -m unittest discover -s scripts/tests -p 'test_uece_mirror_adapters.py'
+          python -m unittest discover -s scripts/tests -p 'test_uece_phase_guard.py'
 
-      - name: Acquire representative UECE mirror batch
+      - name: Acquire UECE mirror availability window
         run: |
           python scripts/harvest-uece-brasil-escola.py \
-            --limit 18 \
-            --workers 4 \
+            --limit 70 \
+            --workers 6 \
             --catalog .cache/uece-catalog.json \
             --download-root .cache/uece-inbox
 
-      - name: Run UECE fast lane
+      - name: Run phase-safe UECE fast lane
         run: |
-          python scripts/ingest-uece-mirror.py \
+          python scripts/ingest-uece-safe.py \
             --input .cache/uece-inbox \
             --output .cache/uece-extracted \
-            --workers 2
+            --workers 4
 
       - name: Enforce benchmark integrity
         shell: bash
@@ -55,17 +67,54 @@ jobs:
           import json
           from pathlib import Path
 
+          catalog = json.loads(Path('.cache/uece-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('acquisition', {})
+          if acquisition.get('selected') != 70:
+              raise SystemExit(f"expected 70 catalog selections, got {acquisition.get('selected')}")
+          if acquisition.get('acquired', 0) < 1:
+              raise SystemExit('expected at least one currently downloadable UECE item')
+          if acquisition.get('unavailable', 0) < 1:
+              raise SystemExit('expected stale historical entries to be classified as unavailable')
+          if acquisition.get('errors'):
+              raise SystemExit(f"unexpected acquisition errors: {acquisition['errors']}")
+          if acquisition.get('acquired', 0) + acquisition.get('unavailable', 0) != acquisition.get('selected'):
+              raise SystemExit(f"availability accounting mismatch: {acquisition}")
+
           path = Path('.cache/uece-extracted/uece-summary.json')
           if not path.exists():
               raise SystemExit('missing UECE summary')
           summary = json.loads(path.read_text(encoding='utf-8'))
-          if summary.get('editions', 0) < 1:
-              raise SystemExit('expected at least one grouped UECE edition')
-          if summary.get('extractedQuestions', 0) < 1:
-              raise SystemExit('expected at least one extracted UECE question')
+          if summary.get('archivesScanned', 0) != acquisition.get('acquired', 0):
+              raise SystemExit(
+                  f"expected parser to scan {acquisition.get('acquired')} acquired items, "
+                  f"got {summary.get('archivesScanned')}"
+              )
+          if summary.get('extractedQuestions', 0) < 367:
+              raise SystemExit(f"phase-safe extraction regressed below 367: {summary.get('extractedQuestions', 0)}")
           if summary.get('failures'):
               raise SystemExit(f"archive failures: {summary['failures']}")
-          print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+          by_id = {item['editionId']: item for item in summary.get('cycles', [])}
+          if by_id.get('uece-2025.2', {}).get('extractedQuestions') != 85:
+              raise SystemExit('expected UECE 2025.2 to remain 85/85')
+          if by_id.get('uece-2023.1', {}).get('extractedQuestions', 0) < 84:
+              raise SystemExit('expected UECE 2023.1 to retain at least 84 extracted questions')
+          for edition_id in ('uece-2024.1', 'uece-2025.1'):
+              item = by_id.get(edition_id)
+              if not item or item.get('expectedQuestions', 0) < 80:
+                  raise SystemExit(f'phase contamination still suspected in {edition_id}: {item}')
+
+          for bundle in Path('.cache/uece-extracted/uece').glob('*/bundle.json'):
+              data = json.loads(bundle.read_text(encoding='utf-8'))
+              exam = data.get('unit', {}).get('examDocument') or {}
+              identity = f"{exam.get('archive','')} {exam.get('member','')}".lower()
+              if '2-fase' in identity or '2ª-fase' in identity or '2a-fase' in identity:
+                  raise SystemExit(f'second-phase exam leaked into first-phase corpus: {identity}')
+
+          print(json.dumps({
+              'availability': acquisition,
+              'summary': summary,
+          }, ensure_ascii=False, indent=2))
           PY
 
       - name: Upload UECE benchmark reports

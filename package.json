@@ -23,7 +23,7 @@
     "harvest:brasil-escola": "python scripts/harvest-brasil-escola.py",
     "harvest:uece": "python scripts/harvest-uece-brasil-escola.py",
     "ingest:inbox": "python scripts/ingest-inbox.py",
-    "ingest:uece": "python scripts/ingest-uece-mirror.py",
+    "ingest:uece": "python scripts/ingest-uece-safe.py",
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
     "ingest:fuvest:questions": "python scripts/extract-fuvest-questions.py",

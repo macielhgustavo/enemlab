@@ -35,13 +35,18 @@ class UeceMirrorAdapterTests(unittest.TestCase):
 
     def test_exam_can_mention_official_answer_key_in_instructions(self) -> None:
         class Document:
-            first_text = (
-                "VESTIBULAR 2026.1 1ª FASE PROVA DE CONHECIMENTOS GERAIS. "
-                "O gabarito oficial será divulgado posteriormente."
-            )
+            first_text = "VESTIBULAR 2026.1 1ª FASE PROVA DE CONHECIMENTOS GERAIS. O gabarito oficial será divulgado posteriormente."
             leaf = "vtb20261f1g1.pdf"
             page_count = 24
+            sha256 = "x"
+        self.assertTrue(ingest.is_exam(Document()))
 
+    def test_exam_can_be_identified_by_expected_count_when_cover_wording_changes(self) -> None:
+        class Document:
+            first_text = "UNIVERSIDADE ESTADUAL DO CEARÁ VESTIBULAR 2025.1 1ª FASE. Este caderno contém 85 questões objetivas."
+            leaf = "prova-01.pdf"
+            page_count = 20
+            sha256 = "y"
         self.assertTrue(ingest.is_exam(Document()))
 
     def test_short_answer_key_is_not_misclassified_as_exam(self) -> None:
@@ -49,8 +54,55 @@ class UeceMirrorAdapterTests(unittest.TestCase):
             first_text = "VESTIBULAR 2026.1 1ª FASE GABARITO OFICIAL CONHECIMENTOS GERAIS"
             leaf = "gabarito-preliminar.pdf"
             page_count = 3
-
+            sha256 = "z"
         self.assertFalse(ingest.is_exam(Document()))
+
+    def test_flexible_key_parser_prefers_english_gabarito_one(self) -> None:
+        text = """
+        LÍNGUA ESPANHOLA
+        GABARITO 1
+        01 02 03 04 05 06
+        A A A A A A
+        GABARITO 2
+        01 02 03 04 05 06
+        B B B B B B
+        LÍNGUA INGLESA
+        GABARITO 1
+        01 02 03 04 05 06
+        B C D A B C
+        GABARITO 2
+        01 02 03 04 05 06
+        C D A B C D
+        """
+        answers = ingest.parse_key_text(text, 6)
+        self.assertEqual(answers, {1: "B", 2: "C", 3: "D", 4: "A", 5: "B", 6: "C"})
+
+    def test_flexible_key_parser_accepts_inline_number_answer_pairs(self) -> None:
+        text = """
+        LÍNGUA INGLESA
+        GABARITO 1
+        01 B 02 C 03 D 04 A 05 B 06 C
+        GABARITO 2
+        01 C 02 D 03 A 04 B 05 C 06 D
+        """
+        answers = ingest.parse_key_text(text, 6)
+        self.assertEqual(answers, {1: "B", 2: "C", 3: "D", 4: "A", 5: "B", 6: "C"})
+
+    def test_tabular_key_uses_gabarito_one_and_english_duplicate_rows(self) -> None:
+        text = """
+        Questão Disciplina Gab. 1 Gab. 2 Gab. 3 Gab. 4 Questão Disciplina Gab. 1 Gab. 2 Gab. 3 Gab. 4
+        1 Língua Portuguesa C B D A 2 Matemática D A C B
+        3 Língua Espanhola A B C D
+        3 Língua Francesa B C D A
+        3 Língua Inglesa D C A B
+        """
+        self.assertEqual(ingest.parse_key_text(text, 3), {1: "C", 2: "D", 3: "D"})
+
+    def test_ead_source_is_not_mixed_into_regular_cycle(self) -> None:
+        class Source:
+            title = "Provas e gabaritos UECE EaD 2023"
+            path = Path("provas-e-gabaritos-uece-ead-2023.rar")
+        self.assertEqual(ingest._source_variant(Source()), "ead")
 
     def test_recursive_inputs_include_direct_pdf_and_stage_rar(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
