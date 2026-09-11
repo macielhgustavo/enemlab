@@ -1,0 +1,38 @@
+name: Verify and activate ESA General
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-esa-general.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply ESA General integration
+        run: python .github/scripts/activate-esa-general.py
+
+      - name: Verify tests and build
+        run: |
+          npm test
+          npm run build
+
+      - name: Commit verified integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/providers/ita/ita.test.ts src/lib/sources/index.ts src/lib/sources/sources.test.ts src/lib/catalog/current.ts scripts/sources-audit.mjs docs/exam-sources.md
+          git commit -m "feat(esa): activate 2025 General source and catalog [skip ci]"
+          git pull --rebase origin main
+          git push origin main
