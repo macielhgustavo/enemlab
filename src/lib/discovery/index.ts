@@ -6,5 +6,6 @@ export * from "./fingerprint";
 export * from "./harvestRunner";
 export * from "./recipeAcquisition";
 export * from "./recipes";
+export * from "./sourcePipeline";
 export * from "./sourceRecipe";
 export * from "./types";

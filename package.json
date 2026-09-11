@@ -19,6 +19,7 @@
     "test:a11y": "playwright test e2e/a11y.spec.ts",
     "test:visual:update": "playwright test e2e/visual.spec.ts --update-snapshots",
     "ingest": "node scripts/ingest.mjs",
+    "ingest:source": "tsc -p tsconfig.ingest-cli.json && node .cache/ingest-cli/scripts/ingest-source.js",
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
     "ingest:fuvest:questions": "python scripts/extract-fuvest-questions.py",
