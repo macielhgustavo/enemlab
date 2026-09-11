@@ -160,6 +160,16 @@ const FONTES = [
         url: "https://www.qconcursos.com/questoes-militares/provas/exercito-2023-essa-sargento-geral/questoes",
         method: "GET",
       },
+      {
+        role: "objective-exam",
+        url: "https://www.qconcursos.com/questoes-militares/provas/exercito-2022-essa-sargento-geral",
+        method: "GET",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.qconcursos.com/questoes-militares/provas/exercito-2022-essa-sargento-geral/questoes",
+        method: "GET",
+      },
     ],
   },
   {

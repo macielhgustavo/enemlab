@@ -136,7 +136,7 @@ Correção errada é pior que ausência de dado.
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EsPCEx | `espcex.eb.mil.br` | `pdf-reference` | na fonte oficial | 2025 (2 dias) |
-| ESA — Área Geral | documentos ESA via espelhos QConcursos/HDO; arquivo `esa.eb.mil.br` | `pdf-reference` | referência externa | 2023–2025 Tipo A |
+| ESA — Área Geral | documentos ESA via espelhos QConcursos/HDO; arquivo `esa.eb.mil.br` | `pdf-reference` | referência externa | 2022–2025 Tipo A |
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
 | PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
