@@ -10,6 +10,7 @@
     "test": "vitest run && python -m unittest discover -s scripts/tests -p test_*.py",
     "test:watch": "vitest",
     "test:ai:leakage": "vitest run src/lib/ai/leakage.test.ts src/lib/ai/leakage.eval.test.ts",
+    "test:ai:leakage:real": "node scripts/run-ai-leakage-real-eval.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",

@@ -1,0 +1,49 @@
+name: AI leakage eval bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * *"
+  pull_request:
+    paths:
+      - "src/lib/ai/leakage.ts"
+      - "src/lib/ai/leakage.real-corpus.test.ts"
+      - "scripts/run-ai-leakage-real-eval.mjs"
+      - ".github/workflows/ai-leakage-eval.yml"
+      - "package.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-leakage-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-enem-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Evaluate anti-leak on real ENEM corpus
+        run: npm run test:ai:leakage:real
+
+      - name: Upload leakage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-leakage-real-corpus-report
+          path: artifacts/ai-leakage-real-corpus.json
+          if-no-files-found: warn
+          retention-days: 14
