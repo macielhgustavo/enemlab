@@ -12,6 +12,15 @@ export interface SourceLinkCandidate {
   sourcePageUrl: string;
 }
 
+export interface SourceRecipeDocumentSeed {
+  /** Known official document URL. It is classified but not fetched during discovery. */
+  url: string;
+  /** Optional deterministic label used by the same role/year matchers as crawled links. */
+  text?: string;
+  /** Optional official page that published the document, for year/role context. */
+  sourcePageUrl?: string;
+}
+
 export interface SourceRecipeDocumentRule {
   /**
    * A single official file may legitimately play more than one role. For
@@ -39,7 +48,7 @@ export interface SourceRecipeCrawlRule {
   maxDepth: number;
   /** Hard cap across all seed and child page fetch attempts. */
   maxPages?: number;
-  /** Only links matching one of these patterns may become crawl pages. */
+  /** Only target links matching one of these patterns may become crawl pages. */
   follow: RegExp[];
   /** Extra deterministic guard for institution-specific page layouts. */
   acceptPage?: (candidate: SourceLinkCandidate, nextDepth: number) => boolean;
@@ -49,6 +58,11 @@ export interface OfficialSourceRecipe {
   sourceId: string;
   institution: string;
   archiveUrls: string[];
+  /**
+   * Stable official documents that should not depend on archive crawl order.
+   * They still pass the normal allowlist, role, year and candidate filters.
+   */
+  documentSeeds?: SourceRecipeDocumentSeed[];
   allowedHosts: string[];
   edition: SourceRecipeEditionRule;
   documents: SourceRecipeDocumentRule[];
@@ -199,8 +213,16 @@ function shouldFollow(
   if (!crawl || nextDepth > crawl.maxDepth) return false;
   if (!crawl.follow.length) return false;
   if (crawl.acceptPage && !crawl.acceptPage(candidate, nextDepth)) return false;
-  const corpus = candidateCorpus(candidate);
-  return crawl.follow.some((pattern) => Boolean(matchRegex(pattern, corpus)));
+
+  // Crawl decisions describe the target link, not the page that happened to
+  // expose it. Matching sourcePageUrl here can turn every PDF linked from a
+  // valid archive page into another crawl page; matching one combined corpus
+  // also breaks URL-anchored regexes because the URL is no longer at string end.
+  return crawl.follow.some(
+    (pattern) =>
+      Boolean(matchRegex(pattern, candidate.url)) ||
+      Boolean(matchRegex(pattern, candidate.text)),
+  );
 }
 
 function validateRecipe(recipe: OfficialSourceRecipe): void {
@@ -236,7 +258,10 @@ function validateRecipe(recipe: OfficialSourceRecipe): void {
  *
  * Crawling is intentionally bounded twice: by depth and by page count. Every
  * seed, child page and document link remains constrained to `allowedHosts`.
- * No LLM guesses semantic roles and no third-party content becomes authority.
+ * Known historical documents may be supplied as `documentSeeds`; they are
+ * classified without a discovery-time fetch, then acquisition still verifies
+ * and fingerprints their bytes before ingestion. No LLM guesses semantic roles
+ * and no third-party content becomes authority.
  */
 export async function harvestOfficialSource(
   recipe: OfficialSourceRecipe,
@@ -254,6 +279,88 @@ export async function harvestOfficialSource(
   let pagesAttempted = 0;
   let linksSeen = 0;
   let matchedDocuments = 0;
+
+  const recordCandidate = (
+    candidate: SourceLinkCandidate,
+    issueOrigin: string,
+  ): void => {
+    const documents = detectDocuments(recipe, candidate);
+    if (!documents.length) return;
+    if (recipe.acceptCandidate && !recipe.acceptCandidate(candidate)) return;
+
+    const year = detectYear(recipe, candidate);
+    if (year === null) return;
+    const editionId = recipe.edition.editionId?.(candidate, year) ?? String(year);
+    const label = recipe.edition.label?.(candidate, year) ?? `${recipe.institution} ${year}`;
+    const current = editions.get(editionId) ?? {
+      editionId,
+      year,
+      label,
+      documents: [],
+    };
+
+    if (current.year !== year) {
+      issues.push({
+        archiveUrl: issueOrigin,
+        message: `edition ${editionId} resolved to conflicting years ${current.year}/${year}`,
+      });
+      return;
+    }
+
+    const known = new Set(current.documents.map(stableDocumentKey));
+    for (const document of documents) {
+      if (known.has(stableDocumentKey(document))) continue;
+      current.documents.push(document);
+      known.add(stableDocumentKey(document));
+      matchedDocuments += 1;
+    }
+    editions.set(editionId, current);
+  };
+
+  for (const seed of recipe.documentSeeds ?? []) {
+    if (!hostAllowed(seed.url, recipe.allowedHosts)) {
+      issues.push({
+        archiveUrl: seed.url,
+        message: "document seed URL is outside recipe allowlist",
+      });
+      continue;
+    }
+    if (seed.sourcePageUrl && !hostAllowed(seed.sourcePageUrl, recipe.allowedHosts)) {
+      issues.push({
+        archiveUrl: seed.url,
+        message: "document seed source page is outside recipe allowlist",
+      });
+      continue;
+    }
+
+    try {
+      const url = normalizeUrl(seed.url);
+      const sourcePageUrl = normalizeUrl(seed.sourcePageUrl ?? seed.url);
+      const candidate: SourceLinkCandidate = {
+        url,
+        text: seed.text?.trim() ?? "",
+        sourcePageUrl,
+      };
+      const documents = detectDocuments(recipe, candidate);
+      if (!documents.length) {
+        issues.push({
+          archiveUrl: url,
+          message: "document seed did not match any document rule",
+        });
+        continue;
+      }
+      if (detectYear(recipe, candidate) === null) {
+        issues.push({
+          archiveUrl: url,
+          message: "document seed did not resolve to an allowed edition year",
+        });
+        continue;
+      }
+      recordCandidate(candidate, url);
+    } catch {
+      issues.push({ archiveUrl: seed.url, message: "document seed URL is invalid" });
+    }
+  }
 
   for (const archiveUrl of recipe.archiveUrls) {
     if (!hostAllowed(archiveUrl, recipe.allowedHosts)) {
@@ -319,41 +426,7 @@ export async function harvestOfficialSource(
 
     for (const candidate of links) {
       if (!hostAllowed(candidate.url, recipe.allowedHosts)) continue;
-
-      const documents = detectDocuments(recipe, candidate);
-      if (
-        documents.length > 0 &&
-        (!recipe.acceptCandidate || recipe.acceptCandidate(candidate))
-      ) {
-        const year = detectYear(recipe, candidate);
-        if (year !== null) {
-          const editionId = recipe.edition.editionId?.(candidate, year) ?? String(year);
-          const label =
-            recipe.edition.label?.(candidate, year) ?? `${recipe.institution} ${year}`;
-          const current = editions.get(editionId) ?? {
-            editionId,
-            year,
-            label,
-            documents: [],
-          };
-
-          if (current.year !== year) {
-            issues.push({
-              archiveUrl: page.url,
-              message: `edition ${editionId} resolved to conflicting years ${current.year}/${year}`,
-            });
-          } else {
-            const known = new Set(current.documents.map(stableDocumentKey));
-            for (const document of documents) {
-              if (known.has(stableDocumentKey(document))) continue;
-              current.documents.push(document);
-              known.add(stableDocumentKey(document));
-              matchedDocuments += 1;
-            }
-            editions.set(editionId, current);
-          }
-        }
-      }
+      recordCandidate(candidate, page.url);
 
       const nextDepth = page.depth + 1;
       if (!shouldFollow(recipe, candidate, nextDepth)) continue;

@@ -82,7 +82,7 @@ export function createUfprExternalAdapter(
   return {
     providerId: PROVIDER_ID,
     sourceId: SOURCE_ID,
-    importerVersion: "ufpr-objective-extraction-adapter@0.1.0",
+    importerVersion: "ufpr-objective-extraction-adapter@0.2.0",
     discovery: createRecipeDiscovery(UFPR_OFFICIAL_RECIPE),
     statementMode: "structured",
     extractionMethod: "pdf-text-layer",

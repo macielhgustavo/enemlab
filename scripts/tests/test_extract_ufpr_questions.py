@@ -67,6 +67,45 @@ ALEMÃO
         self.assertEqual(extraction["answerKey"], {1: "C"})
         self.assertEqual(extraction["annulled"], [2])
 
+    def test_double_star_is_editorial_marker_not_automatic_annulment(self) -> None:
+        pages = [
+            f"""
+**1 - Questão com nota editorial
+{alternatives("B")}
+"""
+        ]
+
+        extraction = MODULE.build_extraction(
+            pages,
+            year=2024,
+            expected_count=1,
+            variant="english",
+            source_url="https://official.example/ps2024.pdf",
+        )
+
+        self.assertEqual(extraction["answerKey"], {1: "B"})
+        self.assertEqual(extraction["annulled"], [])
+
+    def test_double_star_can_be_annulled_by_explicit_global_note(self) -> None:
+        pages = [
+            f"""
+**1 - Questão posteriormente anulada
+{alternatives(None)}
+A questão 1 será anulada para todos os candidatos.
+"""
+        ]
+
+        extraction = MODULE.build_extraction(
+            pages,
+            year=2024,
+            expected_count=1,
+            variant="english",
+            source_url="https://official.example/ps2024.pdf",
+        )
+
+        self.assertEqual(extraction["answerKey"], {})
+        self.assertEqual(extraction["annulled"], [1])
+
     def test_detects_global_annulment_note(self) -> None:
         pages = [
             f"""
@@ -88,6 +127,28 @@ A questão 2 será anulada para todos os candidatos.
 
         self.assertEqual(extraction["annulled"], [2])
         self.assertNotIn(2, extraction["answerKey"])
+
+    def test_ignores_incomplete_numbered_passage_when_real_question_is_complete(self) -> None:
+        pages = [
+            f"""
+1 - Questão objetiva real
+{alternatives("D")}
+INGLÊS
+1 - Human beings are terrible drivers.
+This is a numbered sentence inside the passage, not question one.
+"""
+        ]
+
+        extraction = MODULE.build_extraction(
+            pages,
+            year=2017,
+            expected_count=1,
+            variant="english",
+            source_url="https://official.example/ps2017.pdf",
+        )
+
+        self.assertEqual(extraction["answerKey"], {1: "D"})
+        self.assertEqual(extraction["questions"][0]["statement"], "Questão objetiva real")
 
     def test_fails_closed_when_a_non_annulled_answer_marker_is_missing(self) -> None:
         pages = [

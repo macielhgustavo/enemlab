@@ -66,6 +66,38 @@ describe("official source recipe harvesting", () => {
     ]);
   });
 
+  it("registers known document seeds without fetching them during discovery", async () => {
+    const seededRecipe: OfficialSourceRecipe = {
+      ...recipe,
+      documentSeeds: [
+        { url: "https://static.test.edu.br/2023/prova.pdf" },
+        { url: "https://static.test.edu.br/2023/gabarito.pdf" },
+      ],
+    };
+
+    const fetched: string[] = [];
+    const result = await harvestOfficialSource(seededRecipe, async (url) => {
+      fetched.push(url);
+      return {
+        url,
+        bytes: new TextEncoder().encode("<html></html>"),
+        headers: { "content-type": "text/html; charset=utf-8" },
+      };
+    });
+
+    expect(fetched).toEqual(["https://vest.test.edu.br/provas-antigas"]);
+    expect(result.issues).toEqual([]);
+    expect(result.pagesFetched).toBe(1);
+    expect(result.linksSeen).toBe(0);
+    expect(result.matchedDocuments).toBe(2);
+    expect(result.editions).toHaveLength(1);
+    expect(result.editions[0].year).toBe(2023);
+    expect(result.editions[0].documents.map((document) => document.role).sort()).toEqual([
+      "answer-key",
+      "objective-exam",
+    ]);
+  });
+
   it("rejects discovered documents outside the host allowlist", async () => {
     const result = await harvestOfficialSource(
       recipe,
@@ -78,6 +110,18 @@ describe("official source recipe harvesting", () => {
     expect(result.editions).toHaveLength(1);
     expect(result.editions[0].documents).toHaveLength(1);
     expect(result.editions[0].documents[0].role).toBe("answer-key");
+  });
+
+  it("rejects document seeds outside the host allowlist", async () => {
+    const seededRecipe: OfficialSourceRecipe = {
+      ...recipe,
+      documentSeeds: [{ url: "https://evil.example/2025/prova.pdf" }],
+    };
+    const result = await harvestOfficialSource(seededRecipe, htmlFetcher("<html></html>"));
+
+    expect(result.editions).toEqual([]);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].message).toContain("document seed URL is outside recipe allowlist");
   });
 
   it("rejects an allowed crawl URL that redirects outside the host allowlist", async () => {
@@ -143,6 +187,38 @@ describe("official source recipe harvesting", () => {
     expect(result.editions).toHaveLength(1);
     expect(result.editions[0].year).toBe(2025);
     expect(result.editions[0].documents).toHaveLength(2);
+  });
+
+  it("does not follow a document merely because its source page matches follow", async () => {
+    const archive = "https://vest.test.edu.br/editions/2025";
+    const crawlingRecipe: OfficialSourceRecipe = {
+      ...recipe,
+      archiveUrls: [archive],
+      crawl: {
+        maxDepth: 1,
+        maxPages: 3,
+        follow: [/\/editions\/20\d{2}$/i],
+      },
+    };
+
+    const requested: string[] = [];
+    const result = await harvestOfficialSource(crawlingRecipe, async (url) => {
+      requested.push(url);
+      if (url !== archive) throw new Error(`document was incorrectly crawled: ${url}`);
+      return {
+        url,
+        bytes: new TextEncoder().encode(
+          '<a href="https://static.test.edu.br/2025/prova.pdf">Prova 2025</a>',
+        ),
+        headers: { "content-type": "text/html; charset=utf-8" },
+      };
+    });
+
+    expect(requested).toEqual([archive]);
+    expect(result.issues).toEqual([]);
+    expect(result.pagesFetched).toBe(1);
+    expect(result.editions).toHaveLength(1);
+    expect(result.editions[0].documents).toHaveLength(1);
   });
 
   it("lets one official file represent exam and answer-key roles", async () => {

@@ -28,11 +28,16 @@ FAILURE_PROTOCOL_VERSION = "enemlab-extraction-failure/v1"
 PROVIDER_ID = "ufpr"
 SOURCE_ID = "ufpr-nc-official"
 EXTRACTOR_NAME = "ufpr-objective-pdf"
-EXTRACTOR_VERSION = "ufpr-objective-pdf@0.1.0"
+EXTRACTOR_VERSION = "ufpr-objective-pdf@0.2.0"
 LETTERS = ("A", "B", "C", "D", "E")
 
-QUESTION_RE = re.compile(r"^\s*(?P<annulled>\*)?\s*(?P<number>\d{1,3})\s*[-–—]\s*(?P<rest>.*)$")
-QUESTION_TOKEN_RE = re.compile(r"(?:^|\s)\*?\s*\d{1,3}\s*[-–—]")
+# UFPR uses both `*66 -` (annulled) and `**90 -` (editorial marker). A double
+# star is therefore a valid question marker but is not, by itself, an
+# annulment. Explicit global notes still annul any marker style.
+QUESTION_RE = re.compile(
+    r"^\s*(?P<marker>\*+)?\s*(?P<number>\d{1,3})\s*[-–—]\s*(?P<rest>.*)$"
+)
+QUESTION_TOKEN_RE = re.compile(r"(?:^|\s)\*{0,3}\s*\d{1,3}\s*[-–—]")
 ALTERNATIVE_RE = re.compile(
     r"^\s*(?P<marked>►|▶|➤)?\s*(?:\((?P<paren>[A-Ea-e])\)|(?P<plain>[A-Ea-e])\s*[\)\.\-–—])\s*(?P<text>.*)$"
 )
@@ -251,12 +256,15 @@ def parse_occurrences(pages: list[str], year: int) -> list[QuestionOccurrence]:
                     continue
                 rest = clean_line(question_match.group("rest") or "")
                 language = current_language if number in language_qs else None
+                marker = question_match.group("marker") or ""
                 occurrence = QuestionOccurrence(
                     number=number,
                     page=page_number,
                     language=language,
                     subject=current_subject,
-                    annulled=bool(question_match.group("annulled")),
+                    # A single star is UFPR's verified annulment marker. Double
+                    # stars are editorial notes and require an explicit annulment note.
+                    annulled=marker == "*",
                 )
                 if rest:
                     occurrence.statement_lines.append(rest)
@@ -299,6 +307,10 @@ def occurrence_score(value: QuestionOccurrence) -> tuple[int, int, int]:
         1 if value.marked in LETTERS else 0,
         len(clean_join(value.statement_lines)),
     )
+
+
+def structurally_complete(value: QuestionOccurrence) -> bool:
+    return set(value.alternatives) == set(LETTERS)
 
 
 def select_questions(
@@ -348,6 +360,14 @@ def select_questions(
                 )
                 continue
             selected.append(best)
+            continue
+
+        # Older booklets can contain numbered sentences such as `1 - ...`
+        # inside reading passages. If exactly one duplicate has the full A-E
+        # structure, that is deterministic evidence of the real exam question.
+        complete_candidates = [item for item in candidates if structurally_complete(item)]
+        if len(complete_candidates) == 1:
+            selected.append(complete_candidates[0])
             continue
 
         targets.append(

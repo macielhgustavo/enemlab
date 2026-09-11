@@ -16,16 +16,12 @@ function routeFetcher(routes: Record<string, string>): DocumentFetcher {
 }
 
 describe("UFPR official source recipe", () => {
-  it("harvests current, intermediate PS2021 and legacy layouts", async () => {
-    const archive = UFPR_OFFICIAL_RECIPE.archiveUrls[0];
+  it("combines stable historical document seeds with current and legacy crawl results", async () => {
+    const [archive] = UFPR_OFFICIAL_RECIPE.archiveUrls;
     const modern2026 =
       "https://servicos.nc.ufpr.br/PortalNC/Concurso?concurso=PS2026";
     const modern2024 =
       "https://servicos.nc.ufpr.br/PortalNC/Concurso?concurso=PS2024";
-    const modern2021 =
-      "https://servicos.nc.ufpr.br/PortalNC/Concurso?concurso=PS2021";
-    const directory2021 =
-      "https://servicos.nc.ufpr.br/documentos/PS2021/provas1fase/";
     const legacy2017 =
       "https://www.nc.ufpr.br/concursos_institucionais/ufpr/ps2017/index.htm";
 
@@ -35,7 +31,6 @@ describe("UFPR official source recipe", () => {
         [archive]: `
           <a href="${modern2026}">PS 2025/2026</a>
           <a href="${modern2024}">PS 2023/2024</a>
-          <a href="${modern2021}">PS 2020/2021</a>
           <a href="${legacy2017}">PS 2016/2017</a>
         `,
         [modern2026]: `
@@ -45,11 +40,6 @@ describe("UFPR official source recipe", () => {
         [modern2024]: `
           <a href="/documentos/ps2024/provas/Geral.pdf">Prova e gabarito definitivo</a>
         `,
-        [modern2021]: `<a href="${directory2021}">Provas da primeira fase</a>`,
-        [directory2021]: `
-          <a href="ps2021_conhecimentos_gerais_ingles.pdf">Inglês</a>
-          <a href="ps2021_conhecimentos_gerais_frances.pdf">Francês</a>
-        `,
         [legacy2017]: `
           <a href="/concursos_institucionais/ufpr/ps2017/provas1fase/PS2017_conhecimentos_gerais.pdf">Definitivo</a>
         `,
@@ -57,19 +47,22 @@ describe("UFPR official source recipe", () => {
     );
 
     expect(result.issues).toEqual([]);
-    expect(result.pagesFetched).toBe(6);
+    expect(result.pagesFetched).toBe(4);
     expect(result.editions.map((edition) => edition.editionId)).toEqual([
       "PS2017",
+      "PS2018",
+      "PS2019",
       "PS2021",
       "PS2024",
       "PS2026",
     ]);
 
     const ps2021 = result.editions.find((edition) => edition.editionId === "PS2021");
-    expect(ps2021?.documents).toHaveLength(4);
-    expect(
-      [...new Set(ps2021?.documents.map((document) => document.variant))].sort(),
-    ).toEqual(["english", "french"]);
+    expect(ps2021?.documents).toHaveLength(2);
+    expect(ps2021?.documents.map((document) => document.variant)).toEqual([
+      "english",
+      "english",
+    ]);
 
     const ps2024 = result.editions.find((edition) => edition.editionId === "PS2024");
     expect(ps2024?.documents.map((document) => document.role).sort()).toEqual([
@@ -85,10 +78,18 @@ describe("UFPR official source recipe", () => {
     ]);
   });
 
-  it("keeps the crawl bounded to the verified UFPR window", () => {
+  it("pins only verified official historical PDFs and keeps the crawl bounded", () => {
     expect(UFPR_OFFICIAL_RECIPE.allowedHosts).toEqual(["nc.ufpr.br"]);
     expect(UFPR_OFFICIAL_RECIPE.minYear).toBe(2016);
     expect(UFPR_OFFICIAL_RECIPE.maxYear).toBe(2026);
+    expect(UFPR_OFFICIAL_RECIPE.archiveUrls).toEqual([
+      "https://servicos.nc.ufpr.br/PortalNC/VestibularesAnteriores",
+    ]);
+    expect(UFPR_OFFICIAL_RECIPE.documentSeeds?.map((seed) => seed.url)).toEqual([
+      "https://servicos.nc.ufpr.br/documentos/ps2018/provas1fase/ps2018_conhecimentos_gerais.pdf",
+      "https://servicos.nc.ufpr.br/documentos/PS2019/provas1fase/ps2019_conhecimentos_gerais.pdf",
+      "https://servicos.nc.ufpr.br/documentos/PS2021/provas1fase/ps2021_conhecimentos_gerais_ingles.pdf",
+    ]);
     expect(UFPR_OFFICIAL_RECIPE.crawl?.maxDepth).toBe(2);
     expect(UFPR_OFFICIAL_RECIPE.crawl?.maxPages).toBe(25);
   });

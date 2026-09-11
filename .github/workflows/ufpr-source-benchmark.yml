@@ -6,6 +6,15 @@ on:
       - feat/generic-source-harvesting
     paths:
       - .github/workflows/ufpr-source-benchmark.yml
+      - scripts/extract-ufpr-questions.py
+      - scripts/tests/test_extract_ufpr_questions.py
+      - src/lib/discovery/sourceRecipe.ts
+      - src/lib/discovery/sourceRecipe.test.ts
+      - src/lib/discovery/recipes/ufpr.ts
+      - src/lib/discovery/recipes/ufpr.test.ts
+      - src/lib/discovery/node/ufprPythonLoader.ts
+      - src/lib/ingestion/adapters/ufprExternalAdapter.ts
+      - src/lib/ingestion/adapters/ufprExternalAdapter.test.ts
 
 permissions:
   contents: read
@@ -36,6 +45,9 @@ jobs:
 
       - name: Validate UFPR extractor tests
         run: python -m unittest discover -s scripts/tests -p 'test_extract_ufpr_questions.py'
+
+      - name: Validate source-recipe and UFPR TypeScript tests
+        run: npx vitest run src/lib/discovery/sourceRecipe.test.ts src/lib/discovery/recipes/ufpr.test.ts src/lib/ingestion/adapters/ufprExternalAdapter.test.ts
 
       - name: Compile source pipeline CLI
         run: npx tsc -p tsconfig.ingest-cli.json

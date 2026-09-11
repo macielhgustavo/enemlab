@@ -17,18 +17,39 @@ function languageRule(
   };
 }
 
+function isUfprCrawlPage(url: string): boolean {
+  return (
+    /\/PortalNC\/Concurso(?:Publicacao)?\?[^#]*concurso=PS20\d{2}\b/i.test(url) ||
+    /\/concursos_institucionais\/ufpr\/ps20\d{2}\/[^?#]+\.html?\b/i.test(url) ||
+    /\/documentos\/PS2021\/provas1fase\/?$/i.test(url)
+  );
+}
+
 /**
  * UFPR official vestibular archive.
  *
- * The benchmark covers PS2016–PS2026 and follows only NC/UFPR pages. It spans
- * legacy static pages, PortalNC publication pages and PS2021's intermediate
- * first-phase directory. Definitive booklets carry marked correct alternatives,
- * so one physical PDF legitimately has objective-exam and answer-key roles.
+ * The benchmark covers PS2016–PS2026 and follows only NC/UFPR pages. The main
+ * archive remains the discovery authority for normal years. Three stable
+ * historical PDFs are pinned as document seeds because their PortalNC entries
+ * sit behind long publication lists and should not depend on crawl queue order.
+ * Definitive booklets carry marked correct alternatives, so one physical PDF
+ * legitimately has objective-exam and answer-key roles.
  */
 export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
   sourceId: "ufpr-nc-official",
   institution: "UFPR",
   archiveUrls: ["https://servicos.nc.ufpr.br/PortalNC/VestibularesAnteriores"],
+  documentSeeds: [
+    {
+      url: "https://servicos.nc.ufpr.br/documentos/ps2018/provas1fase/ps2018_conhecimentos_gerais.pdf",
+    },
+    {
+      url: "https://servicos.nc.ufpr.br/documentos/PS2019/provas1fase/ps2019_conhecimentos_gerais.pdf",
+    },
+    {
+      url: "https://servicos.nc.ufpr.br/documentos/PS2021/provas1fase/ps2021_conhecimentos_gerais_ingles.pdf",
+    },
+  ],
   allowedHosts: ["nc.ufpr.br"],
   minYear: 2016,
   maxYear: 2026,
@@ -40,6 +61,9 @@ export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
       /\/concursos_institucionais\/ufpr\/ps20\d{2}\/[^?#]+\.html?\b/i,
       /\/documentos\/PS2021\/provas1fase\/?$/i,
     ],
+    // `follow` also sees source-page context. Guard the actual target URL so a
+    // PDF linked from a PortalNC page can never consume crawl-page budget.
+    acceptPage: (candidate) => isUfprCrawlPage(candidate.url),
   },
   edition: {
     year: /(?:concurso=PS|\/ps|\bPS)(20\d{2})\b/i,
