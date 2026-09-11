@@ -1,6 +1,7 @@
 import type { AISemanticHighlight, AISemanticHighlightRole } from "./types";
 
 const HIGHLIGHT_PREFIX = "student-ai-";
+const STYLE_ATTRIBUTE = "data-student-ai-highlight-rules";
 const ROLES: AISemanticHighlightRole[] = [
   "objective",
   "condition",
@@ -9,6 +10,27 @@ const ROLES: AISemanticHighlightRole[] = [
   "trap",
   "signal",
 ];
+
+const HIGHLIGHT_RULES = `
+::highlight(student-ai-objective) {
+  background-color: color-mix(in srgb, var(--brand) 26%, transparent);
+}
+::highlight(student-ai-condition) {
+  background-color: color-mix(in srgb, var(--warn) 22%, transparent);
+}
+::highlight(student-ai-data) {
+  background-color: color-mix(in srgb, var(--cyan) 20%, transparent);
+}
+::highlight(student-ai-concept) {
+  background-color: color-mix(in srgb, var(--violet) 19%, transparent);
+}
+::highlight(student-ai-trap) {
+  background-color: color-mix(in srgb, var(--bad) 18%, transparent);
+}
+::highlight(student-ai-signal) {
+  background-color: color-mix(in srgb, var(--text-dim) 16%, transparent);
+}
+`;
 
 type HighlightRegistryLike = {
   set(name: string, highlight: unknown): void;
@@ -91,13 +113,24 @@ function registryApi(): {
   return { registry, HighlightCtor };
 }
 
+function ensureHighlightStyles(): void {
+  if (document.head.querySelector(`style[${STYLE_ATTRIBUTE}]`)) return;
+  const style = document.createElement("style");
+  style.setAttribute(STYLE_ATTRIBUTE, "");
+  style.textContent = HIGHLIGHT_RULES;
+  document.head.appendChild(style);
+}
+
 /**
  * Aplica CSS Custom Highlights sem alterar o DOM gerenciado pelo React.
  * Navegadores sem a API simplesmente mantêm a resposta textual da IA.
  */
 export function applySemanticHighlights(highlights: AISemanticHighlight[]): () => void {
+  if (typeof document === "undefined") return () => undefined;
   const api = registryApi();
-  if (!api || typeof document === "undefined") return () => undefined;
+  if (!api) return () => undefined;
+
+  ensureHighlightStyles();
 
   const roots = Array.from(
     document.querySelectorAll<HTMLElement>(

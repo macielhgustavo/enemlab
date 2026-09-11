@@ -116,6 +116,13 @@ test("o tutor IA usa o contexto da questão e respeita a escada de assistência"
   await expect(page.locator(".studentAIRevealedAnswer")).toHaveCount(0);
   await expect(page.locator(".studentAISemanticLegend > span")).toHaveCount(1);
 
+  const semanticHighlightApplied = await page.evaluate(() => {
+    const css = CSS as unknown as { highlights?: { has(name: string): boolean } };
+    return css.highlights?.has("student-ai-signal") ?? false;
+  });
+  expect(semanticHighlightApplied).toBe(true);
+  await expect(page.locator("style[data-student-ai-highlight-rules]")).toHaveCount(1);
+
   const primeiraAlternativa = page.locator(".answer").first();
   await primeiraAlternativa.click();
   await expect(primeiraAlternativa).toHaveClass(/selected/);

@@ -62,13 +62,6 @@ export default function CommandPalette() {
         icon: Sparkles,
         run: () => router.push("/adaptive"),
       },
-      {
-        id: "ai",
-        label: "Centro de IA",
-        hint: "inteligência e próxima ação",
-        icon: BrainCircuit,
-        run: () => router.push("/ai"),
-      },
       { id: "plano", label: "Plano de estudo", icon: Map, run: () => router.push("/plano") },
       {
         id: "mastery",
@@ -108,6 +101,13 @@ export default function CommandPalette() {
         label: "Alternar tema claro/escuro",
         icon: Moon,
         run: () => toggleTheme(),
+      },
+      {
+        id: "ai",
+        label: "Centro de IA",
+        hint: "inteligência e próxima ação",
+        icon: BrainCircuit,
+        run: () => router.push("/ai"),
       },
     ],
     [router, toggleTheme, activeProvider, setProvider],

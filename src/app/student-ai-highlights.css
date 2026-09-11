@@ -1,34 +1,5 @@
-/* Semantic highlights emitted by the Student AI provider. */
-
-::highlight(student-ai-objective) {
-  background-color: color-mix(in srgb, var(--brand) 26%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--brand) 76%, transparent);
-}
-
-::highlight(student-ai-condition) {
-  background-color: color-mix(in srgb, var(--warn) 22%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--warn) 72%, transparent);
-}
-
-::highlight(student-ai-data) {
-  background-color: color-mix(in srgb, var(--cyan) 20%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--cyan) 66%, transparent);
-}
-
-::highlight(student-ai-concept) {
-  background-color: color-mix(in srgb, var(--violet) 19%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--violet) 68%, transparent);
-}
-
-::highlight(student-ai-trap) {
-  background-color: color-mix(in srgb, var(--bad) 18%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--bad) 70%, transparent);
-}
-
-::highlight(student-ai-signal) {
-  background-color: color-mix(in srgb, var(--text-dim) 16%, transparent);
-  text-decoration: underline 1px color-mix(in srgb, var(--text-dim) 58%, transparent);
-}
+/* Semantic highlight legend. The actual ::highlight rules are injected at runtime
+   because Turbopack currently rejects the CSS Custom Highlight pseudo-element. */
 
 .studentAISemanticLegend {
   display: grid;
