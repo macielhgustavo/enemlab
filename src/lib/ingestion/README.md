@@ -127,15 +127,23 @@ The worker is fail-closed:
 - every OCR-applied question remains semantic-review-gated;
 - missing Tesseract/PyMuPDF is reported as worker unavailability rather than cached as a successful recovery.
 
-Measured structural recovery:
+Measured structural recovery after the bounded continuation and strict-label stages:
 
-| Edition | Before | After | Targeted | Applied | Still text review |
+| Edition | Before | After regional OCR | Targeted | Regional applied | Regional unresolved |
 |---|---:|---:|---:|---:|---:|
-| 2016 | 72/90 | **86/90** | 18 | 14 | 4 |
+| 2016 | 72/90 | **87/90** | 18 | 15 | 3 |
 | 2017 | 78/90 | **87/90** | 12 | 9 | 3 |
-| 2021 | 0/90 | **80/90** | 90 | 80 | 10 |
+| 2021 | 0/90 | **87/90** | 90 | 87 | 3 |
 
-FUVEST 2021 preserves all 90 question identities but its native body text contains **37,134 suspicious control-code occurrences**. Regional OCR recovered 80 questions without rewriting that native layer or declaring it semantically trustworthy. It also surfaced 17 media-dependent questions that the corrupted text layer hid.
+The remaining nine regions are questions whose alternatives are predominantly graphical. `scripts/recover-fuvest-visual-alternatives.py` handles that class after regional OCR. It requires unambiguous A–E marker geometry, supports proven one-row and 3+2 grid layouts, and represents each alternative as an independently hashed image crop. It never infers answer content or the answer key. These crops remain in `questionsMissingMedia`, and every touched question keeps an `extractor-reported` semantic error until review.
+
+| Edition | Visual targets | Visual applied | Final structure |
+|---|---:|---:|---:|
+| 2016 | 3 | 3 | **90/90** |
+| 2017 | 3 | 3 | **90/90** |
+| 2021 | 3 | 3 | **90/90** |
+
+The combined recovery therefore closes **120/120 targeted questions**, with 111 recovered as text and 9 represented by 45 provenance-bound visual alternative crops. FUVEST 2021 preserves all 90 question identities but its native body text contains **37,134 suspicious control-code occurrences**; recovery does not rewrite that native layer or declare it semantically trustworthy.
 
 The isolated 2021 benchmark recorded a cold extraction checkpoint of **122.1 s** and a warm checkpoint hit of **8.34 s**, with identical extraction output.
 
@@ -212,43 +220,46 @@ There are two cache layers:
 
 A cache hit never bypasses validation. If source bytes or any parser/recovery version changes, the relevant extraction key changes and old output is not reused.
 
-The FUVEST batch cache includes the question extractor, proof-aware font recovery, raster-boundary recovery and regional-OCR worker versions in the extraction key. This prevents an older checkpoint from masking a newer deterministic or regional recovery rule.
+The FUVEST batch cache includes the question extractor, proof-aware font recovery, raster-boundary recovery, regional-OCR and visual-alternative worker versions in the extraction key. A cached visual recovery is accepted only when every referenced asset still exists and matches its recorded SHA-256. This prevents an older or incomplete checkpoint from masking a newer recovery rule.
 
 ## Full 21-edition text/semantic benchmark — 2026-09-10
 
 A temporary GitHub Actions benchmark ran the current integrated pipeline against every FUVEST edition with a canonical exam PDF: **21 editions / 1,910 questions**. The run used `--no-media` so these numbers measure extraction, structural closure and semantic pressure; media cropping/association was intentionally not recomputed in this pass. The temporary workflow was removed after capture.
 
-The final benchmark used `pipelineConcurrency=4` and the independent `ocrConcurrency=1` budget and completed in **235 seconds**.
+The final benchmark used `pipelineConcurrency=4` and the independent `ocrConcurrency=1` budget. Its GitHub Actions benchmark step completed in **3m56s**.
 
 | Metric | Result |
 |---|---:|
 | Editions processed | **21/21** |
 | Failures | **0** |
 | Questions extracted | **1,910** |
-| Structurally complete | **1,825 (95.5%)** |
-| Needs text/structure review | **85 (4.5%)** |
-| Questions flagged missing media | **473 (24.8%)** |
+| Structurally complete | **1,842 (96.4%)** |
+| Needs text/structure review | **68 (3.6%)** |
+| Questions flagged missing media | **484 (25.3%)** |
 | Questions with blocking semantic finding | **783 (41.0%)** |
 | Editions requiring recovery | **4** |
 | Editions with regional OCR attempted/applied | **3 / 3** |
-| Regional OCR questions applied | **103/120 targeted** |
-| Regional OCR unresolved questions | **17/120 targeted** |
+| Regional OCR questions applied | **111/120 targeted** |
+| Regional OCR unresolved questions | **9/120 targeted** |
+| Visual-alternative questions applied | **9/9 targeted** |
+| Visual-alternative assets | **45** |
+| Combined structural recovery | **120/120 targeted; 0 unresolved** |
 | Editions where font-map was attempted | **16** |
 | Editions where a proven font-map was applied | **7** |
 | Suspicious glyph occurrences proven/repaired | **25,303** |
 | Suspicious glyph occurrences still unresolved | **41,692** |
-| Full cold batch wall time | **235 s (~3m55s)** |
+| Full cold batch benchmark step | **3m56s** |
 
 Operational pressure per 1,000 questions:
 
 - semantic-fidelity blocks: **409.9 / 1,000**;
-- text/structure review: **44.5 / 1,000**;
-- missing-media flags: **247.6 / 1,000**.
+- text/structure review: **35.6 / 1,000**;
+- missing-media flags: **253.4 / 1,000**.
 
 Compared with the benchmark before regional OCR work:
 
-- structure: **1,722 → 1,802 → 1,825**;
-- text/structure review: **188 → 108 → 85**;
+- structure: **1,722 → 1,802 → 1,825 → 1,842**;
+- text/structure review: **188 → 108 → 85 → 68**;
 - semantic blocks: **783 → 783 → 783**.
 
 That is the intended behavior: structural recovery reduces manual exception volume without weakening the independent semantic gate.
@@ -259,16 +270,16 @@ The font worker reduced the measured suspicious-glyph occurrence pool from 66,99
 
 | Edition | Structure | Semantic blocks | Text review | Unresolved suspicious glyphs | Route |
 |---|---:|---:|---:|---:|---|
-| 2021 | **80/90** | **90/90** | **10/90** | **37,134** | resolve 10 regional exceptions + semantic review |
 | 2019 | 82/90 | 90/90 | 8/90 | 45 | targeted semantic/layout repair |
 | 2018 | 84/90 | 90/90 | 6/90 | 1,677 | boundary recovery done; semantic regions next |
 | 2006 | 94/100 | 0/100 | 6/100 | 0 | deterministic structural parser improvement |
-| 2016 | **86/90** | 88/90 | **4/90** | 802 | 14/18 regional exceptions recovered; semantic regions next |
-| 2017 | **87/90** | 90/90 | **3/90** | 1,565 | 9/12 regional exceptions recovered; semantic regions next |
 | 2020 | 85/90 | 90/90 | 5/90 | 34 | targeted semantic/layout repair |
 | 2012 | 88/90 | 90/90 | 2/90 | 88 | targeted semantic repair |
+| 2016 | **90/90** | 88/90 | **0/90** | 802 | structural recovery closed; semantic review |
+| 2017 | **90/90** | 90/90 | **0/90** | 1,565 | structural recovery closed; semantic review |
+| 2021 | **90/90** | **90/90** | **0/90** | **37,134** | structural recovery closed; semantic review |
 
-Regional OCR has therefore removed 23 of the 30 structural exceptions that previously made 2016–2017 the leading structural hotspot. The next structural targets are the 10 unresolved regions in 2021 and the small edition-level parser/layout clusters such as 2019/2018/2006. Semantic recovery remains a separate problem and is intentionally not counted as solved by these structural gains.
+The reusable regional and visual rules close the original 120-question recovery queue without question-number conditionals. The next structural targets are edition-level parser/layout clusters such as 2019/2018/2006. Semantic recovery remains a separate problem: all **783** blocking questions are intentionally unchanged by these structural gains and should be reduced by root-cause clusters through the Exception Reducer.
 
 ## Full batch command
 
