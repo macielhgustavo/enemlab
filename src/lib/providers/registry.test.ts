@@ -67,7 +67,7 @@ describe("registry", () => {
     expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
 
-  it("registra as doze provas desta versão", () => {
+  it("registra as treze provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer.
     expect(listProviders().map((p) => p.id).sort()).toEqual([
@@ -75,6 +75,7 @@ describe("registry", () => {
       "afa",
       "enem",
       "epcar",
+      "esa",
       "espcex",
       "fuvest",
       "ime",
@@ -90,7 +91,6 @@ describe("registry", () => {
     const ids = listProviders().map((p) => p.id);
     for (const futuro of [
       "eear",
-      "esa",
       "mackenzie",
       "puc-pr",
       "puc-rio",
