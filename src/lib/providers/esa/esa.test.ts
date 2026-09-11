@@ -10,7 +10,13 @@ import {
 
 describe("ESA Geral — Tipo A", () => {
   it("expõe somente as edições validadas", () => {
-    expect(esaYears()).toEqual([2025, 2024, 2023, 2022]);
+    expect(esaYears()).toEqual([2025, 2024, 2023, 2022, 2021]);
+
+    const k21 = esaAnswerKey(2021)!;
+    expect(k21.revision).toBe("qconcursos-final-current-2021");
+    expect(k21.variant).toBe("A");
+    expect(k21.total).toBe(50);
+    expect(k21.annulled).toEqual([]);
 
     const k22 = esaAnswerKey(2022)!;
     expect(k22.revision).toBe("qconcursos-final-current-2022");
@@ -61,6 +67,7 @@ describe("ESA Geral — Tipo A", () => {
 
   it("mantém as anuladas sem alternativa correta", () => {
     const cases: Array<[number, number[]]> = [
+      [2021, []],
       [2022, [5, 18]],
       [2023, []],
       [2024, [40]],
@@ -76,6 +83,13 @@ describe("ESA Geral — Tipo A", () => {
   });
 
   it("carrega respostas do Tipo A conferidas no espelho", () => {
+    const q21 = esaQuestions(2021);
+    expect(q21.find((q) => q.number === 1)?.correctAlternative).toBe("B");
+    expect(q21.find((q) => q.number === 21)?.correctAlternative).toBe("B");
+    expect(q21.find((q) => q.number === 29)?.correctAlternative).toBe("A");
+    expect(q21.find((q) => q.number === 41)?.correctAlternative).toBe("D");
+    expect(q21.find((q) => q.number === 50)?.correctAlternative).toBe("D");
+
     const q22 = esaQuestions(2022);
     expect(q22.find((q) => q.number === 1)?.correctAlternative).toBe("E");
     expect(q22.find((q) => q.number === 5)?.correctAlternative).toBeNull();
@@ -118,6 +132,7 @@ describe("ESA Geral — Tipo A", () => {
     expect(esaQuestionKey(esaQuestions(2024)[0])).toBe("esa-2024-single-1");
     expect(esaQuestionKey(esaQuestions(2023)[0])).toBe("esa-2023-single-1");
     expect(esaQuestionKey(esaQuestions(2022)[0])).toBe("esa-2022-single-1");
+    expect(esaQuestionKey(esaQuestions(2021)[0])).toBe("esa-2021-single-1");
   });
 
   it("provider entrega as edições ingeridas e recusa ano ausente", async () => {
@@ -125,6 +140,7 @@ describe("ESA Geral — Tipo A", () => {
     expect(await esaProvider.fetchQuestions({ year: 2024 })).toHaveLength(50);
     expect(await esaProvider.fetchQuestions({ year: 2023 })).toHaveLength(50);
     expect(await esaProvider.fetchQuestions({ year: 2022 })).toHaveLength(50);
-    expect(await esaProvider.fetchQuestions({ year: 2021 })).toEqual([]);
+    expect(await esaProvider.fetchQuestions({ year: 2021 })).toHaveLength(50);
+    expect(await esaProvider.fetchQuestions({ year: 2020 })).toEqual([]);
   });
 });

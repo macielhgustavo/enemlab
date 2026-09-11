@@ -1,4 +1,86 @@
 {
+  "2021": {
+    "year": 2021,
+    "revision": "qconcursos-final-current-2021",
+    "parserVersion": "esa-answer-key@1.0.0",
+    "variant": "A",
+    "total": 50,
+    "examUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2021-essa-sargento-geral",
+    "answerKeyUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2021-essa-sargento-geral/questoes",
+    "officialArchiveUrl": "http://www.esa.eb.mil.br",
+    "verificationUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2021-essa-sargento-geral/questoes",
+    "annulled": [],
+    "subjects": {
+      "mathematics": [
+        1,
+        14
+      ],
+      "portuguese": [
+        15,
+        28
+      ],
+      "history_geography": [
+        29,
+        40
+      ],
+      "english": [
+        41,
+        50
+      ]
+    },
+    "answers": {
+      "1": "B",
+      "2": "E",
+      "3": "E",
+      "4": "A",
+      "5": "B",
+      "6": "D",
+      "7": "B",
+      "8": "C",
+      "9": "C",
+      "10": "D",
+      "11": "C",
+      "12": "C",
+      "13": "A",
+      "14": "B",
+      "15": "D",
+      "16": "C",
+      "17": "B",
+      "18": "A",
+      "19": "E",
+      "20": "C",
+      "21": "B",
+      "22": "D",
+      "23": "A",
+      "24": "D",
+      "25": "A",
+      "26": "C",
+      "27": "C",
+      "28": "D",
+      "29": "A",
+      "30": "D",
+      "31": "D",
+      "32": "A",
+      "33": "A",
+      "34": "A",
+      "35": "E",
+      "36": "D",
+      "37": "E",
+      "38": "E",
+      "39": "C",
+      "40": "D",
+      "41": "D",
+      "42": "D",
+      "43": "B",
+      "44": "E",
+      "45": "D",
+      "46": "A",
+      "47": "B",
+      "48": "C",
+      "49": "C",
+      "50": "D"
+    }
+  },
   "2022": {
     "year": 2022,
     "revision": "qconcursos-final-current-2022",
@@ -9,19 +91,77 @@
     "answerKeyUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2022-essa-sargento-geral/questoes",
     "officialArchiveUrl": "http://www.esa.eb.mil.br",
     "verificationUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2022-essa-sargento-geral/questoes",
-    "annulled": [5, 18],
+    "annulled": [
+      5,
+      18
+    ],
     "subjects": {
-      "mathematics": [1, 14],
-      "portuguese": [15, 28],
-      "history_geography": [29, 40],
-      "english": [41, 50]
+      "mathematics": [
+        1,
+        14
+      ],
+      "portuguese": [
+        15,
+        28
+      ],
+      "history_geography": [
+        29,
+        40
+      ],
+      "english": [
+        41,
+        50
+      ]
     },
     "answers": {
-      "1": "E", "2": "E", "3": "E", "4": "D", "6": "A", "7": "D", "8": "B", "9": "D", "10": "C",
-      "11": "C", "12": "A", "13": "C", "14": "B", "15": "B", "16": "C", "17": "A", "19": "D", "20": "C",
-      "21": "A", "22": "B", "23": "C", "24": "B", "25": "C", "26": "B", "27": "E", "28": "B", "29": "A", "30": "B",
-      "31": "C", "32": "C", "33": "E", "34": "A", "35": "D", "36": "B", "37": "B", "38": "C", "39": "E", "40": "A",
-      "41": "D", "42": "D", "43": "C", "44": "E", "45": "B", "46": "A", "47": "B", "48": "A", "49": "B", "50": "C"
+      "1": "E",
+      "2": "E",
+      "3": "E",
+      "4": "D",
+      "6": "A",
+      "7": "D",
+      "8": "B",
+      "9": "D",
+      "10": "C",
+      "11": "C",
+      "12": "A",
+      "13": "C",
+      "14": "B",
+      "15": "B",
+      "16": "C",
+      "17": "A",
+      "19": "D",
+      "20": "C",
+      "21": "A",
+      "22": "B",
+      "23": "C",
+      "24": "B",
+      "25": "C",
+      "26": "B",
+      "27": "E",
+      "28": "B",
+      "29": "A",
+      "30": "B",
+      "31": "C",
+      "32": "C",
+      "33": "E",
+      "34": "A",
+      "35": "D",
+      "36": "B",
+      "37": "B",
+      "38": "C",
+      "39": "E",
+      "40": "A",
+      "41": "D",
+      "42": "D",
+      "43": "C",
+      "44": "E",
+      "45": "B",
+      "46": "A",
+      "47": "B",
+      "48": "A",
+      "49": "B",
+      "50": "C"
     }
   },
   "2023": {
@@ -36,17 +176,74 @@
     "verificationUrl": "https://www.studocu.com/pt-br/document/escola-estadual-militar-dom-pedro-ii/matematica/prova-geral-tipo-a-esa/103322279",
     "annulled": [],
     "subjects": {
-      "mathematics": [1, 14],
-      "portuguese": [15, 28],
-      "history_geography": [29, 40],
-      "english": [41, 50]
+      "mathematics": [
+        1,
+        14
+      ],
+      "portuguese": [
+        15,
+        28
+      ],
+      "history_geography": [
+        29,
+        40
+      ],
+      "english": [
+        41,
+        50
+      ]
     },
     "answers": {
-      "1": "C", "2": "A", "3": "D", "4": "B", "5": "E", "6": "B", "7": "A", "8": "D", "9": "B", "10": "E",
-      "11": "A", "12": "C", "13": "D", "14": "E", "15": "B", "16": "E", "17": "B", "18": "E", "19": "C", "20": "A",
-      "21": "E", "22": "E", "23": "A", "24": "D", "25": "C", "26": "B", "27": "D", "28": "C", "29": "C", "30": "D",
-      "31": "C", "32": "A", "33": "B", "34": "E", "35": "D", "36": "E", "37": "B", "38": "A", "39": "A", "40": "C",
-      "41": "E", "42": "C", "43": "B", "44": "D", "45": "C", "46": "B", "47": "A", "48": "D", "49": "A", "50": "D"
+      "1": "C",
+      "2": "A",
+      "3": "D",
+      "4": "B",
+      "5": "E",
+      "6": "B",
+      "7": "A",
+      "8": "D",
+      "9": "B",
+      "10": "E",
+      "11": "A",
+      "12": "C",
+      "13": "D",
+      "14": "E",
+      "15": "B",
+      "16": "E",
+      "17": "B",
+      "18": "E",
+      "19": "C",
+      "20": "A",
+      "21": "E",
+      "22": "E",
+      "23": "A",
+      "24": "D",
+      "25": "C",
+      "26": "B",
+      "27": "D",
+      "28": "C",
+      "29": "C",
+      "30": "D",
+      "31": "C",
+      "32": "A",
+      "33": "B",
+      "34": "E",
+      "35": "D",
+      "36": "E",
+      "37": "B",
+      "38": "A",
+      "39": "A",
+      "40": "C",
+      "41": "E",
+      "42": "C",
+      "43": "B",
+      "44": "D",
+      "45": "C",
+      "46": "B",
+      "47": "A",
+      "48": "D",
+      "49": "A",
+      "50": "D"
     }
   },
   "2024": {
@@ -59,19 +256,77 @@
     "answerKeyUrl": "https://arquivos.qconcursos.com/prova/arquivo_gabarito/131502/exercito-2024-essa-sargento-geral-gabarito.pdf",
     "officialArchiveUrl": "http://www.esa.eb.mil.br",
     "verificationUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2024-essa-sargento-geral",
-    "annulled": [40],
+    "annulled": [
+      40
+    ],
     "subjects": {
-      "mathematics": [1, 14],
-      "portuguese": [15, 28],
-      "history_geography": [29, 40],
-      "english": [41, 50]
+      "mathematics": [
+        1,
+        14
+      ],
+      "portuguese": [
+        15,
+        28
+      ],
+      "history_geography": [
+        29,
+        40
+      ],
+      "english": [
+        41,
+        50
+      ]
     },
     "answers": {
-      "1": "A", "2": "D", "3": "C", "4": "B", "5": "B", "6": "E", "7": "D", "8": "B", "9": "E", "10": "A",
-      "11": "C", "12": "C", "13": "A", "14": "A", "15": "B", "16": "B", "17": "C", "18": "E", "19": "D", "20": "A",
-      "21": "B", "22": "C", "23": "A", "24": "A", "25": "C", "26": "C", "27": "E", "28": "D", "29": "A", "30": "C",
-      "31": "C", "32": "B", "33": "A", "34": "C", "35": "A", "36": "C", "37": "A", "38": "D", "39": "B",
-      "41": "E", "42": "B", "43": "E", "44": "B", "45": "A", "46": "C", "47": "A", "48": "C", "49": "B", "50": "E"
+      "1": "A",
+      "2": "D",
+      "3": "C",
+      "4": "B",
+      "5": "B",
+      "6": "E",
+      "7": "D",
+      "8": "B",
+      "9": "E",
+      "10": "A",
+      "11": "C",
+      "12": "C",
+      "13": "A",
+      "14": "A",
+      "15": "B",
+      "16": "B",
+      "17": "C",
+      "18": "E",
+      "19": "D",
+      "20": "A",
+      "21": "B",
+      "22": "C",
+      "23": "A",
+      "24": "A",
+      "25": "C",
+      "26": "C",
+      "27": "E",
+      "28": "D",
+      "29": "A",
+      "30": "C",
+      "31": "C",
+      "32": "B",
+      "33": "A",
+      "34": "C",
+      "35": "A",
+      "36": "C",
+      "37": "A",
+      "38": "D",
+      "39": "B",
+      "41": "E",
+      "42": "B",
+      "43": "E",
+      "44": "B",
+      "45": "A",
+      "46": "C",
+      "47": "A",
+      "48": "C",
+      "49": "B",
+      "50": "E"
     }
   },
   "2025": {
@@ -84,19 +339,77 @@
     "answerKeyUrl": "https://arquivos.qconcursos.com/prova/arquivo_gabarito/139039/exercito-2025-essa-sargento-geral-gabarito.pdf",
     "officialArchiveUrl": "http://www.esa.eb.mil.br",
     "verificationUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-esa/2025/gabarito/gabarito2025-26-humanas.pdf",
-    "annulled": [1, 4, 10],
+    "annulled": [
+      1,
+      4,
+      10
+    ],
     "subjects": {
-      "mathematics": [1, 14],
-      "portuguese": [15, 28],
-      "history_geography": [29, 40],
-      "english": [41, 50]
+      "mathematics": [
+        1,
+        14
+      ],
+      "portuguese": [
+        15,
+        28
+      ],
+      "history_geography": [
+        29,
+        40
+      ],
+      "english": [
+        41,
+        50
+      ]
     },
     "answers": {
-      "2": "C", "3": "A", "5": "A", "6": "A", "7": "A", "8": "E", "9": "D",
-      "11": "B", "12": "D", "13": "B", "14": "B", "15": "B", "16": "B", "17": "D", "18": "B", "19": "C", "20": "D",
-      "21": "A", "22": "C", "23": "B", "24": "C", "25": "B", "26": "E", "27": "A", "28": "E", "29": "B", "30": "C",
-      "31": "C", "32": "E", "33": "C", "34": "D", "35": "E", "36": "B", "37": "D", "38": "A", "39": "A", "40": "E",
-      "41": "A", "42": "E", "43": "B", "44": "E", "45": "E", "46": "B", "47": "C", "48": "E", "49": "B", "50": "C"
+      "2": "C",
+      "3": "A",
+      "5": "A",
+      "6": "A",
+      "7": "A",
+      "8": "E",
+      "9": "D",
+      "11": "B",
+      "12": "D",
+      "13": "B",
+      "14": "B",
+      "15": "B",
+      "16": "B",
+      "17": "D",
+      "18": "B",
+      "19": "C",
+      "20": "D",
+      "21": "A",
+      "22": "C",
+      "23": "B",
+      "24": "C",
+      "25": "B",
+      "26": "E",
+      "27": "A",
+      "28": "E",
+      "29": "B",
+      "30": "C",
+      "31": "C",
+      "32": "E",
+      "33": "C",
+      "34": "D",
+      "35": "E",
+      "36": "B",
+      "37": "D",
+      "38": "A",
+      "39": "A",
+      "40": "E",
+      "41": "A",
+      "42": "E",
+      "43": "B",
+      "44": "E",
+      "45": "E",
+      "46": "B",
+      "47": "C",
+      "48": "E",
+      "49": "B",
+      "50": "C"
     }
   }
 }

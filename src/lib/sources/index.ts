@@ -346,10 +346,10 @@ export const esaSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "media",
   notes:
-    "Entram 2022–2025 da Área Geral, Tipo A: 50 questões objetivas e redação por edição. " +
+    "Entram 2021–2025 da Área Geral, Tipo A: 50 questões objetivas e redação por edição. " +
     "Os cadernos identificam a ESA e apontam esa.eb.mil.br como arquivo oficial; " +
     "a verificação disponível ao app usa espelhos públicos. Em 2024–2025 há PDFs diretos " +
-    "do QConcursos; em 2022–2023 o fallback é a página pública de prova/questões do QConcursos. " +
+    "do QConcursos; em 2021–2023 o fallback é a página pública de prova/questões do QConcursos. " +
     "Nenhuma URL espelhada é marcada como oficial e o app não redistribui os documentos.",
 };
 
