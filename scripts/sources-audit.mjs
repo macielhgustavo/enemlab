@@ -266,6 +266,22 @@ const FONTES = [
         url: "https://www.indagacao.com.br/2023/03/prova-espcex-2021-1-e-2-dias-com-gabarito.html",
         method: "GET",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/provas/2020%20-%20EsPCEx%20-%20PORTFISQUI%20-%20MODELO%20A.pdf",
+      },
+      {
+        role: "answer-key-day1-definitive-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/gabarito/2020%20-%20EsPCEx%20-%20PORTFISQUI%20-%20MODELO%20A%20-%20GABARITO.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/provas/2020%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D.pdf",
+      },
+      {
+        role: "answer-key-day2-definitive-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/gabarito/2020%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D%20-%20GABARITO.pdf",
+      },
     ],
   },
   {
