@@ -21,7 +21,9 @@ jobs:
         run: npm ci
 
       - name: Apply EsPCEx integration
-        run: python .github/scripts/activate-espcex-source.py
+        run: |
+          python .github/scripts/activate-espcex-source.py
+          python .github/scripts/activate-espcex-audit.py
 
       - name: Verify tests and build
         run: |
@@ -32,7 +34,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/lib/sources/index.ts src/lib/sources/sources.test.ts src/lib/catalog/current.ts docs/exam-sources.md
+          git add src/lib/sources/index.ts src/lib/sources/sources.test.ts src/lib/catalog/current.ts docs/exam-sources.md scripts/sources-audit.mjs
           git commit -m "feat(espcex): activate source and catalog [skip ci]"
           git pull --rebase origin main
           git push origin main
