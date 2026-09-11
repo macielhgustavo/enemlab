@@ -4,7 +4,6 @@ import { runStudentAI } from "./service";
 import type {
   AIProvider,
   AIProviderOutput,
-  AIProviderRequest,
   AIQuestionContext,
   AIRequest,
 } from "./types";
@@ -12,11 +11,9 @@ import type {
 const question: AIQuestionContext = {
   key: "offline-eval-percentual",
   origin: {
-    kind: "official",
-    providerId: "enem",
-    institution: "ENEM",
-    year: 2023,
-    questionNumber: 90,
+    kind: "ai-generated",
+    label: "Questão gerada por IA — estilo avaliação",
+    style: "avaliação",
   },
   statement:
     "O preço de um produto era 100 reais e passou a 120 reais após um reajuste.",
@@ -57,7 +54,7 @@ class EvalProvider implements AIProvider {
 
   constructor(private readonly output: AIProviderOutput) {}
 
-  async generate(_request: AIProviderRequest): Promise<AIProviderOutput> {
+  async generate(): Promise<AIProviderOutput> {
     return this.output;
   }
 }

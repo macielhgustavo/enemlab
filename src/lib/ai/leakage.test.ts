@@ -10,11 +10,9 @@ function question(): AIQuestionContext {
   return {
     key: "leak-test",
     origin: {
-      kind: "official",
-      providerId: "enem",
-      institution: "ENEM",
-      year: 2023,
-      questionNumber: 90,
+      kind: "ai-generated",
+      label: "Questão gerada por IA — estilo avaliação",
+      style: "avaliação",
     },
     statement: "Um produto passou de 100 reais para 120 reais.",
     alternativesIntroduction: "A variação percentual do preço foi de",
