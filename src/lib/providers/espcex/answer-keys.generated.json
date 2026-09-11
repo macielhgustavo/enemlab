@@ -1,0 +1,49 @@
+{
+  "2025": {
+    "year": 2025,
+    "revision": "final-2025-10-13",
+    "parserVersion": "espcex-answer-key@1.0.0",
+    "days": {
+      "day1": {
+        "model": "A",
+        "total": 44,
+        "examUrl": "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20A.pdf",
+        "answerKeyUrl": "https://espcex.eb.mil.br/images/concurso/2025_publConcurso/gabarito/gabarito_primeiro_dia_final.pdf",
+        "verificationUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/gabarito/2025-gabarito-1-dia-de-prova.pdf",
+        "annulled": [2],
+        "subjects": {
+          "portuguese": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          "physics": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+          "chemistry": [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+        },
+        "answers": {
+          "1": "C", "3": "A", "4": "D", "5": "C", "6": "E", "7": "A", "8": "B", "9": "B", "10": "D",
+          "11": "C", "12": "A", "13": "B", "14": "B", "15": "D", "16": "E", "17": "E", "18": "B", "19": "C", "20": "C",
+          "21": "D", "22": "D", "23": "C", "24": "E", "25": "C", "26": "B", "27": "B", "28": "E", "29": "A", "30": "B", "31": "C", "32": "A",
+          "33": "D", "34": "B", "35": "C", "36": "E", "37": "C", "38": "A", "39": "B", "40": "E", "41": "D", "42": "C", "43": "A", "44": "E"
+        }
+      },
+      "day2": {
+        "model": "D",
+        "total": 56,
+        "examUrl": "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20D.pdf",
+        "answerKeyUrl": "https://espcex.eb.mil.br/images/concurso/2025_publConcurso/gabarito/gabarito_segundo_dia_final.pdf",
+        "verificationUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/gabarito/2025-gabarito-2-dia-de-prova.pdf",
+        "annulled": [],
+        "subjects": {
+          "mathematics": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          "geography": [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+          "history": [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44],
+          "english": [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
+        },
+        "answers": {
+          "1": "A", "2": "C", "3": "B", "4": "A", "5": "D", "6": "B", "7": "E", "8": "D", "9": "D", "10": "D",
+          "11": "D", "12": "B", "13": "A", "14": "B", "15": "C", "16": "E", "17": "A", "18": "D", "19": "C", "20": "E",
+          "21": "E", "22": "C", "23": "A", "24": "B", "25": "C", "26": "E", "27": "B", "28": "B", "29": "D", "30": "E", "31": "C", "32": "E",
+          "33": "D", "34": "B", "35": "A", "36": "E", "37": "C", "38": "A", "39": "E", "40": "E", "41": "C", "42": "E", "43": "A", "44": "B",
+          "45": "A", "46": "B", "47": "E", "48": "A", "49": "C", "50": "E", "51": "D", "52": "E", "53": "B", "54": "D", "55": "C", "56": "B"
+        }
+      }
+    }
+  }
+}
