@@ -8,6 +8,7 @@ import { fuvestProvider } from "./fuvest";
 import { afaProvider } from "./afa";
 import { epcarProvider } from "./epcar";
 import { espcexProvider } from "./espcex";
+import { esaProvider } from "./esa";
 import { unicampProvider } from "./unicamp";
 import { uelProvider } from "./uel";
 import { pucSpProvider } from "./puc-sp";
@@ -21,6 +22,7 @@ registerProvider(fuvestProvider);
 registerProvider(afaProvider);
 registerProvider(epcarProvider);
 registerProvider(espcexProvider);
+registerProvider(esaProvider);
 registerProvider(unicampProvider);
 registerProvider(uelProvider);
 registerProvider(pucSpProvider);
@@ -97,6 +99,17 @@ export {
   espcexQuestions,
   espcexQuestionKey,
 } from "./espcex";
+export {
+  esaProvider,
+  esaMetadata,
+  ESA_PROVIDER_ID,
+  esaYears,
+  esaAnswerKey,
+  esaExamUrl,
+  esaAnswerKeyUrl,
+  esaQuestions,
+  esaQuestionKey,
+} from "./esa";
 export {
   unicampProvider,
   unicampMetadata,
