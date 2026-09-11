@@ -346,10 +346,11 @@ export const esaSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "media",
   notes:
-    "Entra somente a Área Geral de 2025, Tipo A: 50 questões objetivas e redação. " +
-    "O caderno identifica a ESA e informa esa.eb.mil.br como local oficial do gabarito; " +
-    "os bytes verificáveis usados pelo app vêm de espelhos públicos QConcursos/HDO. " +
-    "Por isso o app não marca a URL espelhada como oficial e não redistribui o PDF.",
+    "Entram 2023–2025 da Área Geral, Tipo A: 50 questões objetivas e redação por edição. " +
+    "Os cadernos identificam a ESA e apontam esa.eb.mil.br como arquivo oficial; " +
+    "a verificação disponível ao app usa espelhos públicos. Em 2024–2025 há PDFs diretos " +
+    "do QConcursos; em 2023 o fallback é a página pública de prova/questões do QConcursos. " +
+    "Nenhuma URL espelhada é marcada como oficial e o app não redistribui os documentos.",
 };
 
 /** UNICAMP: arquivo oficial da COMVEST, 1ª fase objetiva em modo referência. */

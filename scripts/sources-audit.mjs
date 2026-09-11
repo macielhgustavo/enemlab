@@ -150,6 +150,16 @@ const FONTES = [
         role: "answer-key",
         url: "https://arquivos.qconcursos.com/prova/arquivo_gabarito/131502/exercito-2024-essa-sargento-geral-gabarito.pdf",
       },
+      {
+        role: "objective-exam",
+        url: "https://www.qconcursos.com/questoes-militares/provas/exercito-2023-essa-sargento-geral",
+        method: "GET",
+      },
+      {
+        role: "answer-key",
+        url: "https://www.qconcursos.com/questoes-militares/provas/exercito-2023-essa-sargento-geral/questoes",
+        method: "GET",
+      },
     ],
   },
   {
