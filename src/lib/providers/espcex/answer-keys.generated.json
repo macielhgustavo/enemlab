@@ -1,7 +1,7 @@
 {
   "2023": {
     "year": 2023,
-    "revision": "mirror-reviewed-2023",
+    "revision": "final-2023-10-16",
     "parserVersion": "espcex-answer-key@1.0.0",
     "days": {
       "day1": {
@@ -118,7 +118,9 @@
         "examOfficial": false,
         "answerKeyUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/gabarito/2023-gabarito-2-dia-de-prova.pdf",
         "verificationUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/provas-e-gabaritos/preparatorio-espcex/",
-        "annulled": [],
+        "annulled": [
+          27
+        ],
         "subjects": {
           "mathematics": [
             1,
@@ -212,7 +214,6 @@
           "24": "B",
           "25": "C",
           "26": "E",
-          "27": "D",
           "28": "C",
           "29": "E",
           "30": "A",

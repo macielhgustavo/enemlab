@@ -12,7 +12,7 @@ describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
     expect(espcexYears()).toEqual([2025, 2024, 2023]);
     const k23 = espcexAnswerKey(2023)!;
-    expect(k23.revision).toBe("mirror-reviewed-2023");
+    expect(k23.revision).toBe("final-2023-10-16");
     expect(k23.days.day1.model).toBe("A");
     expect(k23.days.day2.model).toBe("D");
     expect(k23.days.day1.total).toBe(44);
@@ -56,6 +56,9 @@ describe("EsPCEx", () => {
   });
 
   it("preserva anuladas sem marcar alternativa correta", () => {
+    const q23 = espcexQuestions(2023).find((q) => q.phase === "day2" && q.number === 27)!;
+    expect(q23.correctAlternative).toBeNull();
+    expect(q23.alternatives.every((a) => !a.isCorrect)).toBe(true);
     const q24 = espcexQuestions(2024).find((q) => q.phase === "day2" && q.number === 42)!;
     expect(q24.correctAlternative).toBeNull();
     expect(q24.alternatives.every((a) => !a.isCorrect)).toBe(true);

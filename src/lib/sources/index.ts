@@ -319,7 +319,8 @@ export const espcexSource: ExamSourceDefinition = {
   notes:
     "Entram 2023–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
     "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2023–2024 os cadernos " +
-    "verificáveis são espelhos públicos, por isso essas questões e sua procedência carregam " +
+    "verificáveis são espelhos públicos; o gabarito final de 2023 é a revisão de 16/10, " +
+    "com a questão 27 do 2º dia anulada. Por isso essas questões e sua procedência carregam " +
     "`official: false`. Gabaritos são dados factuais e o app não redistribui PDFs.",
 };
 
