@@ -11,7 +11,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,13 +22,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-por
           python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'pymupdf>=1.26,<2' 'fonttools>=4,<5' 'pillow>=11,<12'
-      - name: Benchmark integrated visual recovery
+      - name: Run full cold batch benchmark
         run: |
           rm -rf /tmp/enemlab-exception-probe
           python -m unittest discover -s scripts/tests
           python scripts/fuvest-batch-lab.py \
-            --years 2016,2017,2021 \
-            --concurrency 3 \
+            --concurrency 4 \
             --ocr-concurrency 1 \
             --no-media \
             --cache-dir /tmp/enemlab-exception-probe/cache \
@@ -43,10 +42,10 @@ jobs:
           for path in sorted((root / 'cache' / 'extraction').glob('*/*.json')):
               envelope = json.loads(path.read_text())
               report = envelope.get('visualAlternativeRecovery', {})
-              print(json.dumps({
-                  'year': envelope['identity']['year'],
-                  'visualApplied': report.get('appliedQuestions', []),
-                  'visualUnresolved': report.get('unresolvedQuestions', []),
-                  'regions': report.get('regions', []),
-              }, ensure_ascii=False))
+              if report.get('targetedQuestions'):
+                  print(json.dumps({
+                      'year': envelope['identity']['year'],
+                      'visualApplied': report.get('appliedQuestions', []),
+                      'visualUnresolved': report.get('unresolvedQuestions', []),
+                  }, ensure_ascii=False))
           PY

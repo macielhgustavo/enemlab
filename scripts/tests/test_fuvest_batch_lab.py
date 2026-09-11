@@ -154,6 +154,8 @@ class FuvestBatchLabTest(unittest.TestCase):
                     "visualRecoveryAppliedQuestions": 1,
                     "visualRecoveryUnresolvedQuestions": 1,
                     "visualRecoveryAssets": 5,
+                    "structuralRecoveryAppliedQuestions": 9,
+                    "structuralRecoveryUnresolvedQuestions": 1,
                     "extractionCacheHit": True,
                     "mediaAssets": 65,
                     "mediaAutomatic": 46,
@@ -182,6 +184,8 @@ class FuvestBatchLabTest(unittest.TestCase):
         self.assertEqual(value["visualRecoveryAppliedQuestions"], 1)
         self.assertEqual(value["visualRecoveryUnresolvedQuestions"], 1)
         self.assertEqual(value["visualRecoveryAssets"], 5)
+        self.assertEqual(value["structuralRecoveryAppliedQuestions"], 9)
+        self.assertEqual(value["structuralRecoveryUnresolvedQuestions"], 1)
         self.assertEqual(value["extractionCacheHits"], 1)
         self.assertEqual(value["mediaCacheHits"], 1)
 

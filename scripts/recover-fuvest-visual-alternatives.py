@@ -44,7 +44,7 @@ REGIONAL = runpy.run_path(
 BASE = REGIONAL["BASE"]
 
 WORKER_NAME = "fuvest-visual-alternatives"
-WORKER_VERSION = "fuvest-visual-alternatives@0.2.1"
+WORKER_VERSION = "fuvest-visual-alternatives@0.2.2"
 LETTERS = tuple("ABCDE")
 RENDER_SCALE = 3.0
 OCR_MODES = (11, 6, 4, 3)
@@ -406,7 +406,7 @@ def detect_visual_layout(
                     {
                         **inferred_layout,
                         "mode": mode,
-                        "detectionPass": "inferred-one-row",
+                        "detectionPass": f"inferred-{inferred_layout['layout']}",
                     }
                 )
         observed = adaptive_labels if detection_pass == "explicit-adaptive" else strict_labels

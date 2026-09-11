@@ -442,6 +442,11 @@ def process_year(
         "visualRecoveryAppliedQuestions": len(visual.get("appliedQuestions", [])),
         "visualRecoveryUnresolvedQuestions": len(visual.get("unresolvedQuestions", [])),
         "visualRecoveryAssets": len(visual.get("assets", [])),
+        "structuralRecoveryAppliedQuestions": len(regional.get("appliedQuestions", []))
+        + len(visual.get("appliedQuestions", [])),
+        "structuralRecoveryUnresolvedQuestions": len(
+            visual.get("unresolvedQuestions", regional.get("unresolvedQuestions", []))
+        ),
         "extractionCacheHit": extraction_hit,
         "elapsedSeconds": round(elapsed, 3),
     }
@@ -515,6 +520,12 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "visualRecoveryAssets": sum(
             int(item.get("visualRecoveryAssets", 0)) for item in ordered
+        ),
+        "structuralRecoveryAppliedQuestions": sum(
+            int(item.get("structuralRecoveryAppliedQuestions", 0)) for item in ordered
+        ),
+        "structuralRecoveryUnresolvedQuestions": sum(
+            int(item.get("structuralRecoveryUnresolvedQuestions", 0)) for item in ordered
         ),
         "extractionCacheHits": sum(bool(item["extractionCacheHit"]) for item in ordered),
         "mediaAssets": sum(int(item.get("mediaAssets", 0)) for item in ordered),
