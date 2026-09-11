@@ -1,5 +1,12 @@
 # Plataforma de ingestão
 
+Para entregar enunciados diretamente no resolvedor, consulte
+[Entrega de questões nativas](native-questions.md): publicação por edição,
+integridade dos arquivos e validação contra os providers existentes.
+
+O [piloto UFT 2025.1](native-uft-validation.md) inclui verificação offline dos
+PDFs originais, gabarito final completo e transcrição parcial explicitamente contada.
+
 Como uma prova nova entra no ENEM Lab.
 
 ## O caminho

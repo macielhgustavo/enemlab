@@ -40,6 +40,16 @@ function parseArgs(argv) {
  */
 const FONTES = [
   {
+    providerId: "uft",
+    sourceId: "uft-official-archive",
+    archiveUrl: "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+    documentos: [
+      { role: "exam", url: "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf", method: "GET" },
+      { role: "answer-key", url: "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/B2cJn4eoT-iGHw0f--vPOg/content/Gabarito%20Definitivo%20Vestibular%202025_1.pdf", method: "GET" },
+      { role: "archive-page", url: "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1" },
+    ],
+  },
+  {
     providerId: "enem",
     sourceId: "enem-dev",
     archiveUrl: "https://api.enem.dev",

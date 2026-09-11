@@ -12,6 +12,7 @@ import { uelProvider } from "./uel";
 import { pucSpProvider } from "./puc-sp";
 import { udescProvider } from "./udesc";
 import { acafeProvider } from "./acafe";
+import { uftProvider } from "./uft";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
@@ -24,6 +25,8 @@ registerProvider(uelProvider);
 registerProvider(pucSpProvider);
 registerProvider(udescProvider);
 registerProvider(acafeProvider);
+registerProvider(uftProvider);
+export { uftProvider, uftMetadata, uftEditions, uftAnswerKey, UFT_PROVIDER_ID } from "./uft";
 
 export * from "./types";
 export * from "./registry";

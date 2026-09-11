@@ -9,6 +9,7 @@ import { uelExamUrl, uelYears } from "../providers/uel";
 import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
 import { udescEditions, udescExamUrl, udescYears } from "../providers/udesc";
 import { acafeEditions, acafeExamUrl, acafeYears } from "../providers/acafe";
+import { uftAnswerKey } from "../providers/uft";
 import { examYears } from "../domain/constants";
 import type { ExamImporter, ExamSourceDefinition, Provenance } from "./types";
 
@@ -692,7 +693,21 @@ export const eearResearchSource: ExamSourceDefinition = {
     "foi concluída; provider adiado para v8.5.4.",
 };
 
+export const uftSource: ExamSourceDefinition = {
+  id: "uft-official-archive", providerId: "uft", institution: "UFT / COPESE",
+  archiveUrl: "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+  sourceType: "pdf-text", statementMode: "mixed", extractionMethod: "manual",
+  rightsStatus: "official-reference", status: "active", family: "university",
+  discovery: "manual", years: [2025], phases: ["afternoon"],
+  subjects: ["ciencias-humanas", "ciencias-natureza"],
+  answerKeyAvailable: true, expectedAnswersAvailable: false,
+  parserVersion: "uft-afternoon@1.0.0", lastVerifiedAt: "2026-09-10",
+  confidence: "media",
+    notes: "Piloto 2025.1, somente tarde: 44 itens, 28 anulada, doze transcrições nativas. Licença CC BY-ND 3.0 declarada no portal aplicada apenas às questões selecionadas sem material de terceiros identificado. Revisão visual por Codex; revisão humana independente pendente.",
+};
+
 const SOURCES = new Map<string, ExamSourceDefinition>([
+  [uftSource.id, uftSource],
   [enemSource.id, enemSource],
   [itaSource.id, itaSource],
   [imeSource.id, imeSource],
@@ -860,6 +875,14 @@ export const acafeImporter: ExamImporter = {
 };
 
 export function importerForProvider(providerId: string): ExamImporter | null {
+  if (providerId === "uft") return {
+    sourceId: uftSource.id,
+    availableYears: () => [2025],
+    provenanceFor(year, phase = "afternoon", page) {
+      const url = year === 2025 && phase === "afternoon" ? uftAnswerKey("2025-1")?.examUrl : null;
+      return provenance(uftSource, url ?? uftSource.archiveUrl, page);
+    },
+  };
   if (providerId === "ita") return itaImporter;
   if (providerId === "enem") return enemImporter;
   if (providerId === "ime") return imeImporter;

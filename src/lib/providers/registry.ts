@@ -5,13 +5,20 @@
 // é tratado como ENEM — nunca como "desconhecido" —, porque até aqui o
 // produto só suportava ENEM.
 import type { ExamProvider } from "./types";
+import { loadNativeQuestions } from "../native/loader";
 
 export const DEFAULT_PROVIDER_ID = "enem";
 
 const providers = new Map<string, ExamProvider>();
 
 export function registerProvider(provider: ExamProvider): void {
-  providers.set(provider.id, provider);
+  providers.set(provider.id, {
+    ...provider,
+    async fetchQuestions(params) {
+      const questions = await provider.fetchQuestions(params);
+      return params.nativeContent === false ? questions : loadNativeQuestions(provider.id, params, questions);
+    },
+  });
 }
 
 export function getProvider(id?: string | null): ExamProvider {

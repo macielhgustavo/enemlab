@@ -1,0 +1,668 @@
+{
+  "schemaVersion": 1,
+  "providerId": "uft",
+  "year": 2025,
+  "editionId": "2025-1",
+  "questions": [
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 29,
+      "phase": "afternoon",
+      "statement": "Sobre os modelos atômicos, assinale a alternativa INCORRETA.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "O modelo atômico de Dalton é o único modelo que não incorpora o conceito de cargas elétricas no átomo."
+        },
+        {
+          "letter": "B",
+          "text": "Os modelos atômicos desenvolvidos no século XIX foram os modelos de Dalton, Thomson e Rutherford."
+        },
+        {
+          "letter": "C",
+          "text": "O modelo que introduziu o conceito de quantização da energia do elétron foi o modelo de Niels Bohr."
+        },
+        {
+          "letter": "D",
+          "text": "O modelo que introduziu o conceito de órbita elíptica no modelo atômico foi o modelo de Sommerfeld."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 8,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 31,
+      "phase": "afternoon",
+      "statement": "A adição de ácido nítrico (HNO₃) concentrado em um fio de cobre metálico produz o gás dióxido de nitrogênio (NO₂). Se esta reação for feita em um sistema fechado, como em um balão volumétrico, o NO₂ forma o gás tetróxido de dinitrogênio (N₂O₄) conforme a equação do equilíbrio a seguir:\n\n2 NO₂(g) ⇌ N₂O₄(g)    ΔH < 0\n\ncastanho       incolor\n\nA partir do equilíbrio apresentado, assinale a única alternativa INCORRETA:",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "Quando o balão volumétrico contendo a mistura em equilíbrio é resfriado, a intensidade da coloração castanha diminui."
+        },
+        {
+          "letter": "B",
+          "text": "Se a mistura em equilíbrio for transferida para um sistema fechado com volume maior, na mesma temperatura, haverá intensificação da coloração castanha pela formação de mais NO₂."
+        },
+        {
+          "letter": "C",
+          "text": "Ocorre um aumento do valor da constante de equilíbrio quando o balão volumétrico contendo a mistura em equilíbrio é aquecido."
+        },
+        {
+          "letter": "D",
+          "text": "Um aumento da pressão sobre o equilíbrio do sistema em análise, promove um aumento da concentração de N₂O₄, diminuindo a intensidade da coloração castanha."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 9,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 32,
+      "phase": "afternoon",
+      "statement": "Considere as afirmativas que seguem sobre os fatores que afetam a velocidade de uma reação:\n\nI. O aumento da área superficial dos reagentes causa aumento na velocidade da reação.\n\nII. A redução na temperatura causa redução na velocidade da reação.\n\nIII. O aumento na energia de ativação da reação causa aumento na velocidade da reação.\n\nIV. A redução na concentração dos reagentes causa redução na velocidade da reação.\n\nV. Para uma reação em fase gasosa, a redução no volume do sistema causa redução na velocidade da reação.\n\nAssinale a alternativa CORRETA.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "Apenas as afirmativas I, II e IV estão corretas."
+        },
+        {
+          "letter": "B",
+          "text": "Apenas as afirmativas III e V estão corretas."
+        },
+        {
+          "letter": "C",
+          "text": "Apenas as afirmativas I, III e IV estão corretas."
+        },
+        {
+          "letter": "D",
+          "text": "Apenas as afirmativas II, III e V estão corretas."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 9,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 33,
+      "phase": "afternoon",
+      "statement": "As reações de substituição em compostos aromáticos são de grande importância em inúmeros processos industriais, originando produtos para as mais variadas aplicações. Quando o benzeno sofre reação de substituição, os grupos ligados ao anel aromático podem ser classificados de acordo com o modo como direcionam a formação do(s) produto(s), atuando como orto/para dirigentes ou meta dirigentes. A alternativa que contém exclusivamente grupos que atuam como orientadores meta dirigentes é:",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "—COH, —F, —CH₃"
+        },
+        {
+          "letter": "B",
+          "text": "—NO₂, —I, —COCH₃"
+        },
+        {
+          "letter": "C",
+          "text": "—NH₂, —OH, —OCH₃"
+        },
+        {
+          "letter": "D",
+          "text": "—COOH, —SO₃H, —CN"
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 9,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 34,
+      "phase": "afternoon",
+      "statement": "O monóxido de nitrogênio (NO) pode formar óxido nitroso (N₂O) e dióxido de nitrogênio (NO₂), conforme a reação:\n\n3 NO (g) → N₂O (g) + NO₂ (g)\n\nEm um recipiente isolado, uma amostra de NO se decompõe completamente em N₂O e NO₂ em volume constante. A temperatura inicial é −73 °C e a temperatura final 27°C.\n\nA respeito da relação entre a pressão final (P_f) e a pressão inicial (P_i), assinale a alternativa CORRETA:",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "P_f = (3/2) P_i"
+        },
+        {
+          "letter": "B",
+          "text": "P_f = (2/3) P_i"
+        },
+        {
+          "letter": "C",
+          "text": "P_f = 2,25 P_i"
+        },
+        {
+          "letter": "D",
+          "text": "P_f = P_i"
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 9,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 35,
+      "phase": "afternoon",
+      "statement": "A galvanoplastia é uma técnica de eletrodeposição de metais utilizada no recobrimento de uma peça metálica com uma fina camada de um outro metal. Durante o processo, a peça metálica é mergulhada em um banho eletrolítico contendo íons do metal de recobrimento. O resultado é obtido pela escolha do tempo e da corrente elétrica apropriados para a reação de deposição. Um exemplo é o processo de cromação no qual íons cromo III (Cr³⁺) são depositados por redução eletroquímica conforme a reação:\n\nCr³⁺(aq) + 3e⁻ → Cr(s)\n\nConsidere a eletrodeposição de 13,0 gramas de cromo sobre uma peça metálica, utilizando um banho eletrolítico de cromo III e uma corrente de 9,65 A.\n\nAssinale a alternativa que indica o tempo, em minutos, necessário para a reação de deposição completa dessa massa de cromo.\n\nDados: Constante de Faraday: F = 96500 C\n\nMassa molar do cromo = 52 g/mol",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "165 min"
+        },
+        {
+          "letter": "B",
+          "text": "150 min"
+        },
+        {
+          "letter": "C",
+          "text": "125 min"
+        },
+        {
+          "letter": "D",
+          "text": "200 min"
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 9,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.0.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-10T13:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 37,
+      "phase": "afternoon",
+      "statement": "Em condições normais, as pequenas bolsas constituídas por células epiteliais glandulares, localizadas na derme e que são produtoras de secreção oleosa são chamadas de:",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "Glândulas sudoríparas."
+        },
+        {
+          "letter": "B",
+          "text": "Glândulas sebáceas."
+        },
+        {
+          "letter": "C",
+          "text": "Folículos pilosos."
+        },
+        {
+          "letter": "D",
+          "text": "Unhas."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 10,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 38,
+      "phase": "afternoon",
+      "statement": "O (I) e a (II) são órgãos linfoides primários onde ocorrem a diferenciação e maturação de células do sistema imunológico.\n\nAs lacunas I e II do trecho podem ser preenchidas corretamente por:",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "I. timo; II. tonsila palatina."
+        },
+        {
+          "letter": "B",
+          "text": "I. baço; II. medula óssea."
+        },
+        {
+          "letter": "C",
+          "text": "I. timo; II. medula óssea."
+        },
+        {
+          "letter": "D",
+          "text": "I. baço; II. tonsila palatina."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 10,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 40,
+      "phase": "afternoon",
+      "statement": "As afirmativas referem-se à biotecnologia, uma área que se desenvolveu muito nos últimos anos.\n\nI. As vacinas gênicas são produzidas a partir de genes ou fragmentos de genes que codificam antígenos potencialmente capazes de estimular o sistema imunológico.\nII. A técnica de clonagem do DNA consiste em produzir inúmeras cópias idênticas de um mesmo fragmento da molécula de DNA.\nIII. A tecnologia do DNA recombinante utiliza as chamadas enzimas de restrição para a fragmentação do DNA.\n\nAssinale a alternativa CORRETA.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "Todas as afirmativas estão corretas."
+        },
+        {
+          "letter": "B",
+          "text": "Apenas as afirmativas I e II estão corretas."
+        },
+        {
+          "letter": "C",
+          "text": "Apenas as afirmativas II e III estão corretas."
+        },
+        {
+          "letter": "D",
+          "text": "Apenas as afirmativas I e III estão corretas."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 10,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 41,
+      "phase": "afternoon",
+      "statement": "Um professor de biologia pediu aos alunos que escrevessem sobre o sistema respiratório humano. Na correção o professor verificou que apenas um dos textos estava incorreto, identifique-o entre as alternativas abaixo.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "A fumaça da queima dos combustíveis fósseis contém o monóxido de carbono, que ao ser inalado pelos humanos se combina com a hemoglobina, formando carboxiemoglobina, o que poderia levar à morte por asfixia."
+        },
+        {
+          "letter": "B",
+          "text": "O tabagismo é uma doença relacionada à dependência da nicotina, que chega ao cérebro em segundos, podendo causar doenças como o câncer, enfisema pulmonar, entre outras."
+        },
+        {
+          "letter": "C",
+          "text": "Quando o ar chega à faringe, ele é conduzido para a glote, em direção à laringe. A laringe conecta-se à traqueia. Infecções na laringe podem ocasionar rouquidão, por exemplo pela alteração das pregas vocais."
+        },
+        {
+          "letter": "D",
+          "text": "Os brônquios e bronquíolos são responsáveis pelas trocas gasosas, e podem estar inflamados em algumas doenças, como na COVID-19, dificultando as trocas gasosas."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 10,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 42,
+      "phase": "afternoon",
+      "statement": "A seleção artificial é um processo no qual os seres humanos escolhem quais organismos vão se reproduzir com base em características desejadas, influenciando assim a evolução de plantas e animais. Esse processo tem implicações importantes tanto para os ambientes naturais quanto para as populações humanas.\n\nConsiderando os impactos da seleção artificial sobre os ambientes naturais e as populações humanas, assinale a alternativa INCORRETA.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "A seleção artificial pode reduzir a variabilidade genética, tornando as populações domesticadas mais suscetíveis a doenças e mudanças ambientais."
+        },
+        {
+          "letter": "B",
+          "text": "A introdução de espécies domesticadas em ambientes naturais pode levar à competição com espécies nativas, resultando em desequilíbrios ecológicos."
+        },
+        {
+          "letter": "C",
+          "text": "O desenvolvimento de plantas e animais com características específicas pode contribuir para a segurança alimentar, mas também pode aumentar a dependência de tecnologias agrícolas."
+        },
+        {
+          "letter": "D",
+          "text": "A seleção artificial sempre resulta na criação de organismos mais aptos para sobreviverem em ambientes selvagens, aumentando sua chance de sobrevivência sem intervenção humana."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 10,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    },
+    {
+      "providerId": "uft",
+      "examId": "uft-2025-1-afternoon",
+      "editionId": "2025-1",
+      "language": null,
+      "year": 2025,
+      "number": 43,
+      "phase": "afternoon",
+      "statement": "O Brasil é um país de grande diversidade biológica, abrigando uma variedade de biomas que possuem características ecológicas distintas. Cada bioma é adaptado às condições climáticas e geográficas específicas, apresentando uma fauna e flora únicas.\n\nSobre os biomas brasileiros, assinale a alternativa CORRETA.",
+      "alternatives": [
+        {
+          "letter": "A",
+          "text": "A Mata Atlântica é o bioma mais extenso do Brasil, caracterizado por uma vegetação arbustiva e herbácea, com baixa biodiversidade."
+        },
+        {
+          "letter": "B",
+          "text": "A Amazônia é um bioma de clima semiárido, onde predomina uma vegetação de gramíneas e poucas árvores, com uma alta taxa de endemismo."
+        },
+        {
+          "letter": "C",
+          "text": "A Caatinga é um bioma exclusivamente brasileiro, caracterizado por uma vegetação adaptada à aridez, como cactos e plantas xerófitas, e apresenta uma estação seca prolongada."
+        },
+        {
+          "letter": "D",
+          "text": "O Cerrado, conhecido como a \"savana brasileira\", é marcado por suas árvores de grande porte e alta densidade populacional, predominando em áreas de solo fértil e alta pluviosidade."
+        }
+      ],
+      "sources": [
+        {
+          "label": "UFT / COPESE — Vestibular 2025.1, prova da tarde",
+          "url": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf"
+        },
+        {
+          "label": "Licença declarada pela UFT: CC BY-ND 3.0",
+          "url": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1"
+        },
+        {
+          "label": "Creative Commons Atribuição-SemDerivações 3.0",
+          "url": "https://creativecommons.org/licenses/by-nd/3.0/"
+        }
+      ],
+      "validationLevel": "reviewed",
+      "provenance": {
+        "documentUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "page": 11,
+        "documentSha256": "77baa13ffbf7d07eca6c1a2bcf85897951d268822ea6099f1813b5f8f8e1cfa0",
+        "parserVersion": "uft-native-manual@1.1.0",
+        "extractionMethod": "manual",
+        "rightsStatus": "allowed",
+        "rightsEvidenceUrl": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+        "reviewedAt": "2026-09-11T03:15:00Z",
+        "reviewedBy": "Codex — conferência visual contra o PDF; sem revisão humana independente",
+        "revision": "final"
+      }
+    }
+  ]
+}

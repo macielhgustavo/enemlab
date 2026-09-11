@@ -76,6 +76,7 @@ const VESTIBULARES_REFERENCIA = [
   { id: "puc-sp", alternatives: 5 },
   { id: "udesc", alternatives: 5 },
   { id: "acafe", alternatives: 5 },
+  { id: "uft", alternatives: 4 },
 ];
 
 for (const provider of VESTIBULARES_REFERENCIA) {

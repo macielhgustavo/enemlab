@@ -10,6 +10,7 @@
 // ter um índice.
 
 import { CatalogIndex, type CatalogEntry } from "./index";
+import { withNativeCoverage } from "../native/catalog";
 import {
   listProviders,
   itaAnswerKey,
@@ -35,6 +36,9 @@ import {
   acafeAnswerKey,
   acafeEditions,
   ACAFE_PROVIDER_ID,
+  UFT_PROVIDER_ID,
+  uftEditions,
+  uftAnswerKey,
 } from "../providers";
 import { listSources } from "../sources";
 import type { ExamFamilyId } from "../sources/types";
@@ -153,12 +157,22 @@ export function buildCurrentCatalog(): CatalogIndex {
     const fonte = listSources().find((s) => s.providerId === p.id);
     if (!fonte) continue;
 
-    if (p.id === UDESC_PROVIDER_ID || p.id === ACAFE_PROVIDER_ID) {
-      const editions = p.id === UDESC_PROVIDER_ID ? udescEditions() : acafeEditions();
+    if (p.id === UDESC_PROVIDER_ID || p.id === ACAFE_PROVIDER_ID || p.id === UFT_PROVIDER_ID) {
+      const editions =
+        p.id === UDESC_PROVIDER_ID
+          ? udescEditions()
+          : p.id === UFT_PROVIDER_ID
+            ? uftEditions()
+            : acafeEditions();
       for (const edition of editions) {
-        const keys = p.id === UDESC_PROVIDER_ID
-          ? udescAnswerKeys(edition.id)
-          : [acafeAnswerKey(edition.id)].filter((key) => key !== null);
+        const keys =
+          p.id === UDESC_PROVIDER_ID
+            ? udescAnswerKeys(edition.id)
+            : [
+                p.id === UFT_PROVIDER_ID
+                  ? uftAnswerKey(edition.id)
+                  : acafeAnswerKey(edition.id),
+              ].filter((key) => key !== null);
         for (const key of keys) {
           const measure = referenceMeasure(key);
           entradas.push({
@@ -226,5 +240,5 @@ export function buildCurrentCatalog(): CatalogIndex {
     listProviders().map((p) => [p.id, familiaDe(p.id)]),
   );
 
-  return new CatalogIndex(entradas, familias);
+  return new CatalogIndex(entradas.map((entry) => withNativeCoverage(entry)), familias);
 }

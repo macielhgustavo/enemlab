@@ -72,7 +72,8 @@ describe("structured provider overlay", () => {
       "Test Provider",
     );
 
-    expect(result.content).toBe("Enunciado nativo");
+    expect(result.content).toBe("Matemática");
+    expect(result.context).toBe("Contexto\n\nEnunciado nativo");
     expect(result.statementAvailable).toBe(true);
     expect(result.correctAlternative).toBe("A");
     expect(result.alternatives[0].isCorrect).toBe(true);

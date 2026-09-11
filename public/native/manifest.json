@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "providerId": "uft",
+      "year": 2025,
+      "editionId": "2025-1",
+      "path": "/native/editions/cd2fc5bd645f6db177a65b2185740243affd1a143d1771cd2a3ba6367b8122dd.json",
+      "sha256": "cd2fc5bd645f6db177a65b2185740243affd1a143d1771cd2a3ba6367b8122dd",
+      "questionCount": 12,
+      "coverage": {
+        "afternoon": 12
+      }
+    }
+  ]
+}

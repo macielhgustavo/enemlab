@@ -126,6 +126,7 @@ export interface ExamMetadata {
 
 export interface FetchQuestionsParams {
   year: number;
+  nativeContent?: boolean;
   editionId?: string;
   language?: string | null;
   force?: boolean;

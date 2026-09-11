@@ -47,6 +47,7 @@ describe("registry de fontes", () => {
       "ufpr-research",
       "ufrj-historical-research",
       "ufsc-coperve-research",
+      "uft-official-archive",
       "unesp-vunesp-research",
       "unicamp-comvest-archive",
     ]);

@@ -1,0 +1,113 @@
+{
+  "2025-1": {
+    "edition": "2025-1",
+    "year": 2025,
+    "label": "UFT 2025.1 — tarde",
+    "phase": "afternoon",
+    "total": 44,
+    "canonicalVariant": "tarde",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "C",
+      "2": "D",
+      "3": "A",
+      "4": "C",
+      "5": "A",
+      "6": "B",
+      "7": "D",
+      "8": "C",
+      "9": "B",
+      "10": "B",
+      "11": "D",
+      "12": "A",
+      "13": "D",
+      "14": "C",
+      "15": "B",
+      "16": "A",
+      "17": "B",
+      "18": "A",
+      "19": "C",
+      "20": "D",
+      "21": "D",
+      "22": "C",
+      "23": "D",
+      "24": "C",
+      "25": "A",
+      "26": "B",
+      "27": "B",
+      "29": "B",
+      "30": "B",
+      "31": "C",
+      "32": "A",
+      "33": "D",
+      "34": "D",
+      "35": "C",
+      "36": "C",
+      "37": "B",
+      "38": "C",
+      "39": "C",
+      "40": "A",
+      "41": "D",
+      "42": "D",
+      "43": "C",
+      "44": "A"
+    },
+    "annulled": [
+      28
+    ],
+    "variants": [
+      {
+        "id": "tarde",
+        "label": "Prova da tarde",
+        "examUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+        "answerKeyUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/B2cJn4eoT-iGHw0f--vPOg/content/Gabarito%20Definitivo%20Vestibular%202025_1.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/B2cJn4eoT-iGHw0f--vPOg/content/Gabarito%20Definitivo%20Vestibular%202025_1.pdf",
+    "examUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/P-0pXSKSS8mxANW9EinpMA/content/Prova%20Tarde%20Vestibular%202025_1.pdf",
+    "archivePage": "https://www.uft.edu.br/concursos-e-selecoes/ingresso-na-graduacao/vestibular-1/vestibular-2025-1",
+    "subjects": [
+      {
+        "id": "ciencias-humanas",
+        "label": "Ciências Humanas",
+        "area": "ciencias-humanas",
+        "range": [
+          1,
+          20
+        ]
+      },
+      {
+        "id": "ciencias-natureza",
+        "label": "Ciências da Natureza",
+        "area": "ciencias-natureza",
+        "range": [
+          21,
+          44
+        ]
+      }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "official-reference",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "Arquivo oficial UFT 2025.1 associa Prova Tarde e Gabarito Definitivo.",
+      "Tabela PROVA TARDE do gabarito definitivo de 27/11/2024: 44 questões, alternativas A–D, questão 28 anulada; resposta final da questão 35: C.",
+      "Conferência visual do gabarito e das páginas 8–9 do PDF por Codex em 10/09/2026; não constitui revisão humana independente.",
+      "Somente o turno da tarde foi ingerido; nenhuma equivalência entre variantes foi inferida.",
+      "Enunciados integrais permanecem em referência; permissões nativas são avaliadas individualmente."
+    ],
+    "retrieval": {
+      "originalUrl": "https://docs.uft.edu.br/s/B2cJn4eoT-iGHw0f--vPOg",
+      "effectiveSourceUrl": "https://docs.uft.edu.br/proxy/alfresco-noauth/api/internal/shared/node/B2cJn4eoT-iGHw0f--vPOg/content/Gabarito%20Definitivo%20Vestibular%202025_1.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-10T13:05:43Z",
+      "sha256": "2e69674f0b64aa2518d84f24619096ad942484e019f8801e234eb34213ac8daa",
+      "bytes": 447122,
+      "parserVersion": "uft-afternoon@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "uft-afternoon@1.0.0"
+  }
+}
