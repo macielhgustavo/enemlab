@@ -27,14 +27,14 @@ describe("UFT native pilot", () => {
     expect(await uftProvider.fetchQuestions({ year: 2025, editionId: "2025-2" })).toEqual([]);
   });
 
-  it("publishes only six reviewed texts without changing answers or keys", async () => {
+  it("publishes only reviewed texts without changing answers or keys", async () => {
     const base = await uftProvider.fetchQuestions({ year: 2025 });
     const native = applyNativeBundle(base, candidate);
     expect(
       native
         .filter((question) => question.statementAvailable)
         .map((question) => question.number),
-    ).toEqual([29, 31, 32, 33, 34, 35]);
+    ).toEqual([29, 31, 32, 33, 34, 35, 37, 38, 40, 41, 42, 43]);
     expect(native.map(uftProvider.questionKey)).toEqual(base.map(uftProvider.questionKey));
     expect(native.map((question) => question.correctAlternative)).toEqual(
       base.map((question) => question.correctAlternative),
@@ -48,6 +48,9 @@ describe("UFT native pilot", () => {
     ).toBe(true);
     expect(native[28].context).toContain("modelos atômicos");
     expect(native[28].sources.some((source) => source.label.includes("CC BY-ND"))).toBe(true);
+    expect(native[36].alternatives[1].text).toBe("Glândulas sebáceas.");
+    expect(native[42].alternatives[2].text).toContain("Caatinga");
+    expect(native[42].correctAlternative).toBe("C");
     expect(() => applyNativeBundle(base, { ...candidate, providerId: "ita" })).toThrow();
   });
 
@@ -58,7 +61,7 @@ describe("UFT native pilot", () => {
         editionId: "2025-1",
         phase: "afternoon",
         questionCount: 44,
-        nativeQuestionCount: 6,
+        nativeQuestionCount: 12,
         contentMode: "hybrid",
         statementAvailable: false,
       }),

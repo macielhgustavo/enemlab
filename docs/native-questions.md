@@ -16,9 +16,11 @@ O ENEM mantém sua API atual.
 - Identidade e correção permanecem iguais em tentativas, resultados, histórico e SRS.
 - `nativeQuestionCount` e `contentMode` distinguem cobertura completa de `hybrid` no catálogo.
 
-O primeiro piloto contém seis questões reais da UFT 2025.1 (tarde):
-29, 31, 32, 33, 34 e 35. As outras 38 permanecem em referência, incluindo
-a anulada 28. Consulte [a evidência e os limites do piloto](native-uft-validation.md).
+O primeiro piloto contém doze questões reais da UFT 2025.1 (tarde):
+29, 31, 32, 33, 34, 35, 37, 38, 40, 41, 42 e 43. As outras 32 permanecem em
+referência, incluindo a anulada 28. Q39 e Q44 permanecem fora do pacote nativo
+porque incorporam material de terceiros. Consulte
+[a evidência e os limites do piloto](native-uft-validation.md).
 As questões sintéticas dos testes não são publicadas.
 
 ## Contrato

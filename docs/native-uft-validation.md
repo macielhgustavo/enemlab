@@ -4,9 +4,10 @@
 
 | Provider | Edição | Fase | Itens | Nativos | Referências | Anuladas | Validação |
 |---|---|---|---:|---:|---:|---|---|
-| uft | 2025-1 | afternoon | 44 | 6 | 38 | 28 | reviewed |
+| uft | 2025-1 | afternoon | 44 | 12 | 32 | 28 | reviewed |
 
-Nativos: 29, 31, 32, 33, 34, 35. Gabaritos finais: B, C, A, D, D, C.
+Nativos: 29, 31, 32, 33, 34, 35, 37, 38, 40, 41, 42, 43.
+Gabaritos finais: B, C, A, D, D, C, B, C, A, D, D, C.
 Não há 44 enunciados nativos. Manhã, línguas estrangeiras e redação não foram
 ingeridas. A numeração da manhã não pode ser mesclada à tarde.
 Somente um caderno da tarde foi observado: relação de variantes `unknown`,
@@ -40,23 +41,26 @@ alternativas A–D ou ANULADA. Não utiliza o gabarito provisório.
 A questão 35 usa a resposta C do definitivo, não uma resposta inferida.
 Qualquer alteração de hash exige nova revisão, inclusive retificações futuras.
 
-Transcrição `uft-native-manual@1.0.0`: comparação visual feita por Codex com
-as páginas físicas 8 e 9 (impressas 7 e 8). Texto e fórmulas foram convertidos
+Transcrição `uft-native-manual@1.0.0` e `uft-native-manual@1.1.0`:
+comparação visual feita por Codex com as páginas físicas 8 a 11 (impressas
+7 a 10). Texto e fórmulas foram convertidos
 em caracteres Unicode; não foram criadas resoluções ou corrigidos erros do original.
 Em Q31 as legendas castanho/incolor ficam associadas explicitamente aos gases.
 Q33 preserva COH como impresso. Q30 fica em referência porque seu diagrama
 não foi transcrito; Q36 permanece em referência por uma aparente inconsistência
-na equação original. Não se trata de revisão humana independente.
+na equação original. Q39 permanece em referência porque adapta uma reportagem
+do G1; Q44 permanece em referência porque reproduz uma figura atribuída a livro
+da FTD. Não se trata de revisão humana independente.
 
 ## Direitos
 
 O portal oficial declara Creative Commons Atribuição-SemDerivações 3.0.
-O piloto aplica essa declaração somente às seis questões selecionadas, sem
+O piloto aplica essa declaração somente às doze questões selecionadas, sem
 material de terceiros identificado nelas. Atribuição UFT/COPESE, link da
 prova, evidência da declaração e link da licença acompanham cada questão.
 Não é autorização genérica para republicar textos/imagens de terceiros
 citados em outras questões ou provas. Fonte/base: `official-reference`;
-seis transcrições: `allowed`, com evidência individual. Revisão humana do
+doze transcrições: `allowed`, com evidência individual. Revisão humana do
 alcance da licença e da fidelidade é recomendada antes do merge.
 
 ## Reprodução

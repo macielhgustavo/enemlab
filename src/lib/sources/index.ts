@@ -703,7 +703,7 @@ export const uftSource: ExamSourceDefinition = {
   answerKeyAvailable: true, expectedAnswersAvailable: false,
   parserVersion: "uft-afternoon@1.0.0", lastVerifiedAt: "2026-09-10",
   confidence: "media",
-  notes: "Piloto 2025.1, somente tarde: 44 itens, 28 anulada, seis transcrições nativas. Licença CC BY-ND 3.0 declarada no portal aplicada apenas às questões selecionadas sem material de terceiros identificado. Revisão visual por Codex; revisão humana independente pendente.",
+    notes: "Piloto 2025.1, somente tarde: 44 itens, 28 anulada, doze transcrições nativas. Licença CC BY-ND 3.0 declarada no portal aplicada apenas às questões selecionadas sem material de terceiros identificado. Revisão visual por Codex; revisão humana independente pendente.",
 };
 
 const SOURCES = new Map<string, ExamSourceDefinition>([

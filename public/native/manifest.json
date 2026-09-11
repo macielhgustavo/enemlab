@@ -5,11 +5,11 @@
       "providerId": "uft",
       "year": 2025,
       "editionId": "2025-1",
-      "path": "/native/editions/8555c72d42c4b403f6c43296d84df9a6b0a22d4af17fb7c912c50375feb3ee13.json",
-      "sha256": "8555c72d42c4b403f6c43296d84df9a6b0a22d4af17fb7c912c50375feb3ee13",
-      "questionCount": 6,
+      "path": "/native/editions/cd2fc5bd645f6db177a65b2185740243affd1a143d1771cd2a3ba6367b8122dd.json",
+      "sha256": "cd2fc5bd645f6db177a65b2185740243affd1a143d1771cd2a3ba6367b8122dd",
+      "questionCount": 12,
       "coverage": {
-        "afternoon": 6
+        "afternoon": 12
       }
     }
   ]
