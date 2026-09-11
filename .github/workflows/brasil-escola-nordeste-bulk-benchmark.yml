@@ -12,6 +12,7 @@ on:
       - 'scripts/inspect-brasil-escola-bulk.py'
       - 'scripts/ingest-uece-mirror.py'
       - 'scripts/ingest-urca-safe.py'
+      - 'scripts/ingest-urca-safe-v2.py'
       - 'scripts/tests/test_harvest_brasil_escola_bulk.py'
       - '.github/workflows/brasil-escola-nordeste-bulk-benchmark.yml'
 
@@ -49,7 +50,7 @@ jobs:
             --output .cache/brasil-escola-bulk-inspection.json
       - name: Extract URCA objective corpus
         run: |
-          python scripts/ingest-urca-safe.py \
+          python scripts/ingest-urca-safe-v2.py \
             --input .cache/brasil-escola-inbox/universidade-regional-cariri \
             --output .cache/urca-extracted
       - name: Enforce bulk accounting
