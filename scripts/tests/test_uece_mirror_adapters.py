@@ -49,6 +49,34 @@ class UeceMirrorAdapterTests(unittest.TestCase):
             sha256 = "y"
         self.assertTrue(ingest.is_exam(Document()))
 
+    def test_declared_question_count_wins_over_structural_noise(self) -> None:
+        class Document:
+            first_text = "VESTIBULAR 2024.1 1ª FASE. Este Caderno de Prova contém 85 questões."
+            leaf = "prova-gabarito-1.pdf"
+            page_count = 25
+            sha256 = "declared-count"
+
+        document = Document()
+        ingest.STRUCTURAL_EXPECTED[document.sha256] = 87
+        try:
+            self.assertEqual(ingest.expected(document), 85)
+        finally:
+            ingest.STRUCTURAL_EXPECTED.pop(document.sha256, None)
+
+    def test_structural_count_is_fallback_when_cover_count_is_missing(self) -> None:
+        class Document:
+            first_text = "UNIVERSIDADE ESTADUAL DO CEARÁ VESTIBULAR 2024.1"
+            leaf = "legacy-prova.pdf"
+            page_count = 20
+            sha256 = "structural-fallback"
+
+        document = Document()
+        ingest.STRUCTURAL_EXPECTED[document.sha256] = 40
+        try:
+            self.assertEqual(ingest.expected(document), 40)
+        finally:
+            ingest.STRUCTURAL_EXPECTED.pop(document.sha256, None)
+
     def test_short_answer_key_is_not_misclassified_as_exam(self) -> None:
         class Document:
             first_text = "VESTIBULAR 2026.1 1ª FASE GABARITO OFICIAL CONHECIMENTOS GERAIS"

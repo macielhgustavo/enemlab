@@ -89,8 +89,8 @@ jobs:
                   f"expected parser to scan {acquisition.get('acquired')} acquired items, "
                   f"got {summary.get('archivesScanned')}"
               )
-          if summary.get('extractedQuestions', 0) < 367:
-              raise SystemExit(f"phase-safe extraction regressed below 367: {summary.get('extractedQuestions', 0)}")
+          if summary.get('extractedQuestions', 0) <= 367:
+              raise SystemExit(f"expected recovered 2024/2025 corpus above 367, got {summary.get('extractedQuestions', 0)}")
           if summary.get('failures'):
               raise SystemExit(f"archive failures: {summary['failures']}")
 
@@ -101,8 +101,10 @@ jobs:
               raise SystemExit('expected UECE 2023.1 to retain at least 84 extracted questions')
           for edition_id in ('uece-2024.1', 'uece-2025.1'):
               item = by_id.get(edition_id)
-              if not item or item.get('expectedQuestions', 0) < 80:
-                  raise SystemExit(f'phase contamination still suspected in {edition_id}: {item}')
+              if not item or item.get('expectedQuestions') != 85:
+                  raise SystemExit(f'expected canonical 85-question first phase in {edition_id}: {item}')
+              if item.get('extractedQuestions', 0) < 1:
+                  raise SystemExit(f'expected recovered first-phase questions in {edition_id}: {item}')
 
           for bundle in Path('.cache/uece-extracted/uece').glob('*/bundle.json'):
               data = json.loads(bundle.read_text(encoding='utf-8'))

@@ -36,6 +36,33 @@ class UecePhaseGuardTests(unittest.TestCase):
         source = Source("Provas e gabaritos UECE 2025/2", "47724-provas-e-gabaritos-uece-2025-2.zip")
         self.assertIsNone(guard.source_phase(source))
 
+    def test_first_phase_booklet_named_gabarito_variant_is_exam(self) -> None:
+        class Document:
+            first_text = (
+                "UNIVERSIDADE ESTADUAL DO CEARÁ VESTIBULAR 2025.1 1ª FASE "
+                "PROVA DE CONHECIMENTOS GERAIS. Este Caderno de Prova contém "
+                "85 (oitenta e cinco) questões, com 4 alternativas cada."
+            )
+            leaf = "1ª fase prova uece 2025 gabarito 1.pdf"
+            page_count = 26
+            sha256 = "booklet-variant"
+
+        document = Document()
+        self.assertTrue(guard.is_exam(document))
+        self.assertFalse(guard.mirror.core.is_key(document))
+
+    def test_short_real_gabarito_stays_out_of_exam_classifier(self) -> None:
+        class Document:
+            first_text = (
+                "GABARITO OFICIAL PRELIMINAR DA PROVA DE CONHECIMENTOS GERAIS "
+                "DO VESTIBULAR 2025.1"
+            )
+            leaf = "gabarito-preliminar-uece-2025-1.pdf"
+            page_count = 3
+            sha256 = "real-key"
+
+        self.assertFalse(guard.is_exam(Document()))
+
 
 if __name__ == "__main__":
     unittest.main()

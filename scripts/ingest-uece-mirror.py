@@ -40,11 +40,9 @@ def inputs(values):
 def expected(document):
     cached = STRUCTURAL_EXPECTED.get(getattr(document, "sha256", ""))
     original = core._original_expected(document)
-    if cached is None:
+    if original is not None:
         return original
-    if original is None:
-        return cached
-    return max(original, cached)
+    return cached
 
 
 def is_exam(document):
