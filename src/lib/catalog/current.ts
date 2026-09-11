@@ -25,6 +25,8 @@ import {
   EPCAR_PROVIDER_ID,
   espcexAnswerKey,
   ESPCEX_PROVIDER_ID,
+  esaAnswerKey,
+  ESA_PROVIDER_ID,
   unicampAnswerKey,
   UNICAMP_PROVIDER_ID,
   uelAnswerKey,
@@ -125,6 +127,17 @@ function medirEdicao(
       total: k.total,
       subjects: Object.fromEntries(
         Object.entries(k.subjects).map(([nome, numeros]) => [nome, numeros.length]),
+      ),
+    };
+  }
+
+  if (providerId === ESA_PROVIDER_ID) {
+    const k = esaAnswerKey(ano);
+    if (!k) return null;
+    return {
+      total: k.total,
+      subjects: Object.fromEntries(
+        Object.entries(k.subjects).map(([name, range]) => [name, range[1] - range[0] + 1]),
       ),
     };
   }

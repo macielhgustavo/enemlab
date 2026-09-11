@@ -130,6 +130,21 @@ const FONTES = [
     ],
   },
   {
+    providerId: "esa",
+    sourceId: "esa-general-reference",
+    archiveUrl: "http://www.esa.eb.mil.br",
+    documentos: [
+      {
+        role: "objective-exam",
+        url: "https://arquivos.qconcursos.com/prova/arquivo_prova/139039/exercito-2025-essa-sargento-geral-prova.pdf",
+      },
+      {
+        role: "answer-key",
+        url: "https://arquivos.qconcursos.com/prova/arquivo_gabarito/139039/exercito-2025-essa-sargento-geral-gabarito.pdf",
+      },
+    ],
+  },
+  {
     providerId: "espcex",
     sourceId: "espcex-official-archive",
     archiveUrl: "https://espcex.eb.mil.br/",

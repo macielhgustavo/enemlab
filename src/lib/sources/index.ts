@@ -5,6 +5,7 @@ import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/
 import { afaAnswerKey, afaYears } from "../providers/afa";
 import { epcarAnswerKey, epcarYears } from "../providers/epcar";
 import { espcexExamUrl, espcexYears } from "../providers/espcex";
+import { esaExamUrl, esaYears } from "../providers/esa";
 import { unicampExamUrl, unicampYears } from "../providers/unicamp";
 import { uelExamUrl, uelYears } from "../providers/uel";
 import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
@@ -21,6 +22,7 @@ const IME_PARSER = "ime-answer-key@1.0.0";
 const FUVEST_PARSER = "fuvest-answer-key@1.1.0";
 const FAB_PARSER = "fab-answer-key@2.1.0";
 const ESPCEX_PARSER = "espcex-answer-key@1.0.0";
+const ESA_PARSER = "esa-answer-key@1.0.0";
 const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
 const UEL_PARSER = "uel-answer-key@1.0.0";
 const PUC_SP_PARSER = "puc-sp-answer-key@1.0.0";
@@ -320,6 +322,34 @@ export const espcexSource: ExamSourceDefinition = {
     "rejeita clientes automatizados neste ambiente, então a transcrição do gabarito " +
     "foi conferida também contra uma cópia pública datada de 13/10/2025. " +
     "O enunciado não é redistribuído pelo app: permanece no documento oficial.",
+};
+
+/** ESA: Área Geral, Tipo A, mantida em modo referência. */
+export const esaSource: ExamSourceDefinition = {
+  id: "esa-general-reference",
+  providerId: "esa",
+  institution: "Escola de Sargentos das Armas",
+  archiveUrl: "http://www.esa.eb.mil.br",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "permission-required",
+  status: "active",
+  family: "army",
+  discovery: "manual",
+  years: esaYears(),
+  phases: ["single"],
+  subjects: ["mathematics", "portuguese", "history_geography", "english"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: ESA_PARSER,
+  lastVerifiedAt: "2026-09-11",
+  confidence: "media",
+  notes:
+    "Entra somente a Área Geral de 2025, Tipo A: 50 questões objetivas e redação. " +
+    "O caderno identifica a ESA e informa esa.eb.mil.br como local oficial do gabarito; " +
+    "os bytes verificáveis usados pelo app vêm de espelhos públicos QConcursos/HDO. " +
+    "Por isso o app não marca a URL espelhada como oficial e não redistribui o PDF.",
 };
 
 /** UNICAMP: arquivo oficial da COMVEST, 1ª fase objetiva em modo referência. */
@@ -732,6 +762,7 @@ const SOURCES = new Map<string, ExamSourceDefinition>([
   [afaSource.id, afaSource],
   [epcarSource.id, epcarSource],
   [espcexSource.id, espcexSource],
+  [esaSource.id, esaSource],
   [unicampSource.id, unicampSource],
   [uelSource.id, uelSource],
   [pucSpSource.id, pucSpSource],
@@ -853,6 +884,15 @@ export const espcexImporter: ExamImporter = {
   },
 };
 
+export const esaImporter: ExamImporter = {
+  sourceId: esaSource.id,
+  availableYears: () => esaYears(),
+  provenanceFor(year, phase = "single", page) {
+    const url = phase === "single" ? esaExamUrl(year) : null;
+    return { ...provenance(esaSource, url ?? esaSource.archiveUrl, page), official: false };
+  },
+};
+
 export const unicampImporter: ExamImporter = {
   sourceId: unicampSource.id,
   availableYears: () => unicampYears(),
@@ -909,6 +949,7 @@ export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "afa") return afaImporter;
   if (providerId === "epcar") return epcarImporter;
   if (providerId === "espcex") return espcexImporter;
+  if (providerId === "esa") return esaImporter;
   if (providerId === "unicamp") return unicampImporter;
   if (providerId === "uel") return uelImporter;
   if (providerId === "puc-sp") return pucSpImporter;

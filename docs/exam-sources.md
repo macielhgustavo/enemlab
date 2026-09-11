@@ -136,6 +136,7 @@ Correção errada é pior que ausência de dado.
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EsPCEx | `espcex.eb.mil.br` | `pdf-reference` | na fonte oficial | 2025 (2 dias) |
+| ESA — Área Geral | documentos ESA via espelhos QConcursos/HDO; arquivo `esa.eb.mil.br` | `pdf-reference` | referência externa | 2025 Tipo A |
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
 | PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
@@ -314,6 +315,5 @@ edições — por isso a lista de matérias da 2ª fase depende do ano.
 Ao acrescentar edições, refaça esta conferência antes de anunciar o documento
 na interface. O padrão de nome não é promessa de existência.
 
-Placeholders conceituais para o futuro — **não implementados**: EEAR,
-UFPR, ESA. Cada um exige repetir o passo 2 antes de qualquer
-estimativa.
+Placeholders conceituais para o futuro — **não implementados**: EEAR e
+UFPR. Cada um exige repetir o passo 2 antes de qualquer estimativa.
