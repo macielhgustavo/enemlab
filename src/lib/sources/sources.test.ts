@@ -160,7 +160,7 @@ describe("registry de fontes", () => {
       family: "army",
       status: "active",
       rightsStatus: "official-reference",
-      years: [2025, 2024, 2023, 2022, 2021, 2020, 2019],
+      years: [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018],
     });
   });
 
@@ -273,6 +273,7 @@ describe("procedência", () => {
     expect(espcexImporter.provenanceFor(2021, "day1").official).toBe(false);
     expect(espcexImporter.provenanceFor(2020, "day1").official).toBe(false);
     expect(espcexImporter.provenanceFor(2019, "day1").official).toBe(false);
+    expect(espcexImporter.provenanceFor(2018, "day1").official).toBe(false);
     expect(esaImporter.provenanceFor(2025).documentUrl).toContain("arquivos.qconcursos.com");
     expect(esaImporter.provenanceFor(2025).official).toBe(false);
   });

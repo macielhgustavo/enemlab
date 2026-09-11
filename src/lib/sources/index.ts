@@ -317,15 +317,16 @@ export const espcexSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "alta",
   notes:
-    "Entram 2019–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
-    "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2019–2024 os cadernos " +
+    "Entram 2018–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
+    "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2018–2024 os cadernos " +
     "verificáveis são espelhos públicos; o gabarito final de 2023 é a revisão de 16/10, " +
     "com a questão 27 do 2º dia anulada. Por isso essas questões e sua procedência carregam " +
     "`official: false`. Em 2022 o gabarito definitivo combinado marca a questão 17 " +
     "do 2º dia, Modelo D, como anulada; em 2021 a revisão final anula a questão 39 " +
     "do 1º dia, Modelo A; em 2020 o gabarito definitivo anula a questão 39 do 2º dia, " +
     "Modelo D. Em 2019 o caderno canônico disponível é Modelo B no 1º dia e Modelo D " +
-    "no 2º, ambos sem anuladas no gabarito consultado. Gabaritos são dados factuais e o app não redistribui PDFs.",
+    "no 2º, ambos sem anuladas no gabarito consultado. Em 2018 os cadernos canônicos são A/D, " +
+    "também sem anuladas. Gabaritos são dados factuais e o app não redistribui PDFs.",
 };
 
 /** ESA: Área Geral, Tipo A, mantida em modo referência. */
