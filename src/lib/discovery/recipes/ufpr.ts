@@ -1,66 +1,87 @@
-import type { OfficialSourceRecipe } from "../sourceRecipe";
+import type { OfficialSourceRecipe, SourceRecipeDocumentRule } from "../sourceRecipe";
+
+const FIRST_PHASE_MARKED = ["objective-exam", "answer-key"] as const;
+
+function languageRule(
+  slug: string,
+  variant: string,
+): SourceRecipeDocumentRule {
+  return {
+    role: [...FIRST_PHASE_MARKED],
+    match: new RegExp(
+      `/documentos/PS2021/provas1fase/ps2021_conhecimentos_gerais_${slug}\\.pdf\\b`,
+      "i",
+    ),
+    phase: "first",
+    variant,
+  };
+}
 
 /**
  * UFPR official vestibular archive.
  *
- * The first horizontal benchmark intentionally covers the 11 editions from
- * PS2016 through PS2026. This range spans two site generations while keeping
- * discovery deterministic with one bounded HTML-link crawl:
- * - modern PortalNC pages (`Concurso?concurso=PS2026`);
- * - legacy static pages (`/ufpr/ps2017/index.htm`, `/ufpr/ps2016/index.htm`).
- *
- * Older editions remain outside this recipe for now because their archive
- * pages use an older framed layout that needs a separate generic primitive.
- * The recipe never guesses PDF URLs; it follows only links exposed by NC/UFPR.
+ * The benchmark covers PS2016–PS2026 and follows only NC/UFPR pages. It spans
+ * legacy static pages, PortalNC publication pages and PS2021's intermediate
+ * first-phase directory. Definitive booklets carry marked correct alternatives,
+ * so one physical PDF legitimately has objective-exam and answer-key roles.
  */
 export const UFPR_OFFICIAL_RECIPE: OfficialSourceRecipe = {
   sourceId: "ufpr-nc-official",
   institution: "UFPR",
   archiveUrls: ["https://servicos.nc.ufpr.br/PortalNC/VestibularesAnteriores"],
-  // Covers servicos.nc.ufpr.br, lua.nc.ufpr.br, www.nc.ufpr.br and legacy siblings.
   allowedHosts: ["nc.ufpr.br"],
   minYear: 2016,
-  // Last edition verified against the official archive in 2026-09.
   maxYear: 2026,
   crawl: {
-    maxDepth: 1,
-    maxPages: 20,
+    maxDepth: 2,
+    maxPages: 25,
     follow: [
-      /\/PortalNC\/Concurso\?concurso=PS20\d{2}\b/i,
+      /\/PortalNC\/Concurso(?:Publicacao)?\?[^#]*concurso=PS20\d{2}\b/i,
       /\/concursos_institucionais\/ufpr\/ps20\d{2}\/[^?#]+\.html?\b/i,
+      /\/documentos\/PS2021\/provas1fase\/?$/i,
     ],
   },
   edition: {
-    // Prefer PS identifiers in target/source-page URLs. Archive cycles such as
-    // 2016/2017 therefore become the actual PS year, 2017.
     year: /(?:concurso=PS|\/ps|\bPS)(20\d{2})\b/i,
     editionId: (_candidate, year) => `PS${year}`,
     label: (_candidate, year) => `Processo Seletivo UFPR ${year}`,
   },
   documents: [
     {
-      // Modern NC publishes the definitive first-phase booklet with correct
-      // alternatives marked in the same PDF, so one URL is both source exam
-      // and factual answer-key source.
-      role: ["objective-exam", "answer-key"],
-      match: /\/documentos\/ps20\d{2}\/provas\/definitivo\/Geral\.pdf\b/i,
+      role: [...FIRST_PHASE_MARKED],
+      match:
+        /\/documentos\/ps20(?:25|26)\/provas\/definitivo\/Geral\.pdf\b/i,
       phase: "first",
-      variant: "general",
     },
     {
       role: "answer-key-preliminary",
-      match: /\/documentos\/ps20\d{2}\/provas\/provisorio\/Geral\.pdf\b/i,
+      match:
+        /\/documentos\/ps20(?:25|26)\/provas\/provisorio\/Geral\.pdf\b/i,
       phase: "first",
-      variant: "general",
     },
     {
-      // Legacy PS2016/PS2017 pages point to the general first-phase booklet.
-      // Their definitive document has the correct alternative marked in place.
-      role: ["objective-exam", "answer-key"],
+      role: [...FIRST_PHASE_MARKED],
+      match: /\/documentos\/ps20(?:22|23|24)\/provas\/Geral\.pdf\b/i,
+      phase: "first",
+    },
+    languageRule("ingles", "english"),
+    languageRule("espanhol", "spanish"),
+    languageRule("alemao", "german"),
+    languageRule("frances", "french"),
+    languageRule("italiano", "italian"),
+    languageRule("japones", "japanese"),
+    languageRule("polones", "polish"),
+    {
+      role: [...FIRST_PHASE_MARKED],
+      match:
+        /\/documentos\/ps20(?:18|19|20)\/provas1fase\/ps20(?:18|19|20)_conhecimentos_gerais\.pdf\b/i,
+      phase: "first",
+    },
+    {
+      role: [...FIRST_PHASE_MARKED],
       match:
         /\/concursos_institucionais\/ufpr\/ps20(?:16|17)\/provas1fase\/[^?#]*conhecimentos[^?#]*\.pdf\b/i,
       phase: "first",
-      variant: "general",
     },
   ],
 };

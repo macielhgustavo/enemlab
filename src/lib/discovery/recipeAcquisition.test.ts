@@ -23,6 +23,10 @@ const recipe: OfficialSourceRecipe = {
   ],
 };
 
+function responseHeaders(values: Record<string, string>): Record<string, string> {
+  return values;
+}
+
 describe("recipe acquisition bridge", () => {
   it("uses plain fetch for discovery and cached acquisition after the document enters inventory", async () => {
     const inventoryStore = new InMemoryDocumentInventoryStore();
@@ -34,7 +38,7 @@ describe("recipe acquisition bridge", () => {
         return {
           url,
           status: 200,
-          headers: { "content-type": "text/html" },
+          headers: responseHeaders({ "content-type": "text/html" }),
           bytes: new TextEncoder().encode(`<a href="${PDF}">Prova 2025</a>`),
         };
       }
@@ -42,7 +46,7 @@ describe("recipe acquisition bridge", () => {
         return {
           url,
           status: 200,
-          headers: { "content-type": "application/pdf", etag: '"pdf-v1"' },
+          headers: responseHeaders({ "content-type": "application/pdf", etag: '"pdf-v1"' }),
           bytes: new TextEncoder().encode("pdf-v1"),
         };
       }
@@ -81,14 +85,14 @@ describe("recipe acquisition bridge", () => {
         return {
           url,
           status: 200,
-          headers: { "content-type": "text/html" },
+          headers: responseHeaders({ "content-type": "text/html" }),
           bytes: new TextEncoder().encode(`<a href="${PDF}">Prova 2025</a>`),
         };
       }
       return {
         url,
         status: 200,
-        headers: { etag: '"pdf-v1"', "content-type": "application/pdf" },
+        headers: responseHeaders({ etag: '"pdf-v1"', "content-type": "application/pdf" }),
         bytes: new TextEncoder().encode("pdf-v1"),
       };
     };
@@ -108,12 +112,16 @@ describe("recipe acquisition bridge", () => {
         return {
           url,
           status: 200,
-          headers: { "content-type": "text/html" },
+          headers: responseHeaders({ "content-type": "text/html" }),
           bytes: new TextEncoder().encode(`<a href="${PDF}">Prova 2025</a>`),
         };
       }
       conditionalHeader = headers["if-none-match"];
-      return { url, status: 304, headers: { etag: '"pdf-v1"' } };
+      return {
+        url,
+        status: 304,
+        headers: responseHeaders({ etag: '"pdf-v1"' }),
+      };
     };
     const second = await openRecipeAcquisitionBridge({
       recipe,

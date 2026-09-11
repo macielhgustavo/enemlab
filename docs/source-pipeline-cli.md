@@ -1,6 +1,6 @@
 # Source pipeline CLI
 
-The generic source pipeline persists discovery/acquisition state under `.ingestion-cache/` so repeated runs do not redownload unchanged official PDFs.
+The generic source pipeline persists discovery/acquisition/extraction state under `.ingestion-cache/` so repeated runs do not redownload or re-extract unchanged official PDFs.
 
 ## Run
 
@@ -29,17 +29,37 @@ The default cache layout is:
     └── last-run.json
 ```
 
-Physical bytes are addressed only by SHA-256, so two URLs serving the same file share one blob. Replacing a PDF at the same URL creates a new blob instead of destroying the old bytes.
+Physical bytes are addressed only by SHA-256. Warm runs use conditional GET when the official server exposes ETag/Last-Modified; HTTP 304 reuses the local blob. Servers without validators are downloaded and compared by SHA, preserving fail-closed change detection.
 
-The inventory stores the URL-to-SHA relationship plus ETag/Last-Modified metadata. Warm runs use conditional GET when possible. HTTP 304 reuses the local blob and downloads no PDF body. Servers without validators are downloaded again and compared by SHA, preserving the fail-closed behavior.
+Extraction checkpoints are persistent too. A matching physical document SHA plus importer version skips deterministic extraction on a warm run.
 
-Extraction checkpoints are also persistent. Once a source has an `IngestionAdapter`, the runner automatically executes `IngestionEngine` with the recipe-based discovery bridge and the persistent checkpoint store. A matching SHA + importer version can therefore skip extraction on a warm run.
+## UFPR benchmark
 
-## Current registry
+`ufpr` now runs in `ingestion` mode for the verified PS2016–PS2026 first-phase window.
 
-`ufpr` is deliberately `acquisition-only` for now. The source recipe can discover/acquire the verified PS2016–PS2026 window, but no UFPR extractor is being claimed until question/answer extraction is proven against the official PDFs.
+The adapter has an explicit expected objective count per edition:
 
-Registering an adapter on the same source definition changes the runner to `ingestion` mode without changing the command or cache format.
+- PS2016–PS2018: 80;
+- PS2019–PS2020: 90;
+- PS2021–PS2022: 60;
+- PS2023–PS2026: 90.
+
+The first deterministic benchmark uses English as the canonical foreign-language variant. Shared booklets can repeat the same language-question numbers several times; the extractor selects the English occurrence instead of treating those blocks as duplicate questions. PS2021 publishes a separate first-phase booklet per language, so the adapter acquires only its English definitive booklet for ingestion.
+
+The Python extractor receives already-acquired bytes through stdin. It does not download URLs itself. It verifies the supplied SHA-256 before parsing and returns `enemlab-extraction/v1` bound to that exact physical PDF.
+
+It fails closed when it cannot recover:
+
+- every expected question number;
+- exactly alternatives A–E for a non-annulled question;
+- one marked correct alternative for every non-annulled question;
+- an unambiguous requested language occurrence when a number repeats.
+
+Starred questions and explicit global annulment notes are recorded as annulled instead of requiring an answer. Visual references are marked as missing media for later review; OCR/vision is intentionally not part of this first benchmark.
+
+`rightsStatus` stays `official-reference`: extracting official PDFs for this personal study pipeline does not make a claim that UFPR content may be redistributed.
+
+The extractor requires Python with `pypdf`, consistent with the repository's existing PDF ingestion scripts.
 
 ## Reports
 
@@ -53,7 +73,9 @@ Every run writes a compact JSON report instead of serializing full question bodi
 - downloaded document/byte totals;
 - changed-document count;
 - acquisition failures;
-- extraction checkpoint hits/misses when ingestion is enabled;
-- compact ingestion job status/validation summaries.
+- extraction checkpoint hits/misses;
+- ready/blocked job counts;
+- questions extracted and questions needing fallback;
+- compact validation/engine issue summaries.
 
-This makes the scaling target measurable: warm runs should converge toward metadata requests plus only the bytes whose official source actually changed.
+This makes the horizontal scaling target measurable: a warm unchanged source should converge toward metadata requests plus checkpoint hits, while parser failures become explicit exception classes rather than manual per-exam ingestion.

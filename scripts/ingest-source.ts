@@ -7,11 +7,13 @@ import {
   FileDocumentInventoryStore,
   FileExtractionCheckpointStore,
 } from "../src/lib/discovery/node/fileStores";
+import { createUfprPythonPayloadLoader } from "../src/lib/discovery/node/ufprPythonLoader";
 import { UFPR_OFFICIAL_RECIPE } from "../src/lib/discovery/recipes/ufpr";
 import {
   runSourcePipeline,
   type SourcePipelineDefinition,
 } from "../src/lib/discovery/sourcePipeline";
+import { createUfprExternalAdapter } from "../src/lib/ingestion/adapters/ufprExternalAdapter";
 
 interface CliOptions {
   source?: string;
@@ -22,11 +24,10 @@ interface CliOptions {
   help: boolean;
 }
 
+const ufprAdapter = createUfprExternalAdapter(createUfprPythonPayloadLoader());
+
 const SOURCES: Record<string, SourcePipelineDefinition> = {
-  // UFPR is intentionally acquisition-only until a trustworthy extractor is
-  // registered. Adding `adapter` here automatically upgrades the runner to the
-  // full IngestionEngine path without changing the CLI or cache layout.
-  ufpr: { recipe: UFPR_OFFICIAL_RECIPE },
+  ufpr: { recipe: UFPR_OFFICIAL_RECIPE, adapter: ufprAdapter },
 };
 
 function parsePositiveInteger(value: string, flag: string): number {
@@ -89,19 +90,31 @@ async function main(): Promise<void> {
     }
     return;
   }
-  if (!options.source) throw new Error("--source is required (use --list to see sources)");
+  if (!options.source) {
+    throw new Error("--source is required (use --list to see sources)");
+  }
 
   const definition = SOURCES[options.source];
   if (!definition) {
-    throw new Error(`unknown source ${options.source}; available: ${Object.keys(SOURCES).join(", ")}`);
+    throw new Error(
+      `unknown source ${options.source}; available: ${Object.keys(SOURCES).join(", ")}`,
+    );
   }
 
   const cacheRoot = resolve(options.cacheDir);
   const sourceRoot = join(cacheRoot, "sources", definition.recipe.sourceId);
-  const reportPath = resolve(options.report ?? join(sourceRoot, "last-run.json"));
-  const inventoryStore = new FileDocumentInventoryStore(join(sourceRoot, "inventory.json"));
-  const blobStore = new FileContentAddressedDocumentStore(join(cacheRoot, "blobs"));
-  const checkpointStore = new FileExtractionCheckpointStore(join(sourceRoot, "checkpoints"));
+  const reportPath = resolve(
+    options.report ?? join(sourceRoot, "last-run.json"),
+  );
+  const inventoryStore = new FileDocumentInventoryStore(
+    join(sourceRoot, "inventory.json"),
+  );
+  const blobStore = new FileContentAddressedDocumentStore(
+    join(cacheRoot, "blobs"),
+  );
+  const checkpointStore = new FileExtractionCheckpointStore(
+    join(sourceRoot, "checkpoints"),
+  );
   const transport = createFetchAcquisitionTransport();
 
   const result = await runSourcePipeline(definition, {
@@ -113,7 +126,11 @@ async function main(): Promise<void> {
   });
 
   await mkdir(dirname(reportPath), { recursive: true });
-  await writeFile(reportPath, `${JSON.stringify(result.report, null, 2)}\n`, "utf8");
+  await writeFile(
+    reportPath,
+    `${JSON.stringify(result.report, null, 2)}\n`,
+    "utf8",
+  );
 
   const summary = {
     source: options.source,
@@ -131,6 +148,11 @@ async function main(): Promise<void> {
     changedDocuments: result.report.acquisition.changedDocuments,
     checkpointHits: result.report.checkpoint?.hits ?? 0,
     checkpointMisses: result.report.checkpoint?.misses ?? 0,
+    readyForReview: result.report.ingestion?.summary.readyForReview ?? 0,
+    blocked: result.report.ingestion?.summary.blocked ?? 0,
+    questionsExtracted: result.report.ingestion?.summary.questionsExtracted ?? 0,
+    questionsNeedingFallback:
+      result.report.ingestion?.summary.questionsNeedingFallback ?? 0,
     documentFailures: result.report.documentFailures.length,
     report: reportPath,
   };
@@ -141,6 +163,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

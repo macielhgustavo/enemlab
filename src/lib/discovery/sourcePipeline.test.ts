@@ -23,6 +23,10 @@ const recipe: OfficialSourceRecipe = {
   ],
 };
 
+function responseHeaders(values: Record<string, string>): Record<string, string> {
+  return values;
+}
+
 function transport(): AcquisitionTransport {
   const bodies: Record<string, string> = {
     [EXAM]: "exam-v1",
@@ -33,22 +37,24 @@ function transport(): AcquisitionTransport {
       return {
         url,
         status: 200,
-        headers: { "content-type": "text/html" },
+        headers: responseHeaders({ "content-type": "text/html" }),
         bytes: new TextEncoder().encode(
           `<a href="${EXAM}">Prova 2025</a><a href="${KEY}">Gabarito 2025</a>`,
         ),
       };
     }
     const body = bodies[url];
-    if (!body) return { url, status: 404, headers: {} };
+    if (!body) {
+      return { url, status: 404, headers: responseHeaders({}) };
+    }
     const etag = `"${body}"`;
     if (headers["if-none-match"] === etag) {
-      return { url, status: 304, headers: { etag } };
+      return { url, status: 304, headers: responseHeaders({ etag }) };
     }
     return {
       url,
       status: 200,
-      headers: { "content-type": "application/pdf", etag },
+      headers: responseHeaders({ "content-type": "application/pdf", etag }),
       bytes: new TextEncoder().encode(body),
     };
   };
