@@ -49,6 +49,10 @@ next-env.d.ts
 __pycache__/
 *.py[cod]
 
+# Local ingestion checkpoints and generated media candidates
+/.ingestion-cache/
+/.ingestion-media/
+
 # Playwright
 /test-results/
 /playwright-report/
