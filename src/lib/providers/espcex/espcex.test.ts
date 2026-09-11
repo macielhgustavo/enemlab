@@ -10,7 +10,16 @@ import {
 
 describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
-    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017]);
+    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016]);
+    const k16 = espcexAnswerKey(2016)!;
+    expect(k16.revision).toBe("mirror-reviewed-2016");
+    expect(k16.days.day1.model).toBe("A");
+    expect(k16.days.day2.model).toBe("D");
+    expect(k16.days.day1.total).toBe(44);
+    expect(k16.days.day2.total).toBe(56);
+    expect(k16.days.day1.annulled).toEqual([]);
+    expect(k16.days.day2.annulled).toEqual([]);
+
     const k17 = espcexAnswerKey(2017)!;
     expect(k17.revision).toBe("mirror-reviewed-2017");
     expect(k17.days.day1.model).toBe("A");
@@ -127,6 +136,14 @@ describe("EsPCEx", () => {
   });
 
   it("não chama caderno espelhado de oficial", () => {
+    const q16 = espcexQuestions(2016)[0];
+    expect(q16.statementAvailable).toBe(false);
+    expect(q16.official?.official).toBe(false);
+    expect(q16.official?.documentUrl).toContain("hdocurso.com.br");
+    const q16d2 = espcexQuestions(2016).find((q) => q.phase === "day2" && q.number === 1)!;
+    expect(q16d2.official?.official).toBe(false);
+    expect(q16d2.official?.documentUrl).toContain("zyrosite.com");
+
     const q17 = espcexQuestions(2017)[0];
     expect(q17.statementAvailable).toBe(false);
     expect(q17.official?.official).toBe(false);
@@ -183,6 +200,7 @@ describe("EsPCEx", () => {
     expect(espcexQuestionKey(espcexQuestions(2019)[0])).toBe("espcex-2019-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2018)[0])).toBe("espcex-2018-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2017)[0])).toBe("espcex-2017-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2016)[0])).toBe("espcex-2016-day1-1");
   });
 
   it("provider entrega as edições completas e recusa ano ausente", async () => {
@@ -195,6 +213,7 @@ describe("EsPCEx", () => {
     expect(await espcexProvider.fetchQuestions({ year: 2019 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2018 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2017 })).toHaveLength(100);
-    expect(await espcexProvider.fetchQuestions({ year: 2016 })).toEqual([]);
+    expect(await espcexProvider.fetchQuestions({ year: 2016 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2015 })).toEqual([]);
   });
 });

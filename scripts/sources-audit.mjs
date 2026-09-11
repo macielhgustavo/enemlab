@@ -330,6 +330,22 @@ const FONTES = [
         role: "answer-key-day2-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/gabarito/2017-gabarito-espcex-2-dia-matgeohising.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/provas/Prova_2016_Port_Redacao_Fisica_Quimica.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/gabarito/Gabarito_Port_Red_Fis_Qui_2016.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2016-prova-dia-2-modelo-d-YX42j47yDnivgMgr.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/gabarito/Gabarito_Mat_Geo_His_2016_Ingl.pdf",
+      },
     ],
   },
   {
