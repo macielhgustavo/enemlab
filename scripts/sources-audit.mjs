@@ -282,6 +282,22 @@ const FONTES = [
         role: "answer-key-day2-definitive-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/gabarito/2020%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D%20-%20GABARITO.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20PORTFISQUI%20-%20MODELO%20B.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/gabarito/2019-gabarito-espcex-1-dia-portquifis.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING%20-%20MODELO%20D.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/gabarito/2019-gabarito-espcex-2-dia-matgeohising.pdf",
+      },
     ],
   },
   {

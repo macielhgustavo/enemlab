@@ -135,7 +135,7 @@ Correção errada é pior que ausência de dado.
 | FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | 2005–2026 (22 edições) |
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
-| EsPCEx | `espcex.eb.mil.br` + espelhos HDO/Específico/ZeroUm/Indagação | `pdf-reference` | referência externa quando espelhado | 2020–2025 (2 dias) |
+| EsPCEx | `espcex.eb.mil.br` + espelhos HDO/Específico/ZeroUm/Indagação | `pdf-reference` | referência externa quando espelhado | 2019–2025 (2 dias) |
 | ESA — Área Geral | documentos ESA via espelhos QConcursos/HDO; arquivo `esa.eb.mil.br` | `pdf-reference` | referência externa | 2021–2025 Tipo A |
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
