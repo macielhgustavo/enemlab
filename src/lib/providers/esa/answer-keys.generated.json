@@ -1,0 +1,27 @@
+{
+  "2025": {
+    "year": 2025,
+    "revision": "final-2025-10-14",
+    "parserVersion": "esa-answer-key@1.0.0",
+    "variant": "A",
+    "total": 50,
+    "examUrl": "https://arquivos.qconcursos.com/prova/arquivo_prova/139039/exercito-2025-essa-sargento-geral-prova.pdf",
+    "answerKeyUrl": "https://arquivos.qconcursos.com/prova/arquivo_gabarito/139039/exercito-2025-essa-sargento-geral-gabarito.pdf",
+    "officialArchiveUrl": "http://www.esa.eb.mil.br",
+    "verificationUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-esa/2025/gabarito/gabarito2025-26-humanas.pdf",
+    "annulled": [1, 4, 10],
+    "subjects": {
+      "mathematics": [1, 14],
+      "portuguese": [15, 28],
+      "history_geography": [29, 40],
+      "english": [41, 50]
+    },
+    "answers": {
+      "2": "C", "3": "A", "5": "A", "6": "A", "7": "A", "8": "E", "9": "D",
+      "11": "B", "12": "D", "13": "B", "14": "B", "15": "B", "16": "B", "17": "D", "18": "B", "19": "C", "20": "D",
+      "21": "A", "22": "C", "23": "B", "24": "C", "25": "B", "26": "E", "27": "A", "28": "E", "29": "B", "30": "C",
+      "31": "C", "32": "E", "33": "C", "34": "D", "35": "E", "36": "B", "37": "D", "38": "A", "39": "A", "40": "E",
+      "41": "A", "42": "E", "43": "B", "44": "E", "45": "E", "46": "B", "47": "C", "48": "E", "49": "B", "50": "C"
+    }
+  }
+}
