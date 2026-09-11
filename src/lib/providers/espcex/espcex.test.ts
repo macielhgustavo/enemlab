@@ -10,7 +10,15 @@ import {
 
 describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
-    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021]);
+    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020]);
+    const k20 = espcexAnswerKey(2020)!;
+    expect(k20.revision).toBe("definitive-2020");
+    expect(k20.days.day1.model).toBe("A");
+    expect(k20.days.day2.model).toBe("D");
+    expect(k20.days.day1.total).toBe(44);
+    expect(k20.days.day2.total).toBe(56);
+    expect(k20.days.day2.annulled).toEqual([39]);
+
     const k21 = espcexAnswerKey(2021)!;
     expect(k21.revision).toBe("final-mirror-2021");
     expect(k21.days.day1.model).toBe("A");
@@ -72,6 +80,9 @@ describe("EsPCEx", () => {
   });
 
   it("preserva anuladas sem marcar alternativa correta", () => {
+    const q20 = espcexQuestions(2020).find((q) => q.phase === "day2" && q.number === 39)!;
+    expect(q20.correctAlternative).toBeNull();
+    expect(q20.alternatives.every((a) => !a.isCorrect)).toBe(true);
     const q21 = espcexQuestions(2021).find((q) => q.phase === "day1" && q.number === 39)!;
     expect(q21.correctAlternative).toBeNull();
     expect(q21.alternatives.every((a) => !a.isCorrect)).toBe(true);
@@ -89,6 +100,11 @@ describe("EsPCEx", () => {
   });
 
   it("não chama caderno espelhado de oficial", () => {
+    const q20 = espcexQuestions(2020)[0];
+    expect(q20.statementAvailable).toBe(false);
+    expect(q20.official?.official).toBe(false);
+    expect(q20.official?.documentUrl).toContain("hdocurso.com.br");
+
     const q21 = espcexQuestions(2021)[0];
     expect(q21.statementAvailable).toBe(false);
     expect(q21.official?.official).toBe(false);
@@ -121,6 +137,7 @@ describe("EsPCEx", () => {
     expect(espcexQuestionKey(espcexQuestions(2023)[0])).toBe("espcex-2023-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2022)[0])).toBe("espcex-2022-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2021)[0])).toBe("espcex-2021-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2020)[0])).toBe("espcex-2020-day1-1");
   });
 
   it("provider entrega as edições completas e recusa ano ausente", async () => {
@@ -129,6 +146,7 @@ describe("EsPCEx", () => {
     expect(await espcexProvider.fetchQuestions({ year: 2023 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2022 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2021 })).toHaveLength(100);
-    expect(await espcexProvider.fetchQuestions({ year: 2020 })).toEqual([]);
+    expect(await espcexProvider.fetchQuestions({ year: 2020 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2019 })).toEqual([]);
   });
 });
