@@ -1,4 +1,29 @@
 {
+  "2023": {
+    "year": 2023,
+    "revision": "qconcursos-final-current-2023",
+    "parserVersion": "esa-answer-key@1.0.0",
+    "variant": "A",
+    "total": 50,
+    "examUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2023-essa-sargento-geral",
+    "answerKeyUrl": "https://www.qconcursos.com/questoes-militares/provas/exercito-2023-essa-sargento-geral/questoes",
+    "officialArchiveUrl": "http://www.esa.eb.mil.br",
+    "verificationUrl": "https://www.studocu.com/pt-br/document/escola-estadual-militar-dom-pedro-ii/matematica/prova-geral-tipo-a-esa/103322279",
+    "annulled": [],
+    "subjects": {
+      "mathematics": [1, 14],
+      "portuguese": [15, 28],
+      "history_geography": [29, 40],
+      "english": [41, 50]
+    },
+    "answers": {
+      "1": "C", "2": "A", "3": "D", "4": "B", "5": "E", "6": "B", "7": "A", "8": "D", "9": "B", "10": "E",
+      "11": "A", "12": "C", "13": "D", "14": "E", "15": "B", "16": "E", "17": "B", "18": "E", "19": "C", "20": "A",
+      "21": "E", "22": "E", "23": "A", "24": "D", "25": "C", "26": "B", "27": "D", "28": "C", "29": "C", "30": "D",
+      "31": "C", "32": "A", "33": "B", "34": "E", "35": "D", "36": "E", "37": "B", "38": "A", "39": "A", "40": "C",
+      "41": "E", "42": "C", "43": "B", "44": "D", "45": "C", "46": "B", "47": "A", "48": "D", "49": "A", "50": "D"
+    }
+  },
   "2024": {
     "year": 2024,
     "revision": "final-2024",
