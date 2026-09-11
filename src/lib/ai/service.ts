@@ -1,3 +1,4 @@
+import { sanitizeProviderOutputForLeaks } from "./leakage";
 import {
   buildPedagogicalPolicy,
   buildTutorPrompts,
@@ -16,11 +17,10 @@ export function shouldFallbackToMock(
   vercelEnv = process.env.VERCEL_ENV,
 ): boolean {
   if (providerId === "mock") return false;
-  const explicit = configured?.trim().toLowerCase();
-  if (explicit === "true") return true;
-  if (explicit === "false") return false;
-  if (vercelEnv === "preview" || vercelEnv === "development") return true;
-  return nodeEnv !== "production";
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  if (vercelEnv === "preview") return true;
+  return nodeEnv === "development" || nodeEnv === "test";
 }
 
 export async function runStudentAI(
@@ -42,15 +42,24 @@ export async function runStudentAI(
 
   try {
     const raw = parseAIProviderOutput(await selectedProvider.generate(providerRequest));
-    return enforcePedagogicalResponse(raw, request, policy, selectedProvider.id);
+    const safeRaw = sanitizeProviderOutputForLeaks(
+      raw,
+      request.question,
+      policy.revealAnswer,
+    );
+    return enforcePedagogicalResponse(safeRaw, request, policy, selectedProvider.id);
   } catch (error) {
     if (!shouldFallbackToMock(selectedProvider.id)) throw error;
-
     console.warn(`student-ai:fallback ${selectedProvider.id} -> mock`, error);
     const fallback = new MockAIProvider();
     const raw = parseAIProviderOutput(await fallback.generate(providerRequest));
+    const safeRaw = sanitizeProviderOutputForLeaks(
+      raw,
+      request.question,
+      policy.revealAnswer,
+    );
     return {
-      ...enforcePedagogicalResponse(raw, request, policy, fallback.id),
+      ...enforcePedagogicalResponse(safeRaw, request, policy, fallback.id),
       fallbackFrom: selectedProvider.id,
     };
   }
