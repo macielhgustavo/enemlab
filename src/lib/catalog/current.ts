@@ -23,6 +23,8 @@ import {
   AFA_PROVIDER_ID,
   epcarAnswerKey,
   EPCAR_PROVIDER_ID,
+  espcexAnswerKey,
+  ESPCEX_PROVIDER_ID,
   unicampAnswerKey,
   UNICAMP_PROVIDER_ID,
   uelAnswerKey,
@@ -152,6 +154,31 @@ export function buildCurrentCatalog(): CatalogIndex {
   for (const p of listProviders()) {
     const fonte = listSources().find((s) => s.providerId === p.id);
     if (!fonte) continue;
+
+    if (p.id === ESPCEX_PROVIDER_ID) {
+      for (const ano of p.metadata.years) {
+        const key = espcexAnswerKey(ano);
+        if (!key) continue;
+        for (const phase of ["day1", "day2"] as const) {
+          const day = key.days[phase];
+          entradas.push({
+            providerId: p.id,
+            editionId: `${ano}-${phase}`,
+            year: ano,
+            phase,
+            questionCount: day.total,
+            subjects: Object.fromEntries(
+              Object.entries(day.subjects).map(([name, numbers]) => [name, numbers.length]),
+            ),
+            validation: NIVEL_HERDADO,
+            sourceId: fonte.id,
+            statementAvailable: false,
+            importerVersion: fonte.parserVersion,
+          });
+        }
+      }
+      continue;
+    }
 
     if (p.id === UDESC_PROVIDER_ID || p.id === ACAFE_PROVIDER_ID) {
       const editions = p.id === UDESC_PROVIDER_ID ? udescEditions() : acafeEditions();

@@ -4,6 +4,7 @@ import { imeYears, imeExamUrl, imeAnswerKeyUrl, imeEditionOfYear } from "../prov
 import { fuvestYears, fuvestExamUrl, fuvestSecondPhaseUrls } from "../providers/fuvest";
 import { afaAnswerKey, afaYears } from "../providers/afa";
 import { epcarAnswerKey, epcarYears } from "../providers/epcar";
+import { espcexExamUrl, espcexYears } from "../providers/espcex";
 import { unicampExamUrl, unicampYears } from "../providers/unicamp";
 import { uelExamUrl, uelYears } from "../providers/uel";
 import { pucSpExamUrl, pucSpYears } from "../providers/puc-sp";
@@ -19,6 +20,7 @@ const ENEM_PARSER = "enem-dev-api@1.0.0";
 const IME_PARSER = "ime-answer-key@1.0.0";
 const FUVEST_PARSER = "fuvest-answer-key@1.1.0";
 const FAB_PARSER = "fab-answer-key@2.1.0";
+const ESPCEX_PARSER = "espcex-answer-key@1.0.0";
 const UNICAMP_PARSER = "unicamp-answer-key@1.0.0";
 const UEL_PARSER = "uel-answer-key@1.0.0";
 const PUC_SP_PARSER = "puc-sp-answer-key@1.0.0";
@@ -289,6 +291,35 @@ export const epcarSource: ExamSourceDefinition = {
     "acessíveis, e as edições entram com `subjectBoundariesVerified: false`. " +
     "EPCAR 2026 fica de fora: esta ingestão não comprovou uma cópia final " +
     "oficial acessível. Isso não demonstra ausência de publicação.",
+};
+
+/** EsPCEx: concurso de admissão em dois dias, mantido em modo referência. */
+export const espcexSource: ExamSourceDefinition = {
+  id: "espcex-official-archive",
+  providerId: "espcex",
+  institution: "EsPCEx",
+  archiveUrl: "https://espcex.eb.mil.br/",
+  sourceType: "pdf-reference",
+  statementMode: "reference-only",
+  extractionMethod: "manual",
+  rightsStatus: "official-reference",
+  status: "active",
+  family: "army",
+  discovery: "manual",
+  years: espcexYears(),
+  phases: ["day1", "day2"],
+  subjects: ["portuguese", "physics", "chemistry", "mathematics", "geography", "history", "english"],
+  answerKeyAvailable: true,
+  expectedAnswersAvailable: false,
+  parserVersion: ESPCEX_PARSER,
+  lastVerifiedAt: "2026-09-11",
+  confidence: "alta",
+  notes:
+    "Entra 2025 completo: 44 questões objetivas no 1º dia e 56 no 2º. " +
+    "Os cadernos e gabaritos finais têm URLs oficiais da EsPCEx; o servidor oficial " +
+    "rejeita clientes automatizados neste ambiente, então a transcrição do gabarito " +
+    "foi conferida também contra uma cópia pública datada de 13/10/2025. " +
+    "O enunciado não é redistribuído pelo app: permanece no documento oficial.",
 };
 
 /** UNICAMP: arquivo oficial da COMVEST, 1ª fase objetiva em modo referência. */
@@ -700,6 +731,7 @@ const SOURCES = new Map<string, ExamSourceDefinition>([
   [fuvestSource.id, fuvestSource],
   [afaSource.id, afaSource],
   [epcarSource.id, epcarSource],
+  [espcexSource.id, espcexSource],
   [unicampSource.id, unicampSource],
   [uelSource.id, uelSource],
   [pucSpSource.id, pucSpSource],
@@ -811,6 +843,16 @@ export const epcarImporter: ExamImporter = {
   },
 };
 
+export const espcexImporter: ExamImporter = {
+  sourceId: espcexSource.id,
+  availableYears: () => espcexYears(),
+  provenanceFor(year, phase = "day1", page) {
+    const selectedPhase = phase === "day2" ? "day2" : "day1";
+    const url = espcexExamUrl(year, selectedPhase) ?? espcexSource.archiveUrl;
+    return provenance(espcexSource, url, page);
+  },
+};
+
 export const unicampImporter: ExamImporter = {
   sourceId: unicampSource.id,
   availableYears: () => unicampYears(),
@@ -866,6 +908,7 @@ export function importerForProvider(providerId: string): ExamImporter | null {
   if (providerId === "fuvest") return fuvestImporter;
   if (providerId === "afa") return afaImporter;
   if (providerId === "epcar") return epcarImporter;
+  if (providerId === "espcex") return espcexImporter;
   if (providerId === "unicamp") return unicampImporter;
   if (providerId === "uel") return uelImporter;
   if (providerId === "puc-sp") return pucSpImporter;

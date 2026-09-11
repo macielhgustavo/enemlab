@@ -135,6 +135,7 @@ Correção errada é pior que ausência de dado.
 | FUVEST | `fuvest.br` | `pdf-reference` | na fonte oficial | 2005–2026 (22 edições) |
 | AFA | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
 | EPCAR | FAB, gabaritos recuperados do Internet Archive | `pdf-reference` | não extraído | 2018–2025 |
+| EsPCEx | `espcex.eb.mil.br` | `pdf-reference` | na fonte oficial | 2025 (2 dias) |
 | UNICAMP | `comvest.unicamp.br` | `pdf-reference` | na fonte oficial | 2024–2026 |
 | UEL | `cops.uel.br` | `pdf-reference` | na fonte oficial | 2026 |
 | PUC-SP | `nucvest.com.br` | `pdf-reference` | na fonte oficial | 2024–2026 verão |
@@ -314,5 +315,5 @@ Ao acrescentar edições, refaça esta conferência antes de anunciar o document
 na interface. O padrão de nome não é promessa de existência.
 
 Placeholders conceituais para o futuro — **não implementados**: EEAR,
-UFPR, EsPCEx, ESA. Cada um exige repetir o passo 2 antes de qualquer
+UFPR, ESA. Cada um exige repetir o passo 2 antes de qualquer
 estimativa.

@@ -12,6 +12,8 @@ import {
   afaSource,
   epcarImporter,
   epcarSource,
+  espcexImporter,
+  espcexSource,
   unicampImporter,
   unicampSource,
   uelImporter,
@@ -32,6 +34,7 @@ describe("registry de fontes", () => {
       "eear-research",
       "enem-dev",
       "epcar-official-archive",
+      "espcex-official-archive",
       "fuvest-archive",
       "ime-cfg-archive",
       "inep-official-archive",
@@ -63,6 +66,7 @@ describe("registry de fontes", () => {
     expect(sourcesForProvider("fuvest").map((s) => s.id)).toEqual(["fuvest-archive"]);
     expect(sourcesForProvider("afa").map((s) => s.id)).toEqual(["afa-official-archive"]);
     expect(sourcesForProvider("epcar").map((s) => s.id)).toEqual(["epcar-official-archive"]);
+    expect(sourcesForProvider("espcex").map((s) => s.id)).toEqual(["espcex-official-archive"]);
     expect(sourcesForProvider("unicamp").map((s) => s.id)).toEqual(["unicamp-comvest-archive"]);
     expect(sourcesForProvider("uel").map((s) => s.id)).toEqual(["uel-cops-archive"]);
     expect(sourcesForProvider("puc-sp").map((s) => s.id)).toEqual(["puc-sp-nucvest-archive"]);
@@ -143,6 +147,19 @@ describe("registry de fontes", () => {
     });
   });
 
+  it("descreve a EsPCEx como referência oficial do Exército", () => {
+    expect(espcexSource).toMatchObject({
+      providerId: "espcex",
+      institution: "EsPCEx",
+      statementMode: "reference-only",
+      sourceType: "pdf-reference",
+      family: "army",
+      status: "active",
+      rightsStatus: "official-reference",
+      years: [2025],
+    });
+  });
+
   it("descreve os novos vestibulares aceitos como referência oficial", () => {
     for (const source of [unicampSource, uelSource, pucSpSource, udescSource, acafeSource]) {
       expect(source).toMatchObject({
@@ -195,6 +212,7 @@ describe("procedência", () => {
     expect(importerForProvider("fuvest")?.sourceId).toBe("fuvest-archive");
     expect(importerForProvider("afa")?.sourceId).toBe("afa-official-archive");
     expect(importerForProvider("epcar")?.sourceId).toBe("epcar-official-archive");
+    expect(importerForProvider("espcex")?.sourceId).toBe("espcex-official-archive");
     expect(importerForProvider("unicamp")?.sourceId).toBe("unicamp-comvest-archive");
     expect(importerForProvider("uel")?.sourceId).toBe("uel-cops-archive");
     expect(importerForProvider("puc-sp")?.sourceId).toBe("puc-sp-nucvest-archive");
@@ -208,6 +226,7 @@ describe("procedência", () => {
     expect(itaImporter.availableYears()).toEqual(itaSource.years);
     expect(afaImporter.availableYears()).toEqual(afaSource.years);
     expect(epcarImporter.availableYears()).toEqual(epcarSource.years);
+    expect(espcexImporter.availableYears()).toEqual(espcexSource.years);
     expect(unicampImporter.availableYears()).toEqual(unicampSource.years);
     expect(uelImporter.availableYears()).toEqual(uelSource.years);
     expect(pucSpImporter.availableYears()).toEqual(pucSpSource.years);
@@ -226,6 +245,8 @@ describe("procedência", () => {
   it("aponta a chave final oficial para cada provider FAB", () => {
     expect(afaImporter.provenanceFor(2025).documentUrl).toContain("afa2025_gab_oficial.pdf");
     expect(epcarImporter.provenanceFor(2025).documentUrl).toContain("cpcar2025_gab_oficial.pdf");
+    expect(espcexImporter.provenanceFor(2025, "day1").documentUrl).toContain("espcex.eb.mil.br");
+    expect(espcexImporter.provenanceFor(2025, "day2").documentUrl).toContain("MODELO%20D.pdf");
   });
 
   it("ano sem edição aponta o arquivo da instituição, não uma URL montada", () => {
