@@ -31,6 +31,7 @@ import ProviderSwitcher from "@/components/enem-lab/ProviderSwitcher";
 import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 import ExamExperienceHost from "@/components/ExamExperienceHost";
+import { examLabel } from "@/lib/providers/label";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -141,18 +142,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <aside className="rail">
         <Brand />
-        <ProviderSwitcher />
-        <div className="tag">Mission Control</div>
-
-        <button
-          className="cmdk-trigger"
-          onClick={openPalette}
-          aria-label="Buscar páginas e ações"
-        >
-          <Search size={14} />
-          <span>Buscar</span>
-          <kbd>⌘K</kbd>
-        </button>
 
         <nav className="railnav" aria-label="Navegação principal">
           {GRUPOS.map((grupo) => (
@@ -187,28 +176,60 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/account" className="tele">
             <Cloud size={12} /> {cloudLabel}
           </Link>
-          <button
-            className="iconbtn"
-            onClick={toggleTheme}
-            aria-label={`Mudar para tema ${theme === "dark" ? "claro" : "escuro"}`}
-          >
-            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
         </div>
       </aside>
 
-      {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
-          poucos blocos com muito peso. Antes as duas respiravam igual, porque
-          densidade só existia na documentação. */}
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="content"
-        data-density={densidadeDaRota(pathname)}
-        data-page={pathname.split("/")[1] || "home"}
-      >
-        {children}
-      </main>
+      <div className="workspace">
+        <header className="app-topbar">
+          <div className="app-topbar__context">
+            <span className="app-topbar__eyebrow">Centro de performance</span>
+            <strong>{hydrated ? examLabel(db.activeProvider) : "ENEM Lab"}</strong>
+            <span className="app-topbar__status">
+              <i className={`sysdot ${sysClass}`} aria-hidden="true" />
+              {sysLabel}
+            </span>
+          </div>
+
+          <div className="app-topbar__actions">
+            <button
+              className="app-topbar__search"
+              onClick={openPalette}
+              aria-label="Buscar páginas e ações"
+            >
+              <Search size={15} aria-hidden="true" />
+              <span>Buscar questões, tópicos e ações</span>
+              <kbd>⌘K</kbd>
+            </button>
+            <ProviderSwitcher className="app-topbar__provider" />
+            <button
+              className="app-topbar__icon"
+              onClick={toggleTheme}
+              aria-label={`Mudar para tema ${theme === "dark" ? "claro" : "escuro"}`}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <Link className="app-topbar__train" href="/practice">
+              Treinar
+            </Link>
+            <Link className="app-topbar__avatar" href="/account" aria-label="Abrir conta">
+              MC
+            </Link>
+          </div>
+        </header>
+
+        {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
+            poucos blocos com muito peso. Antes as duas respiravam igual, porque
+            densidade só existia na documentação. */}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="content"
+          data-density={densidadeDaRota(pathname)}
+          data-page={pathname.split("/")[1] || "home"}
+        >
+          {children}
+        </main>
+      </div>
 
       {canOpenResultReview && (
         <Link className="resultReviewShortcut" href={`${pathname}/review`}>
