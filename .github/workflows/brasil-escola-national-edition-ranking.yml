@@ -1,0 +1,64 @@
+name: Brasil Escola National Edition Ranking
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/rank-brasil-escola-national.py'
+      - 'scripts/tests/test_rank_brasil_escola_national.py'
+      - '.github/workflows/brasil-escola-national-edition-ranking.yml'
+
+jobs:
+  rank:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate ranking tests
+        run: python -m unittest discover -s scripts/tests -p 'test_rank_brasil_escola_national.py'
+      - name: Rank national vestibular mirrors by edition count
+        run: |
+          python scripts/rank-brasil-escola-national.py \
+            --output .cache/national-ranking/ranking.json \
+            --catalog-dir .cache/national-ranking/catalogs \
+            --workers 8 \
+            --top 50
+      - name: Enforce ranking accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          ranking = json.loads(Path('.cache/national-ranking/ranking.json').read_text(encoding='utf-8'))
+          regions = ranking.get('regions', [])
+          expected_regions = {'centro-oeste', 'nordeste', 'norte', 'sudeste', 'sul'}
+          observed_regions = {item.get('region') for item in regions}
+          if observed_regions != expected_regions:
+              raise SystemExit(f'national region coverage mismatch: {observed_regions} != {expected_regions}')
+          rows = ranking.get('ranking', [])
+          if len(rows) < 20:
+              raise SystemExit(f'expected at least 20 institutions in national ranking, got {len(rows)}')
+          if any(rows[index].get('editionSignals', 0) < rows[index + 1].get('editionSignals', 0) for index in range(len(rows) - 1)):
+              raise SystemExit('ranking is not sorted by editionSignals descending')
+          if not rows or rows[0].get('editionSignals', 0) < 5:
+              raise SystemExit(f'expected a meaningful top-ranked corpus, got {rows[:1]}')
+          print(json.dumps({
+              'regions': regions,
+              'institutionsRanked': len(rows),
+              'top20': rows[:20],
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload national ranking artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-national-edition-ranking
+          path: |
+            .cache/national-ranking/ranking.json
+            .cache/national-ranking/catalogs/*.json
+          retention-days: 7
