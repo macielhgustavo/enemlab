@@ -48,11 +48,10 @@ def sidecar(path: Path) -> dict:
 
 
 def edition_key(title: str, year: int | None = None) -> str | None:
-    value = core.norm(title)
-    match = EDITION_RE.search(value)
+    match = EDITION_RE.search(title)
     if match:
         return f"{match.group(1)}-{match.group(2)}"
-    year_match = YEAR_RE.search(value)
+    year_match = YEAR_RE.search(title)
     if year_match:
         return year_match.group(1)
     return str(year) if year else None
