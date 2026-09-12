@@ -1,4 +1,4 @@
-name: Brasil Escola UNCISAL Probe
+name: Brasil Escola Nordeste Candidate Sweep
 
 on:
   workflow_dispatch:
@@ -25,42 +25,50 @@ jobs:
         run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
       - name: Report compressed archive support
         run: command -v 7zz || command -v 7z || true
-      - name: Acquire UNCISAL mirror packages
+      - name: Acquire UEFS UESB UVA mirror packages
         run: |
           python scripts/harvest-brasil-escola-bulk.py \
-            --institution UNCISAL \
-            --workers 6 \
-            --catalog .cache/uncisal-catalog.json \
-            --download-root .cache/uncisal-inbox
-      - name: Inspect UNCISAL package family
+            --institution feira-santana \
+            --institution sudoeste-bahia \
+            --institution vale-acarau \
+            --workers 8 \
+            --catalog .cache/nordeste-candidate-catalog.json \
+            --download-root .cache/nordeste-candidate-inbox
+      - name: Inspect candidate package families
         run: |
           python scripts/inspect-brasil-escola-bulk.py \
-            --input .cache/uncisal-inbox \
-            --output .cache/uncisal-inspection.json
-      - name: Enforce discovery accounting
+            --input .cache/nordeste-candidate-inbox \
+            --output .cache/nordeste-candidate-inspection.json
+      - name: Enforce sweep accounting
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          catalog = json.loads(Path('.cache/uncisal-catalog.json').read_text(encoding='utf-8'))
+          catalog = json.loads(Path('.cache/nordeste-candidate-catalog.json').read_text(encoding='utf-8'))
           acquisition = catalog.get('bulkAcquisition', {})
           institutions = acquisition.get('institutions', [])
-          if len(institutions) != 1:
-              raise SystemExit(f'expected one UNCISAL institution, got {institutions}')
+          expected_slugs = {
+              'universidade-estadual-feira-santana',
+              'universidade-estadual-sudoeste-bahia',
+              'universidade-estadual-vale-acarau',
+          }
+          observed_slugs = {item.get('institutionSlug') for item in institutions}
+          if observed_slugs != expected_slugs:
+              raise SystemExit(f'candidate institution mismatch: {observed_slugs} != {expected_slugs}')
           if acquisition.get('errors'):
-              raise SystemExit(f"UNCISAL acquisition errors: {acquisition['errors']}")
+              raise SystemExit(f"candidate acquisition errors: {acquisition['errors']}")
           accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0)
           if accounted != acquisition.get('selected', 0):
-              raise SystemExit(f"UNCISAL accounting mismatch: {accounted} != {acquisition.get('selected')}")
+              raise SystemExit(f"candidate accounting mismatch: {accounted} != {acquisition.get('selected')}")
 
-          inspection = json.loads(Path('.cache/uncisal-inspection.json').read_text(encoding='utf-8'))
+          inspection = json.loads(Path('.cache/nordeste-candidate-inspection.json').read_text(encoding='utf-8'))
           if inspection.get('packagesScanned') != acquisition.get('acquired'):
               raise SystemExit(
-                  f"UNCISAL inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}"
+                  f"candidate inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}"
               )
           if inspection.get('failures'):
-              raise SystemExit(f"UNCISAL inspector failures: {inspection['failures']}")
+              raise SystemExit(f"candidate inspector failures: {inspection['failures']}")
 
           print(json.dumps({
               'selected': acquisition.get('selected'),
@@ -72,12 +80,12 @@ jobs:
               'inspection': inspection.get('institutions', {}),
           }, ensure_ascii=False, indent=2))
           PY
-      - name: Upload UNCISAL probe artifact
+      - name: Upload candidate sweep artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: brasil-escola-uncisal-probe
+          name: brasil-escola-nordeste-candidate-sweep
           path: |
-            .cache/uncisal-catalog.json
-            .cache/uncisal-inspection.json
+            .cache/nordeste-candidate-catalog.json
+            .cache/nordeste-candidate-inspection.json
           retention-days: 7
