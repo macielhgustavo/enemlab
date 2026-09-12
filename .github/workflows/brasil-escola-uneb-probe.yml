@@ -1,0 +1,186 @@
+name: Brasil Escola UNEB Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/harvest-brasil-escola.py'
+      - 'scripts/harvest-uece-brasil-escola.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - 'scripts/probe-uneb-safe.py'
+      - 'scripts/ingest-uneb-safe.py'
+      - 'scripts/ingest-uneb-safe-v2.py'
+      - 'scripts/tests/test_probe_uneb_safe.py'
+      - 'scripts/tests/test_ingest_uneb_safe.py'
+      - 'scripts/tests/test_ingest_uneb_safe_v2.py'
+      - '.github/workflows/brasil-escola-uneb-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
+      - name: Report compressed archive support
+        run: command -v 7zz || command -v 7z || true
+      - name: Validate UNEB tests
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_probe_uneb_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uneb_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uneb_safe_v2.py'
+      - name: Acquire UNEB mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --institution UNEB \
+            --workers 6 \
+            --catalog .cache/uneb-catalog.json \
+            --download-root .cache/uneb-inbox
+      - name: Inspect UNEB package family
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input .cache/uneb-inbox \
+            --output .cache/uneb-inspection.json
+      - name: Probe UNEB native-text structure
+        run: |
+          python scripts/probe-uneb-safe.py \
+            --input .cache/uneb-inbox/universidade-estado-bahia \
+            --output .cache/uneb-probe.json
+      - name: Extract UNEB objective corpus
+        run: |
+          python scripts/ingest-uneb-safe-v2.py \
+            --input .cache/uneb-inbox/universidade-estado-bahia \
+            --output .cache/uneb-extracted
+      - name: Enforce UNEB accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/uneb-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('bulkAcquisition', {})
+          institutions = acquisition.get('institutions', [])
+          if len(institutions) != 1:
+              raise SystemExit(f'expected one UNEB institution, got {institutions}')
+          if acquisition.get('errors'):
+              raise SystemExit(f"UNEB acquisition errors: {acquisition['errors']}")
+          accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0)
+          if accounted != acquisition.get('selected', 0):
+              raise SystemExit(f"UNEB accounting mismatch: {accounted} != {acquisition.get('selected')}")
+          if acquisition.get('selected') != 11:
+              raise SystemExit(f"expected 11 UNEB catalog entries, got {acquisition.get('selected')}")
+          if acquisition.get('acquired') != 4 or acquisition.get('unavailable') != 7:
+              raise SystemExit(
+                  f"expected UNEB live/unavailable split 4/7, got {acquisition.get('acquired')}/{acquisition.get('unavailable')}"
+              )
+
+          inspection = json.loads(Path('.cache/uneb-inspection.json').read_text(encoding='utf-8'))
+          if inspection.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(f"UNEB inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}")
+          if inspection.get('failures'):
+              raise SystemExit(f"UNEB inspector failures: {inspection['failures']}")
+
+          probe = json.loads(Path('.cache/uneb-probe.json').read_text(encoding='utf-8'))
+          if probe.get('failures'):
+              raise SystemExit(f"UNEB probe failures: {probe['failures']}")
+          if probe.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(f"UNEB probe coverage mismatch: {probe.get('packagesScanned')} != {acquisition.get('acquired')}")
+          if probe.get('likelyScannedDocuments') != 0:
+              raise SystemExit(f"expected native text in live UNEB docs, got {probe.get('likelyScannedDocuments')} likely scanned")
+          if probe.get('combinedDocuments') != 8:
+              raise SystemExit(f"expected 8 corrected UNEB prova-gabarito PDFs, got {probe.get('combinedDocuments')}")
+
+          uneb = json.loads(Path('.cache/uneb-extracted/uneb-summary.json').read_text(encoding='utf-8'))
+          if uneb.get('parserVersion') != 'inbox-uneb@0.2.0':
+              raise SystemExit(f"unexpected UNEB parser version: {uneb.get('parserVersion')}")
+          if uneb.get('failures'):
+              raise SystemExit(f"UNEB extraction failures: {uneb['failures']}")
+          if uneb.get('archivesScanned') != 4 or uneb.get('uniquePackages') != 4:
+              raise SystemExit(
+                  f"expected 4 unique UNEB archives, got {uneb.get('archivesScanned')}/{uneb.get('uniquePackages')}"
+              )
+          if uneb.get('editions') != 4:
+              raise SystemExit(f"expected 4 UNEB editions, got {uneb.get('editions')}")
+          if uneb.get('expectedQuestions') != 340:
+              raise SystemExit(f"expected 340 UNEB identities, got {uneb.get('expectedQuestions')}")
+          if uneb.get('extractedQuestions') != 170:
+              raise SystemExit(f"expected 170 paired UNEB questions, got {uneb.get('extractedQuestions')}")
+          if uneb.get('completeUnits') != 4:
+              raise SystemExit(f"expected 4 complete UNEB units, got {uneb.get('completeUnits')}")
+          if uneb.get('missingIdentities') != 170:
+              raise SystemExit(f"expected 170 UNEB missing identities from key-only years, got {uneb.get('missingIdentities')}")
+          expected_missing = uneb.get('expectedQuestions', 0) - uneb.get('extractedQuestions', 0)
+          if uneb.get('missingIdentities') != expected_missing:
+              raise SystemExit(f"UNEB missing identity accounting mismatch: {uneb.get('missingIdentities')} != {expected_missing}")
+
+          cycles = {item.get('year'): item for item in uneb.get('cycles', [])}
+          expected_cycles = {
+              2022: (85, 0, 0, 85),
+              2023: (85, 0, 0, 85),
+              2024: (85, 85, 2, 0),
+              2025: (85, 85, 2, 0),
+          }
+          for year, expected in expected_cycles.items():
+              cycle = cycles.get(year)
+              if not cycle:
+                  raise SystemExit(f"missing UNEB cycle {year}")
+              observed = (
+                  cycle.get('expectedQuestions'),
+                  cycle.get('extractedQuestions'),
+                  cycle.get('completeUnits'),
+                  cycle.get('missingIdentities'),
+              )
+              if observed != expected:
+                  raise SystemExit(f"UNEB {year} coverage mismatch: {observed} != {expected}")
+
+          annulled = []
+          for year in (2024, 2025):
+              bundle = json.loads(
+                  Path(f'.cache/uneb-extracted/uneb/{year}/bundle.json').read_text(encoding='utf-8')
+              )
+              for unit in bundle.get('units', []):
+                  for question in unit.get('questions', []):
+                      if question.get('annulled'):
+                          if question.get('correctAlternative') is not None:
+                              raise SystemExit(
+                                  f"annulled UNEB question has non-null answer: {year} {unit.get('id')} Q{question.get('number')}"
+                              )
+                          annulled.append((year, unit.get('id'), question.get('number')))
+          if len(annulled) != 7:
+              raise SystemExit(f"expected 7 explicit UNEB annulments, got {annulled}")
+
+          print(json.dumps({
+              'selected': acquisition.get('selected'),
+              'acquired': acquisition.get('acquired'),
+              'unavailable': acquisition.get('unavailable'),
+              'bytes': acquisition.get('bytes'),
+              'nativeTextDocuments': probe.get('nativeTextDocuments'),
+              'combinedDocuments': probe.get('combinedDocuments'),
+              'unebEditions': uneb.get('editions'),
+              'unebExpected': uneb.get('expectedQuestions'),
+              'unebExtracted': uneb.get('extractedQuestions'),
+              'unebCompleteUnits': uneb.get('completeUnits'),
+              'unebMissingIdentities': uneb.get('missingIdentities'),
+              'unebVisualDependencies': uneb.get('visualDependencies'),
+              'annulledQuestions': annulled,
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload UNEB benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-uneb-benchmark
+          path: |
+            .cache/uneb-catalog.json
+            .cache/uneb-inspection.json
+            .cache/uneb-probe.json
+            .cache/uneb-extracted/uneb-summary.json
+            .cache/uneb-extracted/uneb/**/bundle.json
+          retention-days: 7
