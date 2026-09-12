@@ -1,0 +1,94 @@
+name: Brasil Escola CEDERJ Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/harvest-brasil-escola.py'
+      - 'scripts/harvest-uece-brasil-escola.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - '.github/workflows/brasil-escola-cederj-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
+      - name: Report compressed archive support
+        run: command -v 7zz || command -v 7z || true
+      - name: Validate regional bulk harvester
+        run: |
+          python -m py_compile scripts/harvest-brasil-escola-bulk.py
+          python scripts/harvest-brasil-escola-bulk.py --help >/dev/null
+      - name: Acquire CEDERJ mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region sudeste \
+            --institution centro-ciencias-educacao-superior-distancia-estado- \
+            --workers 8 \
+            --catalog .cache/cederj-catalog.json \
+            --download-root .cache/cederj-inbox
+      - name: Inspect CEDERJ package family
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input .cache/cederj-inbox \
+            --output .cache/cederj-inspection.json
+      - name: Enforce CEDERJ discovery accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/cederj-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('bulkAcquisition', {})
+          institutions = acquisition.get('institutions', [])
+          if acquisition.get('region') != 'sudeste':
+              raise SystemExit(f"expected sudeste region, got {acquisition.get('region')}")
+          if len(institutions) != 1:
+              raise SystemExit(f'expected one CEDERJ institution, got {institutions}')
+          if acquisition.get('errors'):
+              raise SystemExit(f"CEDERJ acquisition errors: {acquisition['errors']}")
+          accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0)
+          if accounted != acquisition.get('selected', 0):
+              raise SystemExit(f"CEDERJ accounting mismatch: {accounted} != {acquisition.get('selected')}")
+          if acquisition.get('selected') != 34:
+              raise SystemExit(f"expected 34 CEDERJ catalog entries, got {acquisition.get('selected')}")
+          if acquisition.get('acquired', 0) < 10:
+              raise SystemExit(f"expected at least 10 live CEDERJ packages, got {acquisition.get('acquired')}")
+
+          inspection = json.loads(Path('.cache/cederj-inspection.json').read_text(encoding='utf-8'))
+          if inspection.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(
+                  f"CEDERJ inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}"
+              )
+          if inspection.get('failures'):
+              raise SystemExit(f"CEDERJ inspector failures: {inspection['failures']}")
+
+          print(json.dumps({
+              'selected': acquisition.get('selected'),
+              'acquired': acquisition.get('acquired'),
+              'unavailable': acquisition.get('unavailable'),
+              'bytes': acquisition.get('bytes'),
+              'formats': acquisition.get('formats'),
+              'institution': institutions[0],
+              'inspection': inspection.get('institutions', {}),
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload CEDERJ probe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-cederj-probe
+          path: |
+            .cache/cederj-catalog.json
+            .cache/cederj-inspection.json
+          retention-days: 7
