@@ -1,4 +1,4 @@
-name: Brasil Escola CEDERJ Probe
+name: Brasil Escola CEDERJ Benchmark
 
 on:
   workflow_dispatch:
@@ -11,7 +11,9 @@ on:
       - 'scripts/harvest-uece-brasil-escola.py'
       - 'scripts/inspect-brasil-escola-bulk.py'
       - 'scripts/probe-cederj-safe.py'
+      - 'scripts/ingest-cederj-safe.py'
       - 'scripts/tests/test_probe_cederj_safe.py'
+      - 'scripts/tests/test_ingest_cederj_safe.py'
       - '.github/workflows/brasil-escola-cederj-probe.yml'
 
 jobs:
@@ -27,10 +29,11 @@ jobs:
         run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
       - name: Report compressed archive support
         run: command -v 7zz || command -v 7z || true
-      - name: Validate regional harvester and CEDERJ probe tests
+      - name: Validate regional harvester and CEDERJ tests
         run: |
-          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/probe-cederj-safe.py
+          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/probe-cederj-safe.py scripts/ingest-cederj-safe.py
           python -m unittest discover -s scripts/tests -p 'test_probe_cederj_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_cederj_safe.py'
       - name: Acquire CEDERJ mirror packages
         run: |
           python scripts/harvest-brasil-escola-bulk.py \
@@ -49,7 +52,12 @@ jobs:
           python scripts/probe-cederj-safe.py \
             --input .cache/cederj-inbox/centro-ciencias-educacao-superior-distancia-estado- \
             --output .cache/cederj-probe.json
-      - name: Enforce CEDERJ discovery accounting
+      - name: Extract CEDERJ objective corpus
+        run: |
+          python scripts/ingest-cederj-safe.py \
+            --input .cache/cederj-inbox/centro-ciencias-educacao-superior-distancia-estado- \
+            --output .cache/cederj-extracted
+      - name: Enforce CEDERJ accounting
         run: |
           python - <<'PY'
           import json
@@ -90,27 +98,52 @@ jobs:
           if probe.get('failures'):
               raise SystemExit(f"CEDERJ probe failures: {probe['failures']}")
 
+          cederj = json.loads(Path('.cache/cederj-extracted/cederj-summary.json').read_text(encoding='utf-8'))
+          if cederj.get('parserVersion') != 'inbox-cederj@0.1.0':
+              raise SystemExit(f"unexpected CEDERJ parser version: {cederj.get('parserVersion')}")
+          if cederj.get('failures'):
+              raise SystemExit(f"CEDERJ extraction failures: {cederj['failures']}")
+          if cederj.get('editions') != 11:
+              raise SystemExit(f"expected 11 CEDERJ live editions, got {cederj.get('editions')}")
+          if cederj.get('expectedQuestions', 0) < 450:
+              raise SystemExit(f"expected at least 450 CEDERJ identities, got {cederj.get('expectedQuestions')}")
+          if cederj.get('extractedQuestions', 0) < 200:
+              raise SystemExit(f"expected at least 200 deterministic CEDERJ questions, got {cederj.get('extractedQuestions')}")
+          expected_missing = cederj.get('expectedQuestions', 0) - cederj.get('extractedQuestions', 0)
+          if cederj.get('missingIdentities') != expected_missing:
+              raise SystemExit(
+                  f"CEDERJ missing identity accounting mismatch: {cederj.get('missingIdentities')} != {expected_missing}"
+              )
+          cycles = {item.get('editionId'): item for item in cederj.get('cycles', [])}
+          if 'cederj-2026-1' not in cycles:
+              raise SystemExit(f"expected document evidence to identify CEDERJ 2026-1, got {sorted(cycles)}")
+
           print(json.dumps({
               'selected': acquisition.get('selected'),
               'acquired': acquisition.get('acquired'),
               'unavailable': acquisition.get('unavailable'),
               'bytes': acquisition.get('bytes'),
-              'formats': acquisition.get('formats'),
-              'inspection': inspection.get('institutions', {}),
               'probeRoles': probe.get('roleCounts'),
               'nativeTextDocuments': probe.get('nativeTextDocuments'),
               'likelyScannedDocuments': probe.get('likelyScannedDocuments'),
-              'questionNumberSignal': probe.get('questionNumberSignal'),
-              'answerKeyPairSignal': probe.get('answerKeyPairSignal'),
+              'cederjEditions': cederj.get('editions'),
+              'cederjExpected': cederj.get('expectedQuestions'),
+              'cederjExtracted': cederj.get('extractedQuestions'),
+              'cederjCompleteUnits': cederj.get('completeUnits'),
+              'cederjMissingIdentities': cederj.get('missingIdentities'),
+              'cederjVisualDependencies': cederj.get('visualDependencies'),
+              'cycles': cederj.get('cycles'),
           }, ensure_ascii=False, indent=2))
           PY
-      - name: Upload CEDERJ probe artifact
+      - name: Upload CEDERJ benchmark artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: brasil-escola-cederj-probe
+          name: brasil-escola-cederj-benchmark
           path: |
             .cache/cederj-catalog.json
             .cache/cederj-inspection.json
             .cache/cederj-probe.json
+            .cache/cederj-extracted/cederj-summary.json
+            .cache/cederj-extracted/cederj/**/bundle.json
           retention-days: 7
