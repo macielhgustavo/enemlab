@@ -24,7 +24,7 @@ def load_module(name: str, path: Path):
 base = load_module("rank_brasil_escola_base", BASE_SCRIPT)
 
 REGIONS = {
-    "centro-oeste": f"{base.BASE_URL}/downloads/centro-oeste.htm",
+    "centro-oeste": f"{base.BASE_URL}/downloads/centrooeste.htm",
     "nordeste": f"{base.BASE_URL}/downloads/nordeste.htm",
     "norte": f"{base.BASE_URL}/downloads/norte.htm",
     "sudeste": f"{base.BASE_URL}/downloads/sudeste.htm",

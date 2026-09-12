@@ -7,20 +7,24 @@ on:
       - feat/generic-source-harvesting
     paths:
       - 'scripts/rank-brasil-escola-national.py'
+      - 'scripts/probe-brasil-escola-live-editions.py'
       - 'scripts/tests/test_rank_brasil_escola_national.py'
+      - 'scripts/tests/test_probe_brasil_escola_live_editions.py'
       - '.github/workflows/brasil-escola-national-edition-ranking.yml'
 
 jobs:
   rank:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Validate ranking tests
-        run: python -m unittest discover -s scripts/tests -p 'test_rank_brasil_escola_national.py'
+      - name: Validate ranking and availability tests
+        run: |
+          python -m unittest discover -s scripts/tests -p 'test_rank_brasil_escola_national.py'
+          python -m unittest discover -s scripts/tests -p 'test_probe_brasil_escola_live_editions.py'
       - name: Rank national vestibular mirrors by edition count
         run: |
           python scripts/rank-brasil-escola-national.py \
@@ -28,7 +32,7 @@ jobs:
             --catalog-dir .cache/national-ranking/catalogs \
             --workers 8 \
             --top 50
-      - name: Enforce ranking accounting
+      - name: Enforce national ranking accounting
         run: |
           python - <<'PY'
           import json
@@ -41,24 +45,79 @@ jobs:
           if observed_regions != expected_regions:
               raise SystemExit(f'national region coverage mismatch: {observed_regions} != {expected_regions}')
           rows = ranking.get('ranking', [])
-          if len(rows) < 20:
-              raise SystemExit(f'expected at least 20 institutions in national ranking, got {len(rows)}')
+          if len(rows) < 200:
+              raise SystemExit(f'expected at least 200 institutions in national ranking, got {len(rows)}')
           if any(rows[index].get('editionSignals', 0) < rows[index + 1].get('editionSignals', 0) for index in range(len(rows) - 1)):
               raise SystemExit('ranking is not sorted by editionSignals descending')
-          if not rows or rows[0].get('editionSignals', 0) < 5:
+          if not rows or rows[0].get('editionSignals', 0) < 20:
               raise SystemExit(f'expected a meaningful top-ranked corpus, got {rows[:1]}')
           print(json.dumps({
               'regions': regions,
               'institutionsRanked': len(rows),
+              'issues': ranking.get('issues', []),
               'top20': rows[:20],
           }, ensure_ascii=False, indent=2))
           PY
-      - name: Upload national ranking artifact
+      - name: Probe live editions among highest-volume unhandled candidates
+        run: |
+          python scripts/probe-brasil-escola-live-editions.py \
+            --ranking .cache/national-ranking/ranking.json \
+            --catalog-dir .cache/national-ranking/catalogs \
+            --output .cache/national-ranking/live-editions.json \
+            --top-candidates 14 \
+            --workers 16 \
+            --exclude-slug universidade-estadual-ceara \
+            --exclude-slug universidade-regional-cariri \
+            --exclude-slug universidade-sao-paulo \
+            --exclude-slug universidade-federal-parana \
+            --exclude-slug universidade-estadual-santa-catarina \
+            --exclude-slug universidade-pernambuco \
+            --exclude-slug universidade-estadual-maranhao \
+            --exclude-slug universidade-estado-bahia \
+            --exclude-slug universidade-estadual-vale-acarau \
+            --exclude-slug instituto-tecnologico-aeronautica \
+            --exclude-slug instituto-militar-engenharia
+      - name: Enforce live-edition accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          probe = json.loads(Path('.cache/national-ranking/live-editions.json').read_text(encoding='utf-8'))
+          totals = probe.get('totals', {})
+          if totals.get('candidates') != 14:
+              raise SystemExit(f"expected 14 live-probe candidates, got {totals.get('candidates')}")
+          accounted = sum(totals.get(key, 0) for key in (
+              'liveEntries', 'unavailableEntries', 'blockedEntries', 'unsupportedEntries', 'errorEntries'
+          ))
+          if accounted != totals.get('selectedEntries'):
+              raise SystemExit(f"live probe accounting mismatch: {accounted} != {totals.get('selectedEntries')}")
+          rows = probe.get('ranking', [])
+          if not rows or max(row.get('liveEditionSignals', 0) for row in rows) < 1:
+              raise SystemExit('no live editions found among top candidates')
+          if any(
+              rows[index].get('usableEditionSignals', 0) < rows[index + 1].get('usableEditionSignals', 0)
+              for index in range(len(rows) - 1)
+          ):
+              raise SystemExit('live ranking is not sorted by usableEditionSignals descending')
+          print(json.dumps({
+              'totals': totals,
+              'ranking': [{key: row.get(key) for key in (
+                  'region', 'institution', 'institutionSlug', 'cataloguedEditionSignals',
+                  'liveEditionSignals', 'usableEditionSignals', 'examBearingEditionSignals',
+                  'keyBearingEditionSignals', 'liveEntries', 'unavailableEntries',
+                  'blockedEntries', 'unsupportedEntries', 'errorEntries', 'formats',
+                  'liveEditionKeys', 'usableEditionKeys'
+              )} for row in rows],
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload national edition ranking artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: brasil-escola-national-edition-ranking
           path: |
             .cache/national-ranking/ranking.json
+            .cache/national-ranking/live-editions.json
             .cache/national-ranking/catalogs/*.json
           retention-days: 7
