@@ -13,7 +13,17 @@ on:
       - 'scripts/ingest-uece-mirror.py'
       - 'scripts/ingest-urca-safe.py'
       - 'scripts/ingest-urca-safe-v2.py'
+      - 'scripts/probe-upe-safe.py'
+      - 'scripts/ingest-upe-ssa-safe.py'
+      - 'scripts/probe-uema-safe.py'
+      - 'scripts/ingest-uema-paes-safe.py'
       - 'scripts/tests/test_harvest_brasil_escola_bulk.py'
+      - 'scripts/tests/test_uece_mirror_zip_loader.py'
+      - 'scripts/tests/test_ingest_urca_safe.py'
+      - 'scripts/tests/test_probe_upe_safe.py'
+      - 'scripts/tests/test_ingest_upe_ssa_safe.py'
+      - 'scripts/tests/test_probe_uema_safe.py'
+      - 'scripts/tests/test_ingest_uema_paes_safe.py'
       - '.github/workflows/brasil-escola-nordeste-bulk-benchmark.yml'
 
 jobs:
@@ -25,14 +35,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install PDF dependency
-        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7"
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
       - name: Report compressed archive support
         run: command -v 7zz || command -v 7z || true
       - name: Validate bulk mirror tests
         run: |
+          python -m unittest discover -s scripts/tests -p 'test_ingest_urca_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_probe_upe_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_upe_ssa_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_probe_uema_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uema_paes_safe.py'
           python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola_bulk.py'
           python -m unittest discover -s scripts/tests -p 'test_harvest_brasil_escola.py'
+          python -m unittest discover -s scripts/tests -p 'test_uece_mirror_zip_loader.py'
       - name: Acquire high-volume Nordeste mirrors
         run: |
           python scripts/harvest-brasil-escola-bulk.py \
@@ -48,6 +64,26 @@ jobs:
           python scripts/inspect-brasil-escola-bulk.py \
             --input .cache/brasil-escola-inbox \
             --output .cache/brasil-escola-bulk-inspection.json
+      - name: Probe UPE SSA structure
+        run: |
+          python scripts/probe-upe-safe.py \
+            --input .cache/brasil-escola-inbox/universidade-pernambuco \
+            --output .cache/upe-probe.json
+      - name: Probe UEMA PAES structure
+        run: |
+          python scripts/probe-uema-safe.py \
+            --input .cache/brasil-escola-inbox/universidade-estadual-maranhao \
+            --output .cache/uema-probe.json
+      - name: Extract UPE SSA objective corpus
+        run: |
+          python scripts/ingest-upe-ssa-safe.py \
+            --input .cache/brasil-escola-inbox/universidade-pernambuco \
+            --output .cache/upe-extracted
+      - name: Extract UEMA PAES objective corpus
+        run: |
+          python scripts/ingest-uema-paes-safe.py \
+            --input .cache/brasil-escola-inbox/universidade-estadual-maranhao \
+            --output .cache/uema-extracted
       - name: Extract URCA objective corpus
         run: |
           python scripts/ingest-urca-safe-v2.py \
@@ -65,35 +101,131 @@ jobs:
           if len(institutions) != 4:
               raise SystemExit(f'expected 4 target institutions, got {institutions}')
           if acquisition.get('selected', 0) < 80:
-              raise SystemExit(f'expected at least 80 selected packages, got {acquisition.get("selected")}')
+              raise SystemExit(f"expected at least 80 selected packages, got {acquisition.get('selected')}")
+          if acquisition.get('errors'):
+              raise SystemExit(f"bulk acquisition errors: {acquisition['errors']}")
           accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0) + len(acquisition.get('errors', []))
           if accounted != acquisition.get('selected'):
-              raise SystemExit(f'bulk accounting mismatch: {accounted} != {acquisition.get("selected")}')
-          if acquisition.get('acquired', 0) < 10:
-              raise SystemExit(f'expected at least 10 live packages, got {acquisition.get("acquired")}')
+              raise SystemExit(f"bulk accounting mismatch: {accounted} != {acquisition.get('selected')}")
+          if acquisition.get('acquired', 0) < 20:
+              raise SystemExit(f"expected at least 20 live packages, got {acquisition.get('acquired')}")
+          if acquisition.get('bytes', 0) < 300_000_000:
+              raise SystemExit(f"expected at least 300 MB, got {acquisition.get('bytes')}")
 
           inspection = json.loads(Path('.cache/brasil-escola-bulk-inspection.json').read_text(encoding='utf-8'))
           if inspection.get('packagesScanned') != acquisition.get('acquired'):
-              raise SystemExit(f'inspector coverage mismatch: {inspection.get("packagesScanned")} != {acquisition.get("acquired")}')
+              raise SystemExit(f"inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}")
           if inspection.get('failures'):
-              raise SystemExit(f'inspector failures: {inspection["failures"]}')
+              raise SystemExit(f"inspector failures: {inspection['failures']}")
+
+          upe_probe = json.loads(Path('.cache/upe-probe.json').read_text(encoding='utf-8'))
+          upe_acquired = next((item.get('acquired', 0) for item in institutions if item.get('institutionSlug') == 'universidade-pernambuco'), 0)
+          if upe_probe.get('failures'):
+              raise SystemExit(f"UPE structural probe failures: {upe_probe['failures']}")
+          if upe_probe.get('packagesScanned') != upe_acquired:
+              raise SystemExit(f"UPE probe coverage mismatch: {upe_probe.get('packagesScanned')} != {upe_acquired}")
+
+          uema_probe = json.loads(Path('.cache/uema-probe.json').read_text(encoding='utf-8'))
+          uema_acquired = next((item.get('acquired', 0) for item in institutions if item.get('institutionSlug') == 'universidade-estadual-maranhao'), 0)
+          if uema_probe.get('failures'):
+              raise SystemExit(f"UEMA structural probe failures: {uema_probe['failures']}")
+          if uema_probe.get('packagesScanned') != uema_acquired:
+              raise SystemExit(f"UEMA probe coverage mismatch: {uema_probe.get('packagesScanned')} != {uema_acquired}")
+          if uema_probe.get('regularPackages', 0) < 6:
+              raise SystemExit(f"expected at least 6 regular UEMA PAES packages, got {uema_probe.get('regularPackages')}")
+
+          upe = json.loads(Path('.cache/upe-extracted/upe-summary.json').read_text(encoding='utf-8'))
+          if upe.get('failures'):
+              raise SystemExit(f"UPE extraction failures: {upe['failures']}")
+          if upe.get('uniquePackages', 0) >= upe.get('archivesScanned', 0):
+              raise SystemExit('expected known duplicate UPE mirror package to be SHA-deduplicated')
+          if upe.get('editions', 0) < 6:
+              raise SystemExit(f"expected at least 6 UPE SSA stage editions, got {upe.get('editions')}")
+          if upe.get('extractedQuestions', 0) < 550:
+              raise SystemExit(f"expected at least 550 paired UPE SSA questions, got {upe.get('extractedQuestions')}")
+          expected_upe_missing = upe.get('expectedQuestions', 0) - upe.get('extractedQuestions', 0)
+          if upe.get('missingIdentities') != expected_upe_missing:
+              raise SystemExit(f"UPE missing identity accounting mismatch: {upe.get('missingIdentities')} != {expected_upe_missing}")
+
+          uema = json.loads(Path('.cache/uema-extracted/uema-summary.json').read_text(encoding='utf-8'))
+          if uema.get('failures'):
+              raise SystemExit(f"UEMA extraction failures: {uema['failures']}")
+          if uema.get('regularPackages', 0) < 6:
+              raise SystemExit(f"expected at least 6 UEMA regular packages, got {uema.get('regularPackages')}")
+          if uema.get('editions', 0) < 6:
+              raise SystemExit(f"expected at least 6 UEMA PAES editions, got {uema.get('editions')}")
+          if uema.get('expectedQuestions', 0) < 388:
+              raise SystemExit(f"expected at least 388 UEMA PAES identities, got {uema.get('expectedQuestions')}")
+          if uema.get('extractedQuestions', 0) < 315:
+              raise SystemExit(f"expected at least 315 paired UEMA PAES questions, got {uema.get('extractedQuestions')}")
+          if uema.get('completeUnits', 0) < 2:
+              raise SystemExit(f"expected at least 2 complete UEMA PAES units, got {uema.get('completeUnits')}")
+          expected_uema_missing = uema.get('expectedQuestions', 0) - uema.get('extractedQuestions', 0)
+          if uema.get('missingIdentities') != expected_uema_missing:
+              raise SystemExit(f"UEMA missing identity accounting mismatch: {uema.get('missingIdentities')} != {expected_uema_missing}")
+          excluded_reasons = [item.get('reason', '') for item in uema.get('excludedSources', [])]
+          if not any(reason == 'excluded-modality:ead' for reason in excluded_reasons):
+              raise SystemExit('expected UEMA EaD source to be explicitly excluded')
+          if sum(reason == 'excluded-modality:sixty-plus' for reason in excluded_reasons) < 2:
+              raise SystemExit('expected both UEMA 60+ sources to be explicitly excluded')
 
           urca = json.loads(Path('.cache/urca-extracted/urca-summary.json').read_text(encoding='utf-8'))
           if urca.get('failures'):
-              raise SystemExit(f'URCA failures: {urca["failures"]}')
-          if urca.get('editions', 0) < 6:
-              raise SystemExit(f'expected at least 6 URCA editions, got {urca.get("editions")}')
-          if urca.get('extractedQuestions', 0) < 300:
-              raise SystemExit(f'expected at least 300 URCA questions, got {urca.get("extractedQuestions")}')
-          print(json.dumps({"acquisition": acquisition, "inspection": inspection.get('institutions', {}), "urca": urca}, ensure_ascii=False, indent=2))
+              raise SystemExit(f"URCA extraction failures: {urca['failures']}")
+          if urca.get('editions', 0) < 8:
+              raise SystemExit(f"expected at least 8 URCA editions, got {urca.get('editions')}")
+          if urca.get('expectedQuestions', 0) < 960:
+              raise SystemExit(f"expected at least 960 URCA identities, got {urca.get('expectedQuestions')}")
+          if urca.get('extractedQuestions', 0) < 550:
+              raise SystemExit(f"expected at least 550 paired URCA questions, got {urca.get('extractedQuestions')}")
+          if urca.get('completeUnits', 0) < 2:
+              raise SystemExit(f"expected at least 2 complete URCA day units, got {urca.get('completeUnits')}")
+          expected_missing = urca.get('expectedQuestions', 0) - urca.get('extractedQuestions', 0)
+          if urca.get('missingIdentities') != expected_missing:
+              raise SystemExit(f"URCA missing identity accounting mismatch: {urca.get('missingIdentities')} != {expected_missing}")
+
+          print(json.dumps({
+              'packages': acquisition['acquired'],
+              'bytes': acquisition['bytes'],
+              'unavailable': acquisition['unavailable'],
+              'upeArchives': upe.get('archivesScanned'),
+              'upeUniquePackages': upe.get('uniquePackages'),
+              'upeEditions': upe.get('editions'),
+              'upeExpected': upe.get('expectedQuestions'),
+              'upeExtracted': upe.get('extractedQuestions'),
+              'upeCompleteUnits': upe.get('completeUnits'),
+              'upeMissingIdentities': upe.get('missingIdentities'),
+              'upeVisualDependencies': upe.get('visualDependencies'),
+              'uemaProbePackages': uema_probe.get('packagesScanned'),
+              'uemaRegularPackages': uema.get('regularPackages'),
+              'uemaEditions': uema.get('editions'),
+              'uemaExpected': uema.get('expectedQuestions'),
+              'uemaExtracted': uema.get('extractedQuestions'),
+              'uemaCompleteUnits': uema.get('completeUnits'),
+              'uemaMissingIdentities': uema.get('missingIdentities'),
+              'uemaVisualDependencies': uema.get('visualDependencies'),
+              'urcaEditions': urca['editions'],
+              'urcaExpected': urca['expectedQuestions'],
+              'urcaExtracted': urca['extractedQuestions'],
+              'urcaCompleteUnits': urca['completeUnits'],
+              'urcaMissingIdentities': urca.get('missingIdentities'),
+              'urcaVisualDependencies': urca.get('visualDependencies'),
+          }, ensure_ascii=False, indent=2))
           PY
       - name: Upload bulk catalog report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: brasil-escola-nordeste-bulk-benchmark
           path: |
             .cache/brasil-escola-bulk.json
             .cache/brasil-escola-bulk-inspection.json
+            .cache/upe-probe.json
+            .cache/uema-probe.json
+            .cache/upe-extracted/upe-summary.json
+            .cache/upe-extracted/upe-ssa/**/bundle.json
+            .cache/uema-extracted/uema-summary.json
+            .cache/uema-extracted/uema-paes/**/bundle.json
             .cache/urca-extracted/urca-summary.json
             .cache/urca-extracted/urca/**/bundle.json
           retention-days: 7
