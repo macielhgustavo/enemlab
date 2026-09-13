@@ -1,0 +1,50 @@
+name: Refresh visual baselines (temporary)
+
+on:
+  push:
+    branches:
+      - chore/refresh-visual-baselines-2026-09-13
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: chore/refresh-visual-baselines-2026-09-13
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chrome for Playwright
+        run: npx playwright install chrome
+
+      - name: Refresh reviewed Linux baselines
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+
+      - name: Verify refreshed baselines
+        run: npx playwright test e2e/visual.spec.ts
+
+      - name: Commit only visual baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/__screenshots__/
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit."
+            exit 0
+          fi
+          git commit -m "test(visual): refresh reviewed Linux baselines"
+          git push origin HEAD:chore/refresh-visual-baselines-2026-09-13
