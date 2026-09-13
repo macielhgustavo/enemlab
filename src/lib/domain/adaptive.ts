@@ -4,7 +4,6 @@ import { classifyContent, discipline, questionKey } from "./classify";
 import { DEFAULT_PROVIDER_ID } from "../providers/registry";
 import {
   masteryStats,
-  officialRows,
   officialRowsOf,
   personalDifficulty,
   historicalQuestionRows,
@@ -36,7 +35,7 @@ export function adaptiveScoreQuestion(
   if (days > 21) score += 6;
   if (diff === "media") score += 3;
   if (diff === "dificil" && acc < 60) score -= 5;
-  return score + Math.random() * 4;
+  return score;
 }
 
 // Monta a fila adaptativa com teto por conteúdo (~30%).
@@ -59,10 +58,11 @@ export function buildAdaptiveQuestions(
   const ranked = all
     .map((q) => ({
       q,
+      key: questionKey(q),
       score: adaptiveScoreQuestion(db, q, stats, seen),
       content: q.statementAvailable === false ? String(discipline(q)) : classifyContent(q),
     }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
   const chosen: Question[] = [],
     perContent: Record<string, number> = {};
   const capPerContent = Math.max(3, Math.ceil(n * 0.3));
@@ -85,10 +85,14 @@ export interface Candidate {
   attemptId: string;
   score: number;
 }
-// Fila de "erros a refazer", priorizada.
-export function adaptiveCandidates(db: DB): Candidate[] {
-  const ms = masteryStats(db);
-  return officialRows(db)
+
+// Fila de "erros a refazer", priorizada e isolada por prova.
+export function adaptiveCandidates(
+  db: DB,
+  providerId: string = DEFAULT_PROVIDER_ID,
+): Candidate[] {
+  const ms = masteryStats(db, providerId);
+  return officialRowsOf(db, providerId)
     .filter((x) => x.isCorrect === false)
     .map((x) => {
       const note = db.notes[`${x.attemptId}|${x.key}`] || {};
@@ -112,5 +116,5 @@ export function adaptiveCandidates(db: DB): Candidate[] {
         score,
       };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
 }
