@@ -24,7 +24,7 @@ function manifest() {
         expected_questions: 3,
         allowed_letters: ["A", "B", "C", "D", "E"],
         answer_key_status: "final",
-        answer_key: { 1: "A", 2: "B", 3: "C" },
+        answer_key: { 1: "A", 2: "B", 3: "C" } as Record<number, string>,
         files: [
           {
             kind: "prova",
@@ -105,11 +105,11 @@ describe("corpus package contract", () => {
 
   it("rejects incomplete or out-of-domain normalized answer keys", () => {
     const incomplete = manifest();
-    incomplete.exams[0].answer_key = { 1: "A", 2: "B" } as Record<number, string>;
+    incomplete.exams[0].answer_key = { 1: "A", 2: "B" };
     expect(() => parseCorpusPackageManifestV1(incomplete)).toThrow(/must contain 3 answers/i);
 
     const invalid = manifest();
-    invalid.exams[0].answer_key = { 1: "A", 2: "Z", 3: "C" } as Record<number, string>;
+    invalid.exams[0].answer_key = { 1: "A", 2: "Z", 3: "C" };
     expect(() => parseCorpusPackageManifestV1(invalid)).toThrow(/outside allowed_letters/i);
   });
 
