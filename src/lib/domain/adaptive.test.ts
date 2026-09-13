@@ -3,7 +3,8 @@ import { buildAdaptiveQuestions, adaptiveCandidates } from "./adaptive";
 import { classifyContent, questionKey } from "./classify";
 import { makeAttempt, makeDB, makeRow } from "./__fixtures__/db";
 import type { Question } from "./types";
-import { toLegacyQuestion, unespFirstPhaseQuestions } from "../providers";
+import { unespFirstPhaseQuestions } from "../providers";
+import { toLegacyQuestion } from "../providers/legacy";
 
 function q(index: number, context: string): Question {
   return {
