@@ -14,11 +14,25 @@ export interface AggregatorSourceMeta {
 
 export type ExamStatus = "final" | "preliminary" | "rectified" | "annulled" | "unknown";
 
-/**
- * Discovery sources may suggest that an edition exists, but only an official
- * source that passed the canonical ingestion/review pipeline may publish data.
- */
+/** Historical discovery role. Existing callers may continue to use it. */
 export type DiscoverySourceRole = "official" | "discovery-only";
+
+/**
+ * Authority of the content candidate, independent from redistribution rights.
+ *
+ * `reviewed-nonofficial` is deliberately explicit: a mirror/aggregator may be
+ * useful for a personal study corpus, but it does not become official merely
+ * because a reviewer accepted its evidence.
+ */
+export type ContentAuthority = "official" | "reviewed-nonofficial" | "discovery-only";
+
+export interface NonOfficialEvidenceReview {
+  reviewer: string;
+  reviewedAt: string;
+  /** What justified accepting this evidence, without changing its authority. */
+  basis: "manual-document-review" | "independent-corroboration";
+  notes?: string;
+}
 
 export interface DiscoveredAnswerOption {
   letter: string;
@@ -39,17 +53,19 @@ export interface DiscoveredQuestionRef {
 
 export interface DiscoveredExam {
   id: string;
-  institution: string; // e.g., UNICAMP, UNESP, UEM, UEL, UEPG, UFSC, UDESC, ACAFE, Mackenzie, PUC-PR, PUC-SP, PUC-Rio
+  institution: string;
   examName: string;
   year: number;
-  phase?: string; // e.g., "1a_fase", "2a_fase", "dia1", "dia2"
-  edition?: string; // e.g., "Inverno", "Verão", "Geral"
-  variant?: string; // e.g., "V1", "Provas V/K/Q/X/Z", "Caderno 1"
+  phase?: string;
+  edition?: string;
+  variant?: string;
   status: ExamStatus;
   totalQuestions: number;
   /** Explicit answer domain for objective exams, e.g. ["A", "B", "C", "D", "E"]. */
   allowedLetters?: string[];
   hasOfficialAnswerKey: boolean;
+  /** A usable answer-key document exists even when its hosting source is non-official. */
+  hasAnswerKeyDocument?: boolean;
   hasExamDocument: boolean;
   examDocumentUrl?: string;
   answerKeyDocumentUrl?: string;
@@ -58,7 +74,11 @@ export interface DiscoveredExam {
   aggregatorSourceId: string;
   /** Defaults conceptually to discovery-only when omitted. */
   sourceRole?: DiscoverySourceRole;
-  /** Canonical ingestion level. Required before official data can be published. */
+  /** Defaults from sourceRole when omitted. */
+  contentAuthority?: ContentAuthority;
+  /** Required before reviewed non-official evidence may cross the catalog gate. */
+  nonOfficialEvidenceReview?: NonOfficialEvidenceReview;
+  /** Canonical ingestion level. Required before data can be published. */
   validationLevel?: ValidationLevel;
   /** Sources that independently corroborated the same candidate identity. */
   corroboratedBy?: string[];
@@ -89,4 +109,9 @@ export interface NormalizationResult {
   duplicatesFound: number;
   isFailClosed: boolean;
   failReason?: string;
+}
+
+export function contentAuthorityOf(exam: Pick<DiscoveredExam, "contentAuthority" | "sourceRole">): ContentAuthority {
+  if (exam.contentAuthority) return exam.contentAuthority;
+  return exam.sourceRole === "official" ? "official" : "discovery-only";
 }
