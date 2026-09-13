@@ -4,13 +4,18 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { shortSec } from "@/lib/format";
-import { officialRows, weakestContents } from "@/lib/domain/stats";
+import { officialRowsOf, weakestContents } from "@/lib/domain/stats";
 import { adaptiveCandidates } from "@/lib/domain/adaptive";
 import { dueSRS } from "@/lib/domain/srs";
 import { buildAdaptiveAttempt } from "@/lib/services/attempts";
 import { buildItaAdaptiveAttempt } from "@/lib/services/ita-attempts";
+import {
+  buildNextStudyAttempt,
+  buildProviderAdaptiveAttempt,
+  nextStudyAction,
+} from "@/lib/services/provider-study";
 import { useActiveProvider } from "@/components/ExamSwitch";
-import { ITA_PROVIDER_ID } from "@/lib/providers";
+import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID } from "@/lib/providers";
 import { examLabel } from "@/lib/providers/label";
 import { Metric, Empty, Card } from "@/components/ui";
 
@@ -24,12 +29,11 @@ export default function AdaptivePage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  async function generate(n: number) {
+  async function openAttempt(factory: () => Promise<ReturnType<typeof buildItaAdaptiveAttempt>>) {
     setBusy(true);
     setErr("");
     try {
-      // O adaptativo do ITA usa só o histórico do ITA, e só objetivas.
-      const a = isIta ? buildItaAdaptiveAttempt(db, n) : await buildAdaptiveAttempt(db, n);
+      const a = await factory();
       addAttempt(a);
       router.push(`/exam/${a.id}`);
     } catch (e) {
@@ -38,12 +42,25 @@ export default function AdaptivePage() {
     }
   }
 
+  async function generate(n: number) {
+    return openAttempt(async () => {
+      if (isIta) return buildItaAdaptiveAttempt(db, n);
+      if (providerId === ENEM_PROVIDER_ID) return buildAdaptiveAttempt(db, n);
+      return buildProviderAdaptiveAttempt(db, providerId, n);
+    });
+  }
+
+  async function continueCycle() {
+    return openAttempt(() => buildNextStudyAttempt(db, providerId, 15));
+  }
+
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
 
-  const cand = adaptiveCandidates(db);
+  const cand = adaptiveCandidates(db, providerId);
   const weak = weakestContents(db, 4, providerId);
   const due = dueSRS(db, providerId);
-  const certezaWrong = officialRows(db).filter(
+  const recommendation = nextStudyAction(db, providerId);
+  const certezaWrong = officialRowsOf(db, providerId).filter(
     (x) => x.isCorrect === false && x.confidence === "certeza",
   ).length;
 
@@ -55,11 +72,14 @@ export default function AdaptivePage() {
           Treino montado pelo seu padrão de erros.
         </h1>
         <p>
-          O motor pontua conteúdos fracos, erros com certeza, questões lentas, revisões
-          vencidas e tópicos pouco testados — uma fila personalizada, não aleatória.
+          O motor combina retenção, domínio, erros, inéditas e diversidade por conteúdo.
+          A mesma base produz a mesma fila: a prioridade agora é determinística e isolada por prova.
         </p>
         <div className="row">
-          <button className="btn" onClick={() => generate(15)} disabled={busy}>
+          <button className="btn" onClick={continueCycle} disabled={busy}>
+            Continuar ciclo
+          </button>
+          <button className="btn secondary" onClick={() => generate(15)} disabled={busy}>
             Gerar Adaptive 15
           </button>
           <button className="btn secondary" onClick={() => generate(30)} disabled={busy}>
@@ -71,7 +91,7 @@ export default function AdaptivePage() {
             {busy && (
               <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />
             )}
-            {busy ? "Montando fila adaptativa…" : err}
+            {busy ? "Montando a próxima etapa do ciclo…" : err}
           </div>
         )}
       </Card>
@@ -79,7 +99,7 @@ export default function AdaptivePage() {
       <div className="grid grid4" style={{ marginTop: 14 }}>
         <Metric label="Revisões vencidas" value={due.length} />
         <Metric label="Erros com certeza" value={certezaWrong} />
-        <Metric label="Conteúdos fracos" value={weak.length} />
+        <Metric label="Conteúdos fracos" value={weak.filter((item) => item.p < 65).length} />
         <Metric label="Fila priorizada" value={cand.length} />
       </div>
 
@@ -102,21 +122,18 @@ export default function AdaptivePage() {
           </div>
         </Card>
         <Card>
-          <h2>Por que isso está sendo recomendado?</h2>
+          <h2>Próxima ação</h2>
           <div className="studyBlock">
-            <div className="prio">ordem sugerida</div>
-            <h3>1. Retenção</h3>
-            <div className="muted">
-              {due.length ? `${due.length} revisão(ões) vencida(s).` : "Nenhuma revisão vencida."}
-            </div>
+            <div className="prio">{recommendation.kind}</div>
+            <h3>{recommendation.title}</h3>
+            <div className="muted">{recommendation.reason}</div>
           </div>
           <div className="studyBlock" style={{ marginTop: 8 }}>
-            <div className="prio">2. conteúdos</div>
-            <h3>{weak[0]?.name || "Gerar amostra"}</h3>
+            <div className="prio">ordem do ciclo</div>
+            <h3>Retenção → lacuna → erro → nova amostra</h3>
             <div className="muted">
-              {weak.length
-                ? weak.map((x) => `${x.name} (${x.p}%)`).join(" • ")
-                : "Ainda faltam dados para medir domínio."}
+              Revisões vencidas têm prioridade. Depois o motor repara conteúdos abaixo de 65%,
+              refaz erros prioritários e só então avança para inéditas ou Adaptive.
             </div>
           </div>
         </Card>
