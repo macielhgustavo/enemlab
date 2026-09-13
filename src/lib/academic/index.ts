@@ -1,5 +1,6 @@
 import type { Question } from "../domain/types";
 import { eearAcademicMetadata, type StructuralAcademicMetadata } from "./eear";
+import { esaAcademicMetadata } from "./esa";
 import {
   unesp2026AcademicMetadata,
   type ReviewedAcademicMetadata,
@@ -14,9 +15,10 @@ export type AcademicMetadata = ReviewedAcademicMetadata | StructuralAcademicMeta
  * Lookup fail-closed de metadado acadêmico revisado/estrutural.
  *
  * Não existe classificação textual aqui. Quando a banca tem uma divisão
- * objetiva e revisada (como CFS/EAGS), usamos essa estrutura mesmo que o
- * enunciado esteja em modo referência. Se não houver mapa confiável, retorna
- * null e o classificador textual legado continua sendo o fallback.
+ * objetiva e revisada (como CFS/EAGS e ESA geral), usamos essa estrutura
+ * mesmo que o enunciado esteja em modo referência. Se não houver mapa
+ * confiável, retorna null e o classificador textual legado continua sendo o
+ * fallback.
  */
 export function academicMetadataForQuestion(
   question: Pick<
@@ -37,6 +39,14 @@ export function academicMetadataForQuestion(
     return eearAcademicMetadata({
       year: question.year,
       editionId: question.editionId,
+      phase: question.phase,
+      number,
+    });
+  }
+
+  if (question.providerId === "esa") {
+    return esaAcademicMetadata({
+      year: question.year,
       phase: question.phase,
       number,
     });
