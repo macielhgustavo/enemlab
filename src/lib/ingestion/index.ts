@@ -14,6 +14,18 @@ export type {
   ExtractionCheckpointStore,
 } from "./checkpoint";
 export {
+  corpusDocumentsForExam,
+  corpusEvidence,
+  parseCorpusPackageManifestV1,
+} from "./corpus";
+export type {
+  CorpusDocumentEvidence,
+  CorpusPackageExamV1,
+  CorpusPackageFileV1,
+  CorpusPackageManifestV1,
+  CorpusSourceAuthority,
+} from "./corpus";
+export {
   buildReviewContentFingerprint,
   getApplicableReviewDecision,
   handoffReviewedJobToCatalog,
