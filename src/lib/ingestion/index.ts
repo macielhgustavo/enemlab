@@ -13,6 +13,21 @@ export type {
   ExtractionCheckpointStats,
   ExtractionCheckpointStore,
 } from "./checkpoint";
+export {
+  buildReviewContentFingerprint,
+  getApplicableReviewDecision,
+  handoffReviewedJobToCatalog,
+  InMemoryReviewDecisionStore,
+  recordReviewDecision,
+} from "./review";
+export type {
+  ApprovedValidationLevel,
+  IngestionReviewDecision,
+  RecordReviewInput,
+  ReviewDecisionStore,
+  ReviewDisposition,
+  ReviewedCatalogHandoff,
+} from "./review";
 export { associateMediaWithExtraction, verifyMediaManifestBinding } from "./media";
 export type {
   ExpectedMediaBinding,
