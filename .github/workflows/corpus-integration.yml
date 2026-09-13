@@ -1,0 +1,36 @@
+name: Corpus integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/ingestion/corpus.ts'
+      - 'src/lib/ingestion/adapters/referenceCorpusAdapter.ts'
+      - 'src/lib/ingestion/adapters/referenceCorpusAdapter.network.test.ts'
+      - 'src/lib/ingestion/fixtures/unesp-2026.package.json'
+      - '.github/workflows/corpus-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unesp-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run live corpus integration
+        env:
+          RUN_CORPUS_NETWORK: '1'
+        run: npx vitest run src/lib/ingestion/adapters/referenceCorpusAdapter.network.test.ts
