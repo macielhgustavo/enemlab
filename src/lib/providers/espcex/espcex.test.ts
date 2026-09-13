@@ -10,7 +10,79 @@ import {
 
 describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
-    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020]);
+    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012]);
+    const k12 = espcexAnswerKey(2012)!;
+    expect(k12.revision).toBe("altered-2012-10-24");
+    expect(k12.days.day1.model).toBe("A");
+    expect(k12.days.day2.model).toBe("D");
+    expect(k12.days.day1.total).toBe(44);
+    expect(k12.days.day2.total).toBe(56);
+    expect(k12.days.day1.annulled).toEqual([14]);
+    expect(k12.days.day2.annulled).toEqual([11]);
+
+    const k13 = espcexAnswerKey(2013)!;
+    expect(k13.revision).toBe("final-mirror-2013");
+    expect(k13.days.day1.model).toBe("A");
+    expect(k13.days.day2.model).toBe("D");
+    expect(k13.days.day1.total).toBe(44);
+    expect(k13.days.day2.total).toBe(56);
+    expect(k13.days.day1.annulled).toEqual([]);
+    expect(k13.days.day2.annulled).toEqual([]);
+
+    const k14 = espcexAnswerKey(2014)!;
+    expect(k14.revision).toBe("final-mirror-2014");
+    expect(k14.days.day1.model).toBe("A");
+    expect(k14.days.day2.model).toBe("D");
+    expect(k14.days.day1.total).toBe(44);
+    expect(k14.days.day2.total).toBe(56);
+    expect(k14.days.day1.annulled).toEqual([10]);
+    expect(k14.days.day2.annulled).toEqual([]);
+
+    const k15 = espcexAnswerKey(2015)!;
+    expect(k15.revision).toBe("final-mirror-2015");
+    expect(k15.days.day1.model).toBe("A");
+    expect(k15.days.day2.model).toBe("D");
+    expect(k15.days.day1.total).toBe(44);
+    expect(k15.days.day2.total).toBe(56);
+    expect(k15.days.day1.annulled).toEqual([2]);
+    expect(k15.days.day2.annulled).toEqual([2]);
+
+    const k16 = espcexAnswerKey(2016)!;
+    expect(k16.revision).toBe("mirror-reviewed-2016");
+    expect(k16.days.day1.model).toBe("A");
+    expect(k16.days.day2.model).toBe("D");
+    expect(k16.days.day1.total).toBe(44);
+    expect(k16.days.day2.total).toBe(56);
+    expect(k16.days.day1.annulled).toEqual([]);
+    expect(k16.days.day2.annulled).toEqual([]);
+
+    const k17 = espcexAnswerKey(2017)!;
+    expect(k17.revision).toBe("mirror-reviewed-2017");
+    expect(k17.days.day1.model).toBe("A");
+    expect(k17.days.day2.model).toBe("D");
+    expect(k17.days.day1.total).toBe(44);
+    expect(k17.days.day2.total).toBe(56);
+    expect(k17.days.day1.annulled).toEqual([]);
+    expect(k17.days.day2.annulled).toEqual([]);
+
+    const k18 = espcexAnswerKey(2018)!;
+    expect(k18.revision).toBe("mirror-reviewed-2018");
+    expect(k18.days.day1.model).toBe("A");
+    expect(k18.days.day2.model).toBe("D");
+    expect(k18.days.day1.total).toBe(44);
+    expect(k18.days.day2.total).toBe(56);
+    expect(k18.days.day1.annulled).toEqual([]);
+    expect(k18.days.day2.annulled).toEqual([]);
+
+    const k19 = espcexAnswerKey(2019)!;
+    expect(k19.revision).toBe("mirror-reviewed-2019");
+    expect(k19.days.day1.model).toBe("B");
+    expect(k19.days.day2.model).toBe("D");
+    expect(k19.days.day1.total).toBe(44);
+    expect(k19.days.day2.total).toBe(56);
+    expect(k19.days.day1.annulled).toEqual([]);
+    expect(k19.days.day2.annulled).toEqual([]);
+
     const k20 = espcexAnswerKey(2020)!;
     expect(k20.revision).toBe("definitive-2020");
     expect(k20.days.day1.model).toBe("A");
@@ -80,6 +152,19 @@ describe("EsPCEx", () => {
   });
 
   it("preserva anuladas sem marcar alternativa correta", () => {
+    for (const [phase, number] of [["day1", 14], ["day2", 11]] as const) {
+      const q12 = espcexQuestions(2012).find((q) => q.phase === phase && q.number === number)!;
+      expect(q12.correctAlternative).toBeNull();
+      expect(q12.alternatives.every((a) => !a.isCorrect)).toBe(true);
+    }
+    const q14 = espcexQuestions(2014).find((q) => q.phase === "day1" && q.number === 10)!;
+    expect(q14.correctAlternative).toBeNull();
+    expect(q14.alternatives.every((a) => !a.isCorrect)).toBe(true);
+    for (const phase of ["day1", "day2"] as const) {
+      const q15 = espcexQuestions(2015).find((q) => q.phase === phase && q.number === 2)!;
+      expect(q15.correctAlternative).toBeNull();
+      expect(q15.alternatives.every((a) => !a.isCorrect)).toBe(true);
+    }
     const q20 = espcexQuestions(2020).find((q) => q.phase === "day2" && q.number === 39)!;
     expect(q20.correctAlternative).toBeNull();
     expect(q20.alternatives.every((a) => !a.isCorrect)).toBe(true);
@@ -100,6 +185,49 @@ describe("EsPCEx", () => {
   });
 
   it("não chama caderno espelhado de oficial", () => {
+    const q12 = espcexQuestions(2012)[0];
+    expect(q12.statementAvailable).toBe(false);
+    expect(q12.official?.official).toBe(false);
+    expect(q12.official?.documentUrl).toContain("zyrosite.com");
+
+    const q13 = espcexQuestions(2013)[0];
+    expect(q13.statementAvailable).toBe(false);
+    expect(q13.official?.official).toBe(false);
+    expect(q13.official?.documentUrl).toContain("zyrosite.com");
+
+    const q14 = espcexQuestions(2014)[0];
+    expect(q14.statementAvailable).toBe(false);
+    expect(q14.official?.official).toBe(false);
+    expect(q14.official?.documentUrl).toContain("zyrosite.com");
+
+    const q15 = espcexQuestions(2015)[0];
+    expect(q15.statementAvailable).toBe(false);
+    expect(q15.official?.official).toBe(false);
+    expect(q15.official?.documentUrl).toContain("zyrosite.com");
+
+    const q16 = espcexQuestions(2016)[0];
+    expect(q16.statementAvailable).toBe(false);
+    expect(q16.official?.official).toBe(false);
+    expect(q16.official?.documentUrl).toContain("hdocurso.com.br");
+    const q16d2 = espcexQuestions(2016).find((q) => q.phase === "day2" && q.number === 1)!;
+    expect(q16d2.official?.official).toBe(false);
+    expect(q16d2.official?.documentUrl).toContain("zyrosite.com");
+
+    const q17 = espcexQuestions(2017)[0];
+    expect(q17.statementAvailable).toBe(false);
+    expect(q17.official?.official).toBe(false);
+    expect(q17.official?.documentUrl).toContain("hdocurso.com.br");
+
+    const q18 = espcexQuestions(2018)[0];
+    expect(q18.statementAvailable).toBe(false);
+    expect(q18.official?.official).toBe(false);
+    expect(q18.official?.documentUrl).toContain("hdocurso.com.br");
+
+    const q19 = espcexQuestions(2019)[0];
+    expect(q19.statementAvailable).toBe(false);
+    expect(q19.official?.official).toBe(false);
+    expect(q19.official?.documentUrl).toContain("hdocurso.com.br");
+
     const q20 = espcexQuestions(2020)[0];
     expect(q20.statementAvailable).toBe(false);
     expect(q20.official?.official).toBe(false);
@@ -138,6 +266,14 @@ describe("EsPCEx", () => {
     expect(espcexQuestionKey(espcexQuestions(2022)[0])).toBe("espcex-2022-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2021)[0])).toBe("espcex-2021-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2020)[0])).toBe("espcex-2020-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2019)[0])).toBe("espcex-2019-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2018)[0])).toBe("espcex-2018-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2017)[0])).toBe("espcex-2017-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2016)[0])).toBe("espcex-2016-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2015)[0])).toBe("espcex-2015-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2014)[0])).toBe("espcex-2014-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2013)[0])).toBe("espcex-2013-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2012)[0])).toBe("espcex-2012-day1-1");
   });
 
   it("provider entrega as edições completas e recusa ano ausente", async () => {
@@ -147,6 +283,14 @@ describe("EsPCEx", () => {
     expect(await espcexProvider.fetchQuestions({ year: 2022 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2021 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2020 })).toHaveLength(100);
-    expect(await espcexProvider.fetchQuestions({ year: 2019 })).toEqual([]);
+    expect(await espcexProvider.fetchQuestions({ year: 2019 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2018 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2017 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2016 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2015 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2014 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2013 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2012 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2011 })).toEqual([]);
   });
 });

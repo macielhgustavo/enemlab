@@ -282,6 +282,122 @@ const FONTES = [
         role: "answer-key-day2-definitive-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2020/gabarito/2020%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D%20-%20GABARITO.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20PORTFISQUI%20-%20MODELO%20B.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/gabarito/2019-gabarito-espcex-1-dia-portquifis.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING%20-%20MODELO%20D.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/gabarito/2019-gabarito-espcex-2-dia-matgeohising.pdf",
+      },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2018/provas/2018-espcex-1-dia-portquifis-modelo-a.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2018/gabarito/2018-gabarito-espcex-1-dia-portquifis.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2018/provas/2018-espcex-2-dia-matgeohising-modelo-d.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2018/gabarito/2018-gabarito-espcex-2-dia-matgeohising.pdf",
+      },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/provas/2017-espcex-1-dia-portquifis-modelo-a.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/gabarito/2017-gabarito-espcex-1-dia-portquifis.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/provas/2017-espcex-2-dia-matgeohising-modelo-d.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2017/gabarito/2017-gabarito-espcex-2-dia-matgeohising.pdf",
+      },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/provas/Prova_2016_Port_Redacao_Fisica_Quimica.pdf",
+      },
+      {
+        role: "answer-key-day1-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/gabarito/Gabarito_Port_Red_Fis_Qui_2016.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2016-prova-dia-2-modelo-d-YX42j47yDnivgMgr.pdf",
+      },
+      {
+        role: "answer-key-day2-mirror",
+        url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/gabarito/Gabarito_Mat_Geo_His_2016_Ingl.pdf",
+      },
+      {
+        role: "exam-and-final-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2015-prova-dia-1-modelo-a-dJolPoKq7PiZEqXY.pdf",
+      },
+      {
+        role: "exam-and-final-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2015-prova-dia-2-modelo-d-mp8M48Vn8eiRZyNz.pdf",
+      },
+      {
+        role: "exam-and-final-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2014-prova-dia-1-modelo-a-dOqMZZ4D8vS8XjW7.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://cursoborges.com.br/wp-content/uploads/curso-preparatorio-borges-provas-anteriores-espcex-Gabarito-Dia-30Ago14.pdf",
+      },
+      {
+        role: "exam-and-final-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2014-prova-dia-2-modelo-d-Ylen44y8DGuVKXzp.pdf",
+      },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2013-prova-dia-1-modelo-a-dOqMpKa4G8HDwpar.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2013/2013-gabarito-portugues-fisica-e-quimica.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2013-prova-dia-2-modelo-d-m7V2913NWNtoy9Lj.pdf",
+      },
+      {
+        role: "answer-key-day2-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2013/2013-gabarito-matematica-geografia-historia-e-ingles.pdf",
+      },
+      {
+        role: "exam-and-altered-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2012-prova-dia-1-modelo-a-Ylenbr4XbBsZJ3a7.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2012/2012-gabarito-portugues-fisica-e-quimica.pdf",
+      },
+      {
+        role: "exam-and-altered-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2012-prova-dia-2-modelo-d-mnl2br45lks1xrnj.pdf",
+      },
+      {
+        role: "answer-key-day2-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2012/2012-gabarito-matematica-geo-his-ing.pdf",
+      },
     ],
   },
   {
