@@ -1,5 +1,7 @@
 import { pct } from "@/lib/format";
 
+export { Button } from "./ui/button";
+
 export function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="metric">
