@@ -14,10 +14,21 @@ interface ProviderPool {
   questions: Question[];
 }
 
+function recentEditions(providerId: string, limit = 3) {
+  const provider = getProvider(providerId);
+  const explicit = provider.metadata.editions;
+  if (explicit?.length) return explicit.slice(0, limit);
+  return provider.metadata.years.slice(0, limit).map((year) => ({
+    id: String(year),
+    label: `${provider.metadata.shortLabel} ${year}`,
+    year,
+  }));
+}
+
 async function latestProviderPool(providerId: string): Promise<ProviderPool> {
   const scopedProviderId = resolveProviderId(providerId);
   const provider = getProvider(scopedProviderId);
-  const edition = provider.metadata.editions?.[0];
+  const edition = recentEditions(scopedProviderId, 1)[0];
   const year = edition?.year ?? provider.metadata.years[0];
   if (!year) throw new Error("Nenhuma edição disponível para esta prova.");
 
@@ -38,6 +49,32 @@ async function latestProviderPool(providerId: string): Promise<ProviderPool> {
   };
 }
 
+async function adaptiveProviderPool(providerId: string): Promise<ProviderPool> {
+  const scopedProviderId = resolveProviderId(providerId);
+  const provider = getProvider(scopedProviderId);
+  const editions = recentEditions(scopedProviderId, 3);
+  const lang = (provider.metadata.languages[0]?.id ?? "ingles") as Language;
+  const questions: Question[] = [];
+
+  for (const edition of editions) {
+    const batch = await questionsFor(scopedProviderId, {
+      year: edition.year,
+      editionId: edition.id,
+      language: lang,
+    });
+    questions.push(...batch);
+  }
+
+  if (!questions.length) throw new Error("Nenhuma questão disponível para esta prova.");
+  return {
+    providerId: scopedProviderId,
+    year: questions[0]?.year ?? editions[0]?.year,
+    editionId: editions[0]?.id,
+    lang,
+    questions,
+  };
+}
+
 function contentOf(question: Question): string {
   return question.statementAvailable === false
     ? String(discipline(question))
@@ -49,7 +86,7 @@ export async function buildProviderAdaptiveAttempt(
   providerId: string,
   n = 15,
 ) {
-  const pool = await latestProviderPool(providerId);
+  const pool = await adaptiveProviderPool(providerId);
   const questions = buildAdaptiveQuestions(db, pool.questions, n, pool.providerId);
   if (!questions.length) throw new Error("Não encontrei questões para o treino adaptativo.");
   return attemptFromQuestions(pool.year, pool.lang, questions, "adaptive", pool.providerId);
