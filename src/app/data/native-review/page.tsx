@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { NativeCropImage, NativePageWithRegion } from "@/components/native/NativeCrop";
+import { ensureFreshSession, loadSession } from "@/lib/cloud/client";
+import { publishNativePack } from "@/lib/native/cloud";
 import {
   approveAllStructurallyValid,
   approveNativeQuestion,
@@ -32,19 +34,21 @@ export default function NativeReviewPage() {
   const [pack, setPack] = useState<NativePack | null>(null);
   const [index, setIndex] = useState(0);
   const [pageUrls, setPageUrls] = useState<Record<string, string>>({});
+  const [pageFiles, setPageFiles] = useState<Map<string, File>>(new Map());
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     return () => Object.values(pageUrls).forEach((url) => URL.revokeObjectURL(url));
   }, [pageUrls]);
 
   const current = pack?.questions[index] ?? null;
-  const document = pack && current ? documentForQuestion(pack, current) : undefined;
+  const documentRecord = pack && current ? documentForQuestion(pack, current) : undefined;
   const region = current?.visualRegions[0] ?? null;
-  const filename = document && region ? nativePageFilename(document.pageAssetPattern, region.page) : "";
+  const filename = documentRecord && region ? nativePageFilename(documentRecord.pageAssetPattern, region.page) : "";
   const pageUrl = filename ? pageUrls[filename] : undefined;
-  const questionGate = current ? nativePublicationGate(current, document) : null;
+  const questionGate = current ? nativePublicationGate(current, documentRecord) : null;
   const packGate = useMemo(() => (pack ? nativePackGate(pack) : null), [pack]);
 
   async function loadPack(file: File | null) {
@@ -64,16 +68,19 @@ export default function NativeReviewPage() {
 
   function loadPages(files: FileList | null) {
     if (!files) return;
-    const next: Record<string, string> = {};
+    const nextUrls: Record<string, string> = {};
+    const nextFiles = new Map<string, File>();
     for (const file of Array.from(files)) {
       if (!file.name.toLowerCase().endsWith(".webp")) continue;
-      next[file.name] = URL.createObjectURL(file);
+      nextUrls[file.name] = URL.createObjectURL(file);
+      nextFiles.set(file.name, file);
     }
     setPageUrls((previous) => {
       Object.values(previous).forEach((url) => URL.revokeObjectURL(url));
-      return next;
+      return nextUrls;
     });
-    setMessage(`${Object.keys(next).length} páginas WebP carregadas.`);
+    setPageFiles(nextFiles);
+    setMessage(`${nextFiles.size} páginas WebP carregadas.`);
   }
 
   function updateRect(partial: Partial<NativeRect>) {
@@ -106,16 +113,39 @@ export default function NativeReviewPage() {
     setMessage(`${gate.published}/${gate.total} questões estruturalmente válidas aprovadas.`);
   }
 
+  async function publish() {
+    if (!pack || !packGate?.publishable) return;
+    setPublishing(true);
+    setError("");
+    try {
+      const stored = loadSession();
+      if (!stored) throw new Error("Entre na conta do Studium antes de publicar o corpus privado.");
+      const session = await ensureFreshSession(stored);
+      const result = await publishNativePack(session, pack, pageFiles);
+      setPack(result.pack);
+      setMessage(
+        `Publicado com sucesso: ${result.uploadedPages} páginas canônicas e ${result.uploadedCrops} recortes de questão.`,
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Falha ao publicar NativePack.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-5">
       <header className="space-y-2">
         <p className="text-sm text-neutral-500">Dados · NativePack</p>
-        <h1 className="text-3xl font-semibold">Revisão visual de prova nativa</h1>
+        <h1 className="text-3xl font-semibold">Revisão e publicação de prova nativa</h1>
         <p className="max-w-4xl text-sm text-neutral-600 dark:text-neutral-300">
           Carregue o manifest gerado pelo pipeline e as páginas WebP. O retângulo define exatamente o que o aluno verá.
-          Alterar um recorte invalida a aprovação anterior; publicação só é liberada quando todas as questões passam pelos gates.
+          Alterar um recorte invalida a aprovação anterior; só um pack integralmente aprovado pode entrar no storage privado.
         </p>
-        <Link href="/data" className="text-sm underline">Voltar para Dados</Link>
+        <div className="flex gap-4 text-sm">
+          <Link href="/data" className="underline">Voltar para Dados</Link>
+          <Link href="/account" className="underline">Conta / login</Link>
+        </div>
       </header>
 
       <section className="grid gap-4 rounded-2xl border p-4 md:grid-cols-2">
@@ -197,13 +227,23 @@ export default function NativeReviewPage() {
             <div className="rounded-2xl border p-4 text-sm">
               <h2 className="font-semibold">Gate do pack</h2>
               <p className="mt-2">{packGate?.published}/{packGate?.total} aprovadas · {packGate?.publishable ? "pronto para publicar" : "ainda em revisão"}</p>
-              <button
-                type="button"
-                className="mt-3 rounded-lg border px-3 py-2 text-sm"
-                onClick={() => saveJson(`${current.providerId}-${current.year}-${current.phase}-native-reviewed.json`, pack)}
-              >
-                Exportar NativePack revisado
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 text-sm"
+                  onClick={() => saveJson(`${current.providerId}-${current.year}-${current.phase}-native-reviewed.json`, pack)}
+                >
+                  Exportar revisado
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+                  disabled={!packGate?.publishable || publishing || pageFiles.size === 0}
+                  onClick={() => void publish()}
+                >
+                  {publishing ? "Publicando…" : "Publicar privado"}
+                </button>
+              </div>
             </div>
           </section>
         </>
