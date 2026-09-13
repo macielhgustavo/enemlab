@@ -1,0 +1,61 @@
+{
+  "2026": {
+    "edition": "2026",
+    "year": 2026,
+    "label": "UNESP 2026 - 1ª fase",
+    "phase": "first",
+    "total": 90,
+    "canonicalVariant": "v1",
+    "variantRelation": "unknown",
+    "revision": "final",
+    "answers": {
+      "1": "E", "2": "A", "3": "C", "4": "B", "5": "D", "6": "E", "7": "C", "8": "E", "9": "C", "10": "D",
+      "11": "A", "12": "D", "13": "B", "14": "E", "15": "C", "16": "E", "17": "D", "18": "A", "19": "D", "20": "B",
+      "21": "E", "22": "E", "23": "B", "24": "C", "25": "D", "26": "D", "27": "A", "28": "E", "29": "C", "30": "A",
+      "31": "E", "32": "D", "33": "B", "34": "E", "35": "A", "36": "C", "37": "A", "38": "C", "39": "B", "40": "B",
+      "41": "D", "42": "E", "43": "A", "44": "C", "45": "B", "46": "A", "47": "E", "48": "D", "49": "B", "50": "C",
+      "51": "E", "52": "A", "53": "C", "54": "E", "55": "D", "56": "B", "57": "A", "58": "D", "59": "C", "60": "E",
+      "61": "D", "62": "C", "63": "A", "64": "B", "65": "E", "66": "B", "67": "A", "68": "C", "69": "D", "70": "C",
+      "71": "C", "72": "A", "73": "E", "74": "B", "75": "E", "76": "A", "77": "B", "78": "D", "79": "C", "80": "A",
+      "81": "C", "82": "B", "83": "E", "84": "C", "85": "D", "86": "A", "87": "A", "88": "A", "89": "D", "90": "B"
+    },
+    "annulled": [],
+    "optionIds": ["A", "B", "C", "D", "E"],
+    "officialDocument": false,
+    "variants": [
+      {
+        "id": "v1",
+        "label": "Versão 1",
+        "examUrl": "https://s3.glbimg.com/v1/AUTH_595b237b135e4899b878697d214a26e9/unesp_2026_resolucao_primeira_fase/PROVA_VERSAO_UM_UNESP_2026.pdf",
+        "answerKeyUrl": "https://www.curso-objetivo.br/vestibular/resolucao-comentada/unesp/2026/1fase/UNESP2026_1fase_gabarito.pdf"
+      }
+    ],
+    "answerKeyUrl": "https://www.curso-objetivo.br/vestibular/resolucao-comentada/unesp/2026/1fase/UNESP2026_1fase_gabarito.pdf",
+    "examUrl": "https://s3.glbimg.com/v1/AUTH_595b237b135e4899b878697d214a26e9/unesp_2026_resolucao_primeira_fase/PROVA_VERSAO_UM_UNESP_2026.pdf",
+    "archivePage": "https://www.vunesp.com.br/VNSP2504",
+    "subjects": [
+      { "id": "conhecimentos-gerais", "label": "Conhecimentos gerais", "area": "geral", "range": [1, 90] }
+    ],
+    "contentMode": "reference-only",
+    "rightsStatus": "permission-required",
+    "validationLevel": "reviewed",
+    "validationEvidence": [
+      "90 respostas A-E cobrem integralmente a 1ª fase.",
+      "O espelho do gabarito foi conferido contra o documento canônico da VUNESP.",
+      "A integração ao vivo conferiu tamanho e SHA-256 dos dois PDFs antes da normalização.",
+      "Os bytes executados pelo app são de espelhos públicos; a autoridade canônica continua sendo a VUNESP."
+    ],
+    "retrieval": {
+      "originalUrl": "https://www.curso-objetivo.br/vestibular/resolucao-comentada/unesp/2026/1fase/UNESP2026_1fase_gabarito.pdf",
+      "effectiveSourceUrl": "https://www.curso-objetivo.br/vestibular/resolucao-comentada/unesp/2026/1fase/UNESP2026_1fase_gabarito.pdf",
+      "sourceType": "pdf-reference",
+      "fetchedAt": "2026-09-12",
+      "sha256": "b1240abe2985d473a62513e33df7b083010e40d633df0e6d6a95ab7fad214717",
+      "bytes": 317314,
+      "parserVersion": "unesp-corpus-reference@1.0.0",
+      "revision": "final",
+      "final": true
+    },
+    "parserVersion": "unesp-corpus-reference@1.0.0"
+  }
+}
