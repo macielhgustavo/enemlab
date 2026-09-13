@@ -9,7 +9,8 @@ import type {
   NormalizedQuestion,
 } from "../types";
 
-const LETTERS = ["A", "B", "C", "D", "E"] as const;
+const OPTION_ALPHABET = ["A", "B", "C", "D", "E"] as const;
+const DEFAULT_OPTION_IDS = [...OPTION_ALPHABET];
 
 export interface ReferenceSubjectRaw {
   id: string;
@@ -31,8 +32,9 @@ export interface ReferenceRetrieval {
   effectiveSourceUrl: string;
   sourceType: "pdf-reference";
   fetchedAt: string;
-  sha256: string;
-  bytes: number;
+  /** Ausente quando a fonte oficial foi revisada manualmente, mas os bytes não puderam ser fingerprintados. */
+  sha256: string | null;
+  bytes: number | null;
   parserVersion: string;
   revision: "preliminary" | "final" | "rectified";
   final: boolean;
@@ -49,6 +51,16 @@ export interface ReferenceAnswerKeyRaw {
   revision: "preliminary" | "final" | "rectified";
   answers: Record<string, string>;
   annulled: number[];
+  /**
+   * Alternativas válidas da edição. Continua sendo resposta única; este campo
+   * só evita inventar a alternativa E em provas A-D, como a EEAR.
+   */
+  optionIds?: string[];
+  /**
+   * `false` quando os bytes usados pelo runner vieram de um espelho, mesmo
+   * que o documento em si seja um gabarito emitido pela banca.
+   */
+  officialDocument?: boolean;
   variantAnswerKeys?: Record<string, {
     answers: Record<string, string>;
     annulled: number[];
@@ -70,8 +82,9 @@ export interface ReferenceSubject extends ExamSubject {
   numbers: number[];
 }
 
-export interface ReferenceAnswerKey extends Omit<ReferenceAnswerKeyRaw, "subjects"> {
+export interface ReferenceAnswerKey extends Omit<ReferenceAnswerKeyRaw, "subjects" | "optionIds"> {
   subjects: ReferenceSubject[];
+  optionIds: string[];
 }
 
 export interface ReferenceProviderConfig {
@@ -97,12 +110,33 @@ function expandSubject(subject: ReferenceSubjectRaw): ReferenceSubject {
 
 function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceAnswerKey {
   const errors: string[] = [];
+  const optionIds = raw.optionIds ?? DEFAULT_OPTION_IDS;
+  const uniqueOptionIds = new Set(optionIds);
+
   if (raw.revision === "preliminary" || !raw.retrieval.final) {
     errors.push("gabarito preliminar não pode virar provider executável");
   }
   if (raw.contentMode !== "reference-only") errors.push("modo de conteúdo inesperado");
   if (!raw.variants.some((variant) => variant.id === raw.canonicalVariant)) {
     errors.push(`variante canônica ausente: ${raw.canonicalVariant}`);
+  }
+  if (optionIds.length < 2 || uniqueOptionIds.size !== optionIds.length) {
+    errors.push("conjunto de alternativas inválido");
+  }
+  for (const optionId of optionIds) {
+    if (!OPTION_ALPHABET.includes(optionId as (typeof OPTION_ALPHABET)[number])) {
+      errors.push(`alternativa fora do alfabeto suportado: ${optionId}`);
+    }
+  }
+
+  if (raw.retrieval.sha256 !== null && !/^[0-9a-f]{64}$/.test(raw.retrieval.sha256)) {
+    errors.push("SHA-256 inválido");
+  }
+  if (raw.retrieval.bytes !== null && raw.retrieval.bytes <= 0) {
+    errors.push("tamanho de documento inválido");
+  }
+  if (raw.validationLevel === "verified" && (!raw.retrieval.sha256 || !raw.retrieval.bytes)) {
+    errors.push("verified exige fingerprint completo");
   }
 
   const answered = new Set(Object.keys(raw.answers).map(Number));
@@ -118,7 +152,7 @@ function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceA
     if (answered.has(number)) errors.push(`questão anulada com resposta: ${number}`);
   }
   for (const [number, answer] of Object.entries(raw.answers)) {
-    if (!LETTERS.includes(answer as (typeof LETTERS)[number])) {
+    if (!uniqueOptionIds.has(answer)) {
       errors.push(`q${number} tem alternativa inválida: ${answer}`);
     }
   }
@@ -142,7 +176,7 @@ function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceA
       if (variantAnswered.has(number)) errors.push(`${variantId}: questão anulada com resposta: ${number}`);
     }
     for (const [number, answer] of Object.entries(variantKey.answers)) {
-      if (!LETTERS.includes(answer as (typeof LETTERS)[number])) {
+      if (!uniqueOptionIds.has(answer)) {
         errors.push(`${variantId} q${number} tem alternativa inválida: ${answer}`);
       }
     }
@@ -161,7 +195,7 @@ function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceA
   if (errors.length) {
     throw new Error(`${providerId} ${raw.edition} inválido: ${errors.join("; ")}`);
   }
-  return { ...raw, subjects };
+  return { ...raw, optionIds: [...optionIds], subjects };
 }
 
 export function normalizeReferenceCatalog(
@@ -174,8 +208,7 @@ export function normalizeReferenceCatalog(
 }
 
 export function referenceYears(keys: Record<string, ReferenceAnswerKey>): number[] {
-  return Object.values(keys)
-    .map((key) => key.year)
+  return [...new Set(Object.values(keys).map((key) => key.year))]
     .sort((a, b) => b - a);
 }
 
@@ -251,7 +284,7 @@ export function referenceQuestionsForKey(
       content: subject.label,
       context: null,
       alternativesIntroduction: null,
-      alternatives: LETTERS.map((letter) => ({
+      alternatives: key.optionIds.map((letter) => ({
         letter,
         text: null,
         file: null,
@@ -262,7 +295,11 @@ export function referenceQuestionsForKey(
       sources: [],
       type: "multiple_choice",
       statementAvailable: false,
-      official: { official: true, institution: config.institution, documentUrl },
+      official: {
+        official: key.officialDocument ?? true,
+        institution: config.institution,
+        documentUrl,
+      },
       expectedAnswer: null,
     };
   });
