@@ -1,13 +1,13 @@
 // Provider do ITA.
 //
-// Modo "prova na mão": as provas oficiais são PDFs digitalizados (verificado:
-// 0 caractere extraível, uma imagem por página), então o enunciado NÃO é
-// reproduzido aqui. O app entrega numeração, matéria, link para o documento
-// oficial e — o que realmente importa para corrigir — o gabarito oficial,
-// que é dado factual e tem camada de texto.
-//
-// Gerado por scripts/ingest-ita.py a partir de vestibular.ita.br.
+// Enunciados nativos só aparecem quando foram registrados com proveniência
+// oficial verificável no structuredRegistry. Edições ainda não estruturadas
+// continuam em modo referência, com gabarito oficial e link para o caderno.
 import raw from "./answer-keys.generated.json";
+import {
+  getStructuredQuestion,
+  withStructuredQuestionContent,
+} from "../structuredRegistry";
 import type {
   ExamMetadata,
   ExamProvider,
@@ -55,14 +55,6 @@ export function itaFirstPhaseUrl(year: number): string {
 }
 
 /** URLs oficiais das provas da 2ª fase, por matéria. */
-/**
- * Primeiro ano em que o ITA publica a prova de Português da 2ª fase como
- * arquivo próprio. Conferido por HEAD em todas as edições ingeridas
- * (2019–2026) em 2026-09-06: Matemática, Física e Química respondem 200 nas
- * oito; Português responde 404 até 2024 e 200 de 2025 em diante.
- *
- * Sem esta regra o app oferecia um link morto em seis das oito edições.
- */
 const ITA_2F_PORTUGUES_DESDE = 2025;
 
 export function itaSecondPhaseUrls(year: number): { subject: string; label: string; url: string }[] {
@@ -106,8 +98,8 @@ export const itaMetadata: ExamMetadata = {
 };
 
 /**
- * Monta as questões objetivas da 1ª fase a partir do gabarito oficial.
- * Sem enunciado: `statementAvailable` é false e a fonte oficial leva ao PDF.
+ * Monta as questões objetivas da 1ª fase. Conteúdo nativo é um enriquecimento
+ * opcional e só é usado quando o registry garante proveniência, direitos e revisão.
  */
 export function itaFirstPhaseQuestions(year: number): NormalizedQuestion[] {
   const key = itaAnswerKey(year);
@@ -119,7 +111,8 @@ export function itaFirstPhaseQuestions(year: number): NormalizedQuestion[] {
     const annulled = key.annulled.includes(n);
     const correct = annulled ? null : (key.answers[String(n)] ?? null);
     const subject = subjectOf(key, n);
-    out.push({
+
+    const base: NormalizedQuestion = {
       providerId: ITA_PROVIDER_ID,
       examId: `ita-${year}-first`,
       year,
@@ -131,8 +124,6 @@ export function itaFirstPhaseQuestions(year: number): NormalizedQuestion[] {
       content: SUBJECT_LABELS[subject] ?? subject,
       context: null,
       alternativesIntroduction: null,
-      // Sem texto: as alternativas existem para o aluno marcar, e a leitura
-      // acontece no documento oficial.
       alternatives: LETTERS.map((letter) => ({
         letter,
         text: null,
@@ -145,10 +136,16 @@ export function itaFirstPhaseQuestions(year: number): NormalizedQuestion[] {
       type: "multiple_choice",
       statementAvailable: false,
       official: { official: true, institution: "ITA", documentUrl },
-      // Questão anulada não tem gabarito: a correção precisa ignorá-la em vez
-      // de contar como erro.
       expectedAnswer: null,
-    });
+    };
+
+    out.push(
+      withStructuredQuestionContent(
+        base,
+        getStructuredQuestion(ITA_PROVIDER_ID, year, n, "first"),
+        "ITA",
+      ),
+    );
   }
   return out;
 }
