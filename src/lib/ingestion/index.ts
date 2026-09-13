@@ -19,6 +19,7 @@ export {
   parseCorpusPackageManifestV1,
 } from "./corpus";
 export type {
+  CorpusAnswerKeyStatus,
   CorpusDocumentEvidence,
   CorpusPackageExamV1,
   CorpusPackageFileV1,
@@ -82,6 +83,8 @@ export type {
   FuvestExternalPayloadLoader,
   FuvestExternalRecoveryPayloadLoader,
 } from "./adapters/fuvestExternalAdapter";
+export { createReferenceCorpusAdapter } from "./adapters/referenceCorpusAdapter";
+export type { ReferenceCorpusAdapterOptions } from "./adapters/referenceCorpusAdapter";
 export {
   consumeExternalExtraction,
   createExternalExtractionEnvelope,
