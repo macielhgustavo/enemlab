@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/enem-lab/states";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
+import { buildDueReviewsAttempt } from "@/lib/services/attempts";
 import {
-  buildAdaptiveAttempt,
-  buildContentSprintAttempt,
-  buildDueReviewsAttempt,
-  buildTrainingAttempt,
-} from "@/lib/services/attempts";
+  buildProviderAdaptiveAttempt,
+  buildProviderContentAttempt,
+  buildProviderUnseenAttempt,
+} from "@/lib/services/provider-study";
 import { Card, PageHead } from "@/components/ui";
 import type { Attempt } from "@/lib/domain/types";
 
@@ -55,18 +55,13 @@ export default function PlanoPage() {
 
   async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
     if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
-    if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
-    if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
-    return buildTrainingAttempt(db, {
-      year: 2023,
-      lang: "ingles",
-      mode: "unseen15",
-      area: "all",
-      minutes: Math.max(35, block.minutes),
-      strict: false,
-      strategy: false,
-      alerts: true,
-    });
+    if (block.kind === "weak") {
+      return buildProviderContentAttempt(providerId, block.content!, block.questions);
+    }
+    if (block.kind === "adaptive") {
+      return buildProviderAdaptiveAttempt(db, providerId, block.questions);
+    }
+    return buildProviderUnseenAttempt(db, providerId, block.questions);
   }
 
   async function startBlock(block: DailyPlanBlock) {
@@ -101,7 +96,6 @@ export default function PlanoPage() {
   );
   const progress = Math.min(100, Math.round((plan.signals.minutesToday / Math.max(1, plan.budgetMinutes)) * 100));
 
-  // Prontidão é medida na taxonomia da prova ativa, não nas áreas do ENEM.
   const readiness = areasOf(providerId).map(({ id: area, label }) => {
     const value = stats[area] || { c: 0, t: 0 };
     const ci = wilsonInterval(value.c, value.t);

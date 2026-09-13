@@ -1,8 +1,8 @@
-/** Identidade atual. A próxima marca troca este contrato, não cada tela. */
+/** Identidade visível do produto. Nomes internos podem migrar sem quebrar storage. */
 export const PRODUCT_BRAND = {
-  name: "ENEM Lab",
-  monogram: "E",
-  description: "Plataforma pessoal adaptativa para questões reais do ENEM.",
+  name: "Studium Labs",
+  monogram: "S",
+  description: "Plataforma pessoal de preparação para vestibulares e provas de alta exigência.",
 } as const;
 
 export function Brand() {
