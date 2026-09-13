@@ -12,12 +12,15 @@ export interface NativeRect {
 
 /**
  * Uma prova é rasterizada uma vez por página. Questões guardam somente os
- * recortes que a UI deve mostrar; não duplicamos a imagem por questão.
+ * recortes que a UI deve mostrar. `assetPath` é um derivado opcional gerado
+ * na publicação para o runner carregar sem precisar recortar no navegador.
+ * A fonte canônica continua sendo página + coordenadas.
  */
 export interface NativeVisualRegion {
   page: number;
   rect: NativeRect;
   role: NativeVisualRole;
+  assetPath?: string;
 }
 
 export interface NativeDocumentRecord {
@@ -30,7 +33,7 @@ export interface NativeDocumentRecord {
   sourceSha256: string;
   sourceBytes: number;
   pageCount: number;
-  /** Ex.: native/unesp/2026/first/page-{page}.webp */
+  /** Ex.: native/unesp/2026/first/<sha>/page-{page}.webp */
   pageAssetPattern: string;
   renderScale: number;
   imageFormat: "webp";
@@ -118,7 +121,11 @@ export function nativePublicationGate(
     issues.push("região visual inválida");
   }
   if (!question.extraction.markerDetected) issues.push("marcador da questão não confirmado");
-  if (!Number.isFinite(question.extraction.confidence) || question.extraction.confidence < 0 || question.extraction.confidence > 1) {
+  if (
+    !Number.isFinite(question.extraction.confidence) ||
+    question.extraction.confidence < 0 ||
+    question.extraction.confidence > 1
+  ) {
     issues.push("confiança de extração inválida");
   }
   if (document) {
