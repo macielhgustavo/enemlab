@@ -346,6 +346,14 @@ const FONTES = [
         role: "answer-key-day2-mirror",
         url: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2016/gabarito/Gabarito_Mat_Geo_His_2016_Ingl.pdf",
       },
+      {
+        role: "exam-and-final-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2015-prova-dia-1-modelo-a-dJolPoKq7PiZEqXY.pdf",
+      },
+      {
+        role: "exam-and-final-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2015-prova-dia-2-modelo-d-mp8M48Vn8eiRZyNz.pdf",
+      },
     ],
   },
   {
