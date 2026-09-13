@@ -1,0 +1,36 @@
+import { describe, expect, it } from "vitest";
+import type { NativePack } from "./contracts";
+import { nativePackId, nativePageAssetPath } from "./cloud";
+
+const pack: NativePack = {
+  version: 1,
+  createdAt: "2026-09-13T22:00:00.000Z",
+  documents: [
+    {
+      documentId: "unesp-2026-first",
+      providerId: "unesp",
+      year: 2026,
+      phase: "first",
+      sourceUrl: "https://example.com/prova.pdf",
+      sourceSha256: "a".repeat(64),
+      sourceBytes: 1000,
+      pageCount: 40,
+      pageAssetPattern: "native/unesp/2026/first/aaaaaaaaaaaaaaaa/pages/page-{page:03d}.webp",
+      renderScale: 1.5,
+      imageFormat: "webp",
+    },
+  ],
+  questions: [],
+};
+
+describe("native cloud identity", () => {
+  it("expande page pattern com padding estável", () => {
+    expect(nativePageAssetPath(pack.documents[0].pageAssetPattern, 7)).toBe(
+      "native/unesp/2026/first/aaaaaaaaaaaaaaaa/pages/page-007.webp",
+    );
+  });
+
+  it("inclui SHA da fonte na identidade do pack", () => {
+    expect(nativePackId(pack)).toBe(`unesp-2026-first:${"a".repeat(64)}`);
+  });
+});
