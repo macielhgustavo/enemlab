@@ -354,6 +354,18 @@ const FONTES = [
         role: "exam-and-final-key-day2-mirror",
         url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2015-prova-dia-2-modelo-d-mp8M48Vn8eiRZyNz.pdf",
       },
+      {
+        role: "exam-and-final-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2014-prova-dia-1-modelo-a-dOqMZZ4D8vS8XjW7.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://cursoborges.com.br/wp-content/uploads/curso-preparatorio-borges-provas-anteriores-espcex-Gabarito-Dia-30Ago14.pdf",
+      },
+      {
+        role: "exam-and-final-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2014-prova-dia-2-modelo-d-Ylen44y8DGuVKXzp.pdf",
+      },
     ],
   },
   {
