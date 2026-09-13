@@ -9,11 +9,15 @@ import { afaProvider } from "./afa";
 import { epcarProvider } from "./epcar";
 import { espcexProvider } from "./espcex";
 import { esaProvider } from "./esa";
+import { eearProvider } from "./eear";
 import { unicampProvider } from "./unicamp";
 import { uelProvider } from "./uel";
 import { pucSpProvider } from "./puc-sp";
 import { udescProvider } from "./udesc";
 import { acafeProvider } from "./acafe";
+import { fatecProvider } from "./fatec";
+import { unespProvider } from "./unesp";
+import { unioesteProvider } from "./unioeste";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
@@ -23,11 +27,15 @@ registerProvider(afaProvider);
 registerProvider(epcarProvider);
 registerProvider(espcexProvider);
 registerProvider(esaProvider);
+registerProvider(eearProvider);
 registerProvider(unicampProvider);
 registerProvider(uelProvider);
 registerProvider(pucSpProvider);
 registerProvider(udescProvider);
 registerProvider(acafeProvider);
+registerProvider(fatecProvider);
+registerProvider(unespProvider);
+registerProvider(unioesteProvider);
 
 export * from "./types";
 export * from "./registry";
@@ -111,6 +119,18 @@ export {
   esaQuestionKey,
 } from "./esa";
 export {
+  eearProvider,
+  eearMetadata,
+  EEAR_PROVIDER_ID,
+  eearYears,
+  eearEditions,
+  eearAnswerKey,
+  eearExamUrl,
+  eearQuestions,
+  eearQuestionKey,
+  eearMeasure,
+} from "./eear";
+export {
   unicampProvider,
   unicampMetadata,
   UNICAMP_PROVIDER_ID,
@@ -165,3 +185,37 @@ export {
   acafeQuestions,
   acafeQuestionKey,
 } from "./acafe";
+export {
+  fatecProvider,
+  fatecMetadata,
+  FATEC_PROVIDER_ID,
+  fatecYears,
+  fatecEditions,
+  fatecAnswerKey,
+  fatecExamUrl,
+  fatecQuestions,
+  fatecQuestionKey,
+  fatecMeasure,
+} from "./fatec";
+export {
+  unespProvider,
+  unespMetadata,
+  UNESP_PROVIDER_ID,
+  unespYears,
+  unespAnswerKey,
+  unespVariants,
+  unespExamUrl,
+  unespFirstPhaseQuestions,
+  unespQuestionKey,
+} from "./unesp";
+export {
+  unioesteProvider,
+  unioesteMetadata,
+  UNIOESTE_PROVIDER_ID,
+  unioesteYears,
+  unioesteAnswerKeys,
+  unioesteExamUrl,
+  unioesteQuestions,
+  unioesteQuestionKey,
+  unioesteMeasures,
+} from "./unioeste";
