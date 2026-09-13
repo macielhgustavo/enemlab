@@ -382,6 +382,22 @@ const FONTES = [
         role: "answer-key-day2-verification-mirror",
         url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2013/2013-gabarito-matematica-geografia-historia-e-ingles.pdf",
       },
+      {
+        role: "exam-and-altered-key-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2012-prova-dia-1-modelo-a-Ylenbr4XbBsZJ3a7.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2012/2012-gabarito-portugues-fisica-e-quimica.pdf",
+      },
+      {
+        role: "exam-and-altered-key-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2012-prova-dia-2-modelo-d-mnl2br45lks1xrnj.pdf",
+      },
+      {
+        role: "answer-key-day2-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2012/2012-gabarito-matematica-geo-his-ing.pdf",
+      },
     ],
   },
   {

@@ -317,8 +317,8 @@ export const espcexSource: ExamSourceDefinition = {
   lastVerifiedAt: "2026-09-11",
   confidence: "alta",
   notes:
-    "Entram 2013–2025 completos: 44 questões objetivas no 1º dia e 56 no 2º. " +
-    "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2013–2024 os cadernos " +
+    "Entram 2012–2025 completos no formato atual: 44 questões objetivas no 1º dia e 56 no 2º. " +
+    "Em 2025 os cadernos usados pelo app têm URL oficial. Em 2012–2024 os cadernos " +
     "verificáveis são espelhos públicos; o gabarito final de 2023 é a revisão de 16/10, " +
     "com a questão 27 do 2º dia anulada. Por isso essas questões e sua procedência carregam " +
     "`official: false`. Em 2022 o gabarito definitivo combinado marca a questão 17 " +
@@ -332,7 +332,9 @@ export const espcexSource: ExamSourceDefinition = {
     "LAPAN traz no fim o gabarito com alterações destacadas: a questão 2 fica anulada nos modelos " +
     "A e D usados pelo provider. Em 2014, o Modelo A do 1º dia tem a questão 10 anulada; " +
     "o Modelo D do 2º dia fecha 56 respostas sem anulação. Em 2013, os modelos A/D fecham " +
-    "100 itens sem anuladas, com gabaritos confirmados em duas cópias públicas. Gabaritos são dados factuais e o app não redistribui PDFs.",
+    "100 itens sem anuladas, com gabaritos confirmados em duas cópias públicas. Em 2012 usa-se a revisão " +
+    "alterada em 24/10: anuladas 14 (Modelo A, 1º dia) e 11 (Modelo D, 2º dia). 2011 muda para " +
+    "quatro cadernos/fases e fica fora deste formato até ser modelado explicitamente. Gabaritos são dados factuais e o app não redistribui PDFs.",
 };
 
 /** ESA: Área Geral, Tipo A, mantida em modo referência. */
