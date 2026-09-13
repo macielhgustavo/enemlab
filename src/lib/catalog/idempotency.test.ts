@@ -18,7 +18,10 @@ function fonteDaCli(): string {
 }
 
 function fonteDoAudit(): string {
-  return readFileSync(join(RAIZ, "scripts", "sources-audit.mjs"), "utf8");
+  return [
+    readFileSync(join(RAIZ, "scripts", "sources-audit.mjs"), "utf8"),
+    readFileSync(join(RAIZ, "scripts", "sources-audit-mass1.mjs"), "utf8"),
+  ].join("\n");
 }
 
 describe("idempotência do catálogo", () => {
@@ -104,12 +107,13 @@ describe("audit de fontes", () => {
     const pkg = JSON.parse(readFileSync(join(RAIZ, "package.json"), "utf8"));
     expect(pkg.scripts.test).not.toContain("sources-audit");
     expect(pkg.scripts["sources:audit"]).toContain("scripts/sources-audit.mjs");
+    expect(pkg.scripts["sources:audit"]).toContain("scripts/sources-audit-mass1.mjs");
     expect(pkg.scripts["sources:audit"]).toContain("--use-system-ca");
   });
 
   it("cobre toda fonte registrada", () => {
-    // O audit repete a lista de fontes porque roda em Node puro, sem build.
-    // Este teste é o que impede as duas listas de divergirem em silêncio.
+    // Os audits repetem a lista de fontes porque rodam em Node puro, sem build.
+    // Este teste é o que impede as listas de divergirem em silêncio.
     const audit = fonteDoAudit();
     for (const fonte of listSources()) {
       expect(audit, `fonte ${fonte.id} não está no audit`).toContain(fonte.id);

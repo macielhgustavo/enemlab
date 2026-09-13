@@ -14,21 +14,25 @@ import { questionKey as enemQuestionKey } from "../../domain/classify";
 import type { Question } from "../../domain/types";
 
 describe("registry de provas", () => {
-  it("tem as treze provas registradas, e nada além disso", () => {
+  it("tem as dezessete provas registradas, e nada além disso", () => {
     expect(listProviders().map((p) => p.id).sort()).toEqual([
       "acafe",
       "afa",
+      "eear",
       "enem",
       "epcar",
       "esa",
       "espcex",
+      "fatec",
       "fuvest",
       "ime",
       "ita",
       "puc-sp",
       "udesc",
       "uel",
+      "unesp",
       "unicamp",
+      "unioeste",
     ]);
   });
 

@@ -67,30 +67,33 @@ describe("registry", () => {
     expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
 
-  it("registra as treze provas desta versão", () => {
+  it("registra as dezessete provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer.
     expect(listProviders().map((p) => p.id).sort()).toEqual([
       "acafe",
       "afa",
+      "eear",
       "enem",
       "epcar",
       "esa",
       "espcex",
+      "fatec",
       "fuvest",
       "ime",
       "ita",
       "puc-sp",
       "udesc",
       "uel",
+      "unesp",
       "unicamp",
+      "unioeste",
     ]);
   });
 
-  it("não traz as provas que ficaram para depois", () => {
+  it("não traz as provas incompatíveis ou ainda não implementadas", () => {
     const ids = listProviders().map((p) => p.id);
     for (const futuro of [
-      "eear",
       "mackenzie",
       "puc-pr",
       "puc-rio",
@@ -99,7 +102,6 @@ describe("registry", () => {
       "ufpr",
       "ufrj",
       "ufsc",
-      "unesp",
     ]) {
       expect(ids).not.toContain(futuro);
     }
