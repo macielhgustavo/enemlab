@@ -1,107 +1,45 @@
-# Próximas bancas: response model antes do provider
+# Escopo de novas provas: múltipla escolha apenas
 
-Pesquisa técnica em 2026-09-12/13 para decidir se UEPG, UEM e UFSC podem entrar no Studium Labs usando o modelo atual de resposta única.
+## Decisão de produto
 
-## Decisão
+O Studium Labs vai implementar, por enquanto, **somente fases objetivas de alternativa única**.
 
-**Não ativar UEPG, UEM ou UFSC como providers usando `A-E`.**
+Formatos fora de escopo:
 
-A próxima expansão depois da UNESP precisa primeiro representar respostas além de escolha única. Forçar essas bancas no contrato atual produziria correção semanticamente errada, mesmo que os PDFs e gabaritos fossem baixados corretamente.
+- somatória de proposições;
+- múltiplas respostas corretas;
+- questões discursivas/abertas;
+- provas que exijam uma regra de correção não representável como uma alternativa única por questão.
 
-## Evidência por banca
+A aplicação não deve converter esses formatos artificialmente para A–E.
 
-### UEPG
+## Consequência para as bancas pesquisadas
 
-Fontes:
+- **UNESP 1ª fase**: compatível; segue como prova-piloto do adapter genérico do corpus.
+- **FATEC**: compatível nas edições objetivas saneadas do corpus legado.
+- **UEPG**: não implementar enquanto o formato relevante continuar usando somatória.
+- **UEM**: não implementar enquanto o formato relevante continuar usando somatória.
+- **UFSC**: não implementar as provas com somatória/questões abertas.
 
-- Vestibular 2026: `https://www2.uepg.br/cps/vestibular-2026/`
-- Gabarito definitivo do Vestibular 2025: `https://www2.uepg.br/cps/wp-content/uploads/sites/270/2025/12/EDITAL-N-51_2025-_CPS_GABARITO-VESTIBULAR-2025_Apos-Recursos.pdf`
+Uma universidade que possua fases diferentes pode ser suportada parcialmente no futuro **somente se a fase adicionada for múltipla escolha de alternativa única e tiver identidade própria no catálogo**.
 
-O gabarito definitivo de 2025 publica, para cada questão, as proposições corretas e o **somatório correto**. Há respostas como `24`, `05`, `31`, `17`, etc., obtidas pela combinação de proposições `01`, `02`, `04`, `08` e `16`.
+## Gate arquitetural para uma banca nova
 
-Conclusão: `single-choice A-E` não representa a prova corretamente.
+Uma nova prova/fase só pode ser ativada quando:
 
-### UEM
+1. cada questão objetiva tem exatamente uma resposta canônica dentro de um conjunto declarado, por exemplo `A-E`;
+2. edição, fase e variante identificam unicamente a prova;
+3. gabarito final ou retificado prevalece sobre preliminar;
+4. documentos possuem provenance, tamanho e SHA-256 conhecidos;
+5. a edição chega a `ready-for-review` sem condição específica dentro de `engine.ts`;
+6. revisão humana produz um handoff explícito;
+7. o provider mantém treino, mastery, erros, SRS e plano isolados por prova;
+8. nenhum conteúdo é inventado quando o corpus está apenas em modo referência.
 
-Fontes oficiais:
+## Ordem atual
 
-- Vestibular de Inverno 2026: `https://www.vestibular.uem.br/evento_62.html`
-- Manual do Candidato 2026: `https://www.vestibular.uem.br/manuais/manual_candidato_62.pdf`
-- Gabarito definitivo: `https://www.vestibular.uem.br/provas/in26/gabdef.pdf`
-
-O manual define 50 questões objetivas. Cada questão possui cinco afirmações identificadas por `01`, `02`, `04`, `08` e `16`; a resposta é a soma dos valores das afirmações corretas. Se nenhuma estiver correta, a resposta é `00`. O regulamento também prevê pontuação parcial quando aplicável.
-
-Conclusão: é uma questão de **seleção de proposições com codificação por soma**, não uma alternativa única.
-
-### UFSC
-
-Fontes oficiais:
-
-- Provas e gabaritos 2026: `https://vestibularunificado2026.ufsc.br/provas-e-gabaritos/`
-- Arquivo de provas anteriores: `https://vestibularunificado2027.ufsc.br/provas-anteriores/`
-- Exemplo de gabarito oficial 2026: `https://vestibularunificado2026.ufsc.br/files/2025/12/novo_gabarito_p1_marrom.pdf`
-
-O gabarito da Prova 1 de 2026 lista proposições `01`, `02`, `04`, `08`, `16`, `32` e `64`, dependendo da questão, e registra o valor final do gabarito como soma. O mesmo gabarito também identifica questão `ABERTA`.
-
-Conclusão: a UFSC exige pelo menos `sum-of-propositions` **e** `open`, além de variantes/cor de prova.
-
-## Contrato mínimo proposto
-
-Não migrar `Question`, `Attempt`, SRS ou catálogo agora. Primeiro introduzir um contrato independente e testado:
-
-```ts
-type ResponseModel =
-  | {
-      kind: "single-choice";
-      optionIds: string[];
-    }
-  | {
-      kind: "sum-of-propositions";
-      propositionValues: number[];
-      zeroAnswerAllowed: boolean;
-      displayWidth?: number;
-    }
-  | {
-      kind: "open";
-      answerFormat?: "text" | "integer" | "decimal";
-    };
-```
-
-O gabarito canônico deve guardar a **semântica**, e não apenas o texto digitado:
-
-- single-choice: `"C"`;
-- sum-of-propositions: proposições corretas `[1, 4, 16]` e soma derivada `21`;
-- open: valor/resposta esperada em estrutura própria.
-
-Para provas de somatória, guardar apenas `21` perde informação útil. Duas extrações diferentes poderiam chegar ao mesmo inteiro por erro de parsing; manter as proposições permite validar e explicar a correção.
-
-## Pontuação
-
-A correção binária `isCorrect` pode continuar existindo como sinal comum, mas **não deve ser usada para reproduzir a nota oficial** de UEPG/UEM/UFSC sem um `scoringPolicy` separado.
-
-Motivo: há bancas que atribuem pontuação parcial ou regras próprias de penalização. O Studium Labs pode inicialmente usar:
-
-- `exactMatch` para domínio/SRS;
-- pontuação oficial somente quando a política da edição estiver modelada e testada.
-
-Nunca inventar TRI ou equivalência entre bancas.
-
-## Ordem de implementação
-
-1. concluir UNESP com `single-choice` usando o adapter genérico do corpus;
-2. introduzir `ResponseModel` como contrato independente, sem migração destrutiva;
-3. testar `sum-of-propositions` com **uma** edição real (preferência: UEM 2026, por ter prova, manual e gabarito oficiais acessíveis);
-4. só depois adaptar UEPG;
-5. UFSC entra por último entre as três porque adiciona variantes numerosas e questões abertas.
-
-## Gate arquitetural
-
-Uma nova banca só pode ser ativada quando:
-
-- o response model representa a resposta sem perda semântica;
-- a identidade inclui edição/fase/variante necessárias;
-- gabarito final/retificado prevalece sobre preliminar;
-- bytes/documentos têm provenance e fingerprints;
-- a edição chega a `ready-for-review` sem condição específica dentro de `engine.ts`;
-- revisão humana produz o artifact de handoff;
-- o provider não mistura histórico/mastery/SRS com outra prova.
+1. fechar UNESP 2026 ponta a ponta;
+2. sanear e validar FATEC;
+3. usar essas duas provas para provar que o fluxo `manifest -> pacote -> adapter genérico -> review -> catálogo` é repetível;
+4. pesquisar outras provas de múltipla escolha com fontes estáveis;
+5. adicionar uma por vez, sem ampliar o modelo de resposta.
