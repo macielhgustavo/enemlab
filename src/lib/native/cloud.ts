@@ -4,7 +4,7 @@ import {
   SUPABASE_URL,
 } from "../cloud/client";
 import type { AuthSession } from "../cloud/client";
-import type { NativePack } from "./contracts";
+import type { NativePack, NativeRect } from "./contracts";
 import { nativePackGate } from "./review";
 
 export const NATIVE_BUCKET = "native-content";
@@ -44,6 +44,51 @@ export function nativePageAssetPath(pattern: string, page: number): string {
   return pattern
     .replace("{page:03d}", String(page).padStart(3, "0"))
     .replace("{page}", String(page));
+}
+
+function contentAddressedPagePattern(pack: NativePack, documentId: string): string {
+  const document = pack.documents.find((candidate) => candidate.documentId === documentId);
+  if (!document) throw new Error(`Documento ausente: ${documentId}`);
+  const edition = document.editionId ?? String(document.year);
+  return [
+    "native",
+    document.providerId,
+    edition,
+    document.phase,
+    document.sourceSha256.slice(0, 16),
+    "pages",
+    "page-{page:03d}.webp",
+  ].join("/");
+}
+
+function rectFingerprint(rect: NativeRect): string {
+  return [rect.x, rect.y, rect.width, rect.height]
+    .map((value) => Math.round(value * 1_000_000).toString(36))
+    .join("-");
+}
+
+async function cropWebp(file: File, rect: NativeRect): Promise<Blob> {
+  if (typeof document === "undefined" || typeof createImageBitmap === "undefined") {
+    throw new Error("Recorte nativo só pode ser gerado no navegador.");
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const sx = Math.round(rect.x * bitmap.width);
+    const sy = Math.round(rect.y * bitmap.height);
+    const sw = Math.max(1, Math.round(rect.width * bitmap.width));
+    const sh = Math.max(1, Math.round(rect.height * bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas indisponível para gerar recorte nativo.");
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.84));
+    if (!blob) throw new Error("Falha ao codificar recorte WebP.");
+    return blob;
+  } finally {
+    bitmap.close();
+  }
 }
 
 export function nativePackId(pack: NativePack): string {
@@ -87,8 +132,34 @@ export async function fetchNativeAssetBlob(token: string, path: string): Promise
     `${SUPABASE_URL}/storage/v1/object/authenticated/${NATIVE_BUCKET}/${encodeStoragePath(path)}`,
     { headers: headers(token) },
   );
-  if (!response.ok) throw new Error(await response.text() || `HTTP ${response.status}`);
+  if (!response.ok) throw new Error((await response.text()) || `HTTP ${response.status}`);
   return response.blob();
+}
+
+export async function createNativeSignedUrls(
+  token: string,
+  paths: string[],
+  expiresIn = 43_200,
+): Promise<Map<string, string>> {
+  assertNativeCloud();
+  if (!paths.length) return new Map();
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${NATIVE_BUCKET}`, {
+    method: "POST",
+    headers: headers(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ expiresIn, paths }),
+  });
+  const text = await responseText(response);
+  const rows = JSON.parse(text || "[]") as Array<{
+    error?: string | null;
+    path?: string | null;
+    signedURL?: string | null;
+  }>;
+  const out = new Map<string, string>();
+  for (const row of rows) {
+    if (!row.path || !row.signedURL || row.error) continue;
+    out.set(row.path, encodeURI(`${SUPABASE_URL}/storage/v1${row.signedURL}`));
+  }
+  return out;
 }
 
 export async function uploadNativeAsset(
@@ -112,16 +183,20 @@ export async function uploadNativeAsset(
   if (response.status === 400) {
     const text = await response.text();
     if (/already exists|duplicate/i.test(text)) return;
-    throw new Error(text || "Falha ao publicar página nativa.");
+    throw new Error(text || "Falha ao publicar asset nativo.");
   }
   await responseText(response);
+}
+
+function clonePack(pack: NativePack): NativePack {
+  return JSON.parse(JSON.stringify(pack)) as NativePack;
 }
 
 export async function publishNativePack(
   session: AuthSession,
   pack: NativePack,
   pages: Map<string, File>,
-): Promise<{ id: string; uploadedPages: number }> {
+): Promise<{ id: string; uploadedPages: number; uploadedCrops: number; pack: NativePack }> {
   assertNativeCloud();
   const gate = nativePackGate(pack);
   if (!gate.publishable) {
@@ -130,11 +205,15 @@ export async function publishNativePack(
   const userId = session.user?.id;
   if (!userId) throw new Error("Sessão sem usuário identificado.");
 
+  const publishedPack = clonePack(pack);
   let uploadedPages = 0;
-  for (const document of pack.documents) {
-    for (let page = 1; page <= document.pageCount; page += 1) {
-      const assetPath = nativePageAssetPath(document.pageAssetPattern, page);
-      const filename = assetPath.split("/").at(-1)!;
+  let uploadedCrops = 0;
+
+  for (const documentRecord of publishedPack.documents) {
+    documentRecord.pageAssetPattern = contentAddressedPagePattern(publishedPack, documentRecord.documentId);
+    for (let page = 1; page <= documentRecord.pageCount; page += 1) {
+      const assetPath = nativePageAssetPath(documentRecord.pageAssetPattern, page);
+      const filename = `page-${String(page).padStart(3, "0")}.webp`;
       const file = pages.get(filename) ?? pages.get(assetPath);
       if (!file) throw new Error(`Página ausente para publicação: ${filename}`);
       await uploadNativeAsset(session.access_token, assetPath, file);
@@ -142,15 +221,34 @@ export async function publishNativePack(
     }
   }
 
-  const document = pack.documents[0];
+  for (const question of publishedPack.questions) {
+    const documentRecord = publishedPack.documents.find(
+      (candidate) => candidate.documentId === question.documentId,
+    );
+    if (!documentRecord) throw new Error(`Documento ausente: ${question.documentId}`);
+    const root = documentRecord.pageAssetPattern.replace(/\/pages\/page-\{page:03d\}\.webp$/, "");
+    for (let regionIndex = 0; regionIndex < question.visualRegions.length; regionIndex += 1) {
+      const region = question.visualRegions[regionIndex];
+      const filename = `page-${String(region.page).padStart(3, "0")}.webp`;
+      const pageFile = pages.get(filename);
+      if (!pageFile) throw new Error(`Página ausente para recorte: ${filename}`);
+      const crop = await cropWebp(pageFile, region.rect);
+      const path = `${root}/questions/q-${String(question.number).padStart(3, "0")}-r${regionIndex}-${rectFingerprint(region.rect)}.webp`;
+      await uploadNativeAsset(session.access_token, path, crop);
+      region.assetPath = path;
+      uploadedCrops += 1;
+    }
+  }
+
+  const documentRecord = publishedPack.documents[0];
   const row = {
-    id: nativePackId(pack),
-    provider_id: document.providerId,
-    year: document.year,
-    edition_id: document.editionId ?? null,
-    phase: document.phase,
-    source_sha256: document.sourceSha256,
-    pack,
+    id: nativePackId(publishedPack),
+    provider_id: documentRecord.providerId,
+    year: documentRecord.year,
+    edition_id: documentRecord.editionId ?? null,
+    phase: documentRecord.phase,
+    source_sha256: documentRecord.sourceSha256,
+    pack: publishedPack,
     published_by: userId,
     published_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -164,5 +262,5 @@ export async function publishNativePack(
     body: JSON.stringify(row),
   });
   await responseText(response);
-  return { id: row.id, uploadedPages };
+  return { id: row.id, uploadedPages, uploadedCrops, pack: publishedPack };
 }
