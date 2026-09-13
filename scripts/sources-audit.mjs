@@ -366,6 +366,22 @@ const FONTES = [
         role: "exam-and-final-key-day2-mirror",
         url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2014-prova-dia-2-modelo-d-Ylen44y8DGuVKXzp.pdf",
       },
+      {
+        role: "objective-exam-day1-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2013-prova-dia-1-modelo-a-dOqMpKa4G8HDwpar.pdf",
+      },
+      {
+        role: "answer-key-day1-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2013/2013-gabarito-portugues-fisica-e-quimica.pdf",
+      },
+      {
+        role: "objective-exam-day2-mirror",
+        url: "https://assets.zyrosite.com/YD0ryggN57CPDMzv/2013-prova-dia-2-modelo-d-m7V2913NWNtoy9Lj.pdf",
+      },
+      {
+        role: "answer-key-day2-verification-mirror",
+        url: "https://www.cursosazambuja.com.br/storage/app/media/PROVA%20E%20GABARITOS/EsPCEx/2013/2013-gabarito-matematica-geografia-historia-e-ingles.pdf",
+      },
     ],
   },
   {

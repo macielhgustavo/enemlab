@@ -10,7 +10,16 @@ import {
 
 describe("EsPCEx", () => {
   it("publica apenas edições completas e revisadas", () => {
-    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]);
+    expect(espcexYears()).toEqual([2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013]);
+    const k13 = espcexAnswerKey(2013)!;
+    expect(k13.revision).toBe("final-mirror-2013");
+    expect(k13.days.day1.model).toBe("A");
+    expect(k13.days.day2.model).toBe("D");
+    expect(k13.days.day1.total).toBe(44);
+    expect(k13.days.day2.total).toBe(56);
+    expect(k13.days.day1.annulled).toEqual([]);
+    expect(k13.days.day2.annulled).toEqual([]);
+
     const k14 = espcexAnswerKey(2014)!;
     expect(k14.revision).toBe("final-mirror-2014");
     expect(k14.days.day1.model).toBe("A");
@@ -162,6 +171,11 @@ describe("EsPCEx", () => {
   });
 
   it("não chama caderno espelhado de oficial", () => {
+    const q13 = espcexQuestions(2013)[0];
+    expect(q13.statementAvailable).toBe(false);
+    expect(q13.official?.official).toBe(false);
+    expect(q13.official?.documentUrl).toContain("zyrosite.com");
+
     const q14 = espcexQuestions(2014)[0];
     expect(q14.statementAvailable).toBe(false);
     expect(q14.official?.official).toBe(false);
@@ -239,6 +253,7 @@ describe("EsPCEx", () => {
     expect(espcexQuestionKey(espcexQuestions(2016)[0])).toBe("espcex-2016-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2015)[0])).toBe("espcex-2015-day1-1");
     expect(espcexQuestionKey(espcexQuestions(2014)[0])).toBe("espcex-2014-day1-1");
+    expect(espcexQuestionKey(espcexQuestions(2013)[0])).toBe("espcex-2013-day1-1");
   });
 
   it("provider entrega as edições completas e recusa ano ausente", async () => {
@@ -254,6 +269,7 @@ describe("EsPCEx", () => {
     expect(await espcexProvider.fetchQuestions({ year: 2016 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2015 })).toHaveLength(100);
     expect(await espcexProvider.fetchQuestions({ year: 2014 })).toHaveLength(100);
-    expect(await espcexProvider.fetchQuestions({ year: 2013 })).toEqual([]);
+    expect(await espcexProvider.fetchQuestions({ year: 2013 })).toHaveLength(100);
+    expect(await espcexProvider.fetchQuestions({ year: 2012 })).toEqual([]);
   });
 });
