@@ -32,8 +32,9 @@ export interface ReferenceRetrieval {
   effectiveSourceUrl: string;
   sourceType: "pdf-reference";
   fetchedAt: string;
-  sha256: string;
-  bytes: number;
+  /** Ausente quando a fonte oficial foi revisada manualmente, mas os bytes não puderam ser fingerprintados. */
+  sha256: string | null;
+  bytes: number | null;
   parserVersion: string;
   revision: "preliminary" | "final" | "rectified";
   final: boolean;
@@ -126,6 +127,16 @@ function validateKey(providerId: string, raw: ReferenceAnswerKeyRaw): ReferenceA
     if (!OPTION_ALPHABET.includes(optionId as (typeof OPTION_ALPHABET)[number])) {
       errors.push(`alternativa fora do alfabeto suportado: ${optionId}`);
     }
+  }
+
+  if (raw.retrieval.sha256 !== null && !/^[0-9a-f]{64}$/.test(raw.retrieval.sha256)) {
+    errors.push("SHA-256 inválido");
+  }
+  if (raw.retrieval.bytes !== null && raw.retrieval.bytes <= 0) {
+    errors.push("tamanho de documento inválido");
+  }
+  if (raw.validationLevel === "verified" && (!raw.retrieval.sha256 || !raw.retrieval.bytes)) {
+    errors.push("verified exige fingerprint completo");
   }
 
   const answered = new Set(Object.keys(raw.answers).map(Number));
