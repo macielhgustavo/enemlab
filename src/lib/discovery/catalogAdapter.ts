@@ -1,4 +1,10 @@
-import type { DiscoveredExam, DiscoveredQuestionRef } from "./types";
+import type {
+  ContentAuthority,
+  DiscoveredExam,
+  DiscoveredQuestionRef,
+  DiscoverySourceRole,
+} from "./types";
+import { contentAuthorityOf } from "./types";
 import {
   generateExamFingerprint,
   generateQuestionFingerprint,
@@ -17,7 +23,8 @@ export interface CatalogQuestionItem {
   provenance: {
     institution: string;
     sourceId: string;
-    sourceRole: "official";
+    sourceRole: DiscoverySourceRole;
+    contentAuthority: Exclude<ContentAuthority, "discovery-only">;
     validationLevel: "verified" | "reviewed";
     discoveredAt: string;
     corroboratedBy: string[];
@@ -27,7 +34,6 @@ export interface CatalogQuestionItem {
 }
 
 type PublishableDiscoveredExam = DiscoveredExam & {
-  sourceRole: "official";
   validationLevel: "verified" | "reviewed";
   questions: DiscoveredQuestionRef[];
   allowedLetters: string[];
@@ -66,8 +72,6 @@ function hasCompleteObjectiveCoverage(
     }
 
     if (question.isAnnulled) {
-      // The canonical ingestion validator rejects an annulled question that
-      // simultaneously carries an answer. Preserve the same invariant here.
       if (question.correctAnswer !== undefined) return false;
     } else {
       const answer = question.correctAnswer?.trim();
@@ -83,15 +87,34 @@ function hasCompleteObjectiveCoverage(
   return true;
 }
 
+function validNonOfficialEvidenceReview(exam: DiscoveredExam): boolean {
+  const review = exam.nonOfficialEvidenceReview;
+  return Boolean(
+    review?.reviewer.trim() &&
+      !Number.isNaN(Date.parse(review.reviewedAt)) &&
+      (review.basis === "manual-document-review" || review.basis === "independent-corroboration"),
+  );
+}
+
+function hasAcceptableAuthority(exam: DiscoveredExam): boolean {
+  const authority = contentAuthorityOf(exam);
+  if (authority === "official") return exam.hasOfficialAnswerKey;
+  if (authority !== "reviewed-nonofficial") return false;
+
+  return (
+    validNonOfficialEvidenceReview(exam) &&
+    (exam.hasOfficialAnswerKey || exam.hasAnswerKeyDocument === true)
+  );
+}
+
 export function canPublishExamToCatalog(exam: DiscoveredExam): exam is PublishableDiscoveredExam {
   const allowedLetters = canonicalAllowedLetters(exam);
   if (!allowedLetters) return false;
 
   return (
-    exam.sourceRole === "official" &&
+    hasAcceptableAuthority(exam) &&
     (exam.validationLevel === "verified" || exam.validationLevel === "reviewed") &&
     (exam.status === "final" || exam.status === "rectified") &&
-    exam.hasOfficialAnswerKey &&
     exam.hasExamDocument &&
     Boolean(exam.aggregatorSourceId.trim()) &&
     /^https:\/\//.test(exam.examDocumentUrl ?? "") &&
@@ -102,35 +125,40 @@ export function canPublishExamToCatalog(exam: DiscoveredExam): exam is Publishab
 }
 
 /**
- * Converts an official, reviewed discovery result into catalog candidates.
+ * Converts a reviewed discovery result into catalog candidates.
  *
- * Aggregators are discovery hints only. A candidate cannot cross this boundary
- * until the official-source ingestion pipeline has validated/reviewed it.
- * The catalog id is structural and stable; text-dependent fingerprints stay
- * inside provenance so re-extraction cannot destroy user history/SRS identity.
+ * Official evidence remains preferred. Non-official evidence can cross this
+ * boundary only when its authority is explicitly `reviewed-nonofficial`, a
+ * human evidence review is recorded, the answer document exists and every
+ * normal structural/finality/validation gate passes. The original source role
+ * is preserved in provenance; review never relabels it as official.
  */
 export function convertExamToCatalogQuestions(exam: DiscoveredExam): CatalogQuestionItem[] {
   if (!canPublishExamToCatalog(exam)) return [];
 
+  const authority = contentAuthorityOf(exam);
+  if (authority === "discovery-only") return [];
+
   const providerId = exam.institution.toLowerCase().replace(/[^a-z0-9]/g, "");
   const examFp = generateExamFingerprint(exam);
 
-  return exam.questions.map((q: DiscoveredQuestionRef) => {
-    const stableId = generateQuestionIdentityFingerprint(examFp, q.questionNumber);
-    const contentFp = generateQuestionFingerprint(examFp, q);
+  return exam.questions.map((question: DiscoveredQuestionRef) => {
+    const stableId = generateQuestionIdentityFingerprint(examFp, question.questionNumber);
+    const contentFp = generateQuestionFingerprint(examFp, question);
     return {
       id: stableId,
       providerId,
       year: exam.year,
-      number: q.questionNumber,
-      correctAnswer: q.isAnnulled ? undefined : q.correctAnswer,
-      isAnnulled: Boolean(q.isAnnulled),
-      subject: q.subject ?? "Conhecimentos Gerais",
-      sourceUrl: q.sourceUrl ?? exam.examDocumentUrl,
+      number: question.questionNumber,
+      correctAnswer: question.isAnnulled ? undefined : question.correctAnswer,
+      isAnnulled: Boolean(question.isAnnulled),
+      subject: question.subject ?? "Conhecimentos Gerais",
+      sourceUrl: question.sourceUrl ?? exam.examDocumentUrl,
       provenance: {
         institution: exam.institution,
         sourceId: exam.aggregatorSourceId,
-        sourceRole: exam.sourceRole,
+        sourceRole: exam.sourceRole ?? "discovery-only",
+        contentAuthority: authority,
         validationLevel: exam.validationLevel,
         discoveredAt: exam.discoveredAt,
         corroboratedBy: exam.corroboratedBy ? [...exam.corroboratedBy] : [],

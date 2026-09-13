@@ -13,6 +13,33 @@ export type {
   ExtractionCheckpointStats,
   ExtractionCheckpointStore,
 } from "./checkpoint";
+export {
+  corpusDocumentsForExam,
+  corpusEvidence,
+  parseCorpusPackageManifestV1,
+} from "./corpus";
+export type {
+  CorpusDocumentEvidence,
+  CorpusPackageExamV1,
+  CorpusPackageFileV1,
+  CorpusPackageManifestV1,
+  CorpusSourceAuthority,
+} from "./corpus";
+export {
+  buildReviewContentFingerprint,
+  getApplicableReviewDecision,
+  handoffReviewedJobToCatalog,
+  InMemoryReviewDecisionStore,
+  recordReviewDecision,
+} from "./review";
+export type {
+  ApprovedValidationLevel,
+  IngestionReviewDecision,
+  RecordReviewInput,
+  ReviewDecisionStore,
+  ReviewDisposition,
+  ReviewedCatalogHandoff,
+} from "./review";
 export { associateMediaWithExtraction, verifyMediaManifestBinding } from "./media";
 export type {
   ExpectedMediaBinding,
