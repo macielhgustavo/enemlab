@@ -9,6 +9,7 @@
 // O alvo é `NormalizedQuestion`, e a ponte é o adaptador em `./legacy`.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
+import { applyLocalNativeDrafts } from "../native/localDraft";
 import { ENEM_PROVIDER_ID } from "./enem";
 import { toLegacyQuestion } from "./legacy";
 import { getProvider, resolveProviderId } from "./registry";
@@ -25,6 +26,10 @@ export interface QuestionQuery {
 /**
  * Busca as questões de uma prova. `providerId` ausente resolve para ENEM,
  * o que mantém todo o código e os dados anteriores funcionando.
+ *
+ * Conteúdo nativo importado pelo próprio usuário é aplicado somente no
+ * navegador, depois que a identidade/gabarito do provider já foi resolvida.
+ * Esse overlay não faz parte do DB persistido/sincronizado do Studium.
  */
 export async function questionsFor(
   providerId: string | null | undefined,
@@ -32,15 +37,14 @@ export async function questionsFor(
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
 
-  // O ENEM mantém o caminho direto: a normalização seguida de conversão
-  // custaria uma volta inteira sem ganho enquanto ele é o único provider.
   if (id === ENEM_PROVIDER_ID) {
-    return fetchExam(year, language || "ingles", force);
+    const questions = await fetchExam(year, language || "ingles", force);
+    return applyLocalNativeDrafts(questions);
   }
 
   const provider = getProvider(id);
   const normalized = await provider.fetchQuestions({ year, editionId, language, force });
-  return normalized.map(toLegacyQuestion);
+  return applyLocalNativeDrafts(normalized.map(toLegacyQuestion));
 }
 
 /** Metadados da prova (anos, idiomas, áreas) para montar formulários. */
