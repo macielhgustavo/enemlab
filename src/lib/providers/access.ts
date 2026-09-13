@@ -9,6 +9,7 @@
 // O alvo é `NormalizedQuestion`, e a ponte é o adaptador em `./legacy`.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
+import { applyPublishedNativeContent } from "../native/loader";
 import { applyLocalNativeDrafts } from "../native/localDraft";
 import { ENEM_PROVIDER_ID } from "./enem";
 import { toLegacyQuestion } from "./legacy";
@@ -27,24 +28,28 @@ export interface QuestionQuery {
  * Busca as questões de uma prova. `providerId` ausente resolve para ENEM,
  * o que mantém todo o código e os dados anteriores funcionando.
  *
- * Conteúdo nativo importado pelo próprio usuário é aplicado somente no
- * navegador, depois que a identidade/gabarito do provider já foi resolvida.
- * Esse overlay não faz parte do DB persistido/sincronizado do Studium.
+ * Ordem dos overlays:
+ * 1. provider resolve identidade e gabarito;
+ * 2. NativePack privado aprovado acrescenta o visual assinado;
+ * 3. bundle local opcional pode substituir somente texto, nunca gabarito.
  */
 export async function questionsFor(
   providerId: string | null | undefined,
   { year, editionId, language, force }: QuestionQuery,
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
+  let questions: Question[];
 
   if (id === ENEM_PROVIDER_ID) {
-    const questions = await fetchExam(year, language || "ingles", force);
-    return applyLocalNativeDrafts(questions);
+    questions = await fetchExam(year, language || "ingles", force);
+  } else {
+    const provider = getProvider(id);
+    const normalized = await provider.fetchQuestions({ year, editionId, language, force });
+    questions = normalized.map(toLegacyQuestion);
   }
 
-  const provider = getProvider(id);
-  const normalized = await provider.fetchQuestions({ year, editionId, language, force });
-  return applyLocalNativeDrafts(normalized.map(toLegacyQuestion));
+  const native = await applyPublishedNativeContent(questions);
+  return applyLocalNativeDrafts(native);
 }
 
 /** Metadados da prova (anos, idiomas, áreas) para montar formulários. */
