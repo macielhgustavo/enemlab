@@ -1,0 +1,38 @@
+name: Verify EsPCEx 2011 historical phases
+
+on:
+  push:
+    branches: [work/espcex-2011-historical]
+    paths:
+      - '.github/workflows/expand-espcex-2011.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply 2011 historical phases and dataset
+        run: python .github/scripts/expand-espcex-2011.py
+
+      - name: Verify tests and build
+        run: |
+          npm test
+          npm run build
+
+      - name: Commit verified clean tree
+        run: |
+          rm .github/workflows/expand-espcex-2011.yml .github/scripts/expand-espcex-2011.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(espcex): support four-session 2011 edition [skip ci]"
+          git push origin HEAD:work/espcex-2011-historical
