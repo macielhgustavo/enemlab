@@ -180,11 +180,19 @@ export function nativePackGate(pack: NativePack): NativePackGateResult {
   };
 }
 
+/**
+ * Atalho conservador: só aprova em massa questões estruturalmente válidas e
+ * sem pendências registradas pelo extrator. Questões com `extraction.issues`
+ * continuam podendo ser aprovadas individualmente após inspeção humana do
+ * visual — importante para exceções multi-coluna como o canário UNESP 2026.
+ */
 export function approveAllStructurallyValid(pack: NativePack): NativePack {
   const next = clonePack(pack);
   for (const question of next.questions) {
     const gate = nativePublicationGate(question, documentForQuestion(next, question));
-    if (gate.publishable) question.status = "approved";
+    if (gate.publishable && question.extraction.issues.length === 0) {
+      question.status = "approved";
+    }
   }
   return next;
 }
