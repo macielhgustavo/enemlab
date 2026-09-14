@@ -15,6 +15,16 @@ const baseQuestion: Question = {
   discipline: "conhecimentos-gerais",
   context: undefined,
   statementAvailable: false,
+  classificationSnapshot: {
+    primary: "Classificação anterior",
+    tags: ["Classificação anterior"],
+    path: ["Classificação anterior"],
+    subtopic: null,
+    confidence: "baixa",
+    score: 1,
+    margin: 0,
+    evidence: [],
+  },
   alternatives: [
     { letter: "A", text: "", isCorrect: false },
     { letter: "B", text: "", isCorrect: true },
@@ -39,10 +49,11 @@ const draft: LocalNativeQuestionDraft = {
 };
 
 describe("private native draft", () => {
-  it("preenche texto sem alterar o gabarito validado pelo provider", () => {
+  it("preenche texto sem alterar o gabarito e invalida snapshot visual antigo", () => {
     const overlaid = applyLocalNativeDraft(baseQuestion, draft);
     expect(overlaid.statementAvailable).toBe(true);
     expect(overlaid.context).toBe(draft.context);
+    expect(overlaid.classificationSnapshot).toBeUndefined();
     expect(overlaid.correctAlternative).toBe("B");
     expect(overlaid.alternatives?.find((alternative) => alternative.isCorrect)?.letter).toBe("B");
   });

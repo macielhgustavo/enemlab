@@ -1,5 +1,5 @@
 import { CLOUD_CONFIGURED, ensureFreshSession, loadSession } from "../cloud/client";
-import { questionKey } from "../domain/classify";
+import { classifyQuestion, questionKey } from "../domain/classify";
 import type { Question } from "../domain/types";
 import { createNativeSignedUrls, fetchPublishedNativePack } from "./cloud";
 import type { NativePack } from "./contracts";
@@ -63,9 +63,13 @@ export function applyNativePackToQuestions(
 
     return {
       ...question,
+      // A classificação precisa ser calculada enquanto o conteúdo original do
+      // provider ainda está disponível. Depois o visual vira canônico e o texto
+      // pode ser ocultado sem alterar mastery/SRS/adaptive.
+      classificationSnapshot: question.classificationSnapshot ?? classifyQuestion(question),
       // O recorte visual contém enunciado, figuras e alternativas com a
       // fidelidade da prova original. O texto semântico fica no pack para
-      // busca/classificação futura, sem substituir o visual no runner.
+      // busca/acessibilidade, sem substituir o visual no runner.
       context: undefined,
       alternativesIntroduction: undefined,
       alternatives: (question.alternatives ?? []).map((alternative) => ({

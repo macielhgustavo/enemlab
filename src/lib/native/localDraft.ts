@@ -244,6 +244,9 @@ export function applyLocalNativeDraft(
       ...alternative,
       text: textByLetter.get(alternative.letter) ?? alternative.text,
     })),
+    // O bundle restaurou conteúdo textual real; deixa o classificador recalcular
+    // sobre esse texto em vez de manter o snapshot criado pelo overlay visual.
+    classificationSnapshot: undefined,
     statementAvailable: true,
   };
 }
