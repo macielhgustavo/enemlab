@@ -46,6 +46,7 @@ function recordMatchesQuestion(record: NativeQuestionContentRecord, question: Qu
     record.questionKey === questionKey(question) &&
     record.providerId === (question.providerId ?? "enem") &&
     record.year === question.year &&
+    (record.editionId ?? undefined) === (question.editionId ?? undefined) &&
     record.phase === (question.phase ?? "single") &&
     record.number === (question.number ?? question.index)
   );
