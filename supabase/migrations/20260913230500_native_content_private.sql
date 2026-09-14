@@ -1,4 +1,3 @@
--- Applied to project bpmhieqyubpuueoyulee on 2026-09-13.
 -- Private NativePack metadata + private WebP storage, guarded by allowlist.
 
 create table if not exists public.native_access (

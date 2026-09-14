@@ -1,10 +1,4 @@
-/*
- * O dashboard pode subir alguns pixels ao entrar, mas nunca deve animar
- * opacidade de um container com texto. Axe (e usuários reais) podem observar
- * o estado intermediário, no qual todo o conteúdo perde contraste contra o
- * fundo. Mantemos o movimento sem criar uma janela temporária de baixo
- * contraste.
- */
+/* Mantém a entrada visual sem reduzir temporariamente o contraste do texto. */
 @keyframes dashboard-rise {
   from {
     transform: translateY(7px);

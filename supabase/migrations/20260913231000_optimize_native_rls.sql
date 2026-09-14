@@ -1,4 +1,4 @@
--- Applied after native_content_private on 2026-09-13.
+-- RLS/index follow-up for native_content_private.
 create index if not exists native_packs_published_by_idx
   on public.native_packs (published_by);
 
