@@ -100,6 +100,72 @@ describe("NativePack loader", () => {
     expect(result.statementAvailable).toBe(false);
   });
 
+  it("exige todas as regiões de uma questão multi-região", () => {
+    const multi = pack();
+    const secondPath = "native/unesp/2026/first/aaaaaaaaaaaaaaaa/questions/q-001-r1-b.webp";
+    multi.questions[0].visualRegions.push({
+      page: 3,
+      role: "continuation",
+      rect: { x: 0.52, y: 0.08, width: 0.42, height: 0.35 },
+      assetPath: secondPath,
+    });
+    const firstPath = multi.questions[0].visualRegions[0].assetPath!;
+    const question = baseQuestion();
+
+    const incomplete = applyNativePackToQuestions(
+      [question],
+      multi,
+      new Map([[firstPath, "https://signed.example.com/q1-r0.webp"]]),
+    )[0];
+    expect(incomplete).toBe(question);
+
+    const complete = applyNativePackToQuestions(
+      [question],
+      multi,
+      new Map([
+        [firstPath, "https://signed.example.com/q1-r0.webp"],
+        [secondPath, "https://signed.example.com/q1-r1.webp"],
+      ]),
+    )[0];
+    expect(complete).not.toBe(question);
+    expect(complete.files?.slice(0, 2)).toEqual([
+      "https://signed.example.com/q1-r0.webp",
+      "https://signed.example.com/q1-r1.webp",
+    ]);
+  });
+
+  it("cai para referência se qualquer região publicada não tiver assetPath", () => {
+    const invalid = pack();
+    invalid.questions[0].visualRegions.push({
+      page: 3,
+      role: "continuation",
+      rect: { x: 0.52, y: 0.08, width: 0.42, height: 0.35 },
+    });
+    const firstPath = invalid.questions[0].visualRegions[0].assetPath!;
+    const question = baseQuestion();
+    expect(
+      applyNativePackToQuestions(
+        [question],
+        invalid,
+        new Map([[firstPath, "https://signed.example.com/q1-r0.webp"]]),
+      )[0],
+    ).toBe(question);
+  });
+
+  it("recusa metadata de identidade divergente mesmo quando questionKey coincide", () => {
+    const corrupt = pack();
+    corrupt.questions[0].number = 2;
+    const path = corrupt.questions[0].visualRegions[0].assetPath!;
+    const question = baseQuestion();
+    expect(
+      applyNativePackToQuestions(
+        [question],
+        corrupt,
+        new Map([[path, "https://signed.example.com/q1.webp"]]),
+      )[0],
+    ).toBe(question);
+  });
+
   it("ignora registros em review ou apenas approved", () => {
     for (const status of ["review", "approved"] as const) {
       const pending = pack();
