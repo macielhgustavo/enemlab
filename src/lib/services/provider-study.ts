@@ -1,7 +1,8 @@
 import { buildAdaptiveQuestions, adaptiveCandidates } from "../domain/adaptive";
 import { classifyContent, questionKey } from "../domain/classify";
-import { officialRowsOf, weakestContents } from "../domain/stats";
+import { officialRowsOf } from "../domain/stats";
 import { dueSRS } from "../domain/srs";
+import { actionableWeakContents, calibrationContents } from "../domain/weak-evidence";
 import type { Attempt, DB, Language, Question } from "../domain/types";
 import { questionsFor } from "../providers/access";
 import { getProvider, resolveProviderId } from "../providers";
@@ -138,13 +139,16 @@ export function nextStudyAction(db: DB, providerId: string): StudyAction {
     };
   }
 
-  const weak = weakestContents(db, 5, scopedProviderId).find((item) => item.p < 65);
+  // Uma taxa baixa com 1–3 respostas é sinal para coletar evidência, não prova
+  // de fraqueza. Só abrimos um bloco dedicado quando a amostra mínima usada
+  // pelo próprio domínio do Studium também foi atingida.
+  const weak = actionableWeakContents(db, 5, scopedProviderId)[0];
   if (weak) {
     return {
       kind: "weakness",
       providerId: scopedProviderId,
       title: `Reparar ${weak.name}`,
-      reason: `Seu domínio recente está em ${weak.p}% (${weak.c}/${weak.t}).`,
+      reason: `Amostra mínima atingida: ${weak.p}% de acerto (${weak.c}/${weak.t}), IC95% ${weak.ci.low}–${weak.ci.high}%.`,
       content: weak.name,
       count: weak.t,
     };
@@ -172,11 +176,14 @@ export function nextStudyAction(db: DB, providerId: string): StudyAction {
     };
   }
 
+  const calibrating = calibrationContents(db, 5, scopedProviderId);
   return {
     kind: "adaptive",
     providerId: scopedProviderId,
     title: "Novo treino adaptativo",
-    reason: "Retenção, lacunas e erros prioritários estão sob controle; avance com nova amostra.",
+    reason: calibrating.length
+      ? `${calibrating.length} conteúdo(s) ainda têm amostra curta; o próximo treino coleta evidência sem rotulá-los como fraqueza.`
+      : "Retenção, lacunas e erros prioritários estão sob controle; avance com nova amostra.",
     count: history.length,
   };
 }
