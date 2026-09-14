@@ -242,7 +242,7 @@ export async function syncCloudState(
     body: JSON.stringify({
       p_data: db,
       p_base_revision: baseRevision,
-      p_client_id: getClientId(),
+      p_client_id: clientId,
       p_client_updated_at: new Date().toISOString(),
     }),
   });
