@@ -63,4 +63,44 @@ describe("nativePublicationGate", () => {
     expect(gate.issues).toContain("região visual inválida");
     expect(gate.issues).toContain("região aponta para página inexistente");
   });
+
+  it("amarra provider, ano, edição e fase da questão ao documento-fonte", () => {
+    const namedDocument: NativeDocumentRecord = { ...document, editionId: "v1" };
+    const mismatched: NativeQuestionContentRecord = {
+      ...question,
+      providerId: "fuvest",
+      year: 2025,
+      editionId: "v2",
+      phase: "single",
+    };
+    const gate = nativePublicationGate(mismatched, namedDocument);
+    expect(gate.publishable).toBe(false);
+    expect(gate.issues).toEqual(
+      expect.arrayContaining([
+        "providerId divergente",
+        "ano divergente",
+        "editionId divergente",
+        "fase divergente",
+      ]),
+    );
+  });
+
+  it("recusa metadados físicos inválidos do documento", () => {
+    const invalidDocument: NativeDocumentRecord = {
+      ...document,
+      sourceBytes: Number.NaN,
+      pageCount: 0,
+      renderScale: 0,
+    };
+    const gate = nativePublicationGate(question, invalidDocument);
+    expect(gate.publishable).toBe(false);
+    expect(gate.issues).toEqual(
+      expect.arrayContaining([
+        "tamanho da fonte inválido",
+        "quantidade de páginas inválida",
+        "escala de renderização inválida",
+        "região aponta para página inexistente",
+      ]),
+    );
+  });
 });
