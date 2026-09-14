@@ -307,8 +307,10 @@ def _eear_targets() -> list[NativeTarget]:
     targets: list[NativeTarget] = []
     for path in sorted((PROVIDERS / "eear").glob("eear-*-*.generated.ts")):
         text = path.read_text(encoding="utf-8")
-        # Os arquivos gerados são arrays JSON válidos seguidos de `as const`.
-        start = text.find("[")
+        # A tipagem TypeScript também contém `[]`; localize o array de dados
+        # somente depois do operador de atribuição para não confundir os dois.
+        assignment = re.search(r"=\s*\[", text)
+        start = assignment.end() - 1 if assignment else -1
         end = text.rfind("]")
         if start < 0 or end < start:
             continue
