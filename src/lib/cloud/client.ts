@@ -1,21 +1,26 @@
 import type { DB } from "../domain/types";
 
-// A chave publishable é pública por design (vai no bundle), então tirá-la do
-// código não é sobre segredo: é para um fork do repositório não sincronizar
-// dentro do projeto Supabase de outra pessoa. Quem protege os dados é o RLS —
-// ver supabase/schema.sql e supabase/VERIFICAR-RLS.md.
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-export const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+// O Studium tem um projeto Supabase canônico. URL e publishable key são
+// deliberadamente públicas: ambas vão para o bundle do navegador de qualquer
+// forma. Segurança e autorização continuam sendo responsabilidade do RLS.
+//
+// Variáveis de ambiente permanecem como override para forks/ambientes locais,
+// mas a aplicação oficial não pode cair silenciosamente em "somente local"
+// só porque um deployment da Vercel perdeu a configuração.
+const DEFAULT_SUPABASE_URL = "https://bpmhieqyubpuueoyulee.supabase.co";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_c4WpRQ8xT1ylIWwRjh-nUw_xMOxQoMh";
 
-/** A sincronização só é oferecida quando o projeto está configurado. */
+export const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
+
+/** A aplicação oficial sempre tem nuvem; forks ainda podem sobrescrever o destino via env. */
 export const CLOUD_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
 function assertConfigured() {
   if (!CLOUD_CONFIGURED) {
-    throw new Error(
-      "Nuvem não configurada: defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY em .env.local (ver .env.example).",
-    );
+    throw new Error("Nuvem não configurada.");
   }
 }
 
@@ -237,7 +242,7 @@ export async function syncCloudState(
     body: JSON.stringify({
       p_data: db,
       p_base_revision: baseRevision,
-      p_client_id: clientId,
+      p_client_id: getClientId(),
       p_client_updated_at: new Date().toISOString(),
     }),
   });
