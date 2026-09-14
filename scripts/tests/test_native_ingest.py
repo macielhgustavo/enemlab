@@ -85,13 +85,17 @@ class NativeInventoryTests(unittest.TestCase):
             native_ingest.question_key_for(esa, 1)
 
     def test_eear_inventory_keeps_the_existing_curated_filter(self):
+        eear = [target for target in self.targets if target.provider_id == "eear"]
+        self.assertGreater(len(eear), 0, "EEAR não pode desaparecer silenciosamente do inventário")
         labels = " ".join(
             f"{target.label} {target.edition_id or ''}".lower()
-            for target in self.targets
-            if target.provider_id == "eear"
+            for target in eear
         )
         for term in native_ingest.core.SENSITIVE_EEAR_TERMS:
             self.assertNotIn(term, labels)
+        for target in eear:
+            self.assertEqual(target.option_ids, ("A", "B", "C", "D"))
+            self.assertTrue(target.exam_url)
 
     def test_ready_inventory_is_single_answer_only_and_identity_audited(self):
         for target in self.targets:
