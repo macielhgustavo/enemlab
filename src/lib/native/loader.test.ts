@@ -166,6 +166,20 @@ describe("NativePack loader", () => {
     ).toBe(question);
   });
 
+  it("recusa editionId divergente mesmo quando questionKey coincide", () => {
+    const corrupt = pack();
+    corrupt.questions[0].editionId = "v1";
+    const path = corrupt.questions[0].visualRegions[0].assetPath!;
+    const question = baseQuestion();
+    expect(
+      applyNativePackToQuestions(
+        [question],
+        corrupt,
+        new Map([[path, "https://signed.example.com/q1.webp"]]),
+      )[0],
+    ).toBe(question);
+  });
+
   it("ignora registros em review ou apenas approved", () => {
     for (const status of ["review", "approved"] as const) {
       const pending = pack();
