@@ -5,7 +5,7 @@ import {
 } from "../cloud/client";
 import type { AuthSession } from "../cloud/client";
 import type { NativePack, NativeRect } from "./contracts";
-import { nativePackGate } from "./review";
+import { markNativePackPublished, nativePackGate } from "./review";
 
 export const NATIVE_BUCKET = "native-content";
 
@@ -205,12 +205,12 @@ export async function publishNativePack(
   const userId = session.user?.id;
   if (!userId) throw new Error("Sessão sem usuário identificado.");
 
-  const publishedPack = clonePack(pack);
+  const preparedPack = clonePack(pack);
   let uploadedPages = 0;
   let uploadedCrops = 0;
 
-  for (const documentRecord of publishedPack.documents) {
-    documentRecord.pageAssetPattern = contentAddressedPagePattern(publishedPack, documentRecord.documentId);
+  for (const documentRecord of preparedPack.documents) {
+    documentRecord.pageAssetPattern = contentAddressedPagePattern(preparedPack, documentRecord.documentId);
     for (let page = 1; page <= documentRecord.pageCount; page += 1) {
       const assetPath = nativePageAssetPath(documentRecord.pageAssetPattern, page);
       const filename = `page-${String(page).padStart(3, "0")}.webp`;
@@ -221,8 +221,8 @@ export async function publishNativePack(
     }
   }
 
-  for (const question of publishedPack.questions) {
-    const documentRecord = publishedPack.documents.find(
+  for (const question of preparedPack.questions) {
+    const documentRecord = preparedPack.documents.find(
       (candidate) => candidate.documentId === question.documentId,
     );
     if (!documentRecord) throw new Error(`Documento ausente: ${question.documentId}`);
@@ -240,6 +240,9 @@ export async function publishNativePack(
     }
   }
 
+  // `published` é reservado para o estado que realmente será persistido após
+  // todos os assets necessários terem sido preparados/enviados com sucesso.
+  const publishedPack = markNativePackPublished(preparedPack);
   const documentRecord = publishedPack.documents[0];
   const row = {
     id: nativePackId(publishedPack),

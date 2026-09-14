@@ -38,20 +38,37 @@ export interface Alternative {
   isCorrect?: boolean;
 }
 
-  export interface Question {
-    providerId?: string;
-    examId?: string;
-    editionId?: string;
-    index: number;
-    year: number;
-    phase?: string;
-    language?: string | null;
+/**
+ * Snapshot efêmero da classificação feita sobre o conteúdo do provider antes
+ * de um overlay visual esconder o texto. Não é persistido em Attempt/DB.
+ */
+export interface QuestionClassificationSnapshot {
+  primary: string;
+  tags: string[];
+  path: string[];
+  subtopic: string | null;
+  confidence: "alta" | "media" | "baixa";
+  score: number;
+  margin: number;
+  evidence: string[];
+}
+
+export interface Question {
+  providerId?: string;
+  examId?: string;
+  editionId?: string;
+  index: number;
+  year: number;
+  phase?: string;
+  language?: string | null;
   discipline?: string | { value?: string; label?: string };
   context?: string;
   alternativesIntroduction?: string;
   alternatives?: Alternative[];
   correctAlternative?: string;
   files?: string[];
+  /** Classificação preservada quando um overlay visual remove o texto visível. */
+  classificationSnapshot?: QuestionClassificationSnapshot;
 
   // ---- v8: provas em modo referência (enunciado na fonte oficial) ----
   /** Numeração oficial na prova, quando difere do índice. */

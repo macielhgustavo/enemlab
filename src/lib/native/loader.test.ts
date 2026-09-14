@@ -100,17 +100,19 @@ describe("NativePack loader", () => {
     expect(result.statementAvailable).toBe(false);
   });
 
-  it("ignora registros ainda não publicados", () => {
-    const draft = pack();
-    draft.questions[0].status = "review";
-    const path = draft.questions[0].visualRegions[0].assetPath!;
-    const question = baseQuestion();
-    expect(
-      applyNativePackToQuestions(
-        [question],
-        draft,
-        new Map([[path, "https://signed.example.com/q1.webp"]]),
-      )[0],
-    ).toBe(question);
+  it("ignora registros em review ou apenas approved", () => {
+    for (const status of ["review", "approved"] as const) {
+      const pending = pack();
+      pending.questions[0].status = status;
+      const path = pending.questions[0].visualRegions[0].assetPath!;
+      const question = baseQuestion();
+      expect(
+        applyNativePackToQuestions(
+          [question],
+          pending,
+          new Map([[path, "https://signed.example.com/q1.webp"]]),
+        )[0],
+      ).toBe(question);
+    }
   });
 });

@@ -1,5 +1,5 @@
 export type NativeExtractionMethod = "text-layer" | "ocr" | "vision" | "manual";
-export type NativeReviewStatus = "draft" | "review" | "published";
+export type NativeReviewStatus = "draft" | "review" | "approved" | "published";
 export type NativeVisualRole = "question" | "shared-context" | "continuation" | "figure";
 
 /** Coordenadas normalizadas (0..1), independentes da resolução do WebP. */
@@ -72,6 +72,10 @@ export interface NativeQuestionContentRecord {
   visualRegions: NativeVisualRegion[];
   semantic: NativeSemanticContent;
   extraction: NativeExtractionEvidence;
+  /**
+   * draft/review = ainda não aprovado; approved = revisão humana concluída;
+   * published = o publisher concluiu a publicação do pack.
+   */
   status: NativeReviewStatus;
 }
 
