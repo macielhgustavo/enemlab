@@ -1,4 +1,4 @@
-export interface LocalNativeTargetManifest {
+export interface PrivateNativeTargetManifest {
   providerId: string;
   year: number;
   phase: string;
@@ -17,16 +17,17 @@ export interface LocalNativeTargetManifest {
     authority: "official" | "mirror";
     canonicalOfficialUrl?: string;
   };
-  publication: "local-only" | "allowed";
+  storage: "private-browser" | "repository";
   reason: string;
 }
 
 /**
- * O alvo do primeiro sprint nativo. Os hashes fixam os bytes revisados, mas
- * o texto não é versionado: a VUNESP mantém direitos reservados e a fonte de
- * bytes usada pela pipeline é um espelho público.
+ * Primeiro alvo de conteúdo nativo privado. Os hashes garantem que o conteúdo
+ * importado por vocês corresponde exatamente aos bytes revisados pelo provider.
+ * O repositório mantém só código + proveniência; o texto integral pode ficar no
+ * navegador dos usuários do Studium.
  */
-export const UNESP_2026_LOCAL_NATIVE_TARGET: LocalNativeTargetManifest = {
+export const UNESP_2026_LOCAL_NATIVE_TARGET: PrivateNativeTargetManifest = {
   providerId: "unesp",
   year: 2026,
   phase: "first",
@@ -48,7 +49,10 @@ export const UNESP_2026_LOCAL_NATIVE_TARGET: LocalNativeTargetManifest = {
     canonicalOfficialUrl:
       "https://documento.vunesp.com.br/documento/stream/NzQ2NDIxNg%3D%3D",
   },
-  publication: "local-only",
+  storage: "private-browser",
   reason:
-    "Conteúdo textual pode ser usado em overlay local após revisão, mas não é redistribuído pelo repositório sem permissão explícita.",
+    "O Studium é usado de forma privada; o navegador pode armazenar o conteúdo integral enquanto o GitHub público mantém apenas identidade, gabarito e proveniência.",
 };
+
+// Alias temporário para não quebrar imports do Sprint 1.
+export type LocalNativeTargetManifest = PrivateNativeTargetManifest;

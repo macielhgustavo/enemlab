@@ -30,7 +30,7 @@ const draft: LocalNativeQuestionDraft = {
   year: 2026,
   phase: "first",
   number: 1,
-  context: "Enunciado fornecido localmente pelo usuário.",
+  context: "Enunciado fornecido no cache privado do usuário.",
   alternatives: ["A", "B", "C", "D", "E"].map((letter) => ({
     letter,
     text: `Alternativa ${letter}`,
@@ -38,7 +38,7 @@ const draft: LocalNativeQuestionDraft = {
   sourceDocumentSha256: "a".repeat(64),
 };
 
-describe("local native draft", () => {
+describe("private native draft", () => {
   it("preenche texto sem alterar o gabarito validado pelo provider", () => {
     const overlaid = applyLocalNativeDraft(baseQuestion, draft);
     expect(overlaid.statementAvailable).toBe(true);
@@ -55,21 +55,43 @@ describe("local native draft", () => {
     expect(applyLocalNativeDraft(baseQuestion, incompatible)).toBe(baseQuestion);
   });
 
-  it("exige distribuição local-only e não aceita resposta correta no contrato", () => {
-    const parsed = parseLocalNativeBundle(JSON.stringify({
-      version: 1,
-      distribution: "local-only",
-      createdAt: "2026-09-13T12:00:00-03:00",
-      questions: [draft],
-    }));
+  it("aceita o contrato v2 private sem permitir resposta correta no bundle", () => {
+    const parsed = parseLocalNativeBundle(
+      JSON.stringify({
+        version: 2,
+        usage: "private",
+        createdAt: "2026-09-13T12:00:00-03:00",
+        questions: [{ ...draft, correctAlternative: "A" }],
+      }),
+    );
+    expect(parsed.version).toBe(2);
     expect(parsed.questions).toHaveLength(1);
     expect(parsed.questions[0]).not.toHaveProperty("correctAlternative");
+  });
 
-    expect(() => parseLocalNativeBundle(JSON.stringify({
-      version: 1,
-      distribution: "public",
-      createdAt: "2026-09-13T12:00:00-03:00",
-      questions: [draft],
-    }))).toThrow(/local-only/);
+  it("continua aceitando bundles v1 já existentes", () => {
+    const parsed = parseLocalNativeBundle(
+      JSON.stringify({
+        version: 1,
+        distribution: "local-only",
+        createdAt: "2026-09-13T12:00:00-03:00",
+        questions: [draft],
+      }),
+    );
+    expect(parsed.version).toBe(1);
+    expect(parsed.questions).toHaveLength(1);
+  });
+
+  it("rejeita v2 fora do escopo privado", () => {
+    expect(() =>
+      parseLocalNativeBundle(
+        JSON.stringify({
+          version: 2,
+          usage: "public",
+          createdAt: "2026-09-13T12:00:00-03:00",
+          questions: [draft],
+        }),
+      ),
+    ).toThrow(/usage=private/);
   });
 });

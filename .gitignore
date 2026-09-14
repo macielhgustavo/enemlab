@@ -49,6 +49,9 @@ next-env.d.ts
 __pycache__/
 *.py[cod]
 
+# Native content generated locally; may contain private exam-derived assets.
+/.native-out/
+
 # Playwright
 /test-results/
 /playwright-report/
