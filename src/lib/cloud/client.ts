@@ -1,19 +1,17 @@
 import type { DB } from "../domain/types";
 
-// O Studium tem um projeto Supabase canônico. A URL é pública e pode ficar no
-// bundle do navegador. A publishable key também é pública por design, mas deve
-// pertencer ao MESMO projeto; por isso não reutilizamos a chave do projeto
-// anterior durante a migração.
-//
-// Variáveis de ambiente permanecem como override para forks/ambientes locais.
-// Enquanto a publishable key do projeto canônico não estiver configurada, a
-// aplicação falha fechado em vez de sincronizar com o backend errado.
+// O Studium tem um projeto Supabase canônico. A URL e a publishable key são
+// públicas por design (vão no bundle do navegador) e pertencem ao MESMO
+// projeto. Variáveis de ambiente permanecem como override para forks/ambientes
+// locais. Nunca use service_role neste arquivo.
 const DEFAULT_SUPABASE_URL = "https://srpohfgqqrzpilalemar.supabase.co";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_rQ-ylXrjxjUbp0kHXsXidQ_dz-P4cQl";
 
 export const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
 export const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
 export const CLOUD_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
