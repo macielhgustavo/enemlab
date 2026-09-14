@@ -22,6 +22,9 @@
     "ingest:fab": "python scripts/ingest-fab.py",
     "ingest:fuvest": "python scripts/ingest-fuvest.py",
     "ingest:vestibular": "python scripts/ingest_vestibular_reference.py",
+    "native:inventory": "python scripts/native_ingest.py inventory",
+    "native:prepare": "python scripts/native_ingest.py prepare",
+    "native:prepare-all": "python scripts/native_ingest.py prepare-all",
     "sources:audit": "node --use-system-ca scripts/sources-audit.mjs && node --use-system-ca scripts/sources-audit-mass1.mjs"
   },
   "dependencies": {
