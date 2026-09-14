@@ -36,7 +36,7 @@ describe("study plan explainability", () => {
     expect(plan.filter((step) => step.active)).toHaveLength(1);
   });
 
-  it("mostra lacuna abaixo de 65% como próxima etapa depois da retenção", () => {
+  it("trata três respostas como calibração, não como lacuna confirmada", () => {
     const rows = [
       makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: false }),
       makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
@@ -44,8 +44,24 @@ describe("study plan explainability", () => {
     ];
     const plan = studyPlan(makeDB({ attempts: [attemptWithRows("unesp", rows)] }), "unesp");
     const weakness = plan.find((step) => step.kind === "weakness");
+    expect(weakness?.active).toBe(false);
+    expect(weakness?.count).toBe(0);
+    expect(weakness?.detail).toContain("calibração");
+    expect(plan.find((step) => step.kind === "retry")?.active).toBe(true);
+  });
+
+  it("mostra lacuna abaixo de 65% quando a amostra mínima foi atingida", () => {
+    const rows = [
+      makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: false }),
+      makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
+      makeRow({ key: "u3", providerId: "unesp", content: "Funções", isCorrect: false }),
+      makeRow({ key: "u4", providerId: "unesp", content: "Funções", isCorrect: false }),
+    ];
+    const plan = studyPlan(makeDB({ attempts: [attemptWithRows("unesp", rows)] }), "unesp");
+    const weakness = plan.find((step) => step.kind === "weakness");
     expect(weakness?.active).toBe(true);
     expect(weakness?.detail).toContain("Funções");
+    expect(weakness?.detail).toContain("n=4");
   });
 
   it("sem histórico ativa nova amostra inédita", () => {
@@ -54,7 +70,7 @@ describe("study plan explainability", () => {
     expect(plan.at(-1)?.active).toBe(true);
   });
 
-  it("com histórico limpo ativa avanço adaptativo", () => {
+  it("com histórico curto e limpo ativa calibração adaptativa", () => {
     const rows = [
       makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: true }),
       makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
@@ -62,5 +78,6 @@ describe("study plan explainability", () => {
     const plan = studyPlan(makeDB({ attempts: [attemptWithRows("unesp", rows)] }), "unesp");
     expect(plan.at(-1)?.kind).toBe("adaptive");
     expect(plan.at(-1)?.active).toBe(true);
+    expect(plan.at(-1)?.detail).toContain("precisam de mais amostra");
   });
 });
