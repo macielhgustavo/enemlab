@@ -14,10 +14,19 @@ import {
   buildProviderAdaptiveAttempt,
   nextStudyAction,
 } from "@/lib/services/provider-study";
+import { studyPlan } from "@/lib/services/study-plan";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID } from "@/lib/providers";
 import { examLabel } from "@/lib/providers/label";
 import { Metric, Empty, Card } from "@/components/ui";
+
+const ACTION_LABEL: Record<string, string> = {
+  review: "Fazer revisões agora",
+  weakness: "Reparar conteúdo fraco",
+  retry: "Refazer erros prioritários",
+  unseen: "Começar amostra inédita",
+  adaptive: "Avançar com Adaptive 15",
+};
 
 export default function AdaptivePage() {
   const db = useStore((s) => s.db);
@@ -54,12 +63,18 @@ export default function AdaptivePage() {
     return openAttempt(() => buildNextStudyAttempt(db, providerId, 15));
   }
 
-  if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!hydrated)
+    return (
+      <Card>
+        <span className="muted">Carregando…</span>
+      </Card>
+    );
 
   const cand = adaptiveCandidates(db, providerId);
   const weak = weakestContents(db, 4, providerId);
   const due = dueSRS(db, providerId);
   const recommendation = nextStudyAction(db, providerId);
+  const plan = studyPlan(db, providerId);
   const certezaWrong = officialRowsOf(db, providerId).filter(
     (x) => x.isCorrect === false && x.confidence === "certeza",
   ).length;
@@ -67,20 +82,25 @@ export default function AdaptivePage() {
   return (
     <>
       <Card className="hero glow">
-        <span className="pill">Adaptive Engine</span>
+        <span className="pill">Adaptive Engine · {examLabel(providerId)}</span>
         <h1 style={{ fontSize: "clamp(34px,4vw,52px)" }}>
-          Treino montado pelo seu padrão de erros.
+          Seu próximo estudo já está decidido pelos dados.
         </h1>
         <p>
-          O motor combina retenção, domínio, erros, inéditas e diversidade por conteúdo.
-          A mesma base produz a mesma fila: a prioridade agora é determinística e isolada por prova.
+          O motor combina retenção, domínio, erros, inéditas e diversidade por conteúdo. A prioridade é
+          determinística, isolada por prova e agora aparece abaixo como um plano explicável.
         </p>
+        <div className="studyBlock" style={{ marginTop: 14, marginBottom: 14 }}>
+          <div className="prio">próxima ação · {recommendation.kind}</div>
+          <h3>{recommendation.title}</h3>
+          <div className="muted">{recommendation.reason}</div>
+        </div>
         <div className="row">
           <button className="btn" onClick={continueCycle} disabled={busy}>
-            Continuar ciclo
+            {ACTION_LABEL[recommendation.kind] ?? "Continuar ciclo"}
           </button>
           <button className="btn secondary" onClick={() => generate(15)} disabled={busy}>
-            Gerar Adaptive 15
+            Ignorar fila · Adaptive 15
           </button>
           <button className="btn secondary" onClick={() => generate(30)} disabled={busy}>
             Adaptive 30
@@ -103,9 +123,28 @@ export default function AdaptivePage() {
         <Metric label="Fila priorizada" value={cand.length} />
       </div>
 
+      <Card style={{ marginTop: 14 }}>
+        <h2>Plano de estudo atual</h2>
+        <p className="muted" style={{ marginTop: 4 }}>
+          O primeiro bloco marcado como ativo é o que o botão principal executa. Etapas concluídas voltam a ser
+          avaliadas depois de cada treino.
+        </p>
+        <div className="grid grid4" style={{ marginTop: 12 }}>
+          {plan.map((step) => (
+            <div className="studyBlock" key={step.title}>
+              <div className="prio">
+                {step.active ? "agora" : step.done ? "em dia" : "depois"}
+              </div>
+              <h3>{step.title}</h3>
+              <div className="muted">{step.detail}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>
-          <h2>Fila adaptativa</h2>
+          <h2>Fila de erros</h2>
           <div className="queue">
             {cand.length === 0 && <Empty>Sem erros para priorizar.</Empty>}
             {cand.slice(0, 10).map((x) => (
@@ -122,18 +161,18 @@ export default function AdaptivePage() {
           </div>
         </Card>
         <Card>
-          <h2>Próxima ação</h2>
+          <h2>Por que essa ordem?</h2>
           <div className="studyBlock">
-            <div className="prio">{recommendation.kind}</div>
-            <h3>{recommendation.title}</h3>
-            <div className="muted">{recommendation.reason}</div>
+            <div className="prio">1 · retenção</div>
+            <h3>Não perder o que já foi aprendido</h3>
+            <div className="muted">Revisões vencidas entram antes de qualquer volume novo.</div>
           </div>
           <div className="studyBlock" style={{ marginTop: 8 }}>
-            <div className="prio">ordem do ciclo</div>
-            <h3>Retenção → lacuna → erro → nova amostra</h3>
+            <div className="prio">2–4 · reparo e avanço</div>
+            <h3>Lacuna → erro → nova amostra</h3>
             <div className="muted">
-              Revisões vencidas têm prioridade. Depois o motor repara conteúdos abaixo de 65%,
-              refaz erros prioritários e só então avança para inéditas ou Adaptive.
+              Depois o motor repara conteúdos abaixo de 65%, recupera erros prioritários e só então busca questões
+              inéditas ou uma nova amostra adaptativa.
             </div>
           </div>
         </Card>
