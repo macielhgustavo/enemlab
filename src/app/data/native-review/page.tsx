@@ -6,13 +6,16 @@ import { NativeCropImage, NativePageWithRegion } from "@/components/native/Nativ
 import { ensureFreshSession, loadSession } from "@/lib/cloud/client";
 import { publishNativePack } from "@/lib/native/cloud";
 import {
+  addNativeQuestionRegion,
   approveAllStructurallyValid,
   approveNativeQuestion,
   documentForQuestion,
   nativePackGate,
   nativePageFilename,
   parseNativePackJson,
+  removeNativeQuestionRegion,
   updateNativeQuestionRect,
+  updateNativeQuestionRegion,
 } from "@/lib/native/review";
 import { nativePublicationGate, type NativePack, type NativeRect } from "@/lib/native/contracts";
 
@@ -33,6 +36,7 @@ function saveJson(filename: string, value: unknown) {
 export default function NativeReviewPage() {
   const [pack, setPack] = useState<NativePack | null>(null);
   const [index, setIndex] = useState(0);
+  const [regionIndex, setRegionIndex] = useState(0);
   const [pageUrls, setPageUrls] = useState<Record<string, string>>({});
   const [pageFiles, setPageFiles] = useState<Map<string, File>>(new Map());
   const [message, setMessage] = useState("");
@@ -45,7 +49,7 @@ export default function NativeReviewPage() {
 
   const current = pack?.questions[index] ?? null;
   const documentRecord = pack && current ? documentForQuestion(pack, current) : undefined;
-  const region = current?.visualRegions[0] ?? null;
+  const region = current?.visualRegions[regionIndex] ?? current?.visualRegions[0] ?? null;
   const filename = documentRecord && region ? nativePageFilename(documentRecord.pageAssetPattern, region.page) : "";
   const pageUrl = filename ? pageUrls[filename] : undefined;
   const questionGate = current ? nativePublicationGate(current, documentRecord) : null;
@@ -59,6 +63,7 @@ export default function NativeReviewPage() {
       const next = parseNativePackJson(await file.text());
       setPack(next);
       setIndex(0);
+      setRegionIndex(0);
       setMessage(`${next.questions.length} questões carregadas para revisão.`);
     } catch (cause) {
       setPack(null);
@@ -90,8 +95,54 @@ export default function NativeReviewPage() {
     nextRect.y = clamp(nextRect.y, 0, 0.99);
     nextRect.width = clamp(nextRect.width, 0.01, 1 - nextRect.x);
     nextRect.height = clamp(nextRect.height, 0.01, 1 - nextRect.y);
-    setPack(updateNativeQuestionRect(pack, current.questionKey, 0, nextRect));
+    setPack(updateNativeQuestionRect(pack, current.questionKey, regionIndex, nextRect));
     setMessage("Recorte alterado; a aprovação desta questão foi invalidada.");
+  }
+
+  function updatePage(page: number) {
+    if (!pack || !current || !region || !documentRecord) return;
+    const nextPage = Math.round(clamp(page, 1, documentRecord.pageCount));
+    setPack(updateNativeQuestionRegion(pack, current.questionKey, regionIndex, { page: nextPage }));
+    setMessage("Página da região alterada; a aprovação desta questão foi invalidada.");
+  }
+
+  function addRegion() {
+    if (!pack || !current || !region) return;
+    const proposedX = region.rect.x < 0.5 ? 0.52 : 0.05;
+    const width = Math.min(region.rect.width, 1 - proposedX);
+    const height = Math.min(region.rect.height, 0.45, 1 - region.rect.y);
+    const next = addNativeQuestionRegion(pack, current.questionKey, {
+      page: region.page,
+      role: "continuation",
+      rect: {
+        x: proposedX,
+        y: region.rect.y,
+        width: Math.max(0.01, width),
+        height: Math.max(0.01, height),
+      },
+    });
+    setPack(next);
+    setRegionIndex(next.questions[index].visualRegions.length - 1);
+    setMessage("Nova região adicionada como continuação; ajuste página e coordenadas antes de aprovar.");
+  }
+
+  function removeRegion() {
+    if (!pack || !current || !region) return;
+    try {
+      const next = removeNativeQuestionRegion(pack, current.questionKey, regionIndex);
+      setPack(next);
+      setRegionIndex((value) => Math.max(0, Math.min(value - 1, next.questions[index].visualRegions.length - 1)));
+      setError("");
+      setMessage("Região removida; a aprovação desta questão foi invalidada.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Falha ao remover região.");
+    }
+  }
+
+  function moveQuestion(nextIndex: number) {
+    if (!pack) return;
+    setIndex(clamp(nextIndex, 0, pack.questions.length - 1));
+    setRegionIndex(0);
   }
 
   function approveCurrent() {
@@ -139,8 +190,9 @@ export default function NativeReviewPage() {
         <p className="text-sm text-neutral-500">Dados · NativePack</p>
         <h1 className="text-3xl font-semibold">Revisão e publicação de prova nativa</h1>
         <p className="max-w-4xl text-sm text-neutral-600 dark:text-neutral-300">
-          Carregue o manifest gerado pelo pipeline e as páginas WebP. O retângulo define exatamente o que o aluno verá.
-          Alterar um recorte invalida a aprovação anterior; só um pack integralmente aprovado pode entrar no storage privado.
+          Carregue o manifest gerado pelo pipeline e as páginas WebP. Uma questão pode ter mais de uma região quando o layout
+          atravessa colunas ou páginas. Qualquer alteração invalida a aprovação anterior; só um pack integralmente aprovado pode
+          entrar no storage privado.
         </p>
         <div className="flex gap-4 text-sm">
           <Link href="/data" className="underline">Voltar para Dados</Link>
@@ -169,14 +221,39 @@ export default function NativeReviewPage() {
           <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
             <div>
               <b>{current.providerId.toUpperCase()} {current.year} · questão {current.number}</b>
-              <div className="text-xs text-neutral-500">{current.questionKey} · página {region.page} · {current.status}</div>
+              <div className="text-xs text-neutral-500">
+                {current.questionKey} · página {region.page} · região {regionIndex + 1}/{current.visualRegions.length} · {current.status}
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}>Anterior</button>
-              <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={index >= pack.questions.length - 1} onClick={() => setIndex((value) => Math.min(pack.questions.length - 1, value + 1))}>Próxima</button>
+              <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={index === 0} onClick={() => moveQuestion(index - 1)}>Anterior</button>
+              <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={index >= pack.questions.length - 1} onClick={() => moveQuestion(index + 1)}>Próxima</button>
               <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={approveCurrent}>Aprovar questão</button>
               <button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={approveAll}>Aprovar válidas</button>
             </div>
+          </section>
+
+          <section className="flex flex-wrap items-center gap-2 rounded-2xl border p-4 text-sm">
+            <span className="font-medium">Regiões:</span>
+            {current.visualRegions.map((item, itemIndex) => (
+              <button
+                key={`${item.page}-${itemIndex}`}
+                type="button"
+                className={`rounded-lg border px-3 py-2 ${itemIndex === regionIndex ? "font-semibold" : ""}`}
+                onClick={() => setRegionIndex(itemIndex)}
+              >
+                {itemIndex + 1} · pág. {item.page}
+              </button>
+            ))}
+            <button type="button" className="rounded-lg border px-3 py-2" onClick={addRegion}>+ Adicionar região</button>
+            <button
+              type="button"
+              className="rounded-lg border px-3 py-2 disabled:opacity-50"
+              disabled={current.visualRegions.length <= 1}
+              onClick={removeRegion}
+            >
+              Remover região
+            </button>
           </section>
 
           <section className="grid gap-5 lg:grid-cols-2">
@@ -189,16 +266,27 @@ export default function NativeReviewPage() {
               )}
             </div>
             <div className="space-y-3 rounded-2xl border p-4">
-              <h2 className="font-semibold">Recorte que será mostrado no runner</h2>
+              <h2 className="font-semibold">Recorte {regionIndex + 1} que será mostrado no runner</h2>
               {pageUrl ? (
-                <NativeCropImage src={pageUrl} rect={region.rect} alt={`Questão ${current.number}`} />
+                <NativeCropImage src={pageUrl} rect={region.rect} alt={`Questão ${current.number}, região ${regionIndex + 1}`} />
               ) : (
                 <div className="rounded-xl border border-dashed p-8 text-sm text-neutral-500">Carregue a página correspondente.</div>
               )}
             </div>
           </section>
 
-          <section className="grid gap-4 rounded-2xl border p-4 md:grid-cols-4">
+          <section className="grid gap-4 rounded-2xl border p-4 md:grid-cols-5">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">page: {region.page}</span>
+              <input
+                type="number"
+                min="1"
+                max={documentRecord?.pageCount ?? region.page}
+                value={region.page}
+                onChange={(event) => updatePage(Number(event.target.value))}
+                className="w-full rounded-lg border bg-transparent px-2 py-1"
+              />
+            </label>
             {(["x", "y", "width", "height"] as const).map((field) => (
               <label key={field} className="space-y-2 text-sm">
                 <span className="font-medium">{field}: {region.rect[field].toFixed(3)}</span>
