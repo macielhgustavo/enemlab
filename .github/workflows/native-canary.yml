@@ -7,6 +7,7 @@ on:
       - ".github/workflows/native-canary.yml"
       - "scripts/native_*.py"
       - "scripts/tests/test_native_*.py"
+      - "src/lib/native/**"
       - "src/lib/providers/unesp/**"
       - "package.json"
 
@@ -66,7 +67,27 @@ jobs:
           pages = sorted((root / 'pages').glob('*.webp'))
           if len(pages) != 40:
               raise SystemExit(f'esperadas 40 páginas WebP, recebidas {len(pages)}')
-          print(f"OK: {len(questions)} questões, {len(pages)} páginas, status review")
+
+          summary = pack.get('reviewSummary') or {}
+          if summary.get('semanticReady') != 89 or summary.get('needsReview') != 1:
+              raise SystemExit(
+                  'canário semântico divergiu: esperado 89 prontas e 1 para revisão; '
+                  f"recebido {summary.get('semanticReady')} / {summary.get('needsReview')}"
+              )
+          semantic_exceptions = [
+              question.get('number')
+              for question in questions
+              if (question.get('extraction') or {}).get('issues')
+          ]
+          if semantic_exceptions != [16]:
+              raise SystemExit(
+                  f'exceção semântica auditada deve permanecer somente na Q16; recebido {semantic_exceptions}'
+              )
+
+          print(
+              f"OK: {len(questions)} questões, {len(pages)} páginas, "
+              "89/90 semânticas e Q16 em revisão"
+          )
           PY
 
       - name: Upload review artifact
