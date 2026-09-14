@@ -4,6 +4,7 @@ import {
   type NativePack,
   type NativeQuestionContentRecord,
   type NativeRect,
+  type NativeVisualRegion,
 } from "./contracts";
 
 function clonePack(pack: NativePack): NativePack {
@@ -82,6 +83,38 @@ export function updateNativeQuestionRect(
   const region = question.visualRegions[regionIndex];
   if (!region) throw new Error(`Região visual não encontrada: ${questionKey}#${regionIndex}`);
   region.rect = rect;
+  question.status = "review";
+  return next;
+}
+
+export function addNativeQuestionRegion(
+  pack: NativePack,
+  questionKey: string,
+  region: NativeVisualRegion,
+): NativePack {
+  const next = clonePack(pack);
+  const question = next.questions.find((candidate) => candidate.questionKey === questionKey);
+  if (!question) throw new Error(`Questão nativa não encontrada: ${questionKey}`);
+  question.visualRegions.push(region);
+  question.status = "review";
+  return next;
+}
+
+export function removeNativeQuestionRegion(
+  pack: NativePack,
+  questionKey: string,
+  regionIndex: number,
+): NativePack {
+  const next = clonePack(pack);
+  const question = next.questions.find((candidate) => candidate.questionKey === questionKey);
+  if (!question) throw new Error(`Questão nativa não encontrada: ${questionKey}`);
+  if (question.visualRegions.length <= 1) {
+    throw new Error("Uma questão nativa precisa manter ao menos uma região visual.");
+  }
+  if (!question.visualRegions[regionIndex]) {
+    throw new Error(`Região visual não encontrada: ${questionKey}#${regionIndex}`);
+  }
+  question.visualRegions.splice(regionIndex, 1);
   question.status = "review";
   return next;
 }
