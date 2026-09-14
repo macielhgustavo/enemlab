@@ -4,6 +4,7 @@ import {
   type NativePack,
   type NativeQuestionContentRecord,
   type NativeRect,
+  type NativeReviewStatus,
   type NativeVisualRegion,
 } from "./contracts";
 
@@ -13,6 +14,10 @@ function clonePack(pack: NativePack): NativePack {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNativeReviewStatus(value: unknown): value is NativeReviewStatus {
+  return value === "draft" || value === "review" || value === "approved" || value === "published";
 }
 
 export function parseNativePackJson(json: string): NativePack {
@@ -50,6 +55,9 @@ export function parseNativePackJson(json: string): NativePack {
     if (!question.questionKey?.trim()) throw new Error("NativePack inválido: questionKey ausente.");
     if (keys.has(question.questionKey)) {
       throw new Error(`NativePack inválido: questionKey duplicada (${question.questionKey}).`);
+    }
+    if (!isNativeReviewStatus(question.status)) {
+      throw new Error(`NativePack inválido: status inválido (${String(question.status)}).`);
     }
     keys.add(question.questionKey);
   }
@@ -140,12 +148,13 @@ export function approveNativeQuestion(pack: NativePack, questionKey: string): Na
   if (!gate.publishable) {
     throw new Error(`Questão não pode ser aprovada: ${gate.issues.join("; ")}`);
   }
-  question.status = "published";
+  question.status = "approved";
   return next;
 }
 
 export interface NativePackGateResult {
   publishable: boolean;
+  /** Mantido por compatibilidade: quantidade de questões prontas para publicar. */
   published: number;
   total: number;
   issues: Array<{ questionKey: string; issues: string[] }>;
@@ -153,17 +162,19 @@ export interface NativePackGateResult {
 
 export function nativePackGate(pack: NativePack): NativePackGateResult {
   const issues: Array<{ questionKey: string; issues: string[] }> = [];
-  let published = 0;
+  let ready = 0;
   for (const question of pack.questions) {
     const gate = nativePublicationGate(question, documentForQuestion(pack, question));
     const rowIssues = [...gate.issues];
-    if (question.status !== "published") rowIssues.push("revisão humana ainda não aprovada");
+    if (question.status !== "approved" && question.status !== "published") {
+      rowIssues.push("revisão humana ainda não aprovada");
+    }
     if (rowIssues.length) issues.push({ questionKey: question.questionKey, issues: rowIssues });
-    else published += 1;
+    else ready += 1;
   }
   return {
     publishable: issues.length === 0 && pack.questions.length > 0,
-    published,
+    published: ready,
     total: pack.questions.length,
     issues,
   };
@@ -173,7 +184,21 @@ export function approveAllStructurallyValid(pack: NativePack): NativePack {
   const next = clonePack(pack);
   for (const question of next.questions) {
     const gate = nativePublicationGate(question, documentForQuestion(next, question));
-    if (gate.publishable) question.status = "published";
+    if (gate.publishable) question.status = "approved";
   }
+  return next;
+}
+
+/**
+ * Transição terminal do lifecycle. Só deve ser chamada pelo publisher depois
+ * que todos os assets foram gerados/enviados e o pack passou pelo gate.
+ */
+export function markNativePackPublished(pack: NativePack): NativePack {
+  const gate = nativePackGate(pack);
+  if (!gate.publishable) {
+    throw new Error(`NativePack ainda não pode ser marcado como publicado (${gate.published}/${gate.total} aprovado).`);
+  }
+  const next = clonePack(pack);
+  for (const question of next.questions) question.status = "published";
   return next;
 }
