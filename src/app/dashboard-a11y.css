@@ -1,0 +1,16 @@
+/* Mantém a entrada visual sem reduzir temporariamente o contraste do texto. */
+@keyframes dashboard-rise {
+  from {
+    transform: translateY(7px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-panel,
+  .dash-activity {
+    animation: none;
+  }
+}
