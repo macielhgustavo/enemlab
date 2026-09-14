@@ -17,15 +17,15 @@ export interface PrivateNativeTargetManifest {
     authority: "official" | "mirror";
     canonicalOfficialUrl?: string;
   };
-  storage: "private-browser" | "repository";
+  storage: "private-browser" | "private-supabase" | "repository";
   reason: string;
 }
 
 /**
  * Primeiro alvo de conteúdo nativo privado. Os hashes garantem que o conteúdo
  * importado por vocês corresponde exatamente aos bytes revisados pelo provider.
- * O repositório mantém só código + proveniência; o texto integral pode ficar no
- * navegador dos usuários do Studium.
+ * O GitHub público mantém somente código + proveniência; páginas e recortes
+ * publicados vivem no bucket privado do Supabase e exigem sessão autorizada.
  */
 export const UNESP_2026_LOCAL_NATIVE_TARGET: PrivateNativeTargetManifest = {
   providerId: "unesp",
@@ -49,9 +49,9 @@ export const UNESP_2026_LOCAL_NATIVE_TARGET: PrivateNativeTargetManifest = {
     canonicalOfficialUrl:
       "https://documento.vunesp.com.br/documento/stream/NzQ2NDIxNg%3D%3D",
   },
-  storage: "private-browser",
+  storage: "private-supabase",
   reason:
-    "O Studium é usado de forma privada; o navegador pode armazenar o conteúdo integral enquanto o GitHub público mantém apenas identidade, gabarito e proveniência.",
+    "O Studium é usado de forma privada; páginas e recortes ficam no bucket privado native-content, enquanto o GitHub público mantém identidade, gabarito e proveniência.",
 };
 
 // Alias temporário para não quebrar imports do Sprint 1.
