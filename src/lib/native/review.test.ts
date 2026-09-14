@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { NativePack } from "./contracts";
 import {
+  addNativeQuestionRegion,
   approveAllStructurallyValid,
   approveNativeQuestion,
   nativePackGate,
   nativePageFilename,
   parseNativePackJson,
+  removeNativeQuestionRegion,
   updateNativeQuestionRect,
 } from "./review";
 
@@ -76,6 +78,21 @@ describe("NativePack review", () => {
     });
     expect(edited.questions[0].status).toBe("review");
     expect(edited.questions[0].visualRegions[0].rect.x).toBe(0.1);
+  });
+
+  it("adiciona e remove regiões sem permitir questão visualmente vazia", () => {
+    const approved = approveNativeQuestion(pack(), "unesp-2026-first-1");
+    const withContinuation = addNativeQuestionRegion(approved, "unesp-2026-first-1", {
+      page: 3,
+      role: "continuation",
+      rect: { x: 0.52, y: 0.08, width: 0.42, height: 0.35 },
+    });
+    expect(withContinuation.questions[0].status).toBe("review");
+    expect(withContinuation.questions[0].visualRegions).toHaveLength(2);
+
+    const removed = removeNativeQuestionRegion(withContinuation, "unesp-2026-first-1", 1);
+    expect(removed.questions[0].visualRegions).toHaveLength(1);
+    expect(() => removeNativeQuestionRegion(removed, "unesp-2026-first-1", 0)).toThrow(/ao menos uma/);
   });
 
   it("só libera publicação depois da aprovação humana", () => {
