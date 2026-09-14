@@ -70,7 +70,7 @@ describe("NativePack review", () => {
   });
 
   it("recusa status fora do lifecycle suportado", () => {
-    const invalid = pack() as NativePack & { questions: Array<NativePack["questions"][number] & { status: string }> };
+    const invalid = pack() as unknown as { questions: Array<{ status: string }> };
     invalid.questions[0].status = "done";
     expect(() => parseNativePackJson(JSON.stringify(invalid))).toThrow(/status inválido/);
   });
