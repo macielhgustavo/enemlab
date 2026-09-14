@@ -13,14 +13,8 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/enem-lab/states";
 import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
-import {
-  buildAdaptiveAttempt,
-  buildContentSprintAttempt,
-  buildDueReviewsAttempt,
-  buildTrainingAttempt,
-} from "@/lib/services/attempts";
+import { buildDailyPlanBlockAttempt } from "@/lib/services/daily-plan-attempt";
 import { Card, PageHead } from "@/components/ui";
-import type { Attempt } from "@/lib/domain/types";
 
 const BUDGET_KEY = "enem_lab_daily_minutes";
 const BUDGET_PRESETS = [30, 45, 60, 90, 120];
@@ -53,27 +47,11 @@ export default function PlanoPage() {
     }
   }
 
-  async function buildBlockAttempt(block: DailyPlanBlock): Promise<Attempt> {
-    if (block.kind === "srs") return buildDueReviewsAttempt(db, block.questions, providerId);
-    if (block.kind === "weak") return buildContentSprintAttempt(block.content!, block.questions);
-    if (block.kind === "adaptive") return buildAdaptiveAttempt(db, block.questions);
-    return buildTrainingAttempt(db, {
-      year: 2023,
-      lang: "ingles",
-      mode: "unseen15",
-      area: "all",
-      minutes: Math.max(35, block.minutes),
-      strict: false,
-      strategy: false,
-      alerts: true,
-    });
-  }
-
   async function startBlock(block: DailyPlanBlock) {
     setBusyBlock(block.id);
     setErr("");
     try {
-      const attempt = await buildBlockAttempt(block);
+      const attempt = await buildDailyPlanBlockAttempt(db, block, providerId);
       attempt.plan = {
         source: "daily-plan",
         dateKey: plan.dateKey,
