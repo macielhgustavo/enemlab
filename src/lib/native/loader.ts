@@ -2,7 +2,7 @@ import { CLOUD_CONFIGURED, ensureFreshSession, loadSession } from "../cloud/clie
 import { classifyQuestion, questionKey } from "../domain/classify";
 import type { Question } from "../domain/types";
 import { createNativeSignedUrls, fetchPublishedNativePack } from "./cloud";
-import type { NativePack } from "./contracts";
+import type { NativePack, NativeQuestionContentRecord } from "./contracts";
 
 interface NativeGroup {
   providerId: string;
@@ -41,10 +41,40 @@ function groupsOf(questions: Question[]): NativeGroup[] {
   return [...groups.values()];
 }
 
+function recordMatchesQuestion(record: NativeQuestionContentRecord, question: Question): boolean {
+  return (
+    record.questionKey === questionKey(question) &&
+    record.providerId === (question.providerId ?? "enem") &&
+    record.year === question.year &&
+    record.phase === (question.phase ?? "single") &&
+    record.number === (question.number ?? question.index)
+  );
+}
+
+function completeVisualUrls(
+  record: NativeQuestionContentRecord,
+  signedUrls: Map<string, string>,
+): string[] | null {
+  if (!record.visualRegions.length) return null;
+  const urls: string[] = [];
+  for (const region of record.visualRegions) {
+    if (!region.assetPath) return null;
+    const signed = signedUrls.get(region.assetPath);
+    if (!signed) return null;
+    urls.push(signed);
+  }
+  return urls;
+}
+
 /**
  * Aplica um pack já publicado a um conjunto de questões. O visual assinado é
  * tratado como canônico; o gabarito e a estrutura A–E continuam vindo do
  * provider original e nunca do NativePack.
+ *
+ * A aplicação é fail-closed por questão: registros com identidade divergente
+ * ou com qualquer região visual ausente permanecem em modo referência. Isso é
+ * essencial em layouts multi-região, nos quais mostrar apenas parte do visual
+ * pode omitir alternativas, contexto ou figuras necessárias para responder.
  */
 export function applyNativePackToQuestions(
   questions: Question[],
@@ -54,12 +84,12 @@ export function applyNativePackToQuestions(
   const records = new Map(pack.questions.map((record) => [record.questionKey, record]));
   return questions.map((question) => {
     const record = records.get(questionKey(question));
-    if (!record || record.status !== "published") return question;
+    if (!record || record.status !== "published" || !recordMatchesQuestion(record, question)) {
+      return question;
+    }
 
-    const visualUrls = record.visualRegions
-      .map((region) => (region.assetPath ? signedUrls.get(region.assetPath) : undefined))
-      .filter((value): value is string => Boolean(value));
-    if (!visualUrls.length) return question;
+    const visualUrls = completeVisualUrls(record, signedUrls);
+    if (!visualUrls) return question;
 
     return {
       ...question,
