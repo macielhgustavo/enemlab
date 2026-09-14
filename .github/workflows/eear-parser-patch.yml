@@ -1,0 +1,45 @@
+name: Patch EEAR native inventory parser
+
+on:
+  push:
+    branches:
+      - fix/native-question-identity-gate
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[eear-patch-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/native-question-identity-gate
+      - name: Repair parser and regression test
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          orchestrator = Path('scripts/native_orchestrator.py')
+          text = orchestrator.read_text(encoding='utf-8')
+          old = '''        # Os arquivos gerados são arrays JSON válidos seguidos de `as const`.\n        start = text.find("[")\n        end = text.rfind("]")\n        if start < 0 or end < start:\n            continue\n'''
+          new = '''        # A tipagem TypeScript também contém `[]`; localize o array de dados\n        # somente depois do operador de atribuição para não confundir os dois.\n        assignment = re.search(r"=\\s*\\[", text)\n        start = assignment.end() - 1 if assignment else -1\n        end = text.rfind("]")\n        if start < 0 or end < start:\n            continue\n'''
+          if old not in text:
+              raise SystemExit('trecho esperado do parser não encontrado')
+          orchestrator.write_text(text.replace(old, new), encoding='utf-8')
+
+          tests = Path('scripts/tests/test_native_ingest.py')
+          text = tests.read_text(encoding='utf-8')
+          old = '''    def test_eear_inventory_keeps_the_existing_curated_filter(self):\n        labels = " ".join(\n            f"{target.label} {target.edition_id or ''}".lower()\n            for target in self.targets\n            if target.provider_id == "eear"\n        )\n        for term in native_ingest.core.SENSITIVE_EEAR_TERMS:\n            self.assertNotIn(term, labels)\n'''
+          new = '''    def test_eear_inventory_keeps_the_existing_curated_filter(self):\n        eear = [target for target in self.targets if target.provider_id == "eear"]\n        self.assertGreater(len(eear), 0, "EEAR não pode desaparecer silenciosamente do inventário")\n        labels = " ".join(\n            f"{target.label} {target.edition_id or ''}".lower()\n            for target in eear\n        )\n        for term in native_ingest.core.SENSITIVE_EEAR_TERMS:\n            self.assertNotIn(term, labels)\n        for target in eear:\n            self.assertEqual(target.option_ids, ("A", "B", "C", "D"))\n            self.assertTrue(target.exam_url)\n'''
+          if old not in text:
+              raise SystemExit('trecho esperado do teste não encontrado')
+          tests.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/native_orchestrator.py scripts/tests/test_native_ingest.py
+          git diff --cached --check
+          git commit -m "fix(native): repair EEAR inventory parser [eear-patch-done]"
+          git push origin HEAD:fix/native-question-identity-gate
