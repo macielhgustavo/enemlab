@@ -1,6 +1,7 @@
 import { adaptiveCandidates } from "../domain/adaptive";
-import { officialRowsOf, weakestContents } from "../domain/stats";
+import { officialRowsOf } from "../domain/stats";
 import { dueSRS } from "../domain/srs";
+import { actionableWeakContents, calibrationContents } from "../domain/weak-evidence";
 import type { DB } from "../domain/types";
 import { resolveProviderId } from "../providers";
 import { nextStudyAction, type StudyActionKind } from "./provider-study";
@@ -22,7 +23,8 @@ export function studyPlan(db: DB, providerId: string): StudyPlanStep[] {
   const scoped = resolveProviderId(providerId);
   const next = nextStudyAction(db, scoped);
   const due = dueSRS(db, scoped).length;
-  const weak = weakestContents(db, 5, scoped).filter((item) => item.p < 65);
+  const weak = actionableWeakContents(db, 5, scoped);
+  const calibrating = calibrationContents(db, 5, scoped);
   const retries = adaptiveCandidates(db, scoped).length;
   const history = officialRowsOf(db, scoped).length;
 
@@ -39,8 +41,10 @@ export function studyPlan(db: DB, providerId: string): StudyPlanStep[] {
       kind: "weakness",
       title: "2. Reparar lacunas",
       detail: weak.length
-        ? `${weak.length} conteúdo(s) abaixo de 65%; pior sinal: ${weak[0].name} (${weak[0].p}%).`
-        : "Nenhum conteúdo medido abaixo de 65%.",
+        ? `${weak.length} lacuna(s) com amostra mínima; pior sinal: ${weak[0].name} (${weak[0].p}% · n=${weak[0].t}).`
+        : calibrating.length
+          ? `Nenhuma lacuna confirmada; ${calibrating.length} conteúdo(s) ainda estão em calibração.`
+          : "Nenhuma lacuna com evidência suficiente.",
       count: weak.length,
       active: next.kind === "weakness",
       done: weak.length === 0,
@@ -57,7 +61,9 @@ export function studyPlan(db: DB, providerId: string): StudyPlanStep[] {
       kind: history ? "adaptive" : "unseen",
       title: "4. Nova amostra",
       detail: history
-        ? `${history} resposta(s) históricas alimentam o próximo treino adaptativo.`
+        ? calibrating.length
+          ? `${history} resposta(s) históricas; ${calibrating.length} conteúdo(s) ainda precisam de mais amostra.`
+          : `${history} resposta(s) históricas alimentam o próximo treino adaptativo.`
         : "Sem histórico: o primeiro bloco será composto por questões inéditas.",
       count: history,
       active: next.kind === "unseen" || next.kind === "adaptive",
