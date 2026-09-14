@@ -71,20 +71,33 @@ export function nativePageFilename(pattern: string, page: number): string {
   return rendered.split("/").at(-1) || `page-${padded}.webp`;
 }
 
-export function updateNativeQuestionRect(
+export function updateNativeQuestionRegion(
   pack: NativePack,
   questionKey: string,
   regionIndex: number,
-  rect: NativeRect,
+  partial: Partial<NativeVisualRegion>,
 ): NativePack {
   const next = clonePack(pack);
   const question = next.questions.find((candidate) => candidate.questionKey === questionKey);
   if (!question) throw new Error(`Questão nativa não encontrada: ${questionKey}`);
   const region = question.visualRegions[regionIndex];
   if (!region) throw new Error(`Região visual não encontrada: ${questionKey}#${regionIndex}`);
-  region.rect = rect;
+  question.visualRegions[regionIndex] = {
+    ...region,
+    ...partial,
+    rect: partial.rect ? { ...partial.rect } : region.rect,
+  };
   question.status = "review";
   return next;
+}
+
+export function updateNativeQuestionRect(
+  pack: NativePack,
+  questionKey: string,
+  regionIndex: number,
+  rect: NativeRect,
+): NativePack {
+  return updateNativeQuestionRegion(pack, questionKey, regionIndex, { rect });
 }
 
 export function addNativeQuestionRegion(
