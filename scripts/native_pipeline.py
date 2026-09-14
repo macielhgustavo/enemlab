@@ -38,6 +38,7 @@ class Spec:
     option_ids: tuple[str, ...]
     source_sha256: str
     source_url: str
+    question_key_format: str
     marker_pattern: str = DEFAULT_MARKER
 
     @property
@@ -77,6 +78,20 @@ def _load_spec(path: Path) -> Spec:
     sha = str(raw["sourceSha256"]).lower()
     if not re.fullmatch(r"[0-9a-f]{64}", sha):
         raise NativePipelineError("sourceSha256 inválido")
+
+    # A identidade não pode ser inferida do provider/ano/fase dentro do
+    # extrator. Alguns providers têm edição, idioma ou identidade histórica
+    # própria. O orquestrador precisa fornecer um formato já auditado contra a
+    # questionKey usada pelo app; sem isso, o pipeline falha fechado.
+    question_key_format = str(raw.get("questionKeyFormat") or "").strip()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*-\{number\}", question_key_format):
+        raise NativePipelineError(
+            "questionKeyFormat ausente ou inválido; identidade precisa ser comprovada pelo provider"
+        )
+    rendered_keys = [question_key_format.replace("{number}", str(number)) for number in range(1, total + 1)]
+    if len(set(rendered_keys)) != total:
+        raise NativePipelineError("questionKeyFormat gera chaves duplicadas")
+
     return Spec(
         provider_id=str(raw["providerId"]),
         year=int(raw["year"]),
@@ -86,6 +101,7 @@ def _load_spec(path: Path) -> Spec:
         option_ids=option_ids,
         source_sha256=sha,
         source_url=str(raw["sourceUrl"]),
+        question_key_format=question_key_format,
         marker_pattern=str(raw.get("markerPattern") or DEFAULT_MARKER),
     )
 
@@ -199,8 +215,7 @@ def _detected_options(text: str, allowed: tuple[str, ...]) -> list[str]:
 
 
 def _question_key(spec: Spec, number: int) -> str:
-    edition = spec.edition_id or str(spec.year)
-    return "-".join([spec.provider_id, edition, spec.phase, str(number)])
+    return spec.question_key_format.replace("{number}", str(number))
 
 
 def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5, quality: int = 82) -> dict[str, Any]:
