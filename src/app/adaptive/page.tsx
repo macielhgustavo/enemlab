@@ -28,6 +28,13 @@ const ACTION_LABEL: Record<string, string> = {
   adaptive: "Avançar com Adaptive 15",
 };
 
+const RETRY_COMPONENT_LABELS: Record<string, string> = {
+  contentGap: "lacuna",
+  confidence: "confiança",
+  slow: "tempo",
+  diagnosedReason: "diagnóstico",
+};
+
 export default function AdaptivePage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
@@ -75,6 +82,7 @@ export default function AdaptivePage() {
   const due = dueSRS(db, providerId);
   const recommendation = nextStudyAction(db, providerId);
   const plan = studyPlan(db, providerId);
+  const topRetry = cand[0];
   const certezaWrong = officialRowsOf(db, providerId).filter(
     (x) => x.isCorrect === false && x.confidence === "certeza",
   ).length;
@@ -88,7 +96,7 @@ export default function AdaptivePage() {
         </h1>
         <p>
           O motor combina retenção, domínio, erros, inéditas e diversidade por conteúdo. A prioridade é
-          determinística, isolada por prova e agora aparece abaixo como um plano explicável.
+          determinística, isolada por prova e cada sinal usado na decisão pode ser inspecionado.
         </p>
         <div className="studyBlock" style={{ marginTop: 14, marginBottom: 14 }}>
           <div className="prio">próxima ação · {recommendation.kind}</div>
@@ -145,16 +153,27 @@ export default function AdaptivePage() {
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>
           <h2>Fila de erros</h2>
-          <div className="queue">
+          <p className="muted" style={{ marginTop: 4 }}>
+            O score não é uma nota: ele só ordena qual erro vale recuperar primeiro.
+          </p>
+          <div className="queue" style={{ marginTop: 10 }}>
             {cand.length === 0 && <Empty>Sem erros para priorizar.</Empty>}
             {cand.slice(0, 10).map((x) => (
               <div className="queueItem" key={`${x.attemptId}-${x.key}`}>
                 <div className="qnum">{x.index}</div>
-                <div>
-                  <b>{x.content}</b>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
+                    <b>{x.content}</b>
+                    <span className="pill">score {Math.round(x.score)}</span>
+                  </div>
                   <div className="muted" style={{ fontSize: 11 }}>
                     {examLabel(providerId)} {x.year} • {x.confidence || "sem confiança"} • {shortSec(x.timeSec)}
                   </div>
+                  {x.reasons[0] ? (
+                    <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>
+                      {x.reasons[0]}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -175,6 +194,21 @@ export default function AdaptivePage() {
               inéditas ou uma nova amostra adaptativa.
             </div>
           </div>
+          {topRetry ? (
+            <div className="studyBlock" style={{ marginTop: 8 }}>
+              <div className="prio">exemplo real · topo da fila de erros</div>
+              <h3>{topRetry.content} · {Math.round(topRetry.score)} pontos</h3>
+              <div className="muted">
+                {Object.entries(topRetry.components)
+                  .filter(([, value]) => value !== 0)
+                  .map(([key, value]) => `${RETRY_COMPONENT_LABELS[key] ?? key} ${value > 0 ? "+" : ""}${Math.round(value)}`)
+                  .join(" · ")}
+              </div>
+              <div className="muted" style={{ marginTop: 4 }}>
+                {topRetry.reasons.slice(0, 3).join(" ")}
+              </div>
+            </div>
+          ) : null}
         </Card>
       </div>
     </>
