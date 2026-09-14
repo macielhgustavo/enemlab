@@ -4,6 +4,7 @@ import {
   addNativeQuestionRegion,
   approveAllStructurallyValid,
   approveNativeQuestion,
+  markNativePackPublished,
   nativePackGate,
   nativePageFilename,
   parseNativePackJson,
@@ -68,6 +69,18 @@ describe("NativePack review", () => {
     expect(() => parseNativePackJson(JSON.stringify(invalid))).toThrow(/duplicada/);
   });
 
+  it("recusa status fora do lifecycle suportado", () => {
+    const invalid = pack() as unknown as { questions: Array<{ status: string }> };
+    invalid.questions[0].status = "done";
+    expect(() => parseNativePackJson(JSON.stringify(invalid))).toThrow(/status inválido/);
+  });
+
+  it("aprova localmente sem fingir que a questão já foi publicada", () => {
+    const approved = approveNativeQuestion(pack(), "unesp-2026-first-1");
+    expect(approved.questions[0].status).toBe("approved");
+    expect(nativePackGate(approved)).toMatchObject({ publishable: true, published: 1, total: 1 });
+  });
+
   it("edita recorte e volta o status para review", () => {
     const approved = approveNativeQuestion(pack(), "unesp-2026-first-1");
     const edited = updateNativeQuestionRect(approved, "unesp-2026-first-1", 0, {
@@ -98,7 +111,16 @@ describe("NativePack review", () => {
   it("só libera publicação depois da aprovação humana", () => {
     expect(nativePackGate(pack()).publishable).toBe(false);
     const approved = approveAllStructurallyValid(pack());
+    expect(approved.questions[0].status).toBe("approved");
     expect(nativePackGate(approved)).toMatchObject({ publishable: true, published: 1, total: 1 });
+  });
+
+  it("marca published somente na transição explícita de publicação", () => {
+    const approved = approveAllStructurallyValid(pack());
+    const published = markNativePackPublished(approved);
+    expect(published.questions[0].status).toBe("published");
+    expect(approved.questions[0].status).toBe("approved");
+    expect(() => markNativePackPublished(pack())).toThrow(/ainda não pode ser marcado/);
   });
 
   it("formata o padrão de página usado pelo storage", () => {

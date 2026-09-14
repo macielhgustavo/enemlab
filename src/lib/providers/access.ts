@@ -30,7 +30,7 @@ export interface QuestionQuery {
  *
  * Ordem dos overlays:
  * 1. provider resolve identidade e gabarito;
- * 2. NativePack privado aprovado acrescenta o visual assinado;
+ * 2. NativePack realmente publicado acrescenta o visual assinado;
  * 3. bundle local opcional pode substituir somente texto, nunca gabarito.
  */
 export async function questionsFor(
