@@ -136,7 +136,9 @@ function weakPriorities(db: DB, providerId: string = DEFAULT_PROVIDER_ID): WeakP
         score,
       };
     })
-    .filter((item) => item.p < 82 || item.low < 70 || item.certainWrong > 0)
+    // A faixa de Wilson explica incerteza e ordena prioridades, mas não deve
+    // sozinha transformar um conteúdo acima do corte em "fraqueza".
+    .filter((item) => item.p < 65)
     .sort((a, b) => b.score - a.score || a.p - b.p || b.t - a.t);
 }
 
@@ -251,9 +253,10 @@ export function buildDailyPlan(
         priority: 3,
         eyebrow: "calibração adaptativa",
         title: `Adaptive · ${n} questões`,
-        reason:
-          weak.length || due.length
-            ? "Fecha a sessão misturando fraqueza, amostra pequena, recência, ineditismo e dificuldade pessoal."
+        reason: weak.length
+          ? "Fecha a sessão combinando lacunas confirmadas, recência, ineditismo e dificuldade pessoal."
+          : due.length
+            ? "Depois da retenção, amplia a amostra com recência, ineditismo e dificuldade pessoal."
             : calibrating.length
               ? `${calibrating.length} conteúdo(s) ainda têm amostra curta; o Adaptive amplia a evidência antes de rotular uma lacuna.`
               : "Sem gargalo forte detectado: use o Adaptive para ampliar a amostra e encontrar a próxima prioridade.",
