@@ -7,6 +7,10 @@ import {
   questionTagsByRow,
   wilsonInterval,
 } from "./stats";
+import {
+  calibrationContents,
+  MIN_ACTIONABLE_CONTENT_SAMPLE,
+} from "./weak-evidence";
 import type { DB } from "./types";
 
 export type DailyPlanBlockKind = "srs" | "weak" | "adaptive" | "unseen";
@@ -33,6 +37,7 @@ export interface DailyPlanSignals {
   paceDeficit: number;
   completedPlanBlocks: number;
   highConfidenceErrors: number;
+  calibratingContents: number;
 }
 
 export interface DailyPlan {
@@ -109,7 +114,7 @@ function weakPriorities(db: DB, providerId: string = DEFAULT_PROVIDER_ID): WeakP
   const recent = officialRowsOf(db, providerId).slice(-120);
 
   return Object.entries(mastery)
-    .filter(([, value]) => value.t >= 2)
+    .filter(([, value]) => value.t >= MIN_ACTIONABLE_CONTENT_SAMPLE)
     .map(([name, value]) => {
       const ci = wilsonInterval(value.c, value.t);
       const certainWrong = recent.filter(
@@ -174,7 +179,13 @@ export function buildDailyPlan(
   const due = dueSRS(db, providerId);
   const avgQuestionMinutes = estimatedQuestionMinutes(db, providerId);
   const weak = weakPriorities(db, providerId);
-  const highConfidenceErrors = weak.reduce((sum, item) => sum + item.certainWrong, 0);
+  const calibrating = calibrationContents(db, 100, providerId);
+  const recent = officialRowsOf(db, providerId).slice(-120);
+  // Erro com certeza continua sendo um sinal crítico mesmo quando o conteúdo
+  // ainda não acumulou amostra suficiente para ser chamado de fraqueza.
+  const highConfidenceErrors = recent.filter(
+    (row) => row.isCorrect === false && row.confidence === "certeza",
+  ).length;
   const completedPlanBlocks = today.filter((a) => a.plan?.source === "daily-plan").length;
 
   let remaining = Math.max(0, budgetMinutes - minutesToday);
@@ -243,7 +254,9 @@ export function buildDailyPlan(
         reason:
           weak.length || due.length
             ? "Fecha a sessão misturando fraqueza, amostra pequena, recência, ineditismo e dificuldade pessoal."
-            : "Sem gargalo forte detectado: use o Adaptive para ampliar a amostra e encontrar a próxima prioridade.",
+            : calibrating.length
+              ? `${calibrating.length} conteúdo(s) ainda têm amostra curta; o Adaptive amplia a evidência antes de rotular uma lacuna.`
+              : "Sem gargalo forte detectado: use o Adaptive para ampliar a amostra e encontrar a próxima prioridade.",
         questions: n,
         minutes,
         metric: questionsNeededToday ? `${questionsNeededToday} para o ritmo de hoje` : "ritmo diário em dia",
@@ -293,6 +306,7 @@ export function buildDailyPlan(
       paceDeficit,
       completedPlanBlocks,
       highConfidenceErrors,
+      calibratingContents: calibrating.length,
     },
     blocks,
     totalQuestions,
