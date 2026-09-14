@@ -23,6 +23,32 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Auth email/password canônico
+        run: |
+          node <<'NODE'
+          const url = 'https://srpohfgqqrzpilalemar.supabase.co';
+          const key = 'sb_publishable_rQ-ylXrjxjUbp0kHXsXidQ_dz-P4cQl';
+          const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: { apikey: key, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: 'studium-auth-smoke@example.invalid',
+              password: 'not-a-real-account-password',
+            }),
+          });
+          const body = await response.text();
+          if (/email logins? (are )?disabled/i.test(body)) {
+            throw new Error('Email/password authentication is disabled');
+          }
+          if (response.status !== 400) {
+            throw new Error(`Unexpected Auth response: HTTP ${response.status}`);
+          }
+          if (!/invalid login credentials/i.test(body)) {
+            throw new Error(`Email/password provider did not return the expected invalid-credentials response`);
+          }
+          console.log('Email/password provider is enabled on the canonical Supabase project.');
+          NODE
+
       - name: Install dependencies
         run: npm ci
 
