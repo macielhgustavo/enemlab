@@ -33,4 +33,20 @@ describe("native cloud identity", () => {
   it("inclui SHA da fonte na identidade do pack", () => {
     expect(nativePackId(pack)).toBe(`unesp-2026-first:${"a".repeat(64)}`);
   });
+
+  it("recusa packs multi-documento enquanto a persistência é indexada por uma prova", () => {
+    const multi: NativePack = {
+      ...pack,
+      documents: [
+        ...pack.documents,
+        {
+          ...pack.documents[0],
+          documentId: "unesp-2025-first",
+          year: 2025,
+          sourceSha256: "b".repeat(64),
+        },
+      ],
+    };
+    expect(() => nativePackId(multi)).toThrow(/exatamente um documento/);
+  });
 });
