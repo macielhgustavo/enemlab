@@ -120,6 +120,26 @@ describe("buildDailyPlan", () => {
     expect(plan.blocks.find((block) => block.kind === "adaptive")?.reason).toContain("amostra curta");
   });
 
+  it("does not call a 75% content weak only because its interval is wide", () => {
+    const state = db();
+    state.attempts.push(
+      attempt(
+        "above-cutoff",
+        [
+          row(1, "Funções", true),
+          row(2, "Funções", true),
+          row(3, "Funções", true),
+          row(4, "Funções", false),
+        ],
+        "2026-09-02T12:00:00.000Z",
+      ),
+    );
+
+    const plan = buildDailyPlan(state, 60, new Date("2026-09-05T14:00:00"));
+    expect(plan.blocks.some((block) => block.kind === "weak" && block.content === "Funções")).toBe(false);
+    expect(plan.signals.highConfidenceErrors).toBe(1);
+  });
+
   it("subtracts study time already spent today from the available budget", () => {
     const state = db();
     state.attempts.push(
