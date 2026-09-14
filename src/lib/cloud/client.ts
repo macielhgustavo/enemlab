@@ -1,21 +1,20 @@
 import type { DB } from "../domain/types";
 
-// O Studium tem um projeto Supabase canônico. URL e publishable key são
-// deliberadamente públicas: ambas vão para o bundle do navegador de qualquer
-// forma. Segurança e autorização continuam sendo responsabilidade do RLS.
+// O Studium tem um projeto Supabase canônico. A URL é pública e pode ficar no
+// bundle do navegador. A publishable key também é pública por design, mas deve
+// pertencer ao MESMO projeto; por isso não reutilizamos a chave do projeto
+// anterior durante a migração.
 //
-// Variáveis de ambiente permanecem como override para forks/ambientes locais,
-// mas a aplicação oficial não pode cair silenciosamente em "somente local"
-// só porque um deployment da Vercel perdeu a configuração.
-const DEFAULT_SUPABASE_URL = "https://bpmhieqyubpuueoyulee.supabase.co";
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_c4WpRQ8xT1ylIWwRjh-nUw_xMOxQoMh";
+// Variáveis de ambiente permanecem como override para forks/ambientes locais.
+// Enquanto a publishable key do projeto canônico não estiver configurada, a
+// aplicação falha fechado em vez de sincronizar com o backend errado.
+const DEFAULT_SUPABASE_URL = "https://srpohfgqqrzpilalemar.supabase.co";
 
 export const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
 export const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || DEFAULT_SUPABASE_PUBLISHABLE_KEY;
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
 
-/** A aplicação oficial sempre tem nuvem; forks ainda podem sobrescrever o destino via env. */
 export const CLOUD_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
 function assertConfigured() {
