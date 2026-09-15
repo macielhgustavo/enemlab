@@ -1,9 +1,10 @@
 import { DEFAULT_PROVIDER_ID, resolveProviderId } from "../providers/registry";
 import { adaptiveDecision, buildAdaptiveSelection, type AdaptiveDecision, type AdaptiveScoreComponents, type AdaptiveSelectionItem } from "./adaptive";
 import { masteryStats, officialRowsOf } from "./stats";
-import type { DB, Question } from "./types";
+import type { DB, Question, StudyObjectiveId, StudySignalId } from "./types";
 
-export type AdaptiveObjective = "balanced" | "recovery" | "coverage" | "exam" | "gain";
+export type AdaptiveObjective = StudyObjectiveId;
+export type AdaptivePersonalization = Partial<Record<StudySignalId, number>>;
 
 export interface ObjectiveProfile {
   id: AdaptiveObjective;
@@ -56,10 +57,28 @@ export interface ObjectiveAdaptiveSelectionItem extends Omit<AdaptiveSelectionIt
   decision: ObjectiveAdaptiveDecision;
 }
 
-function weightedDecision(base: AdaptiveDecision, objective: AdaptiveObjective): ObjectiveAdaptiveDecision {
+function personalizationMultiplier(
+  key: keyof AdaptiveScoreComponents,
+  personalization: AdaptivePersonalization,
+): number {
+  if (key === "tieBreak") return 1;
+  const value = personalization[key as StudySignalId];
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(1.1, Math.max(0.9, value))
+    : 1;
+}
+
+function weightedDecision(
+  base: AdaptiveDecision,
+  objective: AdaptiveObjective,
+  personalization: AdaptivePersonalization = {},
+): ObjectiveAdaptiveDecision {
   const profile = ADAPTIVE_OBJECTIVES[objective];
   const weightedComponents = Object.fromEntries(
-    Object.entries(base.components).map(([key, value]) => [key, value * profile.weights[key as keyof AdaptiveScoreComponents]]),
+    (Object.entries(base.components) as Array<[keyof AdaptiveScoreComponents, number]>).map(([key, value]) => [
+      key,
+      value * profile.weights[key] * personalizationMultiplier(key, personalization),
+    ]),
   ) as unknown as AdaptiveScoreComponents;
   const score = Object.values(weightedComponents).reduce((sum, value) => sum + value, 0);
   return {
@@ -73,9 +92,9 @@ function weightedDecision(base: AdaptiveDecision, objective: AdaptiveObjective):
 }
 
 /**
- * O modo balanceado delega à função histórica para garantir exatamente a
- * mesma fila. Os demais modos só reponderam componentes já explicáveis; não
- * criam um segundo classificador ou mudam gabarito/identidade.
+ * O modo balanceado sem feedback delega à função histórica para garantir
+ * exatamente a mesma fila. Personalização só existe depois de evidência
+ * explícita e é limitada a ±10% por sinal.
  */
 export function buildObjectiveAdaptiveSelection(
   db: DB,
@@ -84,8 +103,9 @@ export function buildObjectiveAdaptiveSelection(
   providerId: string = DEFAULT_PROVIDER_ID,
   objective: AdaptiveObjective = "balanced",
   now: Date = new Date(),
+  personalization: AdaptivePersonalization = {},
 ): ObjectiveAdaptiveSelectionItem[] {
-  if (objective === "balanced") {
+  if (objective === "balanced" && Object.keys(personalization).length === 0) {
     return buildAdaptiveSelection(db, all, n, providerId, now).map((item) => ({
       question: item.question,
       decision: weightedDecision(item.decision, "balanced"),
@@ -98,7 +118,11 @@ export function buildObjectiveAdaptiveSelection(
   const ranked = all
     .map((question) => ({
       question,
-      decision: weightedDecision(adaptiveDecision(db, question, stats, seen, now), objective),
+      decision: weightedDecision(
+        adaptiveDecision(db, question, stats, seen, now),
+        objective,
+        personalization,
+      ),
     }))
     .sort((a, b) => b.decision.score - a.decision.score || a.decision.key.localeCompare(b.decision.key));
 
@@ -122,6 +146,7 @@ export function buildObjectiveAdaptiveQuestions(
   providerId: string = DEFAULT_PROVIDER_ID,
   objective: AdaptiveObjective = "balanced",
   now: Date = new Date(),
+  personalization: AdaptivePersonalization = {},
 ): Question[] {
-  return buildObjectiveAdaptiveSelection(db, all, n, providerId, objective, now).map((item) => item.question);
+  return buildObjectiveAdaptiveSelection(db, all, n, providerId, objective, now, personalization).map((item) => item.question);
 }
