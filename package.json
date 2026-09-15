@@ -25,6 +25,8 @@
     "native:inventory": "python scripts/native_ingest.py inventory",
     "native:prepare": "python scripts/native_ingest.py prepare",
     "native:prepare-all": "python scripts/native_ingest.py prepare-all",
+    "native:fleet:plan": "python scripts/native_fleet.py plan",
+    "native:all": "python scripts/native_all.py",
     "sources:audit": "node --use-system-ca scripts/sources-audit.mjs && node --use-system-ca scripts/sources-audit-mass1.mjs"
   },
   "dependencies": {
