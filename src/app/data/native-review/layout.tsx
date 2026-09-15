@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { NativeZipPublisher } from "@/components/native/NativeZipPublisher";
 
-// Mantém o publicador ZIP simples disponível no topo da revisão nativa.
+// Mantém o publicador ZIP simples disponível no topo da revisão nativa e força novo deploy quando necessário.
 export default function NativeReviewLayout({ children }: { children: ReactNode }) {
   return (
     <>
