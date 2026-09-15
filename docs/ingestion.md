@@ -142,9 +142,18 @@ como "circuitos" polui o treino de quem confiou nele.
 "oficial" também não. Na dúvida: `permission-required` e modo referência,
 com o app levando ao documento da instituição.
 
-Nunca usar como origem de conteúdo: QConcursos, Estratégia, Estuda, Teachy,
-Kuadro e semelhantes. Podem servir para descoberta manual; nunca como fonte
-de redistribuição. Nunca contornar login, paywall ou proteção.
+Fontes não oficiais, incluindo agregadores como QConcursos, Estratégia, Estuda,
+Teachy e Kuadro, podem ser usadas para descoberta e ingestão quando facilitarem
+o acesso a uma prova ou gabarito. Registre a fonte efetiva, a URL, o tipo de
+documento e o fingerprint dos bytes realmente usados; não rotule um espelho
+como documento oficial. O mesmo validador fail-closed de edição, variante,
+numeração e gabarito se aplica independentemente da origem.
+
+Usar uma fonte para extrair metadados ou gabarito não concede, por si só,
+permissão para redistribuir PDF, enunciado ou assets. Defina `rightsStatus` e
+`statementMode` para cada fonte/edição; quando a republicação não estiver
+autorizada, mantenha o conteúdo em modo referência. Nunca contornar login,
+paywall ou proteção.
 
 ## Catálogo
 
@@ -195,7 +204,8 @@ significa edição nova por ingerir.
 
 ## Adicionar uma prova
 
-1. Confirmar a fonte oficial e o `rightsStatus`.
+1. Identificar a fonte efetivamente usada (institucional, espelho ou agregador),
+   registrar sua procedência e definir o `rightsStatus`.
 2. **Medir o documento antes de escrever parser.** PDF digitalizado →
    `reference-only`; não escrever OCR em lote por padrão.
 3. Escrever a descoberta com allowlist: descobrir automaticamente, mas

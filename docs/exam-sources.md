@@ -47,11 +47,12 @@ partir do provider + ano + fase.
 ## 4. Modo referência
 
 Quando `statementAvailable === false`, o enunciado **não** está no app — ele é
-lido no documento oficial.
+lido no documento da fonte registrada, oficial ou não.
 
 Isso não é defeito: é a única forma honesta de trabalhar com prova digitalizada
 sem copiar conteúdo de terceiros. A UI mostra numeração, matéria e um botão
-para a prova oficial; o app cuida de tempo, confiança, marcação e correção.
+para a prova na fonte registrada; o app cuida de tempo, confiança, marcação e
+correção.
 
 O Data Quality trata esse modo com régua própria: cobra **procedência** (fonte,
 URL válida, número, matéria) e **gabarito**, e não cobra enunciado nem texto de
@@ -59,9 +60,10 @@ alternativa.
 
 ### Leitor embutido
 
-O documento oficial é exibido dentro da sessão, sob demanda, num `iframe` que
-carrega direto do servidor da instituição. Nada é baixado, copiado ou
-servido pelo nosso domínio — o navegador do aluno busca o arquivo na fonte.
+O documento de origem pode ser exibido dentro da sessão, sob demanda, num
+`iframe` que carrega direto do servidor registrado, seja institucional ou
+agregador. Nada é baixado, copiado ou servido pelo nosso domínio — o navegador
+do aluno busca o arquivo na fonte.
 
 Antes de implementar, foi medido se o servidor permite:
 
@@ -85,7 +87,10 @@ Regras que valem para qualquer fonte em modo referência:
 
 ## 5. Como adicionar uma prova nova
 
-1. **Descobrir a fonte oficial** e confirmar que ela publica as provas.
+1. **Identificar a fonte usada**, institucional ou não, e registrar sua
+   procedência, URLs, revisão do gabarito e direitos. Agregadores podem
+   facilitar a descoberta e a ingestão; não devem ser apresentados como
+   documentos oficiais.
 2. **Medir o PDF antes de escrever parser**:
    ```bash
    python -c "import pypdf; r=pypdf.PdfReader('prova.pdf'); print(len(r.pages), len(r.pages[0].extract_text() or ''))"
@@ -106,7 +111,8 @@ Nada em Banco, Adaptive, Plano ou Domínio precisa mudar.
 "Disponível na internet" não significa "liberado para republicação", e
 "oficial" também não. Na dúvida: `permission-required` e modo referência.
 
-- [ ] A prova é publicada oficialmente pela instituição?
+- [ ] A fonte efetiva e sua natureza (institucional, espelho ou agregador) estão registradas?
+- [ ] Um documento não oficial está corretamente identificado como tal?
 - [ ] Estamos **referenciando** o documento ou **copiando** conteúdo?
 - [ ] Se copiando: há licença explícita ou permissão?
 - [ ] Gabarito é tratado como dado factual (número → alternativa)?
