@@ -41,7 +41,7 @@ describe("prioridade do ciclo de estudo", () => {
     expect(nextStudyAction(db, "unesp").kind).toBe("review");
   });
 
-  it("depois da retenção, repara conteúdo abaixo de 65%", () => {
+  it("não chama três respostas de fraqueza: prioriza o erro enquanto calibra", () => {
     const rows = [
       makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: false }),
       makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
@@ -49,8 +49,22 @@ describe("prioridade do ciclo de estudo", () => {
     ];
     const db = makeDB({ attempts: [attemptWithRows("unesp", rows)] });
     const action = nextStudyAction(db, "unesp");
+    expect(action.kind).toBe("retry");
+    expect(action.content).toBeUndefined();
+  });
+
+  it("depois da retenção, repara conteúdo abaixo de 65% quando há amostra mínima", () => {
+    const rows = [
+      makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: false }),
+      makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
+      makeRow({ key: "u3", providerId: "unesp", content: "Funções", isCorrect: false }),
+      makeRow({ key: "u4", providerId: "unesp", content: "Funções", isCorrect: false }),
+    ];
+    const db = makeDB({ attempts: [attemptWithRows("unesp", rows)] });
+    const action = nextStudyAction(db, "unesp");
     expect(action.kind).toBe("weakness");
     expect(action.content).toBe("Funções");
+    expect(action.reason).toContain("Amostra mínima atingida");
   });
 
   it("com domínio acima do corte, prioriza erros restantes", () => {
@@ -68,13 +82,15 @@ describe("prioridade do ciclo de estudo", () => {
     expect(nextStudyAction(makeDB(), "unesp").kind).toBe("unseen");
   });
 
-  it("sem dívida de retenção, fraqueza ou erro, avança para adaptive", () => {
+  it("amostra curta sem erros continua como calibração adaptativa", () => {
     const rows = [
       makeRow({ key: "u1", providerId: "unesp", content: "Funções", isCorrect: true }),
       makeRow({ key: "u2", providerId: "unesp", content: "Funções", isCorrect: true }),
     ];
     const db = makeDB({ attempts: [attemptWithRows("unesp", rows)] });
-    expect(nextStudyAction(db, "unesp").kind).toBe("adaptive");
+    const action = nextStudyAction(db, "unesp");
+    expect(action.kind).toBe("adaptive");
+    expect(action.reason).toContain("amostra curta");
   });
 });
 

@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { shortSec } from "@/lib/format";
-import { officialRowsOf, weakestContents } from "@/lib/domain/stats";
+import { officialRowsOf } from "@/lib/domain/stats";
 import { adaptiveCandidates } from "@/lib/domain/adaptive";
 import { dueSRS } from "@/lib/domain/srs";
+import { actionableWeakContents } from "@/lib/domain/weak-evidence";
 import { buildAdaptiveAttempt } from "@/lib/services/attempts";
 import { buildItaAdaptiveAttempt } from "@/lib/services/ita-attempts";
 import {
@@ -78,7 +79,7 @@ export default function AdaptivePage() {
     );
 
   const cand = adaptiveCandidates(db, providerId);
-  const weak = weakestContents(db, 4, providerId);
+  const weak = actionableWeakContents(db, 4, providerId);
   const due = dueSRS(db, providerId);
   const recommendation = nextStudyAction(db, providerId);
   const plan = studyPlan(db, providerId);
@@ -127,7 +128,7 @@ export default function AdaptivePage() {
       <div className="grid grid4" style={{ marginTop: 14 }}>
         <Metric label="Revisões vencidas" value={due.length} />
         <Metric label="Erros com certeza" value={certezaWrong} />
-        <Metric label="Conteúdos fracos" value={weak.filter((item) => item.p < 65).length} />
+        <Metric label="Conteúdos fracos" value={weak.length} />
         <Metric label="Fila priorizada" value={cand.length} />
       </div>
 

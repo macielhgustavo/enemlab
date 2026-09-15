@@ -96,15 +96,29 @@ describe("isolamento entre provas", () => {
     expect(dueSRS(db)[0].key).not.toBe(dueSRS(db, "ita")[0].key);
   });
 
-  it("plano diário usa só a fila e o histórico da prova ativa", () => {
-    const enem = buildDailyPlan(db, 60, new Date());
-    const ita = buildDailyPlan(db, 60, new Date(), "ita");
-    // Cada plano enxerga exatamente uma revisão vencida — a sua.
-    const srsEnem = enem.blocks.find((b) => b.kind === "srs");
-    const srsIta = ita.blocks.find((b) => b.kind === "srs");
-    expect(srsEnem?.questions).toBe(1);
-    expect(srsIta?.questions).toBe(1);
-    expect(enem.blocks).not.toEqual(ita.blocks);
+  it("plano diário é idêntico com ou sem dados da outra prova", () => {
+    const now = new Date("2026-09-14T18:00:00.000Z");
+    const enemOnly: DB = {
+      ...db,
+      attempts: db.attempts.filter((attempt) => (attempt.providerId ?? "enem") === "enem"),
+      srs: Object.fromEntries(
+        Object.entries(db.srs).filter(([, item]) => (item.providerId ?? "enem") === "enem"),
+      ),
+    };
+    const itaOnly: DB = {
+      ...db,
+      attempts: db.attempts.filter((attempt) => attempt.providerId === "ita"),
+      srs: Object.fromEntries(
+        Object.entries(db.srs).filter(([, item]) => item.providerId === "ita"),
+      ),
+    };
+
+    const enemMixed = buildDailyPlan(db, 60, now, "enem");
+    const itaMixed = buildDailyPlan(db, 60, now, "ita");
+    expect(enemMixed).toEqual(buildDailyPlan(enemOnly, 60, now, "enem"));
+    expect(itaMixed).toEqual(buildDailyPlan(itaOnly, 60, now, "ita"));
+    expect(enemMixed.signals.dueReviews).toBe(1);
+    expect(itaMixed.signals.dueReviews).toBe(1);
   });
 
   it("sequência e evolução não somam dias de provas diferentes", () => {
