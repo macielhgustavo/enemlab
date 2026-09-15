@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Pipeline local para transformar uma prova objetiva em um NativePack revisável.
+"""Pipeline v2 para transformar uma prova objetiva em NativePack verificável.
 
-O script deliberadamente NÃO publica nada. Ele gera WebP por página + um
-manifest JSON pequeno. O operador revisa o pack e só então uma etapa separada
-pode enviá-lo ao armazenamento privado.
+O pipeline continua sem publicar nada. Ele rasteriza as páginas uma única vez,
+detecta questões/contextos compartilhados, gera regiões visuais e registra
+evidência explícita de completude. Itens ambíguos ficam em review e falham
+fechado; os demais podem ser aprovados automaticamente pelo publicador ZIP.
 
 Dependências opcionais de execução:
   python -m pip install pymupdf pillow
@@ -15,13 +16,17 @@ import argparse
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 DEFAULT_MARKER = r"QUEST(?:ÃO|AO)\s*[\u2000-\u200f\s]*0?(\d{1,3})"
-PARSER_VERSION = "native-pipeline@1.0.0"
+PARSER_VERSION = "native-pipeline@2.0.0"
+PAGE_X0 = 0.06
+PAGE_X1 = 0.94
+PAGE_Y_BOTTOM = 0.94
 
 
 class NativePipelineError(ValueError):
@@ -57,6 +62,14 @@ class Marker:
     y1: float
 
 
+@dataclass(frozen=True)
+class SharedContext:
+    start: int
+    end: int
+    page_index: int
+    rect: tuple[float, float, float, float]
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -80,9 +93,7 @@ def _load_spec(path: Path) -> Spec:
         raise NativePipelineError("sourceSha256 inválido")
 
     # A identidade não pode ser inferida do provider/ano/fase dentro do
-    # extrator. Alguns providers têm edição, idioma ou identidade histórica
-    # própria. O orquestrador precisa fornecer um formato já auditado contra a
-    # questionKey usada pelo app; sem isso, o pipeline falha fechado.
+    # extrator. O orquestrador fornece um formato auditado contra questionKey.
     question_key_format = str(raw.get("questionKeyFormat") or "").strip()
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*-\{number\}", question_key_format):
         raise NativePipelineError(
@@ -146,7 +157,7 @@ def detect_markers(doc: Any, pattern: str) -> list[Marker]:
     markers: list[Marker] = []
     for page_index, page in enumerate(doc):
         for block in page.get_text("blocks", sort=False):
-            text = block[4]
+            text = str(block[4])
             for match in marker_re.finditer(text):
                 markers.append(
                     Marker(
@@ -161,17 +172,114 @@ def detect_markers(doc: Any, pattern: str) -> list[Marker]:
     return markers
 
 
+def _plain(text: str) -> str:
+    normalized = unicodedata.normalize("NFD", text.lower())
+    return "".join(char for char in normalized if unicodedata.category(char) != "Mn")
+
+
+def _shared_question_range(text: str) -> tuple[int, int] | None:
+    plain = _plain(text)
+    patterns = (
+        r"quest(?:oes|ao)\s+(?:de\s+)?0?(\d{1,3})\s*(?:a|ate|[-–—])\s*0?(\d{1,3})",
+        r"itens?\s+(?:de\s+)?0?(\d{1,3})\s*(?:a|ate|[-–—])\s*0?(\d{1,3})",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, plain, re.IGNORECASE)
+        if match:
+            start, end = int(match.group(1)), int(match.group(2))
+            if start >= 1 and end >= start:
+                return start, end
+    return None
+
+
+def _visual_dependency_reasons(text: str) -> list[str]:
+    plain = _plain(text)
+    rules = (
+        ("context:romance", r"\bromance\b"),
+        ("context:poem", r"\bpoema\b|\bversos?\b|eu lirico|\bestrofes?\b"),
+        ("context:text", r"\btrecho\b|\bexcerto\b|\bpassagem\b|texto\s+[ivx]+"),
+        ("media:image", r"ilustrad|\bimagem\b|\bfigura\b|fotograf|\btirinha\b|\bcharge\b|\bcartum\b|quadrinh"),
+        ("media:chart", r"\bgrafico\b|\btabela\b|\bmapa\b|\bdiagrama\b"),
+    )
+    reasons: list[str] = []
+    for tag, pattern in rules:
+        if re.search(pattern, plain, re.IGNORECASE) and tag not in reasons:
+            reasons.append(tag)
+    return reasons
+
+
 def _column(marker: Marker, page_width: float, two_columns: bool) -> int:
     if not two_columns:
         return 0
     return 0 if marker.x0 < page_width / 2 else 1
 
 
+def _two_columns(page_markers: list[Marker], page_width: float) -> bool:
+    if len(page_markers) < 2:
+        return False
+    x_positions = [candidate.x0 for candidate in page_markers]
+    return max(x_positions) - min(x_positions) > page_width * 0.25
+
+
+def _should_span_columns(
+    marker: Marker,
+    page_markers: list[Marker],
+    page_width: float,
+    page_height: float,
+) -> bool:
+    """Detecta blocos que começam na esquerda e atravessam a página.
+
+    Se existe outra questão na coluna direita praticamente na mesma altura, as
+    duas são paralelas e não há span. Se a próxima questão da direita só começa
+    bem abaixo e vem antes da próxima da esquerda, o bloco atual pode ocupar a
+    largura inteira (casos como tirinha/tabela e questões multi-coluna).
+    """
+    if not _two_columns(page_markers, page_width):
+        return False
+    if _column(marker, page_width, True) != 0:
+        return False
+    opposite = sorted(
+        [
+            candidate
+            for candidate in page_markers
+            if _column(candidate, page_width, True) == 1 and candidate.y0 >= marker.y0 - 2
+        ],
+        key=lambda candidate: candidate.y0,
+    )
+    if not opposite:
+        return False
+    first_opposite = opposite[0]
+    if abs(first_opposite.y0 - marker.y0) <= page_height * 0.075:
+        return False
+    if first_opposite.y0 <= marker.y0 + page_height * 0.075:
+        return False
+    same_below = sorted(
+        [
+            candidate
+            for candidate in page_markers
+            if candidate.y0 > marker.y0 and _column(candidate, page_width, True) == 0
+        ],
+        key=lambda candidate: candidate.y0,
+    )
+    return not same_below or first_opposite.y0 < same_below[0].y0
+
+
+def _next_marker_after(marker: Marker, page_markers: list[Marker]) -> Marker | None:
+    later = [candidate for candidate in page_markers if candidate.y0 > marker.y0 + 2]
+    return min(later, key=lambda candidate: candidate.y0) if later else None
+
+
 def _draft_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[float, float, float, float]:
     width = float(page.rect.width)
     height = float(page.rect.height)
-    x_positions = [candidate.x0 for candidate in page_markers]
-    two_columns = bool(x_positions) and max(x_positions) - min(x_positions) > width * 0.25
+    two_columns = _two_columns(page_markers, width)
+    y0 = max(0.0, marker.y0 - 4)
+
+    if _should_span_columns(marker, page_markers, width, height):
+        next_marker = _next_marker_after(marker, page_markers)
+        y1 = next_marker.y0 - 4 if next_marker else height * PAGE_Y_BOTTOM
+        return width * PAGE_X0, y0, width * PAGE_X1, min(height, max(marker.y1 + 18, y1))
+
     column = _column(marker, width, two_columns)
     same_column = sorted(
         [
@@ -181,15 +289,14 @@ def _draft_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[
         ],
         key=lambda candidate: candidate.y0,
     )
-    y1 = same_column[0].y0 - 4 if same_column else height - 24
+    y1 = same_column[0].y0 - 4 if same_column else height * PAGE_Y_BOTTOM
     if two_columns:
         if column == 0:
-            x0, x1 = width * 0.06, width * 0.49
+            x0, x1 = width * PAGE_X0, width * 0.49
         else:
-            x0, x1 = width * 0.51, width * 0.94
+            x0, x1 = width * 0.51, width * PAGE_X1
     else:
-        x0, x1 = width * 0.06, width * 0.94
-    y0 = max(0.0, marker.y0 - 4)
+        x0, x1 = width * PAGE_X0, width * PAGE_X1
     y1 = min(height, max(marker.y1 + 18, y1))
     return x0, y0, x1, y1
 
@@ -207,15 +314,139 @@ def _normalized_rect(rect: tuple[float, float, float, float], page: Any) -> dict
 
 
 def _detected_options(text: str, allowed: tuple[str, ...]) -> list[str]:
-    detected = []
-    for letter in re.findall(r"\(([A-E])\)", text.upper()):
-        if letter in allowed and letter not in detected:
-            detected.append(letter)
+    detected: list[str] = []
+    patterns = (r"\(([A-E])\)", r"(?:^|\n)\s*([A-E])[\).]\s+")
+    upper = text.upper()
+    for pattern in patterns:
+        for letter in re.findall(pattern, upper, re.MULTILINE):
+            if letter in allowed and letter not in detected:
+                detected.append(letter)
     return detected
 
 
 def _question_key(spec: Spec, number: int) -> str:
     return spec.question_key_format.replace("{number}", str(number))
+
+
+def _intersects(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def _rect_has_image(page: Any, rect: tuple[float, float, float, float]) -> bool:
+    try:
+        blocks = page.get_text("dict").get("blocks", [])
+    except Exception:
+        return False
+    for block in blocks:
+        if block.get("type") != 1:
+            continue
+        bbox = block.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+            continue
+        image_rect = tuple(float(value) for value in bbox)
+        if _intersects(rect, image_rect):
+            return True
+    return False
+
+
+def _shared_context_rect(
+    page: Any,
+    block: tuple[Any, ...],
+    first_marker: Marker,
+) -> tuple[float, float, float, float]:
+    width = float(page.rect.width)
+    height = float(page.rect.height)
+    bx0, by0, bx1, by1 = map(float, block[:4])
+    y0 = max(0.0, by0 - 4)
+
+    if first_marker.page_index > 0:  # overwritten below by caller when pages differ
+        pass
+
+    # Quando a primeira questão começa na mesma página e na coluna oposta, o
+    # estímulo normalmente ocupa a coluna do cabeçalho até o rodapé útil.
+    header_column = 0 if bx0 < width / 2 else 1
+    marker_column = 0 if first_marker.x0 < width / 2 else 1
+    block_is_wide = (bx1 - bx0) > width * 0.62
+    if not block_is_wide and header_column != marker_column:
+        if header_column == 0:
+            return width * 0.04, y0, width * 0.49, height * PAGE_Y_BOTTOM
+        return width * 0.51, y0, width * 0.96, height * PAGE_Y_BOTTOM
+
+    y1 = max(by1 + 12, first_marker.y0 - 4)
+    return width * 0.04, y0, width * 0.96, min(height * PAGE_Y_BOTTOM, y1)
+
+
+def _detect_shared_contexts(
+    doc: Any,
+    marker_by_number: dict[int, Marker],
+    total: int,
+) -> list[SharedContext]:
+    contexts: list[SharedContext] = []
+    seen: set[tuple[int, int, int]] = set()
+    for page_index, page in enumerate(doc):
+        width = float(page.rect.width)
+        height = float(page.rect.height)
+        for block in page.get_text("blocks", sort=True):
+            text = str(block[4])
+            question_range = _shared_question_range(text)
+            if not question_range:
+                continue
+            start, end = question_range
+            if start < 1 or end > total or start not in marker_by_number:
+                continue
+            key = (start, end, page_index)
+            if key in seen:
+                continue
+            seen.add(key)
+            first_marker = marker_by_number[start]
+            bx0, by0, bx1, by1 = map(float, block[:4])
+            y0 = max(0.0, by0 - 4)
+
+            if first_marker.page_index > page_index:
+                # Estímulo em página anterior: capture toda a área útil da
+                # página desde o cabeçalho; isso inclui texto e imagens.
+                rect = (width * 0.04, y0, width * 0.96, height * PAGE_Y_BOTTOM)
+            elif first_marker.page_index == page_index:
+                rect = _shared_context_rect(page, block, first_marker)
+            else:
+                continue
+            contexts.append(SharedContext(start=start, end=end, page_index=page_index, rect=rect))
+    return contexts
+
+
+def _continuation_regions(
+    doc: Any,
+    marker: Marker,
+    next_marker: Marker | None,
+) -> list[tuple[int, tuple[float, float, float, float]]]:
+    if not next_marker or next_marker.page_index <= marker.page_index:
+        return []
+    regions: list[tuple[int, tuple[float, float, float, float]]] = []
+    for page_index in range(marker.page_index + 1, next_marker.page_index + 1):
+        page = doc[page_index]
+        width = float(page.rect.width)
+        height = float(page.rect.height)
+        y1 = height * PAGE_Y_BOTTOM
+        if page_index == next_marker.page_index:
+            y1 = min(y1, max(height * 0.04, next_marker.y0 - 4))
+        if y1 <= height * 0.04:
+            continue
+        regions.append(
+            (
+                page_index,
+                (width * PAGE_X0, height * 0.03, width * PAGE_X1, y1),
+            )
+        )
+    return regions
+
+
+def _text_for_regions(doc: Any, regions: list[tuple[int, tuple[float, float, float, float]]], fitz: Any) -> str:
+    pieces: list[str] = []
+    for page_index, rect in regions:
+        text = doc[page_index].get_text("text", clip=fitz.Rect(*rect), sort=True).strip()
+        if text:
+            pieces.append(text)
+    return "\n".join(pieces)
 
 
 def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5, quality: int = 82) -> dict[str, Any]:
@@ -246,20 +477,111 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
     by_page: dict[int, list[Marker]] = {}
     for marker in markers:
         by_page.setdefault(marker.page_index, []).append(marker)
+    for page_markers in by_page.values():
+        page_markers.sort(key=lambda item: (item.y0, item.x0))
 
-    questions = []
+    shared_contexts = _detect_shared_contexts(doc, marker_by_number, spec.total)
+    contexts_by_number: dict[int, list[SharedContext]] = {}
+    for context in shared_contexts:
+        for number in range(context.start, context.end + 1):
+            contexts_by_number.setdefault(number, []).append(context)
+
+    questions: list[dict[str, Any]] = []
+    multi_region_count = 0
     for number in range(1, spec.total + 1):
         marker = marker_by_number[number]
         page = doc[marker.page_index]
         rect = _draft_rect(marker, page, by_page[marker.page_index])
-        raw_text = page.get_text("text", clip=fitz.Rect(*rect), sort=True).strip()
-        option_ids = _detected_options(raw_text, spec.option_ids)
+        primary_regions = [(marker.page_index, rect)]
+        primary_text = _text_for_regions(doc, primary_regions, fitz)
+        option_ids = _detected_options(primary_text, spec.option_ids)
+
+        # Se a questão não termina antes da próxima página, continue até o
+        # próximo marcador oficial e tente completar as alternativas.
+        continuation_regions: list[tuple[int, tuple[float, float, float, float]]] = []
+        next_marker = marker_by_number.get(number + 1)
+        if option_ids != list(spec.option_ids) and next_marker and next_marker.page_index > marker.page_index:
+            continuation_regions = _continuation_regions(doc, marker, next_marker)
+            combined_text = "\n".join(
+                part
+                for part in [primary_text, _text_for_regions(doc, continuation_regions, fitz)]
+                if part
+            )
+            option_ids = _detected_options(combined_text, spec.option_ids)
+        else:
+            combined_text = primary_text
+
+        visual_regions: list[dict[str, Any]] = []
+        for context in contexts_by_number.get(number, []):
+            context_page = doc[context.page_index]
+            visual_regions.append(
+                {
+                    "page": context.page_index + 1,
+                    "role": "shared-context",
+                    "rect": _normalized_rect(context.rect, context_page),
+                }
+            )
+        visual_regions.append(
+            {
+                "page": marker.page_index + 1,
+                "role": "question",
+                "rect": _normalized_rect(rect, page),
+            }
+        )
+        for page_index, continuation_rect in continuation_regions:
+            visual_regions.append(
+                {
+                    "page": page_index + 1,
+                    "role": "continuation",
+                    "rect": _normalized_rect(continuation_rect, doc[page_index]),
+                }
+            )
+        if len(visual_regions) > 1:
+            multi_region_count += 1
+
+        reasons = _visual_dependency_reasons(combined_text)
+        has_shared = bool(contexts_by_number.get(number))
+        has_continuation = bool(continuation_regions)
+        has_image = any(
+            _rect_has_image(doc[page_index], region_rect)
+            for page_index, region_rect in [*primary_regions, *continuation_regions]
+        )
+
+        required = bool(reasons or has_shared or has_continuation)
+        unresolved_reasons: list[str] = []
+        context_reasons = [reason for reason in reasons if reason.startswith("context:")]
+        media_reasons = [reason for reason in reasons if reason.startswith("media:")]
+        if context_reasons and not has_shared:
+            unresolved_reasons.extend(context_reasons)
+        if media_reasons and not has_image and not has_shared:
+            unresolved_reasons.extend(media_reasons)
+        if option_ids != list(spec.option_ids):
+            unresolved_reasons.append("options:incomplete")
+
+        resolved = not unresolved_reasons
+        if has_shared:
+            strategy = "shared-context"
+        elif has_continuation:
+            strategy = "continuation"
+        elif required and resolved:
+            strategy = "question-region"
+        elif required:
+            strategy = "manual"
+        else:
+            strategy = "not-required"
+
         issues: list[str] = []
         if option_ids != list(spec.option_ids):
             issues.append(
-                "alternativas semânticas não foram reconhecidas integralmente; usar visual canônico e revisar texto"
+                "alternativas semânticas não foram reconhecidas integralmente; revisar extensão visual"
             )
-        confidence = 1.0 if not issues else 0.75
+        if unresolved_reasons:
+            issues.append(
+                "dependência visual/contextual não resolvida automaticamente: "
+                + ", ".join(dict.fromkeys(unresolved_reasons))
+            )
+        confidence = 1.0 if not issues else 0.65
+
         questions.append(
             {
                 "questionKey": _question_key(spec, number),
@@ -269,14 +591,8 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
                 "phase": spec.phase,
                 "number": number,
                 "documentId": spec.document_id,
-                "visualRegions": [
-                    {
-                        "page": marker.page_index + 1,
-                        "role": "question",
-                        "rect": _normalized_rect(rect, page),
-                    }
-                ],
-                "semantic": {"rawText": raw_text},
+                "visualRegions": visual_regions,
+                "semantic": {"rawText": combined_text},
                 "extraction": {
                     "method": "text-layer",
                     "parserVersion": PARSER_VERSION,
@@ -284,8 +600,15 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
                     "markerDetected": True,
                     "optionIdsDetected": option_ids,
                     "issues": issues,
+                    "visualCompleteness": {
+                        "required": required,
+                        "resolved": resolved,
+                        "reasons": list(dict.fromkeys(reasons + unresolved_reasons)),
+                        "strategy": strategy,
+                    },
                 },
-                # O extrator nunca se autoaprova: revisão humana decide publicação.
+                # O extrator nunca se autoaprova. O ZIP publisher autoaprova
+                # somente os itens sem issues e com todos os gates satisfeitos.
                 "status": "review",
             }
         )
@@ -317,6 +640,11 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
             "markers": len(markers),
             "expected": spec.total,
             "semanticReady": sum(1 for q in questions if not q["extraction"]["issues"]),
+            "sharedContextGroups": len(shared_contexts),
+            "multiRegionQuestions": multi_region_count,
+            "visualComplete": sum(
+                1 for q in questions if q["extraction"]["visualCompleteness"]["resolved"]
+            ),
             "needsReview": sum(1 for q in questions if q["extraction"]["issues"]),
         },
     }
@@ -328,7 +656,7 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Gera NativePack revisável a partir de PDF objetivo.")
+    parser = argparse.ArgumentParser(description="Gera NativePack v2 verificável a partir de PDF objetivo.")
     parser.add_argument("--spec", required=True, type=Path)
     parser.add_argument("--pdf", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
@@ -341,7 +669,8 @@ def main() -> int:
     summary = pack["reviewSummary"]
     print(
         f"{spec.document_id}: {summary['markers']}/{summary['expected']} marcadores; "
-        f"{summary['semanticReady']} semânticas prontas; {summary['needsReview']} para revisão."
+        f"{summary['visualComplete']} completos; {summary['sharedContextGroups']} contextos compartilhados; "
+        f"{summary['needsReview']} para revisão."
     )
     print(f"Pack: {args.out / 'native-pack.json'}")
     return 0
