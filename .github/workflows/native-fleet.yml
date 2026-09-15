@@ -82,7 +82,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
       - name: Prepare UNESP 2026 bundle
@@ -121,7 +120,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
       - name: Prepare validated bundle
