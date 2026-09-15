@@ -6,6 +6,7 @@ on:
       - feat/mass-ingestion-2-sparky
     paths:
       - "scripts/ingest_mass2_sparky.py"
+      - "scripts/ingest_mass2_qconcursos.py"
       - "scripts/tests/test_mass2_sparky.py"
       - "src/lib/providers/mass2/**"
       - "src/lib/providers/mass2-reference/**"
@@ -39,26 +40,28 @@ jobs:
       - name: Unit-test Sparky parser
         run: python -m unittest scripts.tests.test_mass2_sparky -v
 
-      - name: Discover, validate and generate at least 150 editions
+      - name: Harvest redistributed vestibular PDFs and require 150 logical editions
         run: |
-          python scripts/ingest_mass2_sparky.py \
+          python scripts/ingest_mass2_qconcursos.py \
             --write \
             --min-editions 150 \
             --workers 8 \
             --report mass2-report.json
 
-      - name: Verify generated manifest is non-empty
+      - name: Verify generated manifest has at least 150 logical editions
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          path = Path("src/lib/providers/mass2/answer-keys.generated.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
-          counts = {provider: len(entries) for provider, entries in data.items()}
+          data = json.loads(Path("src/lib/providers/mass2/answer-keys.generated.json").read_text(encoding="utf-8"))
+          counts = {
+              provider: len({str(entry["edition"]) for entry in entries.values()})
+              for provider, entries in data.items()
+          }
           total = sum(counts.values())
-          print({"total": total, "byProvider": counts})
+          print({"logicalEditions": total, "byProvider": counts})
           if total < 150:
-              raise SystemExit(f"expected >=150 editions, got {total}")
+              raise SystemExit(f"expected >=150 logical editions, got {total}")
           PY
 
       - name: Upload ingestion report
