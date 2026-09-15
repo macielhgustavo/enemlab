@@ -70,10 +70,43 @@ jobs:
           print(f"questions={sum(int(item.get('questions') or 0) for item in items)}")
           PY
 
+  canary:
+    name: Publication canary — UNESP 2026
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install native dependencies
+        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare UNESP 2026 bundle
+        run: python scripts/native_fleet.py prepare unesp 2026 --phase first --out bundle
+      - name: Publish canary through OIDC broker
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+        run: python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
+      - name: Mark dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+        run: echo '{"status":"prepared-only"}' > publication-result.json
+      - name: Canary summary
+        if: always()
+        run: |
+          echo '### Native publication canary — UNESP 2026' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f publication-result.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat publication-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   publish:
     name: ${{ matrix.identity }}
-    needs: plan
-    if: ${{ needs.plan.outputs.targets != '0' }}
+    needs: [plan, canary]
+    if: ${{ needs.plan.outputs.targets != '0' && needs.canary.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -131,7 +164,7 @@ jobs:
 
   summary:
     name: Fleet summary
-    needs: [plan, publish]
+    needs: [plan, canary, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -139,5 +172,7 @@ jobs:
           echo "### Native fleet" >> "$GITHUB_STEP_SUMMARY"
           echo "- Planned targets: ${{ needs.plan.outputs.targets }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Planned questions: ${{ needs.plan.outputs.questions }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Canary result: ${{ needs.canary.result }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Matrix result: ${{ needs.publish.result }}" >> "$GITHUB_STEP_SUMMARY"
+          test "${{ needs.canary.result }}" = "success"
           test "${{ needs.publish.result }}" != "failure"
