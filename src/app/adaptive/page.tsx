@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
@@ -8,16 +9,45 @@ import { officialRowsOf } from "@/lib/domain/stats";
 import { adaptiveCandidates } from "@/lib/domain/adaptive";
 import { dueSRS } from "@/lib/domain/srs";
 import { actionableWeakContents } from "@/lib/domain/weak-evidence";
-import { buildAdaptiveAttempt } from "@/lib/services/attempts";
-import { buildItaAdaptiveAttempt } from "@/lib/services/ita-attempts";
+import {
+  ADAPTIVE_OBJECTIVES,
+  type AdaptiveObjective,
+} from "@/lib/domain/adaptive-objectives";
+import {
+  contentEvidence,
+  counterfactualForContent,
+  coverageSnapshot,
+  falseErrorSignals,
+  falseMasterySignals,
+  knowledgeExecutionSplit,
+  readinessSnapshot,
+  temporalProfile,
+} from "@/lib/domain/study-intelligence";
+import {
+  decisionHistory,
+  experimentSummary,
+  providerStudyConfig,
+  setProviderStudyConfig,
+} from "@/lib/domain/study-learning";
+import {
+  finalizePendingStudyIntelligence,
+  recordFeedbackForDecision,
+} from "@/lib/domain/study-learning-finalize";
+import { studyGoalProgress } from "@/lib/domain/study-goal";
+import type { StudyFeedbackValue } from "@/lib/domain/types";
 import {
   buildNextStudyAttempt,
-  buildProviderAdaptiveAttempt,
   nextStudyAction,
 } from "@/lib/services/provider-study";
 import { studyPlan } from "@/lib/services/study-plan";
+import {
+  buildIntelligentStudyLaunch,
+  loadIntelligencePreview,
+  persistIntelligentStudyLaunch,
+  type IntelligencePreview,
+  type IntelligentStudyKind,
+} from "@/lib/services/intelligent-study";
 import { useActiveProvider } from "@/components/ExamSwitch";
-import { ENEM_PROVIDER_ID, ITA_PROVIDER_ID } from "@/lib/providers";
 import { examLabel } from "@/lib/providers/label";
 import { Metric, Empty, Card } from "@/components/ui";
 
@@ -36,47 +66,142 @@ const RETRY_COMPONENT_LABELS: Record<string, string> = {
   diagnosedReason: "diagnóstico",
 };
 
+interface ObjectiveDraft {
+  providerId: string;
+  value: AdaptiveObjective;
+}
+
+interface GoalDraft {
+  providerId: string;
+  date: string;
+  weekly: string;
+  readiness: string;
+  coverage: string;
+}
+
+function optionalNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default function AdaptivePage() {
   const db = useStore((s) => s.db);
-  const addAttempt = useStore((s) => s.addAttempt);
+  const mutate = useStore((s) => s.mutate);
   const router = useRouter();
   const hydrated = useHydrated();
   const { providerId } = useActiveProvider();
-  const isIta = providerId === ITA_PROVIDER_ID;
+  const config = providerStudyConfig(db, providerId);
+  const [objectiveDraft, setObjectiveDraft] = useState<ObjectiveDraft | null>(null);
+  const [goalDraft, setGoalDraft] = useState<GoalDraft | null>(null);
+  const [preview, setPreview] = useState<IntelligencePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  async function openAttempt(factory: () => Promise<ReturnType<typeof buildItaAdaptiveAttempt>>) {
-    setBusy(true);
-    setErr("");
-    try {
-      const a = await factory();
-      addAttempt(a);
-      router.push(`/exam/${a.id}`);
-    } catch (e) {
-      setErr((e as Error).message);
-      setBusy(false);
-    }
-  }
+  const objective = objectiveDraft?.providerId === providerId
+    ? objectiveDraft.value
+    : config.objective ?? "balanced";
+  const currentGoalDraft: GoalDraft = goalDraft?.providerId === providerId
+    ? goalDraft
+    : {
+        providerId,
+        date: config.targetDate ?? "",
+        weekly: config.weeklyQuestions?.toString() ?? "",
+        readiness: config.targetReadiness?.toString() ?? "",
+        coverage: config.targetCoverage?.toString() ?? "",
+      };
 
-  async function generate(n: number) {
-    return openAttempt(async () => {
-      if (isIta) return buildItaAdaptiveAttempt(db, n);
-      if (providerId === ENEM_PROVIDER_ID) return buildAdaptiveAttempt(db, n);
-      return buildProviderAdaptiveAttempt(db, providerId, n);
+  function finishPending() {
+    mutate((current) => {
+      finalizePendingStudyIntelligence(current, providerId);
     });
   }
 
   async function continueCycle() {
-    return openAttempt(() => buildNextStudyAttempt(db, providerId, 15));
+    setBusy(true);
+    setErr("");
+    try {
+      finishPending();
+      const current = useStore.getState().db;
+      const attempt = await buildNextStudyAttempt(current, providerId, 15);
+      useStore.getState().addAttempt(attempt);
+      router.push(`/exam/${attempt.id}`);
+    } catch (error) {
+      setErr((error as Error).message || "Não foi possível montar a próxima etapa.");
+      setBusy(false);
+    }
   }
 
-  if (!hydrated)
+  async function launch(kind: IntelligentStudyKind, n: number) {
+    setBusy(true);
+    setErr("");
+    try {
+      finishPending();
+      const current = useStore.getState().db;
+      const launchResult = await buildIntelligentStudyLaunch(
+        current,
+        providerId,
+        { kind, objective, n },
+      );
+      mutate((next) => persistIntelligentStudyLaunch(next, launchResult));
+      router.push(`/exam/${launchResult.attempt.id}`);
+    } catch (error) {
+      setErr((error as Error).message || "Não foi possível montar este treino.");
+      setBusy(false);
+    }
+  }
+
+  async function inspectQueue() {
+    setBusy(true);
+    setErr("");
+    try {
+      finishPending();
+      const current = useStore.getState().db;
+      setPreview(await loadIntelligencePreview(current, providerId, objective));
+    } catch (error) {
+      setErr((error as Error).message || "Não foi possível carregar a inteligência desta prova.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function changeObjective(next: AdaptiveObjective) {
+    setObjectiveDraft({ providerId, value: next });
+    setPreview(null);
+    mutate((current) => {
+      setProviderStudyConfig(current, providerId, { objective: next });
+    });
+  }
+
+  function updateGoal(patch: Partial<Omit<GoalDraft, "providerId">>) {
+    setGoalDraft({ ...currentGoalDraft, ...patch, providerId });
+  }
+
+  function saveGoal() {
+    mutate((current) => {
+      setProviderStudyConfig(current, providerId, {
+        objective,
+        targetDate: currentGoalDraft.date || null,
+        weeklyQuestions: optionalNumber(currentGoalDraft.weekly),
+        targetReadiness: optionalNumber(currentGoalDraft.readiness),
+        targetCoverage: optionalNumber(currentGoalDraft.coverage),
+      });
+    });
+  }
+
+  function rateDecision(decisionId: string, value: StudyFeedbackValue) {
+    mutate((current) => {
+      recordFeedbackForDecision(current, decisionId, value, new Date().toISOString());
+    });
+  }
+
+  if (!hydrated) {
     return (
       <Card>
         <span className="muted">Carregando…</span>
       </Card>
     );
+  }
 
   const cand = adaptiveCandidates(db, providerId);
   const weak = actionableWeakContents(db, 4, providerId);
@@ -85,8 +210,29 @@ export default function AdaptivePage() {
   const plan = studyPlan(db, providerId);
   const topRetry = cand[0];
   const certezaWrong = officialRowsOf(db, providerId).filter(
-    (x) => x.isCorrect === false && x.confidence === "certeza",
+    (row) => row.isCorrect === false && row.confidence === "certeza",
   ).length;
+
+  const expectedContents = preview?.expectedContents;
+  const readiness = preview?.readiness ?? readinessSnapshot(db, providerId, expectedContents);
+  const coverage = preview?.coverage ?? coverageSnapshot(db, providerId, expectedContents);
+  const split = knowledgeExecutionSplit(db, providerId);
+  const falseMastery = falseMasterySignals(db, providerId);
+  const falseErrors = falseErrorSignals(db, providerId).filter((item) => item.likelyExecutionNoise);
+  const temporal = temporalProfile(db, providerId);
+  const evidence = contentEvidence(db, providerId);
+  const counterfactualTarget = weak[0]
+    ? evidence.find((item) => item.content === weak[0].name) ?? null
+    : evidence[0] ?? null;
+  const counterfactual = counterfactualForContent(counterfactualTarget);
+  const history = decisionHistory(db, providerId, 6);
+  const experiment = experimentSummary(db, "adaptive-feedback-v1");
+  const currentConfig = providerStudyConfig(db, providerId);
+  const goal = preview?.goal ?? studyGoalProgress(
+    db,
+    { providerId, ...currentConfig },
+    expectedContents,
+  );
 
   return (
     <>
@@ -96,32 +242,109 @@ export default function AdaptivePage() {
           Seu próximo estudo já está decidido pelos dados.
         </h1>
         <p>
-          O motor combina retenção, domínio, erros, inéditas e diversidade por conteúdo. A prioridade é
-          determinística, isolada por prova e cada sinal usado na decisão pode ser inspecionado.
+          Retenção, domínio, cobertura, execução e confiança da evidência entram na mesma decisão. Readiness é um
+          índice interno do Studium — não é nota prevista, TRI nem probabilidade de aprovação.
         </p>
+
         <div className="studyBlock" style={{ marginTop: 14, marginBottom: 14 }}>
           <div className="prio">próxima ação · {recommendation.kind}</div>
           <h3>{recommendation.title}</h3>
           <div className="muted">{recommendation.reason}</div>
         </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label htmlFor="adaptive-objective">Objetivo do Adaptive</label>
+          <select
+            id="adaptive-objective"
+            value={objective}
+            onChange={(event) => changeObjective(event.target.value as AdaptiveObjective)}
+          >
+            {Object.values(ADAPTIVE_OBJECTIVES).map((profile) => (
+              <option value={profile.id} key={profile.id}>{profile.label}</option>
+            ))}
+          </select>
+          <div className="muted" style={{ marginTop: 5 }}>
+            {ADAPTIVE_OBJECTIVES[objective].description}
+          </div>
+        </div>
+
         <div className="row">
-          <button className="btn" onClick={continueCycle} disabled={busy}>
+          <button className="btn" onClick={() => launch("objective", 15)} disabled={busy}>
+            Treinar objetivo · 15
+          </button>
+          <button className="btn secondary" onClick={() => launch("queue", 15)} disabled={busy}>
+            Fila global · 15
+          </button>
+          <button className="btn secondary" onClick={() => launch("diagnostic", 25)} disabled={busy}>
+            Diagnóstico · 25
+          </button>
+          <button className="btn secondary" onClick={inspectQueue} disabled={busy}>
+            Inspecionar próximas 40
+          </button>
+          <button className="btn secondary" onClick={continueCycle} disabled={busy}>
             {ACTION_LABEL[recommendation.kind] ?? "Continuar ciclo"}
           </button>
-          <button className="btn secondary" onClick={() => generate(15)} disabled={busy}>
-            Ignorar fila · Adaptive 15
-          </button>
-          <button className="btn secondary" onClick={() => generate(30)} disabled={busy}>
-            Adaptive 30
-          </button>
         </div>
+
         {(busy || err) && (
           <div className="notice" style={{ marginTop: 12 }}>
-            {busy && (
-              <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />
-            )}
-            {busy ? "Montando a próxima etapa do ciclo…" : err}
+            {busy && <span className="loader" style={{ display: "inline-block", marginRight: 8 }} />}
+            {busy ? "Calculando com o banco real desta prova…" : err}
           </div>
+        )}
+      </Card>
+
+      <div className="grid grid4" style={{ marginTop: 14 }}>
+        <Metric label="Studium Readiness" value={`${readiness.score}/100`} />
+        <Metric label="Conhecimento" value={`${split.knowledgeScore}%`} />
+        <Metric label="Execução" value={`${split.executionScore}/100`} />
+        <Metric
+          label="Cobertura calibrada"
+          value={coverage.calibratedPct === null ? "—" : `${coverage.calibratedPct}%`}
+        />
+      </div>
+      <div className="muted" style={{ marginTop: 7, fontSize: 11 }}>
+        confiança do readiness: {readiness.confidence} · amostra n={readiness.sample} · {readiness.note}
+        {coverage.expected === null ? " · cobertura sem denominador até carregar o banco da prova" : ` · ${coverage.calibrated}/${coverage.expected} conteúdos calibrados no banco carregado`}
+      </div>
+
+      <Card style={{ marginTop: 14 }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div>
+            <h2>Meta da prova</h2>
+            <p className="muted" style={{ marginTop: 4 }}>
+              Ritmo, cobertura e readiness são metas operacionais. Nenhuma delas é previsão de aprovação.
+            </p>
+          </div>
+          <span className="pill">{goal.status}</span>
+        </div>
+        <div className="grid grid4" style={{ marginTop: 12 }}>
+          <div>
+            <label htmlFor="goal-date">Data-alvo</label>
+            <input id="goal-date" type="date" value={currentGoalDraft.date} onChange={(e) => updateGoal({ date: e.target.value })} />
+          </div>
+          <div>
+            <label htmlFor="goal-weekly">Questões/semana</label>
+            <input id="goal-weekly" type="number" min="0" value={currentGoalDraft.weekly} onChange={(e) => updateGoal({ weekly: e.target.value })} />
+          </div>
+          <div>
+            <label htmlFor="goal-readiness">Readiness alvo</label>
+            <input id="goal-readiness" type="number" min="0" max="100" value={currentGoalDraft.readiness} onChange={(e) => updateGoal({ readiness: e.target.value })} />
+          </div>
+          <div>
+            <label htmlFor="goal-coverage">Cobertura alvo %</label>
+            <input id="goal-coverage" type="number" min="0" max="100" value={currentGoalDraft.coverage} onChange={(e) => updateGoal({ coverage: e.target.value })} />
+          </div>
+        </div>
+        <div className="row" style={{ marginTop: 10 }}>
+          <button type="button" className="btn secondary" onClick={saveGoal}>Salvar meta</button>
+          <span className="muted">
+            {goal.weeklyQuestionsDone}/{goal.weeklyQuestionsTarget || "—"} questões nos últimos 7 dias
+            {goal.daysRemaining === null ? "" : ` · ${goal.daysRemaining} dia(s) restantes`}
+          </span>
+        </div>
+        {goal.reasons.length > 0 && (
+          <div className="notice" style={{ marginTop: 10 }}>{goal.reasons.slice(0, 3).join(" ")}</div>
         )}
       </Card>
 
@@ -129,21 +352,94 @@ export default function AdaptivePage() {
         <Metric label="Revisões vencidas" value={due.length} />
         <Metric label="Erros com certeza" value={certezaWrong} />
         <Metric label="Conteúdos fracos" value={weak.length} />
-        <Metric label="Fila priorizada" value={cand.length} />
+        <Metric label="Fila de erros" value={cand.length} />
+      </div>
+
+      {preview && (
+        <Card style={{ marginTop: 14 }}>
+          <div className="row" style={{ justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <h2>Próximas 40 · fila única</h2>
+              <div className="muted">
+                Banco: {preview.poolSize} questões · {preview.expectedContents.length} conteúdos detectados · diagnóstico selecionaria {preview.diagnostic.selected.length}.
+              </div>
+            </div>
+            <span className="pill">{ADAPTIVE_OBJECTIVES[preview.objective].label}</span>
+          </div>
+          <div className="queue" style={{ marginTop: 10 }}>
+            {preview.queue.slice(0, 12).map((item, index) => (
+              <div className="queueItem" key={item.questionKey}>
+                <div className="qnum">{index + 1}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
+                    <b>{item.content}</b>
+                    <span className="pill">{item.kind} · evidência {item.confidence}</span>
+                  </div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>
+                    {item.reasons[0] ?? "Priorizada pelo motor."}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid2" style={{ marginTop: 14 }}>
+        <Card>
+          <h2>Riscos que a média esconde</h2>
+          {falseMastery.length === 0 && falseErrors.length === 0 ? (
+            <Empty>Nenhum sinal forte de falso domínio ou falso erro com a evidência atual.</Empty>
+          ) : (
+            <div className="queue" style={{ marginTop: 10 }}>
+              {falseMastery.slice(0, 4).map((item) => (
+                <div className="studyBlock" key={`mastery-${item.content}`}>
+                  <div className="prio">falso domínio · risco {item.risk}/100</div>
+                  <h3>{item.content}</h3>
+                  <div className="muted">{item.reasons.join(" ")}</div>
+                </div>
+              ))}
+              {falseErrors.slice(0, 4).map((item) => (
+                <div className="studyBlock" key={`error-${item.attemptId}-${item.key}`}>
+                  <div className="prio">possível falso erro</div>
+                  <h3>{item.content}</h3>
+                  <div className="muted">{item.reasons.join(" ")}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <h2>Execução e tempo</h2>
+          <div className="studyBlock">
+            <div className="prio">diagnóstico · {split.diagnosis}</div>
+            <h3>{split.knowledgeScore}% conhecimento · {split.actualAccuracy}% resultado real</h3>
+            <div className="muted">
+              {split.executionErrors} erro(s) de execução diagnosticados · {split.slowRows} questão(ões) acima de 4 min.
+            </div>
+          </div>
+          <div className="studyBlock" style={{ marginTop: 8 }}>
+            <div className="prio">perfil temporal</div>
+            <h3>{temporal.bestBucket ? `Melhor janela: ${temporal.bestBucket.label}` : "Horário ainda calibrando"}</h3>
+            <div className="muted">
+              {temporal.fatiguedAttempts >= 2 && temporal.fatigueThresholdMinutes
+                ? `Queda repetida após ~${temporal.fatigueThresholdMinutes} min; novos blocos podem ser encurtados, nunca ampliados.`
+                : "O motor só encurta blocos depois de pelo menos duas evidências de fadiga."}
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card style={{ marginTop: 14 }}>
         <h2>Plano de estudo atual</h2>
         <p className="muted" style={{ marginTop: 4 }}>
-          O primeiro bloco marcado como ativo é o que o botão principal executa. Etapas concluídas voltam a ser
-          avaliadas depois de cada treino.
+          O primeiro bloco marcado como ativo é o ciclo clássico. Os botões do topo permitem trocar o objetivo sem alterar gabarito ou identidade.
         </p>
         <div className="grid grid4" style={{ marginTop: 12 }}>
           {plan.map((step) => (
             <div className="studyBlock" key={step.title}>
-              <div className="prio">
-                {step.active ? "agora" : step.done ? "em dia" : "depois"}
-              </div>
+              <div className="prio">{step.active ? "agora" : step.done ? "em dia" : "depois"}</div>
               <h3>{step.title}</h3>
               <div className="muted">{step.detail}</div>
             </div>
@@ -155,49 +451,37 @@ export default function AdaptivePage() {
         <Card>
           <h2>Fila de erros</h2>
           <p className="muted" style={{ marginTop: 4 }}>
-            O score não é uma nota: ele só ordena qual erro vale recuperar primeiro.
+            O score não é nota: ordena qual erro vale recuperar primeiro.
           </p>
           <div className="queue" style={{ marginTop: 10 }}>
             {cand.length === 0 && <Empty>Sem erros para priorizar.</Empty>}
-            {cand.slice(0, 10).map((x) => (
-              <div className="queueItem" key={`${x.attemptId}-${x.key}`}>
-                <div className="qnum">{x.index}</div>
+            {cand.slice(0, 8).map((item) => (
+              <div className="queueItem" key={`${item.attemptId}-${item.key}`}>
+                <div className="qnum">{item.index}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
-                    <b>{x.content}</b>
-                    <span className="pill">score {Math.round(x.score)}</span>
+                    <b>{item.content}</b>
+                    <span className="pill">score {Math.round(item.score)}</span>
                   </div>
                   <div className="muted" style={{ fontSize: 11 }}>
-                    {examLabel(providerId)} {x.year} • {x.confidence || "sem confiança"} • {shortSec(x.timeSec)}
+                    {examLabel(providerId)} {item.year} • {item.confidence || "sem confiança"} • {shortSec(item.timeSec)}
                   </div>
-                  {x.reasons[0] ? (
-                    <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>
-                      {x.reasons[0]}
-                    </div>
-                  ) : null}
                 </div>
               </div>
             ))}
           </div>
         </Card>
+
         <Card>
-          <h2>Por que essa ordem?</h2>
+          <h2>O que mudaria a prioridade?</h2>
           <div className="studyBlock">
-            <div className="prio">1 · retenção</div>
-            <h3>Não perder o que já foi aprendido</h3>
-            <div className="muted">Revisões vencidas entram antes de qualquer volume novo.</div>
+            <div className="prio">contrafactual · {counterfactualTarget?.content ?? "sem conteúdo calibrado"}</div>
+            <h3>Não basta explicar o score.</h3>
+            <div className="muted">{counterfactual.join(" ")}</div>
           </div>
-          <div className="studyBlock" style={{ marginTop: 8 }}>
-            <div className="prio">2–4 · reparo e avanço</div>
-            <h3>Lacuna → erro → nova amostra</h3>
-            <div className="muted">
-              Depois o motor repara conteúdos abaixo de 65%, recupera erros prioritários e só então busca questões
-              inéditas ou uma nova amostra adaptativa.
-            </div>
-          </div>
-          {topRetry ? (
+          {topRetry && (
             <div className="studyBlock" style={{ marginTop: 8 }}>
-              <div className="prio">exemplo real · topo da fila de erros</div>
+              <div className="prio">topo da fila de erros</div>
               <h3>{topRetry.content} · {Math.round(topRetry.score)} pontos</h3>
               <div className="muted">
                 {Object.entries(topRetry.components)
@@ -205,11 +489,56 @@ export default function AdaptivePage() {
                   .map(([key, value]) => `${RETRY_COMPONENT_LABELS[key] ?? key} ${value > 0 ? "+" : ""}${Math.round(value)}`)
                   .join(" · ")}
               </div>
-              <div className="muted" style={{ marginTop: 4 }}>
-                {topRetry.reasons.slice(0, 3).join(" ")}
-              </div>
             </div>
-          ) : null}
+          )}
+        </Card>
+      </div>
+
+      <div className="grid grid2" style={{ marginTop: 14 }}>
+        <Card>
+          <h2>Histórico das decisões</h2>
+          <p className="muted" style={{ marginTop: 4 }}>
+            Feedback só personaliza um sinal depois de 3 avaliações compatíveis e o peso fica limitado a ±10%.
+          </p>
+          <div className="queue" style={{ marginTop: 10 }}>
+            {history.length === 0 && <Empty>Nenhuma decisão nova registrada ainda.</Empty>}
+            {history.map((item) => (
+              <div className="studyBlock" key={item.id}>
+                <div className="prio">{ADAPTIVE_OBJECTIVES[item.objective].label} · {new Date(item.at).toLocaleDateString("pt-BR")}</div>
+                <h3>{item.topContent || `${item.questionKeys.length} questões`}</h3>
+                <div className="muted">
+                  antes {item.readinessBefore ?? "—"} · depois {item.readinessAfter ?? "pendente"} · acerto {item.accuracyAfter === null || item.accuracyAfter === undefined ? "—" : `${item.accuracyAfter}%`}
+                </div>
+                <div className="row" style={{ marginTop: 7 }}>
+                  <button type="button" className="btn secondary" onClick={() => rateDecision(item.id, "helpful")}>Útil</button>
+                  <button type="button" className="btn secondary" onClick={() => rateDecision(item.id, "neutral")}>Neutro</button>
+                  <button type="button" className="btn secondary" onClick={() => rateDecision(item.id, "not_helpful")}>Não ajudou</button>
+                  {item.feedback && <span className="muted">registrado: {item.feedback.usefulness}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <h2>Experimento interno</h2>
+          <div className="studyBlock">
+            <div className="prio">adaptive-feedback-v1 · {experiment.status}</div>
+            <h3>Base × pesos aprendidos por feedback</h3>
+            <div className="muted">{experiment.note}</div>
+          </div>
+          <div className="grid grid2" style={{ marginTop: 8 }}>
+            {experiment.variants.map((variant) => (
+              <div className="studyBlock" key={variant.variant}>
+                <div className="prio">{variant.variant}</div>
+                <h3>n={variant.n}</h3>
+                <div className="muted">
+                  Δ readiness {variant.avgReadinessDelta ?? "—"} · acerto {variant.avgAccuracy === null ? "—" : `${variant.avgAccuracy}%`} · útil {variant.helpfulRate === null ? "—" : `${variant.helpfulRate}%`}
+                </div>
+              </div>
+            ))}
+          </div>
+          {experiment.variants.length === 0 && <Empty>O experimento começa nos próximos treinos inteligentes.</Empty>}
         </Card>
       </div>
     </>

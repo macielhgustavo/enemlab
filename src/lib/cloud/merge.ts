@@ -1,3 +1,4 @@
+import { mergeStudyIntelligenceState } from "../domain/study-intelligence-merge";
 import type { Attempt, DB, Note, SrsEntry } from "../domain/types";
 
 function clone<T>(value: T): T {
@@ -110,6 +111,7 @@ export function mergeCloudDB(local: DB, cloud: Partial<DB> | null | undefined): 
     attempts: mergedAttempts,
     notes,
     srs,
+    studyIntelligence: mergeStudyIntelligenceState(cloud.studyIntelligence, local.studyIntelligence),
     // Sessões são derivadas das tentativas e serão reconstruídas pelo chamador.
     sessions: [],
     goals: clone(local.goals || cloud.goals || { questions: 150, essays: 2, reviews: 30 }),
