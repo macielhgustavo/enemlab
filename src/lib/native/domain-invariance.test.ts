@@ -72,11 +72,17 @@ function publishedPack(question: Question): NativePack {
         semantic: { rawText: "conteúdo semântico não usado para corrigir" },
         extraction: {
           method: "text-layer",
-          parserVersion: "native-pipeline@1.0.0",
+          parserVersion: "native-pipeline@2.0.0",
           confidence: 1,
           markerDetected: true,
           optionIdsDetected: ["A", "B", "C", "D", "E"],
           issues: [],
+          visualCompleteness: {
+            required: false,
+            resolved: true,
+            reasons: [],
+            strategy: "not-required",
+          },
         },
         status: "published",
       },
@@ -110,10 +116,11 @@ describe("NativePack domain invariance", () => {
 
   it("preserva classificação, gabarito, mastery, erros, SRS e fila adaptativa", () => {
     const reference = providerQuestion();
-    const path = publishedPack(reference).questions[0].visualRegions[0].assetPath!;
+    const pack = publishedPack(reference);
+    const path = pack.questions[0].visualRegions[0].assetPath!;
     const native = applyNativePackToQuestions(
       [reference],
-      publishedPack(reference),
+      pack,
       new Map([[path, "https://signed.example.com/fatec-q1.webp"]]),
     )[0];
 

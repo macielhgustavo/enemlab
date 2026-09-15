@@ -32,6 +32,38 @@ class NativePipelineTests(unittest.TestCase):
         )
         self.assertEqual(native._detected_options("sem alternativas", ("A", "B")), [])
 
+    def test_detects_shared_question_ranges_with_accents_and_variants(self):
+        self.assertEqual(
+            native._shared_question_range(
+                "Para responder às questões de 01 a 05, leia o romance ilustrado."
+            ),
+            (1, 5),
+        )
+        self.assertEqual(
+            native._shared_question_range("Use o texto para responder às questões 07 até 11."),
+            (7, 11),
+        )
+        self.assertEqual(native._shared_question_range("Questão 12"), None)
+
+    def test_detects_visual_and_context_dependencies(self):
+        reasons = native._visual_dependency_reasons(
+            "Depreende-se do romance ilustrado e da tirinha que o gráfico apresentado..."
+        )
+        self.assertIn("context:romance", reasons)
+        self.assertIn("media:image", reasons)
+        self.assertIn("media:chart", reasons)
+
+    def test_layout_spans_columns_when_right_question_starts_much_lower(self):
+        q6 = native.Marker(number=6, page_index=0, x0=40, y0=50, x1=200, y1=70)
+        q7 = native.Marker(number=7, page_index=0, x0=330, y0=310, x1=500, y1=330)
+        self.assertTrue(native._should_span_columns(q6, [q6, q7], 600, 800))
+
+    def test_layout_keeps_parallel_questions_in_separate_columns(self):
+        q1 = native.Marker(number=1, page_index=0, x0=40, y0=100, x1=200, y1=120)
+        q3 = native.Marker(number=3, page_index=0, x0=330, y0=108, x1=500, y1=128)
+        q2 = native.Marker(number=2, page_index=0, x0=40, y0=390, x1=200, y1=410)
+        self.assertFalse(native._should_span_columns(q1, [q1, q2, q3], 600, 800))
+
     def test_spec_rejects_non_single_answer_alphabet(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "spec.json"

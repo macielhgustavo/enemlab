@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NativePack } from "./contracts";
-import { nativePackId, nativePageAssetPath } from "./cloud";
+import { nativePackId, nativePageAssetPath, nativeRegionAssetPath } from "./cloud";
 
 const pack: NativePack = {
   version: 1,
@@ -28,6 +28,15 @@ describe("native cloud identity", () => {
     expect(nativePageAssetPath(pack.documents[0].pageAssetPattern, 7)).toBe(
       "native/unesp/2026/first/aaaaaaaaaaaaaaaa/pages/page-007.webp",
     );
+  });
+
+  it("gera caminho de região por página+retângulo, independente da questão", () => {
+    const root = "native/unesp/2026/first/aaaaaaaaaaaaaaaa";
+    const rect = { x: 0.1, y: 0.2, width: 0.3, height: 0.4 };
+    const a = nativeRegionAssetPath(root, 7, rect);
+    const b = nativeRegionAssetPath(root, 7, { ...rect });
+    expect(a).toBe(b);
+    expect(a).toMatch(/\/regions\/page-007-/);
   });
 
   it("inclui SHA da fonte na identidade do pack", () => {

@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { ensureFreshSession, loadSession } from "@/lib/cloud/client";
 import { publishNativePack } from "@/lib/native/cloud";
-import { nativePackGate, parseNativePackJson } from "@/lib/native/review";
+import {
+  approveAllStructurallyValid,
+  nativePackGate,
+  parseNativePackJson,
+} from "@/lib/native/review";
 import type { NativePack } from "@/lib/native/contracts";
 
 type ZipEntry = {
@@ -65,6 +69,21 @@ function baseName(path: string): string {
   return path.split("/").filter(Boolean).at(-1) ?? path;
 }
 
+function pageFilename(page: number): string {
+  return `page-${String(page).padStart(3, "0")}.webp`;
+}
+
+function gateMessage(pack: NativePack): string {
+  const gate = nativePackGate(pack);
+  if (gate.publishable) return "";
+  const preview = gate.issues
+    .slice(0, 5)
+    .map((row) => `${row.questionKey}: ${row.issues.join(", ")}`)
+    .join(" • ");
+  const suffix = gate.issues.length > 5 ? ` • +${gate.issues.length - 5} pendências` : "";
+  return `NativePack bloqueado (${gate.published}/${gate.total} prontas). ${preview}${suffix}`;
+}
+
 export function NativeZipPublisher() {
   const [pack, setPack] = useState<NativePack | null>(null);
   const [pages, setPages] = useState<Map<string, File>>(new Map());
@@ -83,30 +102,43 @@ export function NativeZipPublisher() {
       if (!manifestEntry) throw new Error("O ZIP não contém native-pack.json.");
 
       const manifestBytes = await extractZipEntry(buffer, manifestEntry);
-      const nextPack = parseNativePackJson(new TextDecoder().decode(manifestBytes));
+      const parsed = parseNativePackJson(new TextDecoder().decode(manifestBytes));
+      // Itens sem qualquer pendência estrutural/extração são aprovados em massa.
+      // Só exceções reais permanecem para revisão humana.
+      const nextPack = approveAllStructurallyValid(parsed);
       const gate = nativePackGate(nextPack);
-      if (!gate.publishable) {
-        throw new Error(`NativePack ainda não está pronto para publicar (${gate.published}/${gate.total} aprovadas).`);
+      if (!gate.publishable) throw new Error(gateMessage(nextPack));
+
+      // O publisher só precisa das páginas canônicas; crops antigos dentro do
+      // ZIP não entram na contagem nem são reextraídos para memória.
+      const pageEntries = entries.filter((entry) => /(^|\/)page-\d{3}\.webp$/i.test(entry.name));
+      const entriesByName = new Map(pageEntries.map((entry) => [baseName(entry.name), entry]));
+      const expectedNames = new Set<string>();
+      for (const document of nextPack.documents) {
+        for (let page = 1; page <= document.pageCount; page += 1) expectedNames.add(pageFilename(page));
+      }
+      const missing = [...expectedNames].filter((name) => !entriesByName.has(name));
+      if (missing.length) {
+        const preview = missing.slice(0, 8).join(", ");
+        throw new Error(
+          `Pacote incompleto: faltam ${missing.length} página(s) (${preview}${missing.length > 8 ? ", …" : ""}).`,
+        );
       }
 
-      const pageEntries = entries.filter((entry) => entry.name.toLowerCase().endsWith(".webp"));
       const nextPages = new Map<string, File>();
       await Promise.all(
-        pageEntries.map(async (entry) => {
+        [...expectedNames].map(async (filename) => {
+          const entry = entriesByName.get(filename)!;
           const bytes = await extractZipEntry(buffer, entry);
-          const filename = baseName(entry.name);
           nextPages.set(filename, new File([bytes.buffer as ArrayBuffer], filename, { type: "image/webp" }));
         }),
       );
 
-      const expectedPages = nextPack.documents.reduce((total, document) => total + document.pageCount, 0);
-      if (nextPages.size < expectedPages) {
-        throw new Error(`Pacote incompleto: encontrei ${nextPages.size} páginas WebP; esperava ${expectedPages}.`);
-      }
-
       setPack(nextPack);
       setPages(nextPages);
-      setMessage(`Pacote pronto: ${nextPack.questions.length} questões e ${nextPages.size} páginas WebP. Agora toque em Publicar ZIP.`);
+      setMessage(
+        `Pacote validado automaticamente: ${gate.total}/${gate.total} questões prontas e ${nextPages.size} páginas. Toque em Publicar ZIP.`,
+      );
     } catch (cause) {
       setPack(null);
       setPages(new Map());
@@ -125,7 +157,9 @@ export function NativeZipPublisher() {
       const session = await ensureFreshSession(stored);
       const result = await publishNativePack(session, pack, pages);
       setPack(result.pack);
-      setMessage(`Publicado com sucesso: ${result.uploadedPages} páginas e ${result.uploadedCrops} recortes.`);
+      setMessage(
+        `Publicado com sucesso: ${result.uploadedPages} páginas e ${result.uploadedCrops} regiões visuais únicas.`,
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha ao publicar o ZIP.");
     } finally {
@@ -137,9 +171,15 @@ export function NativeZipPublisher() {
     <section className="mx-auto mt-5 w-full max-w-7xl px-5">
       <div className="rounded-2xl border p-4">
         <h2 className="font-semibold">Publicação rápida por ZIP</h2>
-        <p className="mt-1 text-sm text-neutral-500">Selecione o pacote completo. O app extrai o native-pack.json e todas as páginas WebP automaticamente.</p>
+        <p className="mt-1 text-sm text-neutral-500">
+          Selecione o pacote completo. O app valida o NativePack, aprova automaticamente itens seguros e extrai somente as páginas necessárias.
+        </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <input type="file" accept=".zip,application/zip,application/x-zip-compressed" onChange={(event) => void loadZip(event.target.files?.[0] ?? null)} />
+          <input
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
+            onChange={(event) => void loadZip(event.target.files?.[0] ?? null)}
+          />
           <button
             type="button"
             className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"

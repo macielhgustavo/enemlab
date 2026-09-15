@@ -1,7 +1,7 @@
 import { CLOUD_CONFIGURED, ensureFreshSession, loadSession } from "../cloud/client";
 import { classifyQuestion, questionKey } from "../domain/classify";
 import type { Question } from "../domain/types";
-import { createNativeSignedUrls, fetchPublishedNativePack } from "./cloud";
+import { createNativeSignedUrls, fetchPublishedNativePack, nativePageAssetPath } from "./cloud";
 import type { NativePack, NativeQuestionContentRecord } from "./contracts";
 
 interface NativeGroup {
@@ -11,6 +11,10 @@ interface NativeGroup {
   phase: string;
   questions: Question[];
 }
+
+const LEGACY_PIPELINE_RE = /^native-pipeline@1(?:\.|$)/;
+const LEGACY_PREVIOUS_CONTEXT_RE =
+  /\b(?:romance|poema|obra|trecho|texto|narrador|eu\s+l[ií]rico|versos?|estrofes?|ensaio|passagem|excerto)\b/i;
 
 function groupKey(question: Question): string {
   return [
@@ -52,15 +56,75 @@ function recordMatchesQuestion(record: NativeQuestionContentRecord, question: Qu
   );
 }
 
-function completeVisualUrls(
+function isPipelineV2(record: NativeQuestionContentRecord): boolean {
+  const match = /^native-pipeline@(\d+)(?:\.|$)/.exec(record.extraction.parserVersion);
+  return !!match && Number(match[1]) >= 2;
+}
+
+function documentForRecord(pack: NativePack, record: NativeQuestionContentRecord) {
+  return pack.documents.find((document) => document.documentId === record.documentId);
+}
+
+function legacyNeedsPreviousContext(record: NativeQuestionContentRecord): boolean {
+  return LEGACY_PREVIOUS_CONTEXT_RE.test(record.semantic.rawText ?? "");
+}
+
+/**
+ * Packs v1 foram produzidos antes do gate de completude visual e podem ter
+ * recortes geometricamente válidos, porém pedagogicamente incompletos. Para
+ * eles o runner prefere a página rasterizada inteira (e, quando há referência
+ * textual a um estímulo externo, também a página anterior). É mais conservador
+ * e um pouco menos compacto, mas nunca corta figura, coluna ou alternativas.
+ */
+function legacyPagePaths(
   record: NativeQuestionContentRecord,
-  signedUrls: Map<string, string>,
+  pack: NativePack,
 ): string[] | null {
+  const document = documentForRecord(pack, record);
+  if (!document || !record.visualRegions.length) return null;
+  const regionPages = [...new Set(record.visualRegions.map((region) => region.page))];
+  if (!regionPages.length) return null;
+
+  const pages: number[] = [];
+  const firstPage = Math.min(...regionPages);
+  if (legacyNeedsPreviousContext(record) && firstPage > 1) pages.push(firstPage - 1);
+  for (const page of regionPages) {
+    if (!pages.includes(page)) pages.push(page);
+  }
+  return pages.map((page) => nativePageAssetPath(document.pageAssetPattern, page));
+}
+
+export function nativeVisualPaths(
+  record: NativeQuestionContentRecord,
+  pack: NativePack,
+): string[] | null {
+  if (LEGACY_PIPELINE_RE.test(record.extraction.parserVersion)) {
+    return legacyPagePaths(record, pack);
+  }
+
+  const completeness = record.extraction.visualCompleteness;
+  if (isPipelineV2(record) && !completeness) return null;
+  if (completeness?.required && !completeness.resolved) return null;
   if (!record.visualRegions.length) return null;
-  const urls: string[] = [];
+
+  const paths: string[] = [];
   for (const region of record.visualRegions) {
     if (!region.assetPath) return null;
-    const signed = signedUrls.get(region.assetPath);
+    paths.push(region.assetPath);
+  }
+  return paths;
+}
+
+function completeVisualUrls(
+  record: NativeQuestionContentRecord,
+  pack: NativePack,
+  signedUrls: Map<string, string>,
+): string[] | null {
+  const paths = nativeVisualPaths(record, pack);
+  if (!paths?.length) return null;
+  const urls: string[] = [];
+  for (const path of paths) {
+    const signed = signedUrls.get(path);
     if (!signed) return null;
     urls.push(signed);
   }
@@ -72,10 +136,9 @@ function completeVisualUrls(
  * tratado como canônico; o gabarito e a estrutura A–E continuam vindo do
  * provider original e nunca do NativePack.
  *
- * A aplicação é fail-closed por questão: registros com identidade divergente
- * ou com qualquer região visual ausente permanecem em modo referência. Isso é
- * essencial em layouts multi-região, nos quais mostrar apenas parte do visual
- * pode omitir alternativas, contexto ou figuras necessárias para responder.
+ * A aplicação é fail-closed por questão: registros com identidade divergente,
+ * evidência v2 incompleta ou qualquer asset visual ausente permanecem em modo
+ * referência. Packs v1 usam páginas inteiras como fallback de segurança.
  */
 export function applyNativePackToQuestions(
   questions: Question[],
@@ -89,7 +152,7 @@ export function applyNativePackToQuestions(
       return question;
     }
 
-    const visualUrls = completeVisualUrls(record, signedUrls);
+    const visualUrls = completeVisualUrls(record, pack, signedUrls);
     if (!visualUrls) return question;
 
     return {
@@ -98,9 +161,8 @@ export function applyNativePackToQuestions(
       // provider ainda está disponível. Depois o visual vira canônico e o texto
       // pode ser ocultado sem alterar mastery/SRS/adaptive.
       classificationSnapshot: question.classificationSnapshot ?? classifyQuestion(question),
-      // O recorte visual contém enunciado, figuras e alternativas com a
-      // fidelidade da prova original. O texto semântico fica no pack para
-      // busca/acessibilidade, sem substituir o visual no runner.
+      // O visual nativo contém enunciado, figuras e alternativas. No legado v1
+      // ele pode ser a página inteira; no v2 são recortes com completude provada.
       context: undefined,
       alternativesIntroduction: undefined,
       alternatives: (question.alternatives ?? []).map((alternative) => ({
@@ -136,7 +198,7 @@ export async function applyPublishedNativeContent(questions: Question[]): Promis
       const wanted = new Set(group.questions.map(questionKey));
       const paths = pack.questions
         .filter((record) => wanted.has(record.questionKey) && record.status === "published")
-        .flatMap((record) => record.visualRegions.map((region) => region.assetPath).filter(Boolean)) as string[];
+        .flatMap((record) => nativeVisualPaths(record, pack) ?? []);
       const signed = await createNativeSignedUrls(session.access_token, [...new Set(paths)]);
       out = applyNativePackToQuestions(out, pack, signed);
     }

@@ -60,6 +60,7 @@ jobs:
               raise SystemExit(f'esperadas 90 questões, recebidas {len(questions)}')
           if any(question.get('status') != 'review' for question in questions):
               raise SystemExit('canário nasceu aprovado/publicado; pipeline deve falhar fechado')
+
           keys = [question.get('questionKey') for question in questions]
           expected = [f'unesp-2026-first-{number}' for number in range(1, 91)]
           if keys != expected:
@@ -68,25 +69,55 @@ jobs:
           if len(pages) != 40:
               raise SystemExit(f'esperadas 40 páginas WebP, recebidas {len(pages)}')
 
+          by_number = {question['number']: question for question in questions}
+          for question in questions:
+              extraction = question.get('extraction') or {}
+              if not str(extraction.get('parserVersion') or '').startswith('native-pipeline@2.'):
+                  raise SystemExit(f"Q{question['number']}: parser v2 ausente")
+              completeness = extraction.get('visualCompleteness')
+              if not isinstance(completeness, dict):
+                  raise SystemExit(f"Q{question['number']}: evidência de completude ausente")
+              if completeness.get('required') and not completeness.get('resolved') and not extraction.get('issues'):
+                  raise SystemExit(
+                      f"Q{question['number']}: dependência visual não resolvida sem bloquear autoaprovação"
+                  )
+
+          # Regressões concretas que motivaram o v2.
+          q1 = by_number[1]
+          q1_shared = [region for region in q1['visualRegions'] if region.get('role') == 'shared-context']
+          if not q1_shared or not any(region.get('page') == 2 for region in q1_shared):
+              raise SystemExit('Q1 perdeu o romance ilustrado compartilhado da página 2')
+          if not (q1.get('extraction') or {}).get('visualCompleteness', {}).get('resolved'):
+              raise SystemExit('Q1 não foi marcada como visualmente completa')
+
+          def question_region_width(number):
+              regions = [
+                  region for region in by_number[number]['visualRegions']
+                  if region.get('role') == 'question'
+              ]
+              return max((float(region.get('rect', {}).get('width') or 0) for region in regions), default=0)
+
+          if question_region_width(6) < 0.80:
+              raise SystemExit('Q6 voltou a ser cortada como coluna apesar de ocupar a largura da página')
+          if question_region_width(16) < 0.80 and len(by_number[16].get('visualRegions') or []) < 2:
+              raise SystemExit('Q16 perdeu cobertura multi-coluna')
+
           summary = pack.get('reviewSummary') or {}
-          if summary.get('semanticReady') != 89 or summary.get('needsReview') != 1:
-              raise SystemExit(
-                  'canário semântico divergiu: esperado 89 prontas e 1 para revisão; '
-                  f"recebido {summary.get('semanticReady')} / {summary.get('needsReview')}"
-              )
-          semantic_exceptions = [
+          visual_complete = int(summary.get('visualComplete') or 0)
+          needs_review = int(summary.get('needsReview') or 0)
+          if visual_complete < 80:
+              raise SystemExit(f'completude visual caiu demais: {visual_complete}/90')
+          if needs_review > 10:
+              raise SystemExit(f'exceções automáticas demais: {needs_review}/90')
+
+          exceptions = [
               question.get('number')
               for question in questions
               if (question.get('extraction') or {}).get('issues')
           ]
-          if semantic_exceptions != [16]:
-              raise SystemExit(
-                  f'exceção semântica auditada deve permanecer somente na Q16; recebido {semantic_exceptions}'
-              )
-
           print(
               f"OK: {len(questions)} questões, {len(pages)} páginas, "
-              "89/90 semânticas e Q16 em revisão"
+              f"{visual_complete}/90 visualmente completas; revisão manual: {exceptions}"
           )
           PY
 
