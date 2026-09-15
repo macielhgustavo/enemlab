@@ -26,7 +26,8 @@ DEFAULT_MARKER = r"QUEST(?:ÃO|AO)\s*[\u2000-\u200f\s]*0?(\d{1,3})"
 PARSER_VERSION = "native-pipeline@2.0.0"
 PAGE_X0 = 0.06
 PAGE_X1 = 0.94
-PAGE_Y_BOTTOM = 0.94
+PAGE_Y_BOTTOM = 0.975
+MAX_SHARED_RANGE = 20
 
 
 class NativePipelineError(ValueError):
@@ -92,8 +93,6 @@ def _load_spec(path: Path) -> Spec:
     if not re.fullmatch(r"[0-9a-f]{64}", sha):
         raise NativePipelineError("sourceSha256 inválido")
 
-    # A identidade não pode ser inferida do provider/ano/fase dentro do
-    # extrator. O orquestrador fornece um formato auditado contra questionKey.
     question_key_format = str(raw.get("questionKeyFormat") or "").strip()
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*-\{number\}", question_key_format):
         raise NativePipelineError(
@@ -227,13 +226,6 @@ def _should_span_columns(
     page_width: float,
     page_height: float,
 ) -> bool:
-    """Detecta blocos que começam na esquerda e atravessam a página.
-
-    Se existe outra questão na coluna direita praticamente na mesma altura, as
-    duas são paralelas e não há span. Se a próxima questão da direita só começa
-    bem abaixo e vem antes da próxima da esquerda, o bloco atual pode ocupar a
-    largura inteira (casos como tirinha/tabela e questões multi-coluna).
-    """
     if not _two_columns(page_markers, page_width):
         return False
     if _column(marker, page_width, True) != 0:
@@ -269,17 +261,10 @@ def _next_marker_after(marker: Marker, page_markers: list[Marker]) -> Marker | N
     return min(later, key=lambda candidate: candidate.y0) if later else None
 
 
-def _draft_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[float, float, float, float]:
+def _column_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[float, float, float, float]:
     width = float(page.rect.width)
     height = float(page.rect.height)
     two_columns = _two_columns(page_markers, width)
-    y0 = max(0.0, marker.y0 - 4)
-
-    if _should_span_columns(marker, page_markers, width, height):
-        next_marker = _next_marker_after(marker, page_markers)
-        y1 = next_marker.y0 - 4 if next_marker else height * PAGE_Y_BOTTOM
-        return width * PAGE_X0, y0, width * PAGE_X1, min(height, max(marker.y1 + 18, y1))
-
     column = _column(marker, width, two_columns)
     same_column = sorted(
         [
@@ -297,8 +282,24 @@ def _draft_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[
             x0, x1 = width * 0.51, width * PAGE_X1
     else:
         x0, x1 = width * PAGE_X0, width * PAGE_X1
+    y0 = max(0.0, marker.y0 - 4)
     y1 = min(height, max(marker.y1 + 18, y1))
     return x0, y0, x1, y1
+
+
+def _draft_rect(marker: Marker, page: Any, page_markers: list[Marker]) -> tuple[float, float, float, float]:
+    width = float(page.rect.width)
+    height = float(page.rect.height)
+    if _should_span_columns(marker, page_markers, width, height):
+        next_marker = _next_marker_after(marker, page_markers)
+        y1 = next_marker.y0 - 4 if next_marker else height * PAGE_Y_BOTTOM
+        return (
+            width * PAGE_X0,
+            max(0.0, marker.y0 - 4),
+            width * PAGE_X1,
+            min(height, max(marker.y1 + 18, y1)),
+        )
+    return _column_rect(marker, page, page_markers)
 
 
 def _normalized_rect(rect: tuple[float, float, float, float], page: Any) -> dict[str, float]:
@@ -358,12 +359,6 @@ def _shared_context_rect(
     height = float(page.rect.height)
     bx0, by0, bx1, by1 = map(float, block[:4])
     y0 = max(0.0, by0 - 4)
-
-    if first_marker.page_index > 0:  # overwritten below by caller when pages differ
-        pass
-
-    # Quando a primeira questão começa na mesma página e na coluna oposta, o
-    # estímulo normalmente ocupa a coluna do cabeçalho até o rodapé útil.
     header_column = 0 if bx0 < width / 2 else 1
     marker_column = 0 if first_marker.x0 < width / 2 else 1
     block_is_wide = (bx1 - bx0) > width * 0.62
@@ -371,7 +366,6 @@ def _shared_context_rect(
         if header_column == 0:
             return width * 0.04, y0, width * 0.49, height * PAGE_Y_BOTTOM
         return width * 0.51, y0, width * 0.96, height * PAGE_Y_BOTTOM
-
     y1 = max(by1 + 12, first_marker.y0 - 4)
     return width * 0.04, y0, width * 0.96, min(height * PAGE_Y_BOTTOM, y1)
 
@@ -392,6 +386,11 @@ def _detect_shared_contexts(
             if not question_range:
                 continue
             start, end = question_range
+            # Faixas gigantes na capa/instruções (ex.: 1–90) descrevem a prova,
+            # não um estímulo compartilhado. Ignorá-las evita anexar a capa a
+            # todas as questões.
+            if end - start + 1 > MAX_SHARED_RANGE:
+                continue
             if start < 1 or end > total or start not in marker_by_number:
                 continue
             key = (start, end, page_index)
@@ -399,12 +398,9 @@ def _detect_shared_contexts(
                 continue
             seen.add(key)
             first_marker = marker_by_number[start]
-            bx0, by0, bx1, by1 = map(float, block[:4])
+            _, by0, _, _ = map(float, block[:4])
             y0 = max(0.0, by0 - 4)
-
             if first_marker.page_index > page_index:
-                # Estímulo em página anterior: capture toda a área útil da
-                # página desde o cabeçalho; isso inclui texto e imagens.
                 rect = (width * 0.04, y0, width * 0.96, height * PAGE_Y_BOTTOM)
             elif first_marker.page_index == page_index:
                 rect = _shared_context_rect(page, block, first_marker)
@@ -491,13 +487,27 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
     for number in range(1, spec.total + 1):
         marker = marker_by_number[number]
         page = doc[marker.page_index]
-        rect = _draft_rect(marker, page, by_page[marker.page_index])
+        page_markers = by_page[marker.page_index]
+        rect = _draft_rect(marker, page, page_markers)
         primary_regions = [(marker.page_index, rect)]
         primary_text = _text_for_regions(doc, primary_regions, fitz)
         option_ids = _detected_options(primary_text, spec.option_ids)
 
-        # Se a questão não termina antes da próxima página, continue até o
-        # próximo marcador oficial e tente completar as alternativas.
+        # O detector geométrico pode sugerir span quando a coluna oposta contém
+        # outro estímulo sem marcador (Q20 da UNESP). Se o recorte em coluna
+        # recupera mais alternativas, ele é evidência melhor e vence.
+        width = float(page.rect.width)
+        height = float(page.rect.height)
+        if _should_span_columns(marker, page_markers, width, height):
+            column_rect = _column_rect(marker, page, page_markers)
+            column_text = _text_for_regions(doc, [(marker.page_index, column_rect)], fitz)
+            column_options = _detected_options(column_text, spec.option_ids)
+            if len(column_options) > len(option_ids):
+                rect = column_rect
+                primary_regions = [(marker.page_index, rect)]
+                primary_text = column_text
+                option_ids = column_options
+
         continuation_regions: list[tuple[int, tuple[float, float, float, float]]] = []
         next_marker = marker_by_number.get(number + 1)
         if option_ids != list(spec.option_ids) and next_marker and next_marker.page_index > marker.page_index:
@@ -513,12 +523,11 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
 
         visual_regions: list[dict[str, Any]] = []
         for context in contexts_by_number.get(number, []):
-            context_page = doc[context.page_index]
             visual_regions.append(
                 {
                     "page": context.page_index + 1,
                     "role": "shared-context",
-                    "rect": _normalized_rect(context.rect, context_page),
+                    "rect": _normalized_rect(context.rect, doc[context.page_index]),
                 }
             )
         visual_regions.append(
@@ -546,8 +555,8 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
             _rect_has_image(doc[page_index], region_rect)
             for page_index, region_rect in [*primary_regions, *continuation_regions]
         )
-
         required = bool(reasons or has_shared or has_continuation)
+
         unresolved_reasons: list[str] = []
         context_reasons = [reason for reason in reasons if reason.startswith("context:")]
         media_reasons = [reason for reason in reasons if reason.startswith("media:")]
@@ -555,9 +564,11 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
             unresolved_reasons.extend(context_reasons)
         if media_reasons and not has_image and not has_shared:
             unresolved_reasons.extend(media_reasons)
-        if option_ids != list(spec.option_ids):
-            unresolved_reasons.append("options:incomplete")
 
+        # Alternativas semânticas são diagnóstico, não fonte de verdade. A
+        # fidelidade vem do recorte visual delimitado por marcadores oficiais.
+        # Isso evita revisão falsa em alternativas compostas por imagens/math.
+        semantic_options_complete = option_ids == list(spec.option_ids)
         resolved = not unresolved_reasons
         if has_shared:
             strategy = "shared-context"
@@ -571,16 +582,12 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
             strategy = "not-required"
 
         issues: list[str] = []
-        if option_ids != list(spec.option_ids):
-            issues.append(
-                "alternativas semânticas não foram reconhecidas integralmente; revisar extensão visual"
-            )
         if unresolved_reasons:
             issues.append(
                 "dependência visual/contextual não resolvida automaticamente: "
                 + ", ".join(dict.fromkeys(unresolved_reasons))
             )
-        confidence = 1.0 if not issues else 0.65
+        confidence = 1.0 if not issues and semantic_options_complete else (0.9 if not issues else 0.65)
 
         questions.append(
             {
@@ -607,8 +614,6 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
                         "strategy": strategy,
                     },
                 },
-                # O extrator nunca se autoaprova. O ZIP publisher autoaprova
-                # somente os itens sem issues e com todos os gates satisfeitos.
                 "status": "review",
             }
         )
