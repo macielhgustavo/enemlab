@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Question } from "../domain/types";
+import { nativePageAssetPath } from "./cloud";
 import type { NativePack } from "./contracts";
-import { applyNativePackToQuestions } from "./loader";
+import { applyNativePackToQuestions, nativeVisualPaths } from "./loader";
 
 function baseQuestion(): Question {
   return {
@@ -65,11 +66,17 @@ function pack(): NativePack {
         semantic: { rawText: "texto extraído" },
         extraction: {
           method: "text-layer",
-          parserVersion: "native-pipeline@1.0.0",
+          parserVersion: "native-pipeline@2.0.0",
           confidence: 1,
           markerDetected: true,
           optionIdsDetected: ["A", "B", "C", "D", "E"],
           issues: [],
+          visualCompleteness: {
+            required: false,
+            resolved: true,
+            reasons: [],
+            strategy: "not-required",
+          },
         },
         status: "published",
       },
@@ -194,5 +201,48 @@ describe("NativePack loader", () => {
         )[0],
       ).toBe(question);
     }
+  });
+
+  it("pack legado v1 usa página inteira e acrescenta página anterior quando o texto referencia contexto", () => {
+    const legacy = pack();
+    legacy.questions[0].extraction.parserVersion = "native-pipeline@1.0.0";
+    delete legacy.questions[0].extraction.visualCompleteness;
+    legacy.questions[0].semantic.rawText =
+      "Depreende-se do início do romance ilustrado que a viagem de Nhô Quim à Corte se deve";
+
+    const page2 = nativePageAssetPath(legacy.documents[0].pageAssetPattern, 2);
+    const page3 = nativePageAssetPath(legacy.documents[0].pageAssetPattern, 3);
+    expect(nativeVisualPaths(legacy.questions[0], legacy)).toEqual([page2, page3]);
+
+    const question = baseQuestion();
+    const result = applyNativePackToQuestions(
+      [question],
+      legacy,
+      new Map([
+        [page2, "https://signed.example.com/page-002.webp"],
+        [page3, "https://signed.example.com/page-003.webp"],
+      ]),
+    )[0];
+    expect(result.files?.slice(0, 2)).toEqual([
+      "https://signed.example.com/page-002.webp",
+      "https://signed.example.com/page-003.webp",
+    ]);
+    expect(result.correctAlternative).toBe("C");
+  });
+
+  it("pack legado falha fechado se uma das páginas de contexto não puder ser assinada", () => {
+    const legacy = pack();
+    legacy.questions[0].extraction.parserVersion = "native-pipeline@1.0.0";
+    delete legacy.questions[0].extraction.visualCompleteness;
+    legacy.questions[0].semantic.rawText = "Leia o trecho do romance e responda";
+    const page3 = nativePageAssetPath(legacy.documents[0].pageAssetPattern, 3);
+
+    const question = baseQuestion();
+    const result = applyNativePackToQuestions(
+      [question],
+      legacy,
+      new Map([[page3, "https://signed.example.com/page-003.webp"]]),
+    )[0];
+    expect(result).toBe(question);
   });
 });
