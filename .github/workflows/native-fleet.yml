@@ -1,0 +1,143 @@
+name: Native fleet
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Optional provider filter
+        required: false
+        type: string
+      limit:
+        description: Optional target limit (0 = all)
+        required: false
+        default: "0"
+        type: string
+      publish:
+        description: Publish validated packs
+        required: true
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/native-fleet.yml"
+      - "scripts/native_*.py"
+      - "scripts/tests/test_native_*.py"
+      - "src/lib/native/**"
+      - "src/lib/providers/**"
+      - "supabase/functions/native-fleet-publisher/**"
+      - "supabase/migrations/*native_automation*.sql"
+      - "package.json"
+  schedule:
+    - cron: "17 3 * * 0"
+
+concurrency:
+  group: native-fleet-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan native fleet
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      targets: ${{ steps.plan.outputs.targets }}
+      questions: ${{ steps.plan.outputs.questions }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: plan
+        name: Build ready-target matrix
+        env:
+          PROVIDER: ${{ github.event.inputs.provider || '' }}
+          LIMIT: ${{ github.event.inputs.limit || '0' }}
+        run: |
+          args=()
+          if [ -n "$PROVIDER" ]; then args+=(--provider "$PROVIDER"); fi
+          if [ "${LIMIT:-0}" != "0" ]; then args+=(--limit "$LIMIT"); fi
+          matrix="$(python scripts/native_fleet.py plan "${args[@]}")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          python - "$matrix" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          items = data.get("include") or []
+          print(f"targets={len(items)}")
+          print(f"questions={sum(int(item.get('questions') or 0) for item in items)}")
+          PY
+
+  publish:
+    name: ${{ matrix.identity }}
+    needs: plan
+    if: ${{ needs.plan.outputs.targets != '0' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install native dependencies
+        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare validated bundle
+        run: >-
+          python scripts/native_fleet.py prepare
+          "${{ matrix.provider }}"
+          "${{ matrix.selector }}"
+          --phase "${{ matrix.phase }}"
+          --out bundle
+      - name: Publish through OIDC broker
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+        run: python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
+      - name: Mark dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
+        run: echo '{"status":"prepared-only"}' > publication-result.json
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Native fleet — ${{ matrix.identity }}"
+            echo "- Questions: ${{ matrix.questions }}"
+            if [ -f publication-result.json ]; then
+              echo '- Result:'
+              echo '```json'
+              cat publication-result.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload manifest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.provider }}-${{ matrix.selector }}-${{ matrix.phase }}
+          path: |
+            bundle/bundle.json
+            bundle/native-pack.json
+            publication-result.json
+          retention-days: 7
+          if-no-files-found: warn
+
+  summary:
+    name: Fleet summary
+    needs: [plan, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "### Native fleet" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Planned targets: ${{ needs.plan.outputs.targets }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Planned questions: ${{ needs.plan.outputs.questions }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Matrix result: ${{ needs.publish.result }}" >> "$GITHUB_STEP_SUMMARY"
+          test "${{ needs.publish.result }}" != "failure"
