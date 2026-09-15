@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { FINAL_BUILD, FINAL_SCHEMA } from "./domain/constants";
+import { mergeStudyIntelligenceState } from "./domain/study-intelligence-merge";
 import type { Attempt, DB, Goals } from "./domain/types";
 
 const STORAGE_KEY = "enem_lab_v7";
@@ -35,6 +36,11 @@ export function ensureSchema(db: DB): DB {
   db.attempts ||= [];
   db.sessions ||= [];
   db.goals ||= { questions: 150, essays: 2, reviews: 30 };
+  if (db.studyIntelligence) {
+    db.studyIntelligence.decisions ||= {};
+    db.studyIntelligence.experiments ||= {};
+    db.studyIntelligence.providerConfig ||= {};
+  }
   for (const a of db.attempts) {
     a.answers ||= {};
     a.confidence ||= {};
@@ -101,6 +107,7 @@ export const useStore = create<StoreState>()(
           });
           db.notes = { ...(incoming.notes || {}), ...db.notes };
           db.srs = { ...(incoming.srs || {}), ...db.srs };
+          db.studyIntelligence = mergeStudyIntelligenceState(incoming.studyIntelligence, db.studyIntelligence);
         }),
       setGoals: (goals) => get().mutate((db) => { db.goals = goals; }),
       wipe: () => set({ db: defaultDB() }),

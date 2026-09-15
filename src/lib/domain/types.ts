@@ -30,6 +30,66 @@ export type AttemptMode =
   | "bank"
   | "adaptive";
 
+export type StudyObjectiveId = "balanced" | "recovery" | "coverage" | "exam" | "gain";
+export type StudyFeedbackValue = "helpful" | "neutral" | "not_helpful";
+export type StudySignalId =
+  | "weakness"
+  | "sample"
+  | "overdueReview"
+  | "novelty"
+  | "spacing"
+  | "difficulty";
+
+export interface StudyFeedback {
+  usefulness: StudyFeedbackValue;
+  at: string;
+}
+
+export interface StudyDecisionRecord {
+  id: string;
+  attemptId?: string;
+  providerId: string;
+  at: string;
+  objective: StudyObjectiveId;
+  questionKeys: string[];
+  topContent?: string | null;
+  topReasons: string[];
+  dominantSignal?: StudySignalId | null;
+  readinessBefore?: number | null;
+  readinessAfter?: number | null;
+  accuracyAfter?: number | null;
+  feedback?: StudyFeedback;
+  experimentId?: string | null;
+  experimentVariant?: string | null;
+}
+
+export interface StudyExperimentRecord {
+  id: string;
+  experimentId: string;
+  variant: string;
+  providerId: string;
+  decisionId: string;
+  at: string;
+  completedAt?: string | null;
+  readinessDelta?: number | null;
+  accuracy?: number | null;
+  feedback?: StudyFeedbackValue | null;
+}
+
+export interface StudyProviderConfig {
+  objective?: StudyObjectiveId;
+  targetDate?: string | null;
+  weeklyQuestions?: number | null;
+  targetCoverage?: number | null;
+  targetReadiness?: number | null;
+}
+
+export interface StudyIntelligenceState {
+  decisions: Record<string, StudyDecisionRecord>;
+  experiments: Record<string, StudyExperimentRecord>;
+  providerConfig: Record<string, StudyProviderConfig>;
+}
+
 // ---- Questões vindas da API enem.dev ----
 export interface Alternative {
   letter: string;
@@ -228,6 +288,8 @@ export interface DB {
   srs: Record<string, SrsEntry>;
   sessions: StudySession[];
   goals: Goals;
+  /** Estado opcional e retrocompatível do motor de inteligência local. */
+  studyIntelligence?: StudyIntelligenceState;
   /** Prova ativa na interface. Ausente = ENEM, como sempre foi. */
   activeProvider?: string;
   lastOpened: string | null;
