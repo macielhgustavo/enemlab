@@ -81,6 +81,21 @@ describe("NativePack review", () => {
     expect(nativePackGate(approved)).toMatchObject({ publishable: true, published: 1, total: 1 });
   });
 
+  it("mantém exceções de extração fora da aprovação em massa até revisão individual", () => {
+    const exception = pack();
+    exception.questions[0].extraction.issues = [
+      "alternativas semânticas não foram reconhecidas integralmente; usar visual canônico e revisar texto",
+    ];
+
+    const bulk = approveAllStructurallyValid(exception);
+    expect(bulk.questions[0].status).toBe("review");
+    expect(nativePackGate(bulk).publishable).toBe(false);
+
+    const manuallyApproved = approveNativeQuestion(exception, "unesp-2026-first-1");
+    expect(manuallyApproved.questions[0].status).toBe("approved");
+    expect(nativePackGate(manuallyApproved).publishable).toBe(true);
+  });
+
   it("edita recorte e volta o status para review", () => {
     const approved = approveNativeQuestion(pack(), "unesp-2026-first-1");
     const edited = updateNativeQuestionRect(approved, "unesp-2026-first-1", 0, {

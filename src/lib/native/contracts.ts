@@ -134,8 +134,22 @@ export function nativePublicationGate(
   }
   if (document) {
     if (!/^[0-9a-f]{64}$/i.test(document.sourceSha256)) issues.push("SHA-256 da fonte inválido");
-    if (document.sourceBytes <= 0) issues.push("tamanho da fonte inválido");
+    if (!Number.isFinite(document.sourceBytes) || document.sourceBytes <= 0) {
+      issues.push("tamanho da fonte inválido");
+    }
+    if (!Number.isInteger(document.pageCount) || document.pageCount < 1) {
+      issues.push("quantidade de páginas inválida");
+    }
+    if (!Number.isFinite(document.renderScale) || document.renderScale <= 0) {
+      issues.push("escala de renderização inválida");
+    }
     if (question.documentId !== document.documentId) issues.push("documentId divergente");
+    if (question.providerId !== document.providerId) issues.push("providerId divergente");
+    if (question.year !== document.year) issues.push("ano divergente");
+    if ((question.editionId ?? undefined) !== (document.editionId ?? undefined)) {
+      issues.push("editionId divergente");
+    }
+    if (question.phase !== document.phase) issues.push("fase divergente");
     if (question.visualRegions.some((region) => region.page > document.pageCount)) {
       issues.push("região aponta para página inexistente");
     }
