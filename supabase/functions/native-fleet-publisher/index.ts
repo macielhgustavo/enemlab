@@ -84,7 +84,43 @@ function validRect(rect: Record<string, unknown>): boolean {
 }
 
 type AssetRecord = { path: string; bytes: number };
-type Pack = Record<string, any>;
+type NativeDocument = {
+  documentId: string;
+  providerId: string;
+  year: number;
+  editionId?: string;
+  phase: string;
+  sourceSha256: string;
+  pageCount: number;
+  pageAssetPattern: string;
+};
+type NativeExtraction = {
+  markerDetected?: boolean;
+  visualCompleteness?: { resolved?: boolean };
+  issues?: unknown[];
+};
+type NativeRegion = {
+  page: number;
+  rect: Record<string, unknown>;
+  assetPath?: string;
+};
+type NativeQuestion = {
+  status: string;
+  providerId: string;
+  year: number;
+  editionId?: string;
+  phase: string;
+  documentId: string;
+  questionKey: string;
+  number: number;
+  extraction?: NativeExtraction;
+  visualRegions?: NativeRegion[];
+};
+type Pack = {
+  version: number;
+  documents?: NativeDocument[];
+  questions?: NativeQuestion[];
+};
 
 function validatePack(pack: Pack, revision: string, assets: AssetRecord[]) {
   if (!REVISION_RE.test(revision)) throw new Error("revision inválida");
@@ -124,7 +160,7 @@ function validatePack(pack: Pack, revision: string, assets: AssetRecord[]) {
     }
     seenKeys.add(key);
     seenNumbers.add(number);
-    const extraction = question.extraction ?? {};
+    const extraction: NativeExtraction = question.extraction ?? {};
     if (extraction.markerDetected !== true) throw new Error(`Q${number}: marcador não confirmado`);
     if (extraction.visualCompleteness?.resolved !== true) {
       throw new Error(`Q${number}: completude visual não resolvida`);
@@ -191,7 +227,7 @@ async function assetsExist(admin: ReturnType<typeof createClient>, root: string,
 
 function publishedPack(pack: Pack): Pack {
   const clone = structuredClone(pack);
-  for (const question of clone.questions) question.status = "published";
+  for (const question of clone.questions ?? []) question.status = "published";
   return clone;
 }
 
@@ -294,7 +330,7 @@ Deno.serve(async (req: Request) => {
       const { error: auditError } = await admin.from("native_publication_runs").upsert({
         ...auditBase,
         status: "published",
-        report: { revision, questions: pack.questions.length },
+        report: { revision, questions: (pack.questions ?? []).length },
       });
       if (auditError) throw auditError;
       return json({ published: true, packId: validated.packId, assets: validated.expectedAssets.length });
