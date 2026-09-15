@@ -18,6 +18,7 @@ import { acafeProvider } from "./acafe";
 import { fatecProvider } from "./fatec";
 import { unespProvider } from "./unesp";
 import { unioesteProvider } from "./unioeste";
+import { MASS2_PROVIDERS } from "./mass2";
 
 registerProvider(enemProvider);
 registerProvider(itaProvider);
@@ -36,6 +37,7 @@ registerProvider(acafeProvider);
 registerProvider(fatecProvider);
 registerProvider(unespProvider);
 registerProvider(unioesteProvider);
+for (const provider of MASS2_PROVIDERS) registerProvider(provider);
 
 export * from "./types";
 export * from "./registry";
@@ -219,3 +221,9 @@ export {
   unioesteQuestionKey,
   unioesteMeasures,
 } from "./unioeste";
+export {
+  MASS2_PROVIDER_SPECS,
+  MASS2_BUNDLES,
+  MASS2_PROVIDERS,
+  mass2EditionCount,
+} from "./mass2";
