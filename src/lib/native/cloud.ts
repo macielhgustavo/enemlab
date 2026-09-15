@@ -91,9 +91,16 @@ async function cropWebp(file: File, rect: NativeRect): Promise<Blob> {
   }
 }
 
+/**
+ * O schema `native_packs` indexa provider/ano/edição/fase de um único
+ * documento. Até existir persistência multi-documento explícita, publicar um
+ * pack com mais de um documento deixaria parte dos assets sem lookup correto.
+ */
 export function nativePackId(pack: NativePack): string {
+  if (pack.documents.length !== 1) {
+    throw new Error("NativePack publicável precisa conter exatamente um documento.");
+  }
   const document = pack.documents[0];
-  if (!document) throw new Error("NativePack sem documento.");
   return `${document.documentId}:${document.sourceSha256}`;
 }
 
@@ -198,6 +205,9 @@ export async function publishNativePack(
   pages: Map<string, File>,
 ): Promise<{ id: string; uploadedPages: number; uploadedCrops: number; pack: NativePack }> {
   assertNativeCloud();
+  // Valida a forma persistível antes de qualquer upload para não deixar assets
+  // órfãos de um pack que o schema atual não conseguiria indexar corretamente.
+  const packId = nativePackId(pack);
   const gate = nativePackGate(pack);
   if (!gate.publishable) {
     throw new Error(`NativePack ainda não pode ser publicado (${gate.published}/${gate.total} aprovado).`);
@@ -245,7 +255,7 @@ export async function publishNativePack(
   const publishedPack = markNativePackPublished(preparedPack);
   const documentRecord = publishedPack.documents[0];
   const row = {
-    id: nativePackId(publishedPack),
+    id: packId,
     provider_id: documentRecord.providerId,
     year: documentRecord.year,
     edition_id: documentRecord.editionId ?? null,
