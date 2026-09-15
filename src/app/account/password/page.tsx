@@ -96,7 +96,7 @@ export default function AccountPasswordPage() {
 
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
         {success ? (
-          <InlineNotice tone="success">
+          <InlineNotice>
             Senha definida. Agora você pode sair e entrar usando este mesmo e-mail + senha.
           </InlineNotice>
         ) : null}
