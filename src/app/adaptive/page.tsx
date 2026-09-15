@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
@@ -66,6 +66,19 @@ const RETRY_COMPONENT_LABELS: Record<string, string> = {
   diagnosedReason: "diagnóstico",
 };
 
+interface ObjectiveDraft {
+  providerId: string;
+  value: AdaptiveObjective;
+}
+
+interface GoalDraft {
+  providerId: string;
+  date: string;
+  weekly: string;
+  readiness: string;
+  coverage: string;
+}
+
 function optionalNumber(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number(value);
@@ -79,25 +92,24 @@ export default function AdaptivePage() {
   const hydrated = useHydrated();
   const { providerId } = useActiveProvider();
   const config = providerStudyConfig(db, providerId);
-  const [objective, setObjective] = useState<AdaptiveObjective>(config.objective ?? "balanced");
+  const [objectiveDraft, setObjectiveDraft] = useState<ObjectiveDraft | null>(null);
+  const [goalDraft, setGoalDraft] = useState<GoalDraft | null>(null);
   const [preview, setPreview] = useState<IntelligencePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [goalDate, setGoalDate] = useState(config.targetDate ?? "");
-  const [goalWeekly, setGoalWeekly] = useState(config.weeklyQuestions?.toString() ?? "");
-  const [goalReadiness, setGoalReadiness] = useState(config.targetReadiness?.toString() ?? "");
-  const [goalCoverage, setGoalCoverage] = useState(config.targetCoverage?.toString() ?? "");
 
-  useEffect(() => {
-    const next = providerStudyConfig(useStore.getState().db, providerId);
-    setObjective(next.objective ?? "balanced");
-    setGoalDate(next.targetDate ?? "");
-    setGoalWeekly(next.weeklyQuestions?.toString() ?? "");
-    setGoalReadiness(next.targetReadiness?.toString() ?? "");
-    setGoalCoverage(next.targetCoverage?.toString() ?? "");
-    setPreview(null);
-    setErr("");
-  }, [providerId]);
+  const objective = objectiveDraft?.providerId === providerId
+    ? objectiveDraft.value
+    : config.objective ?? "balanced";
+  const currentGoalDraft: GoalDraft = goalDraft?.providerId === providerId
+    ? goalDraft
+    : {
+        providerId,
+        date: config.targetDate ?? "",
+        weekly: config.weeklyQuestions?.toString() ?? "",
+        readiness: config.targetReadiness?.toString() ?? "",
+        coverage: config.targetCoverage?.toString() ?? "",
+      };
 
   function finishPending() {
     mutate((current) => {
@@ -154,21 +166,25 @@ export default function AdaptivePage() {
   }
 
   function changeObjective(next: AdaptiveObjective) {
-    setObjective(next);
+    setObjectiveDraft({ providerId, value: next });
     setPreview(null);
     mutate((current) => {
       setProviderStudyConfig(current, providerId, { objective: next });
     });
   }
 
+  function updateGoal(patch: Partial<Omit<GoalDraft, "providerId">>) {
+    setGoalDraft({ ...currentGoalDraft, ...patch, providerId });
+  }
+
   function saveGoal() {
     mutate((current) => {
       setProviderStudyConfig(current, providerId, {
         objective,
-        targetDate: goalDate || null,
-        weeklyQuestions: optionalNumber(goalWeekly),
-        targetReadiness: optionalNumber(goalReadiness),
-        targetCoverage: optionalNumber(goalCoverage),
+        targetDate: currentGoalDraft.date || null,
+        weeklyQuestions: optionalNumber(currentGoalDraft.weekly),
+        targetReadiness: optionalNumber(currentGoalDraft.readiness),
+        targetCoverage: optionalNumber(currentGoalDraft.coverage),
       });
     });
   }
@@ -305,19 +321,19 @@ export default function AdaptivePage() {
         <div className="grid grid4" style={{ marginTop: 12 }}>
           <div>
             <label htmlFor="goal-date">Data-alvo</label>
-            <input id="goal-date" type="date" value={goalDate} onChange={(e) => setGoalDate(e.target.value)} />
+            <input id="goal-date" type="date" value={currentGoalDraft.date} onChange={(e) => updateGoal({ date: e.target.value })} />
           </div>
           <div>
             <label htmlFor="goal-weekly">Questões/semana</label>
-            <input id="goal-weekly" type="number" min="0" value={goalWeekly} onChange={(e) => setGoalWeekly(e.target.value)} />
+            <input id="goal-weekly" type="number" min="0" value={currentGoalDraft.weekly} onChange={(e) => updateGoal({ weekly: e.target.value })} />
           </div>
           <div>
             <label htmlFor="goal-readiness">Readiness alvo</label>
-            <input id="goal-readiness" type="number" min="0" max="100" value={goalReadiness} onChange={(e) => setGoalReadiness(e.target.value)} />
+            <input id="goal-readiness" type="number" min="0" max="100" value={currentGoalDraft.readiness} onChange={(e) => updateGoal({ readiness: e.target.value })} />
           </div>
           <div>
             <label htmlFor="goal-coverage">Cobertura alvo %</label>
-            <input id="goal-coverage" type="number" min="0" max="100" value={goalCoverage} onChange={(e) => setGoalCoverage(e.target.value)} />
+            <input id="goal-coverage" type="number" min="0" max="100" value={currentGoalDraft.coverage} onChange={(e) => updateGoal({ coverage: e.target.value })} />
           </div>
         </div>
         <div className="row" style={{ marginTop: 10 }}>
