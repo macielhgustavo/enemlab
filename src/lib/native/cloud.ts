@@ -114,11 +114,6 @@ async function runWithConcurrency<T>(
   await Promise.all(runners);
 }
 
-/**
- * O schema `native_packs` indexa provider/ano/edição/fase de um único
- * documento. Até existir persistência multi-documento explícita, publicar um
- * pack com mais de um documento deixaria parte dos assets sem lookup correto.
- */
 export function nativePackId(pack: NativePack): string {
   if (pack.documents.length !== 1) {
     throw new Error("NativePack publicável precisa conter exatamente um documento.");
@@ -228,8 +223,6 @@ export async function publishNativePack(
   pages: Map<string, File>,
 ): Promise<{ id: string; uploadedPages: number; uploadedCrops: number; pack: NativePack }> {
   assertNativeCloud();
-  // Valida a forma persistível antes de qualquer upload para não deixar assets
-  // órfãos de um pack que o schema atual não conseguiria indexar corretamente.
   const packId = nativePackId(pack);
   const gate = nativePackGate(pack);
   if (!gate.publishable) {
@@ -239,7 +232,6 @@ export async function publishNativePack(
   if (!userId) throw new Error("Sessão sem usuário identificado.");
 
   const preparedPack = clonePack(pack);
-
   type PageJob = { path: string; file: File };
   const pageJobs: PageJob[] = [];
   for (const documentRecord of preparedPack.documents) {
@@ -253,8 +245,6 @@ export async function publishNativePack(
     }
   }
 
-  // A rede/storage é o gargalo aqui; uploads paralelos limitados reduzem muito
-  // o tempo sem criar dezenas de requisições simultâneas em celular.
   await runWithConcurrency(pageJobs, 6, async ({ path, file }) => {
     await uploadNativeAsset(session.access_token, path, file);
   });
@@ -277,15 +267,11 @@ export async function publishNativePack(
     }
   }
 
-  // Shared-context deixa de gerar N cópias idênticas: o path é função de
-  // página+retângulo e todas as questões apontam para o mesmo objeto.
   await runWithConcurrency([...cropJobs.values()], 4, async ({ path, file, rect }) => {
     const crop = await cropWebp(file, rect);
     await uploadNativeAsset(session.access_token, path, crop);
   });
 
-  // `published` é reservado para o estado que realmente será persistido após
-  // todos os assets necessários terem sido preparados/enviados com sucesso.
   const publishedPack = markNativePackPublished(preparedPack);
   const documentRecord = publishedPack.documents[0];
   const row = {
@@ -297,6 +283,11 @@ export async function publishNativePack(
     source_sha256: documentRecord.sourceSha256,
     pack: publishedPack,
     published_by: userId,
+    publication_source: "user",
+    publication_repository: null,
+    publication_sha: null,
+    publication_run_id: null,
+    publication_revision: null,
     published_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
