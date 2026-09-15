@@ -64,15 +64,16 @@ describe("registry", () => {
   });
 
   it("falha alto para provider desconhecido", () => {
-    expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
+    expect(() => getProvider("prova-que-nao-existe")).toThrow(/não registrado/i);
   });
 
-  it("registra explicitamente as dezessete provas desta versão", () => {
+  it("registra explicitamente as vinte e seis provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer.
     expect(listProviders().map((p) => p.id).sort()).toEqual([
       "acafe",
       "afa",
+      "cederj",
       "eear",
       "enem",
       "epcar",
@@ -82,26 +83,33 @@ describe("registry", () => {
       "fuvest",
       "ime",
       "ita",
+      "puc-rio",
       "puc-sp",
       "udesc",
+      "uece",
       "uel",
+      "uemg",
+      "uerj",
+      "ufpr",
+      "ufrgs",
       "unesp",
       "unicamp",
+      "unicentro",
       "unioeste",
+      "unespar",
     ]);
   });
 
-  it("mantém fora do runner provas/fases ainda não compatíveis ou não ingeridas", () => {
+  it("mantém fora do runner provas/fases incompatíveis", () => {
     const ids = listProviders().map((p) => p.id);
     for (const futuro of [
       "mackenzie",
       "puc-pr",
-      "puc-rio",
       "uem",
       "uepg",
-      "ufpr",
       "ufrj",
       "ufsc",
+      "unb",
     ]) {
       expect(ids).not.toContain(futuro);
     }
