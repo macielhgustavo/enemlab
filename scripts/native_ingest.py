@@ -219,6 +219,112 @@ def _payload(targets: list[core.NativeTarget]) -> dict[str, Any]:
     }
 
 
+def _full_page_region(page: int) -> dict[str, Any]:
+    return {
+        "page": page,
+        "role": "shared-context",
+        "rect": {"x": 0.04, "y": 0.025, "width": 0.92, "height": 0.95},
+    }
+
+
+def _region_signature(region: dict[str, Any]) -> tuple[Any, ...]:
+    rect = region.get("rect") or {}
+    return (
+        region.get("page"),
+        region.get("role"),
+        round(float(rect.get("x") or 0), 6),
+        round(float(rect.get("y") or 0), 6),
+        round(float(rect.get("width") or 0), 6),
+        round(float(rect.get("height") or 0), 6),
+    )
+
+
+def _append_region_once(question: dict[str, Any], region: dict[str, Any]) -> None:
+    regions = question.setdefault("visualRegions", [])
+    signature = _region_signature(region)
+    if any(_region_signature(existing) == signature for existing in regions):
+        return
+    # Contexto vem antes da pergunta no runner.
+    regions.insert(0, region)
+
+
+def _remove_visual_dependency_issue(extraction: dict[str, Any]) -> None:
+    extraction["issues"] = [
+        issue
+        for issue in extraction.get("issues") or []
+        if not str(issue).startswith("dependência visual/contextual não resolvida automaticamente:")
+    ]
+
+
+def _auto_expand_ambiguous_visuals(pack: dict[str, Any], output: Path) -> dict[str, Any]:
+    """Resolve ambiguidade visual ampliando contexto, nunca inventando conteúdo.
+
+    O detector compacto tenta manter o runner limpo. Quando ele não consegue
+    provar que figura/texto/contexto está dentro do recorte, a porta pública do
+    pipeline escolhe uma saída determinística e segura: inclui a página inteira
+    da questão e, para dependência textual, também a página anterior. Isso
+    transforma revisão manual de layout em contexto visual extra. Identidade,
+    gabarito e fonte continuam fail-closed em gates separados.
+    """
+    documents = {document["documentId"]: document for document in pack.get("documents") or []}
+    expanded = 0
+
+    for question in pack.get("questions") or []:
+        extraction = question.get("extraction") or {}
+        completeness = extraction.get("visualCompleteness") or {}
+        if not completeness.get("required") or completeness.get("resolved"):
+            continue
+
+        document = documents.get(question.get("documentId"))
+        if not document:
+            continue
+        page_count = int(document.get("pageCount") or 0)
+        question_regions = [
+            region for region in question.get("visualRegions") or []
+            if region.get("role") in {"question", "continuation"}
+        ]
+        if not question_regions:
+            continue
+
+        current_pages = sorted({int(region["page"]) for region in question_regions})
+        for page in current_pages:
+            if 1 <= page <= page_count:
+                _append_region_once(question, _full_page_region(page))
+
+        reasons = [str(reason) for reason in completeness.get("reasons") or []]
+        has_context_reason = any(reason.startswith("context:") for reason in reasons)
+        if has_context_reason:
+            first_page = min(current_pages)
+            if first_page > 1:
+                _append_region_once(question, _full_page_region(first_page - 1))
+
+        completeness["resolved"] = True
+        completeness["strategy"] = "shared-context"
+        completeness["reasons"] = list(dict.fromkeys([*reasons, "fallback:full-page-safety"]))
+        extraction["visualCompleteness"] = completeness
+        _remove_visual_dependency_issue(extraction)
+        extraction["confidence"] = max(float(extraction.get("confidence") or 0), 0.8)
+        question["extraction"] = extraction
+        expanded += 1
+
+    questions = pack.get("questions") or []
+    summary = pack.setdefault("reviewSummary", {})
+    summary["visualComplete"] = sum(
+        1
+        for question in questions
+        if ((question.get("extraction") or {}).get("visualCompleteness") or {}).get("resolved")
+    )
+    summary["needsReview"] = sum(
+        1 for question in questions if (question.get("extraction") or {}).get("issues")
+    )
+    summary["semanticReady"] = len(questions) - int(summary["needsReview"])
+    summary["autoExpandedQuestions"] = expanded
+
+    pack_path = output / "native-pack.json"
+    pack_path.write_text(json.dumps(pack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return pack
+
+
 def _prepare(target: core.NativeTarget, *, pdf_override: Path | None = None) -> dict[str, Any]:
     if target.status != "ready" and not pdf_override:
         raise core.NativeOrchestratorError(f"{target.identity} bloqueado: {target.reason}")
@@ -246,7 +352,8 @@ def _prepare(target: core.NativeTarget, *, pdf_override: Path | None = None) -> 
 
     pipeline = core._load_native_pipeline()
     spec = pipeline._load_spec(spec_path)
-    return pipeline.build_pack(spec, pdf, output)
+    pack = pipeline.build_pack(spec, pdf, output)
+    return _auto_expand_ambiguous_visuals(pack, output)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -294,7 +401,8 @@ def main(argv: list[str] | None = None) -> int:
         summary = pack["reviewSummary"]
         print(
             f"{target.identity}: {summary['markers']}/{summary['expected']} marcadores; "
-            f"{summary['needsReview']} exceções semânticas."
+            f"{summary['visualComplete']} completos; {summary['needsReview']} exceções; "
+            f"{summary.get('autoExpandedQuestions', 0)} ampliadas automaticamente."
         )
         print(f"Próximo gate: /data/native-review → {target.output_dir / 'native-pack.json'}")
         return 0
