@@ -95,7 +95,7 @@ export function NativeZipPublisher() {
         pageEntries.map(async (entry) => {
           const bytes = await extractZipEntry(buffer, entry);
           const filename = baseName(entry.name);
-          nextPages.set(filename, new File([bytes], filename, { type: "image/webp" }));
+          nextPages.set(filename, new File([bytes.buffer as ArrayBuffer], filename, { type: "image/webp" }));
         }),
       );
 
