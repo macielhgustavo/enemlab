@@ -30,6 +30,7 @@ export interface AuthUser {
   id: string;
   email?: string;
   user_metadata?: Record<string, unknown>;
+  identities?: Array<{ provider?: string }>;
 }
 
 export interface AuthSession {
@@ -129,8 +130,24 @@ export async function signUpWithEmail(email: string, password: string): Promise<
   });
   const payload = await parseResponse<Record<string, unknown>>(response);
   const session = toSession(payload);
-  if (session) saveSession(session);
-  return session;
+  if (session) {
+    saveSession(session);
+    return session;
+  }
+
+  // Com confirmação de e-mail ativa, o Supabase responde de forma deliberadamente
+  // ofuscada quando o endereço já pertence a um usuário OAuth. Nesse caso não há
+  // e-mail de confirmação: `user.identities` vem vazio para evitar enumeração de
+  // contas. Tratar isso como signup novo deixava a UI presa esperando um e-mail
+  // que nunca seria enviado.
+  const user = payload.user as AuthUser | undefined;
+  if (user && Array.isArray(user.identities) && user.identities.length === 0) {
+    throw new Error(
+      "Este e-mail já pertence a uma conta existente. Entre com Google/GitHub e defina uma senha em Conta > Acesso por senha.",
+    );
+  }
+
+  return null;
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<AuthSession> {
@@ -189,6 +206,19 @@ export async function refreshSession(session: AuthSession): Promise<AuthSession>
 export async function ensureFreshSession(session: AuthSession): Promise<AuthSession> {
   if (session.expires_at - Math.floor(Date.now() / 1000) > 90) return session;
   return refreshSession(session);
+}
+
+export async function updatePasswordWithSession(session: AuthSession, password: string): Promise<AuthUser> {
+  assertConfigured();
+  const fresh = await ensureFreshSession(session);
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: "PUT",
+    headers: apiHeaders(fresh.access_token),
+    body: JSON.stringify({ password }),
+  });
+  const user = await parseResponse<AuthUser>(response);
+  saveSession({ ...fresh, user });
+  return user;
 }
 
 export async function fetchCurrentUser(token: string): Promise<AuthUser> {
