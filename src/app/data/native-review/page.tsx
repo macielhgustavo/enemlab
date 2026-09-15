@@ -207,7 +207,8 @@ export default function NativeReviewPage() {
         </label>
         <label className="space-y-2 text-sm">
           <span className="font-medium">2. páginas WebP</span>
-          <input type="file" accept="image/webp,.webp" multiple onChange={(event) => loadPages(event.target.files)} />
+          <input type="file" multiple onChange={(event) => loadPages(event.target.files)} />
+          <span className="block text-xs text-neutral-500">Abre o seletor de Arquivos do dispositivo. Selecione os arquivos .webp; outros formatos serão ignorados.</span>
         </label>
       </section>
 
