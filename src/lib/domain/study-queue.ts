@@ -1,7 +1,7 @@
 import { DEFAULT_PROVIDER_ID, resolveProviderId, sameProvider } from "../providers/registry";
 import { adaptiveCandidates } from "./adaptive";
 import { buildObjectiveAdaptiveSelection, type AdaptiveObjective } from "./adaptive-objectives";
-import { questionKey } from "./classify";
+import { classifyContent, questionKey } from "./classify";
 import { evidenceForContent, type EvidenceLevel } from "./study-intelligence";
 import type { DB, Question } from "./types";
 
@@ -66,6 +66,7 @@ export function buildStudyQueue(
     if (!Number.isFinite(dueMs) || dueMs > nowMs) continue;
     const question = byKey.get(key);
     if (!question) continue;
+    const content = entry.content?.trim() || classifyContent(question);
     const overdueDays = Math.max(0, (nowMs - dueMs) / 86400000);
     const sourceScore = Math.min(100, 40 + overdueDays * 3 + (entry.lastResult === "wrong" ? 20 : 0));
     candidates.push({
@@ -73,10 +74,10 @@ export function buildStudyQueue(
       providerId: scoped,
       questionKey: key,
       question,
-      content: entry.content,
+      content,
       score: KIND_BASE_SCORE.review + sourceScore,
       sourceScore,
-      confidence: confidenceFor(db, entry.content, scoped, now),
+      confidence: confidenceFor(db, content, scoped, now),
       reasons: [
         "Revisão vencida: retenção vem antes de volume novo.",
         ...(entry.lastResult === "wrong" ? ["O último resultado registrado foi erro."] : []),
