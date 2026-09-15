@@ -1,5 +1,6 @@
 import importlib.util
 import pathlib
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -7,6 +8,7 @@ MODULE_PATH = ROOT / "scripts" / "ingest_mass2_sparky.py"
 SPEC = importlib.util.spec_from_file_location("ingest_mass2_sparky", MODULE_PATH)
 assert SPEC and SPEC.loader
 mass2 = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = mass2
 SPEC.loader.exec_module(mass2)
 
 
