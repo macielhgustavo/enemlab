@@ -1,6 +1,12 @@
 export type NativeExtractionMethod = "text-layer" | "ocr" | "vision" | "manual";
 export type NativeReviewStatus = "draft" | "review" | "approved" | "published";
 export type NativeVisualRole = "question" | "shared-context" | "continuation" | "figure";
+export type NativeVisualCompletenessStrategy =
+  | "not-required"
+  | "question-region"
+  | "shared-context"
+  | "continuation"
+  | "manual";
 
 /** Coordenadas normalizadas (0..1), independentes da resolução do WebP. */
 export interface NativeRect {
@@ -52,6 +58,18 @@ export interface NativeSemanticContent {
   rawText?: string;
 }
 
+/**
+ * Evidência explícita de que o recorte contém tudo que a questão precisa.
+ * O pipeline v2 usa isso para diferenciar um recorte meramente válido de um
+ * recorte pedagogicamente completo (contexto compartilhado, figura, continuação etc.).
+ */
+export interface NativeVisualCompletenessEvidence {
+  required: boolean;
+  resolved: boolean;
+  reasons: string[];
+  strategy: NativeVisualCompletenessStrategy;
+}
+
 export interface NativeExtractionEvidence {
   method: NativeExtractionMethod;
   parserVersion: string;
@@ -59,6 +77,7 @@ export interface NativeExtractionEvidence {
   markerDetected: boolean;
   optionIdsDetected: string[];
   issues: string[];
+  visualCompleteness?: NativeVisualCompletenessEvidence;
 }
 
 export interface NativeQuestionContentRecord {
@@ -73,8 +92,8 @@ export interface NativeQuestionContentRecord {
   semantic: NativeSemanticContent;
   extraction: NativeExtractionEvidence;
   /**
-   * draft/review = ainda não aprovado; approved = revisão humana concluída;
-   * published = o publisher concluiu a publicação do pack.
+   * draft/review = ainda não aprovado; approved = revisão concluída (manual
+   * ou em massa para itens sem risco); published = publisher concluiu a etapa.
    */
   status: NativeReviewStatus;
 }
@@ -103,6 +122,11 @@ function validRect(rect: NativeRect): boolean {
   );
 }
 
+function isPipelineV2(parserVersion: string): boolean {
+  const match = /^native-pipeline@(\d+)(?:\.|$)/.exec(parserVersion);
+  return !!match && Number(match[1]) >= 2;
+}
+
 export interface NativePublicationGate {
   publishable: boolean;
   issues: string[];
@@ -110,7 +134,8 @@ export interface NativePublicationGate {
 
 /**
  * Gate fail-closed. O visual pode ser publicado sem OCR perfeito, mas nunca
- * sem identidade, fonte fingerprintada e um recorte visual válido.
+ * sem identidade, fonte fingerprintada, regiões válidas e, no pipeline v2,
+ * evidência explícita de completude visual.
  */
 export function nativePublicationGate(
   question: NativeQuestionContentRecord,
@@ -132,6 +157,35 @@ export function nativePublicationGate(
   ) {
     issues.push("confiança de extração inválida");
   }
+
+  const completeness = question.extraction.visualCompleteness;
+  if (isPipelineV2(question.extraction.parserVersion) && !completeness) {
+    issues.push("pipeline v2 sem evidência de completude visual");
+  }
+  if (completeness) {
+    if (
+      typeof completeness.required !== "boolean" ||
+      typeof completeness.resolved !== "boolean" ||
+      !Array.isArray(completeness.reasons)
+    ) {
+      issues.push("evidência de completude visual inválida");
+    } else if (completeness.required && !completeness.resolved) {
+      issues.push("dependência visual/contextual não resolvida");
+    }
+    if (
+      completeness.strategy === "shared-context" &&
+      !question.visualRegions.some((region) => region.role === "shared-context")
+    ) {
+      issues.push("contexto compartilhado declarado sem região correspondente");
+    }
+    if (
+      completeness.strategy === "continuation" &&
+      !question.visualRegions.some((region) => region.role === "continuation")
+    ) {
+      issues.push("continuação declarada sem região correspondente");
+    }
+  }
+
   if (document) {
     if (!/^[0-9a-f]{64}$/i.test(document.sourceSha256)) issues.push("SHA-256 da fonte inválido");
     if (!Number.isFinite(document.sourceBytes) || document.sourceBytes <= 0) {
