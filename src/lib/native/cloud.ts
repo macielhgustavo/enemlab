@@ -67,6 +67,10 @@ function rectFingerprint(rect: NativeRect): string {
     .join("-");
 }
 
+export function nativeRegionAssetPath(root: string, page: number, rect: NativeRect): string {
+  return `${root}/regions/page-${String(page).padStart(3, "0")}-${rectFingerprint(rect)}.webp`;
+}
+
 async function cropWebp(file: File, rect: NativeRect): Promise<Blob> {
   if (typeof document === "undefined" || typeof createImageBitmap === "undefined") {
     throw new Error("Recorte nativo só pode ser gerado no navegador.");
@@ -89,6 +93,25 @@ async function cropWebp(file: File, rect: NativeRect): Promise<Blob> {
   } finally {
     bitmap.close();
   }
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  if (!items.length) return;
+  let cursor = 0;
+  const count = Math.max(1, Math.min(limit, items.length));
+  const runners = Array.from({ length: count }, async () => {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      await worker(items[index]);
+    }
+  });
+  await Promise.all(runners);
 }
 
 /**
@@ -216,39 +239,50 @@ export async function publishNativePack(
   if (!userId) throw new Error("Sessão sem usuário identificado.");
 
   const preparedPack = clonePack(pack);
-  let uploadedPages = 0;
-  let uploadedCrops = 0;
 
+  type PageJob = { path: string; file: File };
+  const pageJobs: PageJob[] = [];
   for (const documentRecord of preparedPack.documents) {
     documentRecord.pageAssetPattern = contentAddressedPagePattern(preparedPack, documentRecord.documentId);
     for (let page = 1; page <= documentRecord.pageCount; page += 1) {
-      const assetPath = nativePageAssetPath(documentRecord.pageAssetPattern, page);
+      const path = nativePageAssetPath(documentRecord.pageAssetPattern, page);
       const filename = `page-${String(page).padStart(3, "0")}.webp`;
-      const file = pages.get(filename) ?? pages.get(assetPath);
+      const file = pages.get(filename) ?? pages.get(path);
       if (!file) throw new Error(`Página ausente para publicação: ${filename}`);
-      await uploadNativeAsset(session.access_token, assetPath, file);
-      uploadedPages += 1;
+      pageJobs.push({ path, file });
     }
   }
 
+  // A rede/storage é o gargalo aqui; uploads paralelos limitados reduzem muito
+  // o tempo sem criar dezenas de requisições simultâneas em celular.
+  await runWithConcurrency(pageJobs, 6, async ({ path, file }) => {
+    await uploadNativeAsset(session.access_token, path, file);
+  });
+
+  type CropJob = { path: string; file: File; rect: NativeRect };
+  const cropJobs = new Map<string, CropJob>();
   for (const question of preparedPack.questions) {
     const documentRecord = preparedPack.documents.find(
       (candidate) => candidate.documentId === question.documentId,
     );
     if (!documentRecord) throw new Error(`Documento ausente: ${question.documentId}`);
     const root = documentRecord.pageAssetPattern.replace(/\/pages\/page-\{page:03d\}\.webp$/, "");
-    for (let regionIndex = 0; regionIndex < question.visualRegions.length; regionIndex += 1) {
-      const region = question.visualRegions[regionIndex];
+    for (const region of question.visualRegions) {
       const filename = `page-${String(region.page).padStart(3, "0")}.webp`;
       const pageFile = pages.get(filename);
       if (!pageFile) throw new Error(`Página ausente para recorte: ${filename}`);
-      const crop = await cropWebp(pageFile, region.rect);
-      const path = `${root}/questions/q-${String(question.number).padStart(3, "0")}-r${regionIndex}-${rectFingerprint(region.rect)}.webp`;
-      await uploadNativeAsset(session.access_token, path, crop);
+      const path = nativeRegionAssetPath(root, region.page, region.rect);
       region.assetPath = path;
-      uploadedCrops += 1;
+      if (!cropJobs.has(path)) cropJobs.set(path, { path, file: pageFile, rect: region.rect });
     }
   }
+
+  // Shared-context deixa de gerar N cópias idênticas: o path é função de
+  // página+retângulo e todas as questões apontam para o mesmo objeto.
+  await runWithConcurrency([...cropJobs.values()], 4, async ({ path, file, rect }) => {
+    const crop = await cropWebp(file, rect);
+    await uploadNativeAsset(session.access_token, path, crop);
+  });
 
   // `published` é reservado para o estado que realmente será persistido após
   // todos os assets necessários terem sido preparados/enviados com sucesso.
@@ -275,5 +309,10 @@ export async function publishNativePack(
     body: JSON.stringify(row),
   });
   await responseText(response);
-  return { id: row.id, uploadedPages, uploadedCrops, pack: publishedPack };
+  return {
+    id: row.id,
+    uploadedPages: pageJobs.length,
+    uploadedCrops: cropJobs.size,
+    pack: publishedPack,
+  };
 }
