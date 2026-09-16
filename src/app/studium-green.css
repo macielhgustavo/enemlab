@@ -691,6 +691,11 @@ body::after {
 }
 
 @media (max-width: 640px) {
+  .pagehead .headright {
+    position: static;
+    margin-top: 16px;
+  }
+
   .dashboard-intro {
     margin-bottom: 20px;
   }

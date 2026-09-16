@@ -50,7 +50,7 @@ jobs:
         run: npx playwright install chrome
 
       - name: Gerar capturas
-        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots=all
         env:
           MOTIVO: ${{ inputs.motivo }}
 
