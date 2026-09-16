@@ -16,15 +16,15 @@ import { listSources } from "@/lib/sources";
 const MASS1_IDS = ["eear", "fatec", "unesp", "unioeste"] as const;
 
 describe("Mass Ingestion 1", () => {
-  it("encerra a onda em exatamente 50 novas edições lógicas", () => {
-    expect(eearEditions()).toHaveLength(35);
+  it("mantém 49 edições lógicas após a remoção explícita da EEAR 2018 Enfermagem", () => {
+    expect(eearEditions()).toHaveLength(34);
     expect(fatecEditions()).toHaveLength(8);
     expect(unespYears()).toHaveLength(1);
     expect(unioesteYears()).toHaveLength(6);
 
     const logicalEditions =
       eearEditions().length + fatecEditions().length + unespYears().length + unioesteYears().length;
-    expect(logicalEditions).toBe(50);
+    expect(logicalEditions).toBe(49);
   });
 
   it("registra os quatro providers e suas fontes ativas", () => {
@@ -35,13 +35,13 @@ describe("Mass Ingestion 1", () => {
     }
   });
 
-  it("adiciona 4.520 questões conhecidas sem edição de contagem desconhecida", () => {
+  it("mantém 4.420 questões conhecidas sem edição de contagem desconhecida", () => {
     const catalog = buildCurrentCatalog();
     expect(catalog.countQuestions({ providerIds: [...MASS1_IDS] })).toEqual({
-      known: 4_520,
+      known: 4_420,
       unknownEditions: 0,
     });
-    expect(catalog.query({ providerId: "eear" })).toHaveLength(35);
+    expect(catalog.query({ providerId: "eear" })).toHaveLength(34);
     expect(catalog.query({ providerId: "fatec" })).toHaveLength(8);
     expect(catalog.query({ providerId: "unesp" })).toHaveLength(1);
     expect(catalog.query({ providerId: "unioeste" })).toHaveLength(12);
