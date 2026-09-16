@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).parents[1]
 if str(SCRIPTS) not in sys.path:
@@ -78,6 +83,132 @@ class NativePrepareProfileTests(unittest.TestCase):
         )
         markers = native_pipeline.detect_markers([page], native_prepare.EEAR_MARKER_PATTERN)
         self.assertEqual([marker.number for marker in markers], [1, 2])
+
+
+class NativePreparePinnedSourceTests(unittest.TestCase):
+    def target(self, output: Path):
+        return SimpleNamespace(
+            provider_id="ime",
+            year=2026,
+            edition_id="2025-2026",
+            phase="first",
+            identity="ime:2025-2026:first",
+            exam_url="https://official.example/prova.pdf",
+            output_dir=output,
+        )
+
+    def write_catalog(self, root: Path, record: dict) -> None:
+        path = root / "ime" / "answer-keys.generated.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"2025-2026": record}), encoding="utf-8")
+
+    def test_matching_pinned_archive_is_accepted(self):
+        payload = b"%PDF-1.7\nverified fixture\n%%EOF\n"
+        digest = hashlib.sha256(payload).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            output = temp_path / "out"
+            target = self.target(output)
+            archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
+            self.write_catalog(
+                providers,
+                {
+                    "examArchiveUrl": archive,
+                    "examSha256": digest,
+                    "examBytes": len(payload),
+                },
+            )
+
+            def fake_download(url: str, destination: Path):
+                self.assertEqual(url, archive)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+                return destination
+
+            with patch.object(native_prepare.core, "PROVIDERS", providers), patch.object(
+                native_prepare.core, "_download_pdf", side_effect=fake_download
+            ):
+                result = native_prepare._verified_pdf_override(target)
+
+            self.assertEqual(result, output / "source-pinned.pdf")
+            self.assertEqual(result.read_bytes(), payload)
+
+    def test_wrong_digest_fails_closed_and_leaves_no_pdf(self):
+        payload = b"%PDF-1.7\nwrong fixture\n%%EOF\n"
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            output = temp_path / "out"
+            target = self.target(output)
+            archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
+            self.write_catalog(
+                providers,
+                {
+                    "examArchiveUrl": archive,
+                    "examSha256": "0" * 64,
+                    "examBytes": len(payload),
+                },
+            )
+
+            def fake_download(_url: str, destination: Path):
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+                return destination
+
+            with patch.object(native_prepare.core, "PROVIDERS", providers), patch.object(
+                native_prepare.core, "_download_pdf", side_effect=fake_download
+            ):
+                with self.assertRaises(native_prepare.fleet.NativeFleetError):
+                    native_prepare._verified_pdf_override(target)
+
+            self.assertFalse((output / "source-pinned.pdf").exists())
+            self.assertFalse((output / "source-pinned.tmp").exists())
+
+    def test_snapshot_must_wrap_exact_official_url(self):
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            target = self.target(temp_path / "out")
+            self.write_catalog(
+                providers,
+                {
+                    "examArchiveUrl": "https://web.archive.org/web/20260909011213id_/https://other.example/prova.pdf",
+                    "examSha256": "a" * 64,
+                    "examBytes": 123,
+                },
+            )
+            with patch.object(native_prepare.core, "PROVIDERS", providers):
+                with self.assertRaises(native_prepare.fleet.NativeFleetError):
+                    native_prepare._pinned_archive_metadata(target)
+
+    def test_partial_integrity_metadata_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            target = self.target(temp_path / "out")
+            self.write_catalog(
+                providers,
+                {
+                    "examArchiveUrl": "https://web.archive.org/web/20260909011213id_/" + target.exam_url,
+                    "examSha256": "a" * 64,
+                },
+            )
+            with patch.object(native_prepare.core, "PROVIDERS", providers):
+                with self.assertRaises(native_prepare.fleet.NativeFleetError):
+                    native_prepare._pinned_archive_metadata(target)
+
+    def test_provider_without_pinned_metadata_keeps_default_source_path(self):
+        target = SimpleNamespace(
+            provider_id="unesp",
+            year=2026,
+            edition_id=None,
+            phase="first",
+            identity="unesp:2026:first",
+            exam_url="https://official.example/unesp.pdf",
+            output_dir=Path("/tmp/unused"),
+        )
+        self.assertIsNone(native_prepare._pinned_archive_metadata(target))
 
 
 if __name__ == "__main__":
