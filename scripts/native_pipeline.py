@@ -160,7 +160,7 @@ def detect_markers(doc: Any, pattern: str) -> list[Marker]:
             for match in marker_re.finditer(text):
                 markers.append(
                     Marker(
-                        number=int(match.group(1)),
+                        number=int(re.sub(r"\s+", "", match.group(1))),
                         page_index=page_index,
                         x0=float(block[0]),
                         y0=float(block[1]),
