@@ -12,30 +12,65 @@ jobs:
   compare-current-objective:
     runs-on: ubuntu-latest
     steps:
-      - name: Download archival route without trusting TLS result
+      - name: Download official endpoint candidate
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --insecure \
-            'https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf' \
-            -o archive.pdf
-          test "$(head -c 4 archive.pdf)" = '%PDF'
-          sha256sum archive.pdf | tee archive.sha256
+          url='https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf'
+          # This copy is intentionally untrusted at this point. The IME host
+          # currently serves an incomplete TLS chain to GitHub's Python/curl
+          # clients, so it may only become usable after an independent copy
+          # yields exactly the same digest.
+          curl --fail --silent --show-error --location --insecure "$url" -o official-candidate.pdf
+          test "$(head -c 4 official-candidate.pdf)" = '%PDF'
+          sha256sum official-candidate.pdf | tee official-candidate.sha256
 
-      - name: Download independent official route with normal TLS
+      - name: Resolve Wayback snapshot of the exact official URL
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location \
-            'https://inscricoes.ime.eb.br/documentos/Prova_Objetiva.pdf' \
-            -o current.pdf
-          test "$(head -c 4 current.pdf)" = '%PDF'
-          sha256sum current.pdf | tee current.sha256
+          python - <<'PY' > snapshot-url.txt
+          import json
+          import urllib.parse
+          import urllib.request
 
-      - name: Require byte-identical official documents
+          source = 'https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf'
+          query = urllib.parse.urlencode({
+              'url': source,
+              'output': 'json',
+              'filter': ['statuscode:200', 'mimetype:application/pdf'],
+              'fl': 'timestamp,original,statuscode,mimetype,digest',
+              'collapse': 'digest',
+          }, doseq=True)
+          request = urllib.request.Request(
+              'https://web.archive.org/cdx/search/cdx?' + query,
+              headers={'User-Agent': 'studium-native-source-audit/1.0'},
+          )
+          with urllib.request.urlopen(request, timeout=60) as response:
+              rows = json.load(response)
+          if len(rows) < 2:
+              raise SystemExit('Wayback has no archived PDF snapshot for exact IME URL')
+          timestamp = rows[-1][0]
+          print(f'https://web.archive.org/web/{timestamp}id_/{source}')
+          PY
+          cat snapshot-url.txt
+
+      - name: Download independent archived copy with normal TLS
         shell: bash
         run: |
           set -euo pipefail
-          cmp archive.pdf current.pdf
-          test "$(cut -d' ' -f1 archive.sha256)" = "$(cut -d' ' -f1 current.sha256)"
-          echo "official routes are byte-identical"
+          snapshot="$(cat snapshot-url.txt)"
+          curl --fail --silent --show-error --location "$snapshot" -o archived.pdf
+          test "$(head -c 4 archived.pdf)" = '%PDF'
+          sha256sum archived.pdf | tee archived.sha256
+
+      - name: Require byte-identical independent copies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp official-candidate.pdf archived.pdf
+          candidate="$(cut -d' ' -f1 official-candidate.sha256)"
+          archived="$(cut -d' ' -f1 archived.sha256)"
+          test "$candidate" = "$archived"
+          echo "verified_sha256=$candidate"
+          echo 'official endpoint candidate and Wayback snapshot are byte-identical'
