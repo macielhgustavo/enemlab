@@ -63,11 +63,21 @@ class NativePrepareProfileTests(unittest.TestCase):
     def test_eear_marker_accepts_common_dash_variants(self):
         page = FakePage(
             [
-                (10, 10, 500, 80, "01 - Primeira\n02 – Segunda\n03 — Terceira", 0, 0),
+                (10, 10, 500, 80, "01 - Primeira\n02 – Segunda\n03 — Terceira\n10 – Décima\n100 – Centésima", 0, 0),
             ]
         )
         markers = native_pipeline.detect_markers([page], native_prepare.EEAR_MARKER_PATTERN)
-        self.assertEqual([marker.number for marker in markers], [1, 2, 3])
+        self.assertEqual([marker.number for marker in markers], [1, 2, 3, 10, 100])
+
+    def test_eear_marker_rejects_internal_single_digit_numbered_lists(self):
+        page = FakePage(
+            [
+                (10, 10, 500, 100, "1 – Receita\n2 – Despesa\n3 - Terceiro item\n4 — Quarto item", 0, 0),
+                (10, 120, 500, 160, "01 – Questão real\n02 – Outra questão real", 0, 0),
+            ]
+        )
+        markers = native_pipeline.detect_markers([page], native_prepare.EEAR_MARKER_PATTERN)
+        self.assertEqual([marker.number for marker in markers], [1, 2])
 
 
 if __name__ == "__main__":
