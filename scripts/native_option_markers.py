@@ -47,6 +47,9 @@ class OptionGroup:
 
 _TOKEN_RE = re.compile(r"^\s*[\[(]?([A-Ea-e])[\])\.:;-]?\s*$")
 _INLINE_RE = re.compile(r"(?m)^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s+")
+_ROW_TOLERANCE = 4.5
+_WRAPPED_MAX_ROW_GAP = 90.0
+_WRAPPED_MAX_HEIGHT = 140.0
 
 
 def _collect(doc: Any) -> tuple[list[OptionLabel], list[dict[str, Any]]]:
@@ -94,6 +97,26 @@ def _collect(doc: Any) -> tuple[list[OptionLabel], list[dict[str, Any]]]:
     return labels, blocks
 
 
+def _cluster_rows(
+    items: list[tuple[int, OptionLabel]],
+) -> list[list[tuple[int, OptionLabel]]]:
+    """Agrupa rótulos por faixa Y mantendo a ordem visual esquerda→direita."""
+    remaining = sorted(items, key=lambda item: (item[1].y0, item[1].x0))
+    rows: list[list[tuple[int, OptionLabel]]] = []
+    while remaining:
+        seed = remaining[0][1]
+        row: list[tuple[int, OptionLabel]] = []
+        keep: list[tuple[int, OptionLabel]] = []
+        for item in remaining:
+            if abs(item[1].y0 - seed.y0) <= _ROW_TOLERANCE:
+                row.append(item)
+            else:
+                keep.append(item)
+        rows.append(sorted(row, key=lambda item: item[1].x0))
+        remaining = keep
+    return rows
+
+
 def _horizontal_groups(
     labels: list[OptionLabel], option_ids: tuple[str, ...]
 ) -> tuple[list[OptionGroup], set[int]]:
@@ -103,33 +126,31 @@ def _horizontal_groups(
     for index, label in enumerate(labels):
         by_page[label.page_index].append((index, label))
 
+    width = len(option_ids)
     for page_index, page_labels in by_page.items():
-        remaining = sorted(page_labels, key=lambda item: (item[1].y0, item[1].x0))
-        while remaining:
-            seed_index, seed = remaining.pop(0)
-            same_y = [(seed_index, seed)]
-            keep: list[tuple[int, OptionLabel]] = []
-            for item in remaining:
-                if abs(item[1].y0 - seed.y0) <= 4.5:
-                    same_y.append(item)
-                else:
-                    keep.append(item)
-            remaining = keep
-            ordered = sorted(same_y, key=lambda item: item[1].x0)
-            if [item[1].letter for item in ordered] != list(option_ids):
-                continue
-            ids = [item[0] for item in ordered]
-            used.update(ids)
-            groups.append(
-                OptionGroup(
-                    page_index=page_index,
-                    kind="horizontal",
-                    x0=min(item[1].x0 for item in ordered),
-                    y0=min(item[1].y0 for item in ordered),
-                    x1=max(item[1].x1 for item in ordered),
-                    y1=max(item[1].y1 for item in ordered),
+        for row in _cluster_rows(page_labels):
+            index = 0
+            while index <= len(row) - width:
+                window = row[index : index + width]
+                if [item[1].letter for item in window] != list(option_ids):
+                    index += 1
+                    continue
+                ids = [item[0] for item in window]
+                if any(item_id in used for item_id in ids):
+                    index += 1
+                    continue
+                used.update(ids)
+                groups.append(
+                    OptionGroup(
+                        page_index=page_index,
+                        kind="horizontal",
+                        x0=min(item[1].x0 for item in window),
+                        y0=min(item[1].y0 for item in window),
+                        x1=max(item[1].x1 for item in window),
+                        y1=max(item[1].y1 for item in window),
+                    )
                 )
-            )
+                index += width
     return groups, used
 
 
@@ -183,6 +204,91 @@ def _vertical_groups(
     return groups
 
 
+def _wrapped_groups(
+    labels: list[OptionLabel], option_ids: tuple[str, ...], used: set[int]
+) -> list[OptionGroup]:
+    """Detecta A..E quebrado em duas ou mais linhas (ex.: ABC / DE).
+
+    Só considera rótulos que sobraram dos detectores horizontal e vertical.
+    A sequência precisa continuar canônica em ordem de leitura e ocupar uma
+    região compacta; assim grades reais são recuperadas sem transformar letras
+    incidentais espalhadas pela página em alternativas.
+    """
+    groups: list[OptionGroup] = []
+    by_page: dict[int, list[tuple[int, OptionLabel]]] = collections.defaultdict(list)
+    for index, label in enumerate(labels):
+        if index not in used:
+            by_page[label.page_index].append((index, label))
+
+    width = len(option_ids)
+    for page_index, page_labels in by_page.items():
+        rows = _cluster_rows(page_labels)
+        flattened: list[tuple[int, OptionLabel, int]] = []
+        for row_index, row in enumerate(rows):
+            flattened.extend((index, label, row_index) for index, label in row)
+
+        cursor = 0
+        while cursor <= len(flattened) - width:
+            window = flattened[cursor : cursor + width]
+            if [item[1].letter for item in window] != list(option_ids):
+                cursor += 1
+                continue
+            ids = [item[0] for item in window]
+            if any(item_id in used for item_id in ids):
+                cursor += 1
+                continue
+
+            row_ids = [item[2] for item in window]
+            distinct_rows = sorted(set(row_ids))
+            if len(distinct_rows) < 2:
+                cursor += 1
+                continue
+            # The five labels must occupy consecutive visual rows. This blocks
+            # accidental A..E sequences assembled from unrelated page regions.
+            if distinct_rows != list(range(distinct_rows[0], distinct_rows[-1] + 1)):
+                cursor += 1
+                continue
+
+            y0 = min(item[1].y0 for item in window)
+            y1 = max(item[1].y1 for item in window)
+            if y1 - y0 > _WRAPPED_MAX_HEIGHT:
+                cursor += 1
+                continue
+
+            row_y = [min(item[1].y0 for item in window if item[2] == row_id) for row_id in distinct_rows]
+            if any(next_y - current_y > _WRAPPED_MAX_ROW_GAP for current_y, next_y in zip(row_y, row_y[1:])):
+                cursor += 1
+                continue
+
+            used.update(ids)
+            groups.append(
+                OptionGroup(
+                    page_index=page_index,
+                    kind="wrapped",
+                    x0=min(item[1].x0 for item in window),
+                    y0=y0,
+                    x1=max(item[1].x1 for item in window),
+                    y1=y1,
+                )
+            )
+            cursor += width
+    return groups
+
+
+def _intersects_2d(
+    group: OptionGroup,
+    page_index: int,
+    bbox: tuple[float, float, float, float],
+) -> bool:
+    if group.page_index != page_index:
+        return False
+    bx0, by0, bx1, by1 = bbox
+    return (
+        max(0.0, min(group.x1, bx1) - max(group.x0, bx0)) > 2
+        and max(0.0, min(group.y1, by1) - max(group.y0, by0)) > 2
+    )
+
+
 def _block_fallback_groups(
     blocks: list[dict[str, Any]],
     groups: list[OptionGroup],
@@ -196,22 +302,22 @@ def _block_fallback_groups(
                 seen.append(letter)
         if seen != list(option_ids):
             continue
-        bx0, by0, bx1, by1 = block["bbox"]
+        bbox = tuple(float(value) for value in block["bbox"])
         overlaps = any(
-            group.page_index == block["page_index"]
-            and max(0.0, min(group.y1, by1) - max(group.y0, by0)) > 2
+            _intersects_2d(group, int(block["page_index"]), bbox)
             for group in [*groups, *fallback]
         )
         if overlaps:
             continue
+        bx0, by0, bx1, by1 = bbox
         fallback.append(
             OptionGroup(
                 page_index=int(block["page_index"]),
                 kind="block",
-                x0=float(bx0),
-                y0=float(by0),
-                x1=float(bx1),
-                y1=float(by1),
+                x0=bx0,
+                y0=by0,
+                x1=bx1,
+                y1=by1,
             )
         )
     return fallback
@@ -244,7 +350,8 @@ def detect_ordered_option_groups(
     ]
     horizontal, used = _horizontal_groups(filtered, option_ids)
     vertical = _vertical_groups(filtered, option_ids, used)
-    groups = [*horizontal, *vertical]
+    wrapped = _wrapped_groups(filtered, option_ids, used)
+    groups = [*horizontal, *vertical, *wrapped]
     groups.extend(_block_fallback_groups(blocks, groups, option_ids))
     groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
 
