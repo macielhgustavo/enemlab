@@ -68,6 +68,66 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         groups = markers.detect_ordered_option_groups(doc, tuple("ABCDE"), 3)
         self.assertEqual([group.kind for group in groups], ["horizontal", "vertical", "block"])
 
+    def test_detects_two_horizontal_groups_on_same_visual_row(self):
+        first = [line(span(letter, 30 + index * 45, 100)) for index, letter in enumerate("ABCDE")]
+        second = [line(span(letter, 330 + index * 45, 100)) for index, letter in enumerate("ABCDE")]
+        doc = [FakePage([block([*first, *second], (30, 100, 530, 112))])]
+
+        groups = markers.detect_ordered_option_groups(doc, tuple("ABCDE"), 2)
+
+        self.assertEqual(len(groups), 2)
+        self.assertEqual([group.kind for group in groups], ["horizontal", "horizontal"])
+        self.assertLess(groups[0].x1, groups[1].x0)
+
+    def test_detects_wrapped_option_grids_after_stronger_detectors(self):
+        abc_de = block(
+            [
+                line(span("A", 36, 100)),
+                line(span("B", 204, 100)),
+                line(span("C", 355, 100)),
+                line(span("D", 36, 170)),
+                line(span("E", 204, 170)),
+            ],
+            (36, 100, 365, 182),
+        )
+        ab_cd_e = block(
+            [
+                line(span("A", 36, 300)),
+                line(span("B", 288, 300)),
+                line(span("C", 36, 350)),
+                line(span("D", 288, 350)),
+                line(span("E", 36, 400)),
+            ],
+            (36, 300, 298, 412),
+        )
+        doc = [FakePage([abc_de, ab_cd_e])]
+
+        groups = markers.detect_ordered_option_groups(doc, tuple("ABCDE"), 2)
+
+        self.assertEqual(len(groups), 2)
+        self.assertEqual([group.kind for group in groups], ["wrapped", "wrapped"])
+
+    def test_wrapped_detector_rejects_letters_spread_across_page(self):
+        labels = [
+            markers.OptionLabel(0, index, letter, 36, 100 + index * 120, 46, 112 + index * 120, "Body", 12.0)
+            for index, letter in enumerate("ABCDE")
+        ]
+
+        groups = markers._wrapped_groups(labels, tuple("ABCDE"), set())
+
+        self.assertEqual(groups, [])
+
+    def test_block_fallback_preserves_side_by_side_groups(self):
+        blocks = [
+            {"page_index": 0, "letters": list("ABCDE"), "bbox": (30.0, 100.0, 250.0, 220.0)},
+            {"page_index": 0, "letters": list("ABCDE"), "bbox": (330.0, 100.0, 560.0, 220.0)},
+        ]
+
+        groups = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
+
+        self.assertEqual(len(groups), 2)
+        self.assertLess(groups[0].x1, groups[1].x0)
+
     def test_ignores_formula_letters_in_minor_style(self):
         horizontal = block(
             [
@@ -84,11 +144,17 @@ class OrderedOptionMarkerTests(unittest.TestCase):
             (40, 220, 120, 330),
         )
         noise = block(
-            [line(span(letter, 250, 350 + index * 10, font="Math", size=9.0)) for index, letter in enumerate("ABCDE")],
+            [
+                line(span(letter, 250, 350 + index * 10, font="Math", size=9.0))
+                for index, letter in enumerate("ABCDE")
+            ],
             (250, 350, 280, 410),
         )
         fallback = block(
-            [line(span(f"{letter}) option", 60, 430 + index * 20, font="Option")) for index, letter in enumerate("ABCDE")],
+            [
+                line(span(f"{letter}) option", 60, 430 + index * 20, font="Option"))
+                for index, letter in enumerate("ABCDE")
+            ],
             (60, 430, 500, 530),
         )
         groups = markers.detect_ordered_option_groups(
