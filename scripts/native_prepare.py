@@ -17,10 +17,12 @@ import native_fleet as fleet
 import native_ingest as ingest
 import native_orchestrator as core
 
-# EEAR objective booklets use line-leading numeric markers such as `01 – ...`.
-# Their opening answer-key pages contain prose like "recurso dessa questão 21",
-# so the generic `QUESTÃO N` marker would create false positives there.
-EEAR_MARKER_PATTERN = r"(?m)^\s*0?(\d{1,3})\s*[–—-]\s+"
+# EEAR objective booklets print questions 01..09 with a mandatory leading zero,
+# then 10..99 and 100 normally. Internal numbered lists often use `1 –`, `2 –`,
+# etc.; requiring the leading zero for single-digit questions prevents those
+# list items from being mistaken for question markers. Opening answer-key pages
+# also lack this dash-based question format.
+EEAR_MARKER_PATTERN = r"(?m)^\s*(0[1-9]|[1-9]\d|100)\s*[–—-]\s+"
 
 PROVIDER_MARKER_PATTERNS: dict[str, str] = {
     "eear": EEAR_MARKER_PATTERN,
