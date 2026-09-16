@@ -1,0 +1,118 @@
+name: Brasil Escola UNESP Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-unesp-extraction.yml'
+      - 'scripts/ingest-objective-mirror-core.py'
+      - 'scripts/ingest-objective-mirror-safe.py'
+      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate generic objective parser
+        run: |
+          python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+      - name: Acquire UNESP mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'universidade-estadual-paulista' \
+            --workers 8 \
+            --catalog '.cache/unesp-catalog.json' \
+            --download-root '.cache/unesp-inbox'
+      - name: Extract deterministic UNESP regular objective corpus
+        run: |
+          python scripts/ingest-objective-mirror-safe.py \
+            --profile 'unesp' \
+            --input '.cache/unesp-inbox/universidade-estadual-paulista' \
+            --output '.cache/unesp-extracted'
+      - name: Upload UNESP benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UNESP-objective-benchmark
+          path: |
+            .cache/unesp-catalog.json
+            .cache/unesp-extracted/unesp-summary.json
+            .cache/unesp-extracted/unesp/**/bundle.json
+          retention-days: 7
+      - name: Enforce exact deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/unesp-catalog.json').read_text())['bulkAcquisition']
+          summary = json.loads(Path('.cache/unesp-extracted/unesp-summary.json').read_text())
+
+          if catalog.get('errors'):
+              raise SystemExit(catalog['errors'])
+          actual_acquisition = (
+              catalog.get('selected'),
+              catalog.get('acquired'),
+              catalog.get('unavailable'),
+          )
+          if actual_acquisition != (44, 10, 34):
+              raise SystemExit(f'UNESP acquisition drift: {actual_acquisition}')
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+
+          expected_global = {
+              'editions': 8,
+              'expectedQuestions': 720,
+              'extractedQuestions': 656,
+              'completeUnits': 0,
+              'missingIdentities': 64,
+              'visualDependencies': 137,
+          }
+          actual_global = {key: summary.get(key) for key in expected_global}
+          if actual_global != expected_global:
+              raise SystemExit(f'UNESP global accounting drift: {actual_global}')
+
+          expected_cycles = {
+              'unesp-2021-1': (90, 83, 0, 7, 13),
+              'unesp-2022-1': (90, 82, 0, 8, 16),
+              'unesp-2023-1': (90, 81, 0, 9, 17),
+              'unesp-2024-1': (90, 85, 0, 5, 23),
+              'unesp-2024-2': (90, 84, 0, 6, 17),
+              'unesp-2025-1': (90, 82, 0, 8, 18),
+              'unesp-2025-2': (90, 81, 0, 9, 16),
+              'unesp-2026-1': (90, 78, 0, 12, 17),
+          }
+          actual_cycles = {
+              cycle['editionId']: (
+                  cycle['expectedQuestions'],
+                  cycle['extractedQuestions'],
+                  cycle['completeUnits'],
+                  cycle['missingIdentities'],
+                  cycle['visualDependencies'],
+              )
+              for cycle in summary.get('cycles', [])
+          }
+          if actual_cycles != expected_cycles:
+              raise SystemExit(f'UNESP cycle accounting drift: {actual_cycles}')
+
+          if summary['missingIdentities'] != summary['expectedQuestions'] - summary['extractedQuestions']:
+              raise SystemExit('UNESP accounting identity mismatch')
+
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
