@@ -18,6 +18,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -32,6 +33,8 @@ DEFAULT_PUBLISHER_URL = (
 ALLOWED_EXTRACTION_ISSUE_PREFIXES = (
     "alternativas semânticas não foram reconhecidas integralmente;",
 )
+UPLOAD_WORKERS = 8
+UPLOAD_REFRESH_ROUNDS = 3
 
 
 class NativeFleetError(RuntimeError):
@@ -268,6 +271,7 @@ def _broker(payload: dict[str, Any], publisher_url: str) -> dict[str, Any]:
 def _upload_signed(url: str, path: Path) -> None:
     data = path.read_bytes()
     last_error: Exception | None = None
+    retryable = {408, 409, 425, 429, 500, 502, 503, 504}
     for attempt in range(3):
         request = urllib.request.Request(
             url,
@@ -283,47 +287,122 @@ def _upload_signed(url: str, path: Path) -> None:
             with urllib.request.urlopen(request, timeout=120) as response:
                 if 200 <= response.status < 300:
                     return
+                last_error = NativeFleetError(f"HTTP inesperado {response.status}")
         except urllib.error.HTTPError as error:
-            last_error = error
-            if error.code not in {408, 409, 425, 429, 500, 502, 503, 504}:
-                raise
+            body = error.read().decode("utf-8", errors="replace")
+            detail = f"HTTP {error.code}: {body[:500] or error.reason}"
+            last_error = NativeFleetError(detail)
+            if error.code not in retryable:
+                raise NativeFleetError(f"signed upload {path.name}: {detail}") from error
         except OSError as error:
             last_error = error
-        time.sleep(2**attempt)
+        if attempt < 2:
+            time.sleep(2**attempt)
     raise NativeFleetError(f"upload falhou após retries: {path.name}: {last_error}")
+
+
+def _asset_manifest(asset_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{"path": record["path"], "bytes": record["bytes"]} for record in asset_records]
+
+
+def _begin_publication(
+    pack: dict[str, Any],
+    bundle: dict[str, Any],
+    asset_records: list[dict[str, Any]],
+    publisher_url: str,
+) -> dict[str, Any]:
+    return _broker(
+        {
+            "action": "begin",
+            "revision": bundle["revision"],
+            "pack": pack,
+            "assets": _asset_manifest(asset_records),
+        },
+        publisher_url,
+    )
+
+
+def _signed_upload_map(
+    begin: dict[str, Any], asset_records: list[dict[str, Any]]
+) -> dict[str, str]:
+    signed_by_path = {
+        str(row["path"]): str(row["signedUrl"])
+        for row in begin.get("uploads") or []
+        if row.get("path") and row.get("signedUrl")
+    }
+    expected = {str(record["path"]) for record in asset_records}
+    if set(signed_by_path) != expected:
+        raise NativeFleetError("publisher não assinou exatamente o conjunto esperado de assets")
+    return signed_by_path
+
+
+def _upload_round(
+    records: list[dict[str, Any]],
+    signed_by_path: dict[str, str],
+    bundle_dir: Path,
+) -> dict[str, Exception]:
+    failures: dict[str, Exception] = {}
+    workers = min(UPLOAD_WORKERS, max(1, len(records)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(
+                _upload_signed,
+                signed_by_path[str(record["path"])],
+                bundle_dir / str(record["localPath"]),
+            ): record
+            for record in records
+        }
+        completed = 0
+        for future in as_completed(futures):
+            record = futures[future]
+            path = str(record["path"])
+            try:
+                future.result()
+            except Exception as error:  # captured and retried with a fresh signed URL
+                failures[path] = error
+            completed += 1
+            if completed % 25 == 0 or completed == len(records):
+                print(f"upload round completed {completed}/{len(records)}", file=sys.stderr)
+    return failures
 
 
 def _publish_bundle(bundle_dir: Path, publisher_url: str) -> dict[str, Any]:
     bundle = json.loads((bundle_dir / "bundle.json").read_text(encoding="utf-8"))
     pack = json.loads((bundle_dir / bundle["packFile"]).read_text(encoding="utf-8"))
-    asset_records = bundle["assets"]
-    begin = _broker(
-        {
-            "action": "begin",
-            "revision": bundle["revision"],
-            "pack": pack,
-            "assets": [{"path": record["path"], "bytes": record["bytes"]} for record in asset_records],
-        },
-        publisher_url,
-    )
-    if begin.get("skip"):
-        return {"status": "skipped", "reason": begin.get("reason")}
+    asset_records = list(bundle["assets"])
+    pending = list(asset_records)
 
-    signed_by_path = {row["path"]: row["signedUrl"] for row in begin.get("uploads") or []}
-    if set(signed_by_path) != {record["path"] for record in asset_records}:
-        raise NativeFleetError("publisher não assinou exatamente o conjunto esperado de assets")
-    for index, record in enumerate(asset_records, start=1):
-        local_path = bundle_dir / record["localPath"]
-        _upload_signed(signed_by_path[record["path"]], local_path)
-        if index % 25 == 0:
-            print(f"uploaded {index}/{len(asset_records)}", file=sys.stderr)
+    for round_number in range(1, UPLOAD_REFRESH_ROUNDS + 1):
+        begin = _begin_publication(pack, bundle, asset_records, publisher_url)
+        if begin.get("skip"):
+            return {"status": "skipped", "reason": begin.get("reason")}
+        signed_by_path = _signed_upload_map(begin, asset_records)
+        failures = _upload_round(pending, signed_by_path, bundle_dir)
+        if not failures:
+            pending = []
+            break
+        pending = [record for record in pending if str(record["path"]) in failures]
+        details = "; ".join(
+            f"{Path(path).name}: {failures[path]}" for path in list(failures)[:4]
+        )
+        print(
+            f"upload round {round_number} left {len(pending)} pending; refreshing signed URLs: {details}",
+            file=sys.stderr,
+        )
+        if round_number == UPLOAD_REFRESH_ROUNDS:
+            raise NativeFleetError(
+                f"{len(pending)} assets falharam após {UPLOAD_REFRESH_ROUNDS} rodadas: {details}"
+            )
+
+    if pending:
+        raise NativeFleetError(f"publicação terminou com {len(pending)} assets pendentes")
 
     finalized = _broker(
         {
             "action": "finalize",
             "revision": bundle["revision"],
             "pack": pack,
-            "assets": [{"path": record["path"], "bytes": record["bytes"]} for record in asset_records],
+            "assets": _asset_manifest(asset_records),
         },
         publisher_url,
     )
@@ -332,10 +411,14 @@ def _publish_bundle(bundle_dir: Path, publisher_url: str) -> dict[str, Any]:
     return finalized
 
 
-def _plan(provider: str | None, limit: int) -> dict[str, Any]:
+def _plan(provider: str | None, target_identity: str | None, limit: int) -> dict[str, Any]:
     targets = [target for target in ingest.discover_targets() if target.status == "ready"]
     if provider:
         targets = [target for target in targets if target.provider_id == provider]
+    if target_identity:
+        targets = [target for target in targets if target.identity == target_identity]
+        if not targets:
+            raise NativeFleetError(f"target pronto não encontrado: {target_identity}")
     if limit:
         targets = targets[:limit]
     return {
@@ -358,6 +441,7 @@ def main(argv: list[str] | None = None) -> int:
 
     plan = sub.add_parser("plan")
     plan.add_argument("--provider")
+    plan.add_argument("--target")
     plan.add_argument("--limit", type=int, default=0)
 
     prepare = sub.add_parser("prepare")
@@ -372,7 +456,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "plan":
-        print(json.dumps(_plan(args.provider, args.limit), separators=(",", ":")))
+        print(json.dumps(_plan(args.provider, args.target, args.limit), separators=(",", ":")))
         return 0
     if args.command == "prepare":
         targets = ingest.discover_targets()
