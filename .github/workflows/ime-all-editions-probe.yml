@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   diagnose:
-    name: numeric-${{ matrix.selector }}
+    name: line-options-${{ matrix.selector }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Diagnose numeric marker structure without question text
+      - name: Probe line-prefixed option labels without question text
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
@@ -41,6 +41,7 @@ jobs:
           import sys
           sys.path.insert(0, 'scripts')
           import native_prepare
+          import native_option_markers as markers
           import pymupdf
 
           selector = os.environ['SELECTOR']
@@ -50,48 +51,59 @@ jobs:
           assert pdf is not None
           doc = pymupdf.open(pdf)
 
-          patterns = {
-              'questao': re.compile(r'(?im)^\s*QUEST(?:ÃO|AO)\s*0?(\d{1,2})\b'),
-              'number-punct': re.compile(r'(?m)^\s*0?(\d{1,2})\s*[.)\-–—:]\s*'),
-              'number-space': re.compile(r'(?m)^\s*0?(\d{1,2})\s+'),
-          }
-
-          for name, pattern in patterns.items():
-              hits = []
-              for page_index, page in enumerate(doc):
-                  for block in page.get_text('blocks', sort=True):
-                      text = str(block[4])
-                      for match in pattern.finditer(text):
-                          number = int(match.group(1))
-                          if 1 <= number <= 40:
-                              hits.append((number, page_index + 1, round(float(block[0]),1), round(float(block[1]),1)))
-              counts = collections.Counter(number for number, *_ in hits)
-              unique = sorted(counts)
-              exact_once = [number for number in range(1,41) if counts[number] == 1]
-              missing = [number for number in range(1,41) if counts[number] == 0]
-              duplicates = {number: counts[number] for number in range(1,41) if counts[number] > 1}
-              print(name, 'hits=', len(hits), 'unique=', len(unique), 'exact-once=', len(exact_once), 'missing=', missing, 'duplicates=', duplicates)
-              print(name, 'positions=', hits)
-
-          # Independent line-leading token view, with only structural metadata.
-          token_hits = []
-          token_re = re.compile(r'^\s*0?(\d{1,2})(?:[.)\-–—:]?)\s*$')
+          labels, blocks = markers._collect(doc)
+          existing = {(label.page_index, label.block_index, label.letter, round(label.x0,1), round(label.y0,1)) for label in labels}
+          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s*')
+          added = []
           for page_index, page in enumerate(doc):
               data = page.get_text('dict', sort=True)
-              for block in data.get('blocks', []):
+              for block_index, block in enumerate(data.get('blocks', [])):
                   for line in block.get('lines', []):
                       spans = line.get('spans', [])
                       if not spans:
                           continue
-                      first = spans[0]
-                      match = token_re.fullmatch(str(first.get('text','')))
+                      line_text = ''.join(str(span.get('text','')) for span in spans)
+                      match = prefix.match(line_text)
                       if not match:
                           continue
-                      number = int(match.group(1))
-                      if not 1 <= number <= 40:
+                      first = spans[0]
+                      x0, y0, x1, y1 = map(float, line.get('bbox', first['bbox']))
+                      letter = match.group(1).upper()
+                      key = (page_index, block_index, letter, round(x0,1), round(y0,1))
+                      if key in existing:
                           continue
-                      x0, y0, *_ = first['bbox']
-                      token_hits.append((number, page_index + 1, round(float(x0),1), round(float(y0),1), round(float(first.get('size',0)),1), str(first.get('font',''))))
-          print('leading-token-hits=', token_hits)
+                      label = markers.OptionLabel(
+                          page_index=page_index,
+                          block_index=block_index,
+                          letter=letter,
+                          x0=x0, y0=y0, x1=x1, y1=y1,
+                          font=str(first.get('font','')),
+                          size=round(float(first.get('size',0)),1),
+                      )
+                      labels.append(label)
+                      added.append(label)
+                      existing.add(key)
+
+          def detect_for(items):
+              horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
+              vertical = markers._vertical_groups(items, tuple('ABCDE'), used)
+              wrapped = markers._wrapped_groups(items, tuple('ABCDE'), used)
+              return [*horizontal, *vertical, *wrapped]
+
+          # Detect independently per style, then add non-overlapping exact-block groups.
+          styles = collections.Counter((label.font, label.size) for label in labels)
+          groups = []
+          for style, count in styles.most_common():
+              if count < 5:
+                  continue
+              filtered = [label for label in labels if (label.font, label.size) == style]
+              groups.extend(detect_for(filtered))
+          groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+          fallback = markers._block_fallback_groups(blocks, groups, tuple('ABCDE'))
+          combined = sorted([*groups, *fallback], key=lambda group: (group.page_index, group.y0, group.x0))
+
+          print('selector=', selector, 'base-labels=', len(labels)-len(added), 'added-line-prefix=', len(added), 'styles=', sorted(((font,size,count) for (font,size),count in styles.items()), key=lambda row:(-row[2],row[0],row[1])))
+          print('style-groups=', len(groups), 'fallback=', len(fallback), 'total=', len(combined))
+          print('groups=', [(group.page_index+1, group.kind, round(group.y0,1), round(group.y1,1)) for group in combined])
           doc.close()
           PY
