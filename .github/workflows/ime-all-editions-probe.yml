@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   diagnose:
-    name: diagnose-${{ matrix.selector }}
+    name: numeric-${{ matrix.selector }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -30,17 +30,17 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Diagnose structural option styles only
+      - name: Diagnose numeric marker structure without question text
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
           python - <<'PY'
           import collections
           import os
+          import re
           import sys
           sys.path.insert(0, 'scripts')
           import native_prepare
-          import native_option_markers as markers
           import pymupdf
 
           selector = os.environ['SELECTOR']
@@ -49,29 +49,49 @@ jobs:
           pdf = native_prepare._verified_pdf_override(target)
           assert pdf is not None
           doc = pymupdf.open(pdf)
-          labels, blocks = markers._collect(doc)
-          styles = collections.Counter((label.font, label.size) for label in labels)
-          print('selector=', selector, 'pages=', len(doc), 'labels=', len(labels))
-          print('styles=', sorted(((font, size, count) for (font, size), count in styles.items()), key=lambda row: (-row[2], row[0], row[1])))
 
-          def groups_for(items):
-              horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
-              vertical = markers._vertical_groups(items, tuple('ABCDE'), used)
-              wrapped = markers._wrapped_groups(items, tuple('ABCDE'), used)
-              return [*horizontal, *vertical, *wrapped]
+          patterns = {
+              'questao': re.compile(r'(?im)^\s*QUEST(?:ÃO|AO)\s*0?(\d{1,2})\b'),
+              'number-punct': re.compile(r'(?m)^\s*0?(\d{1,2})\s*[.)\-–—:]\s*'),
+              'number-space': re.compile(r'(?m)^\s*0?(\d{1,2})\s+'),
+          }
 
-          all_style_groups = []
-          for style, count in styles.most_common():
-              if count < 5:
-                  continue
-              filtered = [label for label in labels if (label.font, label.size) == style]
-              groups = groups_for(filtered)
-              all_style_groups.extend(groups)
-              summary = [(group.page_index + 1, group.kind, round(group.y0, 1), round(group.y1, 1)) for group in groups]
-              print('style=', style, 'labels=', count, 'groups=', len(groups), 'summary=', summary)
+          for name, pattern in patterns.items():
+              hits = []
+              for page_index, page in enumerate(doc):
+                  for block in page.get_text('blocks', sort=True):
+                      text = str(block[4])
+                      for match in pattern.finditer(text):
+                          number = int(match.group(1))
+                          if 1 <= number <= 40:
+                              hits.append((number, page_index + 1, round(float(block[0]),1), round(float(block[1]),1)))
+              counts = collections.Counter(number for number, *_ in hits)
+              unique = sorted(counts)
+              exact_once = [number for number in range(1,41) if counts[number] == 1]
+              missing = [number for number in range(1,41) if counts[number] == 0]
+              duplicates = {number: counts[number] for number in range(1,41) if counts[number] > 1}
+              print(name, 'hits=', len(hits), 'unique=', len(unique), 'exact-once=', len(exact_once), 'missing=', missing, 'duplicates=', duplicates)
+              print(name, 'positions=', hits)
 
-          fallback = markers._block_fallback_groups(blocks, all_style_groups, tuple('ABCDE'))
-          print('combined-style-groups=', len(all_style_groups), 'fallback=', len(fallback), 'total=', len(all_style_groups) + len(fallback))
-          print('fallback-summary=', [(group.page_index + 1, group.kind, round(group.y0, 1), round(group.y1, 1)) for group in fallback])
+          # Independent line-leading token view, with only structural metadata.
+          token_hits = []
+          token_re = re.compile(r'^\s*0?(\d{1,2})(?:[.)\-–—:]?)\s*$')
+          for page_index, page in enumerate(doc):
+              data = page.get_text('dict', sort=True)
+              for block in data.get('blocks', []):
+                  for line in block.get('lines', []):
+                      spans = line.get('spans', [])
+                      if not spans:
+                          continue
+                      first = spans[0]
+                      match = token_re.fullmatch(str(first.get('text','')))
+                      if not match:
+                          continue
+                      number = int(match.group(1))
+                      if not 1 <= number <= 40:
+                          continue
+                      x0, y0, *_ = first['bbox']
+                      token_hits.append((number, page_index + 1, round(float(x0),1), round(float(y0),1), round(float(first.get('size',0)),1), str(first.get('font',''))))
+          print('leading-token-hits=', token_hits)
           doc.close()
           PY
