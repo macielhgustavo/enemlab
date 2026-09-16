@@ -7,6 +7,10 @@ on:
         description: Optional provider filter
         required: false
         type: string
+      target:
+        description: Optional exact target identity
+        required: false
+        type: string
       limit:
         description: Optional target limit (0 = all)
         required: false
@@ -55,10 +59,12 @@ jobs:
         name: Build ready-target matrix
         env:
           PROVIDER: ${{ github.event.inputs.provider || '' }}
+          TARGET: ${{ github.event.inputs.target || '' }}
           LIMIT: ${{ github.event.inputs.limit || '0' }}
         run: |
           args=()
           if [ -n "$PROVIDER" ]; then args+=(--provider "$PROVIDER"); fi
+          if [ -n "$TARGET" ]; then args+=(--target "$TARGET"); fi
           if [ "${LIMIT:-0}" != "0" ]; then args+=(--limit "$LIMIT"); fi
           matrix="$(python scripts/native_fleet.py plan "${args[@]}")"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
@@ -88,12 +94,16 @@ jobs:
         run: python scripts/native_prepare.py unesp 2026 --phase first --out bundle-unesp
       - name: Publish UNESP canary through OIDC broker
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
-        run: python scripts/native_fleet.py publish --bundle bundle-unesp | tee publication-unesp.json
+        run: |
+          set -o pipefail
+          python scripts/native_fleet.py publish --bundle bundle-unesp | tee publication-unesp.json
       - name: Prepare EEAR Administração bundle
         run: python scripts/native_prepare.py eear 2023-eags-administracao --phase single --out bundle-eear
       - name: Publish EEAR canary through OIDC broker
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
-        run: python scripts/native_fleet.py publish --bundle bundle-eear | tee publication-eear.json
+        run: |
+          set -o pipefail
+          python scripts/native_fleet.py publish --bundle bundle-eear | tee publication-eear.json
       - name: Mark dry run
         if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
         run: |
@@ -141,7 +151,9 @@ jobs:
           --out bundle
       - name: Publish through OIDC broker
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
-        run: python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
+        run: |
+          set -o pipefail
+          python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
       - name: Mark dry run
         if: ${{ github.event_name == 'workflow_dispatch' && !inputs.publish }}
         run: echo '{"status":"prepared-only"}' > publication-result.json
