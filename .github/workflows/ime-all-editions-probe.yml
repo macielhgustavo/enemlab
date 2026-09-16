@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   diagnose:
-    name: dedupe-options-${{ matrix.selector }}
+    name: broad-options-${{ matrix.selector }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Probe deduplicated line-prefix option labels
+      - name: Probe broader line-prefix option labels
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
@@ -52,7 +52,9 @@ jobs:
           doc = pymupdf.open(pdf)
 
           labels, blocks = markers._collect(doc)
-          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s*')
+          # Accept canonical punctuation OR a standalone leading A-E followed by whitespace.
+          # A candidate is still useless unless it joins a complete geometric A->E group.
+          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])(?:[\])\.:;-]\s*|\s+)')
           added = []
           for page_index, page in enumerate(doc):
               data = page.get_text('dict', sort=True)
@@ -76,16 +78,15 @@ jobs:
                           for label in labels
                       ):
                           continue
-                      label = markers.OptionLabel(
+                      labels.append(markers.OptionLabel(
                           page_index=page_index,
                           block_index=block_index,
                           letter=letter,
                           x0=x0, y0=y0, x1=x1, y1=y1,
                           font=str(first.get('font','')),
                           size=round(float(first.get('size',0)),1),
-                      )
-                      labels.append(label)
-                      added.append(label)
+                      ))
+                      added.append((page_index, block_index, letter, y0))
 
           def detect_for(items):
               horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
@@ -101,14 +102,13 @@ jobs:
               filtered = [label for label in labels if (label.font, label.size) == style]
               groups.extend(detect_for(filtered))
 
-          # Collapse near-identical groups generated from equivalent line/span geometry.
           groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
           deduped = []
           for group in groups:
               duplicate = any(
                   other.page_index == group.page_index
-                  and abs(other.y0 - group.y0) <= 5
-                  and abs(other.y1 - group.y1) <= 5
+                  and max(0.0, min(other.y1, group.y1) - max(other.y0, group.y0))
+                      >= 0.70 * min(max(1.0, other.y1-other.y0), max(1.0, group.y1-group.y0))
                   and max(other.x0, group.x0) <= min(other.x1, group.x1) + 8
                   for other in deduped
               )
@@ -118,8 +118,7 @@ jobs:
           fallback = markers._block_fallback_groups(blocks, deduped, tuple('ABCDE'))
           combined = sorted([*deduped, *fallback], key=lambda group: (group.page_index, group.y0, group.x0))
 
-          print('selector=', selector, 'base-labels=', len(labels)-len(added), 'added-line-prefix=', len(added))
-          print('raw-style-groups=', len(groups), 'deduped=', len(deduped), 'fallback=', len(fallback), 'total=', len(combined))
+          print('selector=', selector, 'added=', len(added), 'raw=', len(groups), 'deduped=', len(deduped), 'fallback=', len(fallback), 'total=', len(combined))
           print('groups=', [(group.page_index+1, group.kind, round(group.y0,1), round(group.y1,1)) for group in combined])
           doc.close()
           PY
