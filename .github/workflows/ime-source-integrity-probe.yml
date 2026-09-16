@@ -9,68 +9,90 @@ permissions:
   contents: read
 
 jobs:
-  compare-current-objective:
+  audit-objective-sources:
     runs-on: ubuntu-latest
     steps:
-      - name: Download official endpoint candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          url='https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf'
-          # This copy is intentionally untrusted at this point. The IME host
-          # currently serves an incomplete TLS chain to GitHub's Python/curl
-          # clients, so it may only become usable after an independent copy
-          # yields exactly the same digest.
-          curl --fail --silent --show-error --location --insecure "$url" -o official-candidate.pdf
-          test "$(head -c 4 official-candidate.pdf)" = '%PDF'
-          sha256sum official-candidate.pdf | tee official-candidate.sha256
+      - uses: actions/checkout@v4
 
-      - name: Resolve Wayback snapshot of the exact official URL
+      - name: Audit every IME objective exam against Wayback
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' > snapshot-url.txt
+          python - <<'PY'
+          import hashlib
           import json
+          import ssl
           import urllib.parse
           import urllib.request
+          from pathlib import Path
 
-          source = 'https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf'
-          query = urllib.parse.urlencode({
-              'url': source,
-              'output': 'json',
-              'filter': ['statuscode:200', 'mimetype:application/pdf'],
-              'fl': 'timestamp,original,statuscode,mimetype,digest',
-              'collapse': 'digest',
-          }, doseq=True)
-          request = urllib.request.Request(
-              'https://web.archive.org/cdx/search/cdx?' + query,
-              headers={'User-Agent': 'studium-native-source-audit/1.0'},
+          source_path = Path('src/lib/providers/ime/answer-keys.generated.json')
+          records = json.loads(source_path.read_text(encoding='utf-8'))
+          out = []
+          unverified = ssl._create_unverified_context()
+
+          def fetch(url: str, *, context=None, timeout=90) -> bytes:
+              request = urllib.request.Request(url, headers={'User-Agent': 'studium-native-source-audit/1.0'})
+              with urllib.request.urlopen(request, context=context, timeout=timeout) as response:
+                  return response.read()
+
+          for edition, record in records.items():
+              source = record.get('examUrl')
+              if not source:
+                  raise SystemExit(f'{edition}: examUrl ausente')
+
+              candidate = fetch(source, context=unverified)
+              if not candidate.lstrip().startswith(b'%PDF'):
+                  raise SystemExit(f'{edition}: endpoint oficial não retornou PDF')
+              candidate_sha = hashlib.sha256(candidate).hexdigest()
+
+              query = urllib.parse.urlencode({
+                  'url': source,
+                  'output': 'json',
+                  'filter': ['statuscode:200', 'mimetype:application/pdf'],
+                  'fl': 'timestamp,original,statuscode,mimetype,digest',
+                  'collapse': 'digest',
+              }, doseq=True)
+              cdx = 'https://web.archive.org/cdx/search/cdx?' + query
+              rows = json.loads(fetch(cdx, timeout=120).decode('utf-8'))
+              if len(rows) < 2:
+                  raise SystemExit(f'{edition}: Wayback sem snapshot PDF do URL exato')
+
+              # Prefer the newest unique snapshot; if it differs, walk backward
+              # until we find the exact bytes currently returned by the official URL.
+              matched_url = None
+              for row in reversed(rows[1:]):
+                  timestamp = row[0]
+                  snapshot = f'https://web.archive.org/web/{timestamp}id_/{source}'
+                  archived = fetch(snapshot, timeout=120)
+                  if not archived.lstrip().startswith(b'%PDF'):
+                      continue
+                  if hashlib.sha256(archived).hexdigest() == candidate_sha and archived == candidate:
+                      matched_url = snapshot
+                      break
+              if not matched_url:
+                  raise SystemExit(f'{edition}: nenhuma cópia Wayback é byte-idêntica ao endpoint oficial')
+
+              item = {
+                  'edition': edition,
+                  'examUrl': source,
+                  'examArchiveUrl': matched_url,
+                  'examSha256': candidate_sha,
+                  'examBytes': len(candidate),
+              }
+              out.append(item)
+              print(f"OK {edition}: {candidate_sha} ({len(candidate)} bytes)")
+
+          Path('ime-source-audit.json').write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
           )
-          with urllib.request.urlopen(request, timeout=60) as response:
-              rows = json.load(response)
-          if len(rows) < 2:
-              raise SystemExit('Wayback has no archived PDF snapshot for exact IME URL')
-          timestamp = rows[-1][0]
-          print(f'https://web.archive.org/web/{timestamp}id_/{source}')
           PY
-          cat snapshot-url.txt
 
-      - name: Download independent archived copy with normal TLS
-        shell: bash
-        run: |
-          set -euo pipefail
-          snapshot="$(cat snapshot-url.txt)"
-          curl --fail --silent --show-error --location "$snapshot" -o archived.pdf
-          test "$(head -c 4 archived.pdf)" = '%PDF'
-          sha256sum archived.pdf | tee archived.sha256
-
-      - name: Require byte-identical independent copies
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmp official-candidate.pdf archived.pdf
-          candidate="$(cut -d' ' -f1 official-candidate.sha256)"
-          archived="$(cut -d' ' -f1 archived.sha256)"
-          test "$candidate" = "$archived"
-          echo "verified_sha256=$candidate"
-          echo 'official endpoint candidate and Wayback snapshot are byte-identical'
+      - name: Upload source audit only
+        uses: actions/upload-artifact@v4
+        with:
+          name: ime-source-audit
+          path: ime-source-audit.json
+          retention-days: 7
+          if-no-files-found: error
