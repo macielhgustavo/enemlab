@@ -31,12 +31,8 @@ PROVIDERS = ROOT / "src" / "lib" / "providers"
 # ser conferidos antes, porque a chave alimenta histórico, SRS e mastery.
 AUDITED_REFERENCE_IDENTITIES = {"unesp", "fatec", "eear"}
 AUDITED_YEAR_PHASE_IDENTITIES = {"espcex", "ita"}
-
-CUSTOM_IDENTITY_BLOCKED = {
-    "afa": "provider usa identidade custom; adapter nativo ainda não declarou a chave",
-    "epcar": "provider usa identidade custom; adapter nativo ainda não declarou a chave",
-    "ime": "questionKey histórica inclui objective; não usar fórmula genérica",
-}
+AUDITED_FAB_IDENTITIES = {"afa", "epcar"}
+AUDITED_CUSTOM_IDENTITIES = {*AUDITED_FAB_IDENTITIES, "ime"}
 
 
 def _normalize_key_segment(value: str) -> str:
@@ -76,6 +72,28 @@ def _question_key_format(target: core.NativeTarget) -> str | None:
             edition_id=str(target.year),
             phase=target.phase,
         )
+    if target.provider_id in AUDITED_FAB_IDENTITIES:
+        # afaQuestionKey/epcarQuestionKey delegam para fabQuestionKey(), que usa
+        # exatamente provider + ano + fase + número. Os providers executáveis
+        # sempre geram a fase `first`.
+        if target.phase != "first":
+            return None
+        return _build_question_key_format(
+            provider_id=target.provider_id,
+            edition_id=str(target.year),
+            phase="first",
+        )
+    if target.provider_id == "ime":
+        # imeObjectiveQuestions cria examId `ime-${edition}-objective` e
+        # imeQuestionKey remove o primeiro `ime-` antes de acrescentar o número.
+        if target.phase != "first" or not target.edition_id:
+            return None
+        edition = _normalize_key_segment(target.edition_id)
+        if edition != target.edition_id:
+            raise core.NativeOrchestratorError(
+                f"edição IME incompatível com questionKey auditada: {target.edition_id!r}"
+            )
+        return f"ime-{edition}-objective-{{number}}"
     if target.provider_id == "unioeste":
         # O provider acrescenta idioma a toda a sessão da manhã antes de
         # `referenceQuestionKey()`. A tarde não recebe esse segmento.
@@ -99,7 +117,13 @@ def question_key_for(target: core.NativeTarget, number: int) -> str:
     return pattern.replace("{number}", str(number))
 
 
-def _blocked_custom_targets(provider_id: str, reason: str) -> list[core.NativeTarget]:
+def _audited_custom_targets(provider_id: str) -> list[core.NativeTarget]:
+    """Adapta providers cuja identidade é auditada, mas não segue o genérico.
+
+    O gate de identidade não implica que a prova está pronta: `_ready_or_blocked`
+    continua exigindo uma fonte de caderno HTTP(S) válida. Assim AFA/EPCAR/IME
+    podem ter questionKey comprovada e ainda permanecer bloqueados por fonte.
+    """
     path = PROVIDERS / provider_id / "answer-keys.generated.json"
     if not path.exists():
         return []
@@ -108,19 +132,18 @@ def _blocked_custom_targets(provider_id: str, reason: str) -> list[core.NativeTa
     for key, record in raw.items():
         if not isinstance(record, dict) or "year" not in record or "total" not in record:
             continue
+        edition = str(record.get("edition") or key)
         out.append(
-            core.NativeTarget(
+            core._ready_or_blocked(
                 provider_id=provider_id,
                 year=int(record["year"]),
                 phase="first",
-                edition_id=str(record.get("edition") or key) if provider_id == "ime" else None,
-                label=f"{provider_id.upper()} {record.get('edition') or record['year']}",
+                edition_id=edition if provider_id == "ime" else None,
+                label=f"{provider_id.upper()} {edition}",
                 total=int(record["total"]),
-                option_ids=core.LETTERS,
+                option_ids=("A", "B", "C", "D") if provider_id in AUDITED_FAB_IDENTITIES else core.LETTERS,
                 exam_url=core._canonical_exam_url(record),
-                source_kind="custom-identity-pending",
-                status="blocked",
-                reason=reason,
+                source_kind="audited-custom-identity",
             )
         )
     return out
@@ -166,10 +189,10 @@ def discover_targets() -> list[core.NativeTarget]:
     filtered = [
         target
         for target in base
-        if target.provider_id not in {*CUSTOM_IDENTITY_BLOCKED.keys(), "unioeste"}
+        if target.provider_id not in {*AUDITED_CUSTOM_IDENTITIES, "unioeste"}
     ]
-    for provider_id, reason in CUSTOM_IDENTITY_BLOCKED.items():
-        filtered.extend(_blocked_custom_targets(provider_id, reason))
+    for provider_id in sorted(AUDITED_CUSTOM_IDENTITIES):
+        filtered.extend(_audited_custom_targets(provider_id))
     filtered.extend(_unioeste_targets())
 
     unique: dict[str, core.NativeTarget] = {}

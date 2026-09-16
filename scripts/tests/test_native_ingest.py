@@ -68,12 +68,37 @@ class NativeInventoryTests(unittest.TestCase):
             "unioeste-2026-afternoon-1",
         )
 
-    def test_custom_identity_provider_is_blocked_instead_of_guessing(self):
+    def test_afa_and_epcar_use_exact_fab_provider_identity(self):
+        afa = self.target("afa", 2018, "first")
+        epcar = self.target("epcar", 2018, "first")
+        self.assertEqual(afa.option_ids, ("A", "B", "C", "D"))
+        self.assertEqual(epcar.option_ids, ("A", "B", "C", "D"))
+        self.assertEqual(native_ingest.question_key_for(afa, 1), "afa-2018-first-1")
+        self.assertEqual(native_ingest.question_key_for(afa, afa.total), f"afa-2018-first-{afa.total}")
+        self.assertEqual(native_ingest.question_key_for(epcar, 1), "epcar-2018-first-1")
+        self.assertEqual(
+            native_ingest.question_key_for(epcar, epcar.total),
+            f"epcar-2018-first-{epcar.total}",
+        )
+
+    def test_ime_uses_objective_segment_from_real_provider_identity(self):
         ime = self.target("ime", 2026, "first")
-        self.assertEqual(ime.status, "blocked")
-        self.assertIn("questionKey", ime.reason or "")
-        with self.assertRaises(native_ingest.core.NativeOrchestratorError):
-            native_ingest.question_key_for(ime, 1)
+        self.assertEqual(ime.edition_id, "2025-2026")
+        self.assertEqual(ime.option_ids, ("A", "B", "C", "D", "E"))
+        self.assertEqual(native_ingest.question_key_for(ime, 1), "ime-2025-2026-objective-1")
+        self.assertEqual(
+            native_ingest.question_key_for(ime, ime.total),
+            f"ime-2025-2026-objective-{ime.total}",
+        )
+
+    def test_audited_identity_does_not_bypass_source_gate(self):
+        afa = self.target("afa", 2018, "first")
+        self.assertIsNone(afa.exam_url)
+        self.assertEqual(afa.status, "blocked")
+        self.assertIn("URL", afa.reason or "")
+        # Identidade e fonte são gates independentes: a chave pode estar
+        # comprovada mesmo quando o caderno ainda não está disponível.
+        self.assertEqual(native_ingest.question_key_for(afa, 1), "afa-2018-first-1")
 
     def test_esa_html_source_is_not_misrepresented_as_pdf(self):
         esa = self.target("esa", 2022, "single")
@@ -113,6 +138,15 @@ class NativeInventoryTests(unittest.TestCase):
         unesp = next(item for item in payload["items"] if item["identity"] == "unesp:2026:first")
         self.assertTrue(unesp["identityValid"])
         self.assertEqual(unesp["questionKeyFormat"], "unesp-2026-first-{number}")
+
+        afa = next(item for item in payload["items"] if item["identity"] == "afa:2018:first")
+        self.assertTrue(afa["identityValid"])
+        self.assertEqual(afa["questionKeyFormat"], "afa-2018-first-{number}")
+        self.assertEqual(afa["status"], "blocked")
+
+        ime = next(item for item in payload["items"] if item["identity"] == "ime:2025-2026:first")
+        self.assertTrue(ime["identityValid"])
+        self.assertEqual(ime["questionKeyFormat"], "ime-2025-2026-objective-{number}")
 
 
 if __name__ == "__main__":
