@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   diagnose:
-    name: line-options-${{ matrix.selector }}
+    name: dedupe-options-${{ matrix.selector }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Probe line-prefixed option labels without question text
+      - name: Probe deduplicated line-prefix option labels
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
@@ -52,7 +52,6 @@ jobs:
           doc = pymupdf.open(pdf)
 
           labels, blocks = markers._collect(doc)
-          existing = {(label.page_index, label.block_index, label.letter, round(label.x0,1), round(label.y0,1)) for label in labels}
           prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s*')
           added = []
           for page_index, page in enumerate(doc):
@@ -69,8 +68,13 @@ jobs:
                       first = spans[0]
                       x0, y0, x1, y1 = map(float, line.get('bbox', first['bbox']))
                       letter = match.group(1).upper()
-                      key = (page_index, block_index, letter, round(x0,1), round(y0,1))
-                      if key in existing:
+                      if any(
+                          label.page_index == page_index
+                          and label.block_index == block_index
+                          and label.letter == letter
+                          and abs(label.y0 - y0) <= 4.5
+                          for label in labels
+                      ):
                           continue
                       label = markers.OptionLabel(
                           page_index=page_index,
@@ -82,7 +86,6 @@ jobs:
                       )
                       labels.append(label)
                       added.append(label)
-                      existing.add(key)
 
           def detect_for(items):
               horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
@@ -90,7 +93,6 @@ jobs:
               wrapped = markers._wrapped_groups(items, tuple('ABCDE'), used)
               return [*horizontal, *vertical, *wrapped]
 
-          # Detect independently per style, then add non-overlapping exact-block groups.
           styles = collections.Counter((label.font, label.size) for label in labels)
           groups = []
           for style, count in styles.most_common():
@@ -98,12 +100,26 @@ jobs:
                   continue
               filtered = [label for label in labels if (label.font, label.size) == style]
               groups.extend(detect_for(filtered))
-          groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
-          fallback = markers._block_fallback_groups(blocks, groups, tuple('ABCDE'))
-          combined = sorted([*groups, *fallback], key=lambda group: (group.page_index, group.y0, group.x0))
 
-          print('selector=', selector, 'base-labels=', len(labels)-len(added), 'added-line-prefix=', len(added), 'styles=', sorted(((font,size,count) for (font,size),count in styles.items()), key=lambda row:(-row[2],row[0],row[1])))
-          print('style-groups=', len(groups), 'fallback=', len(fallback), 'total=', len(combined))
+          # Collapse near-identical groups generated from equivalent line/span geometry.
+          groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+          deduped = []
+          for group in groups:
+              duplicate = any(
+                  other.page_index == group.page_index
+                  and abs(other.y0 - group.y0) <= 5
+                  and abs(other.y1 - group.y1) <= 5
+                  and max(other.x0, group.x0) <= min(other.x1, group.x1) + 8
+                  for other in deduped
+              )
+              if not duplicate:
+                  deduped.append(group)
+
+          fallback = markers._block_fallback_groups(blocks, deduped, tuple('ABCDE'))
+          combined = sorted([*deduped, *fallback], key=lambda group: (group.page_index, group.y0, group.x0))
+
+          print('selector=', selector, 'base-labels=', len(labels)-len(added), 'added-line-prefix=', len(added))
+          print('raw-style-groups=', len(groups), 'deduped=', len(deduped), 'fallback=', len(fallback), 'total=', len(combined))
           print('groups=', [(group.page_index+1, group.kind, round(group.y0,1), round(group.y1,1)) for group in combined])
           doc.close()
           PY
