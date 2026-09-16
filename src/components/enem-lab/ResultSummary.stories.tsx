@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ResultSummary } from "./ResultSummary";
 
 const meta: Meta<typeof ResultSummary> = {
-  title: "ENEM Lab/ResultSummary",
+  title: "Studium Labs/ResultSummary",
   component: ResultSummary,
   args: {
     correct: 10,

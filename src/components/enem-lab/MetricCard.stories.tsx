@@ -3,7 +3,7 @@ import { Flame, Target, TrendingUp } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 
 const meta: Meta<typeof MetricCard> = {
-  title: "ENEM Lab/MetricCard",
+  title: "Studium Labs/MetricCard",
   component: MetricCard,
   args: { label: "Taxa de acerto", value: 67, unit: "%" },
 };

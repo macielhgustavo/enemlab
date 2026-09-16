@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { FilterBar, FilterChip, FilterGroup, QuestionStatusBadge } from "./FilterBar";
 
-const meta: Meta = { title: "ENEM Lab/FilterBar" };
+const meta: Meta = { title: "Studium Labs/FilterBar" };
 export default meta;
 type Story = StoryObj;
 

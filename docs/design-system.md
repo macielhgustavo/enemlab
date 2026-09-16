@@ -1,4 +1,6 @@
-# ENEM Lab — Design System v1
+# Studium Labs — Design System
+
+> Direção atual: [Ultimate Green Edition](ui-studium-green.md).
 
 > Acabamento vigente: [v8.7 — Refining UI Edition](ui-refinement-v8.7.md).
 > As notas históricas abaixo documentam a migração; a v8.7 remove glow de

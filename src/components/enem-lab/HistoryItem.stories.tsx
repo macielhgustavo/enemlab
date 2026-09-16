@@ -17,7 +17,7 @@ function tentativa(over: Partial<Attempt> = {}): Attempt {
   } as unknown as Attempt;
 }
 
-const meta: Meta<typeof HistoryItem> = { title: "ENEM Lab/HistoryItem", component: HistoryItem };
+const meta: Meta<typeof HistoryItem> = { title: "Studium Labs/HistoryItem", component: HistoryItem };
 export default meta;
 type Story = StoryObj<typeof HistoryItem>;
 

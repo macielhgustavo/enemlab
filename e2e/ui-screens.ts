@@ -11,4 +11,5 @@ export const UI_SCREENS = [
   { name: "review", url: "/result/a_fixture_enem/review" },
   { name: "data", url: "/data" },
   { name: "account", url: "/account" },
+  { name: "adaptive", url: "/adaptive" },
 ] as const;

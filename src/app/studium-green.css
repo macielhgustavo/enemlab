@@ -1,0 +1,808 @@
+/*
+ * Studium Labs — Ultimate Green.
+ * Green identifies a study decision or a real state. Typography and rhythm
+ * carry hierarchy everywhere else. The existing semantic tokens remain the API.
+ */
+:root,
+:root[data-theme="dark"] {
+  --void: #090e0b;
+  --bg: #0b100d;
+  --bg-deep: #090e0b;
+  --surface-1: #121a15;
+  --surface-2: #17211a;
+  --surface-3: #1e2a21;
+  --panel: #121a15;
+  --panel-solid: #121a15;
+  --glass: #17211a;
+  --glass-strong: #1e2a21;
+  --text: #eff3ed;
+  --text-dim: #c4d0c3;
+  --muted: #a2b4a3;
+  --text-faint: #96aa98;
+  --line: #29372d;
+  --line-strong: #3a4a3d;
+  --brand: #7edfa4;
+  --brand-dim: #5dbb84;
+  --brand-strong: #9aedb9;
+  --brand-ink: #a7efbf;
+  --brand-soft: #173822;
+  --brand2: var(--brand-soft);
+  --brand3: var(--brand-ink);
+  --line-glow: #477e57;
+  --shadow: 0 12px 28px -22px #000;
+  --shadow-lg: 0 20px 42px -24px #000;
+  --glow: 0 0 0 1px var(--line-strong);
+  --glow-strong: 0 0 0 1px var(--line-glow);
+  --blur: 0px;
+  --dur: 0.16s;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand);
+}
+
+:root[data-theme="light"] {
+  --void: #f5f7f0;
+  --bg: #f5f7f0;
+  --bg-deep: #e9ede3;
+  --surface-1: #ffffff;
+  --surface-2: #f1f4ed;
+  --surface-3: #e9eee4;
+  --panel: #fff;
+  --panel-solid: #fff;
+  --glass: #f1f4ed;
+  --glass-strong: #e9eee4;
+  --text: #17271b;
+  --text-dim: #344b39;
+  --muted: #536957;
+  --text-faint: #5d715f;
+  --line: #d9e2d7;
+  --line-strong: #bdcbbb;
+  --brand: #156b3e;
+  --brand-dim: #125a35;
+  --brand-strong: #1e8650;
+  --brand-ink: #155d37;
+  --brand-soft: #e5f3e8;
+  --brand2: var(--brand-soft);
+  --brand3: var(--brand-ink);
+  --warn: #775100;
+  --bad: #9f2424;
+  --line-glow: #a5c8ac;
+  --shadow: 0 12px 28px -24px #344b39;
+  --shadow-lg: 0 20px 42px -28px #344b39;
+  --glow: 0 0 0 1px var(--line-strong);
+  --glow-strong: 0 0 0 1px var(--line-glow);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand);
+}
+
+html,
+body {
+  font-feature-settings: "cv05", "ss01", "tnum" 1;
+}
+
+body::before,
+body::after {
+  display: none;
+}
+
+/* Common controls: the registry-inspired simplicity lives in our primitives. */
+.btn,
+.app-topbar__train {
+  background: var(--brand);
+  color: var(--void);
+  border-color: transparent;
+  box-shadow: none;
+  border-radius: 8px;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+:root[data-theme="light"] .btn:not(.secondary):not(.ghost):not(.danger) {
+  color: #fff;
+}
+
+.btn:hover,
+.app-topbar__train:hover {
+  background: var(--brand-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.btn:active {
+  background: var(--brand-dim);
+  transform: none;
+}
+
+.btn.secondary,
+.btn.ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: var(--line);
+  backdrop-filter: none;
+}
+
+.btn.secondary:hover,
+.btn.ghost:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+
+.btn:focus-visible,
+.app-topbar button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+}
+
+.pill,
+.badge2,
+.sessionChip,
+.cacheChip,
+.multiTag,
+.dash-chip {
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.pill {
+  padding: 4px 8px;
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+.pill::before {
+  display: none;
+}
+
+/* A line tab reads as navigation, following ReUI's restrained line pattern. */
+.el-tabs--line {
+  gap: 18px;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.el-tabs--line .el-tabs__trigger {
+  margin-bottom: -1px;
+  padding: 10px 2px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+}
+
+.el-tabs--line .el-tabs__trigger:hover {
+  color: var(--text);
+}
+
+.el-tabs--line .el-tabs__trigger[data-state="active"] {
+  color: var(--text);
+  background: transparent;
+  border-bottom-color: var(--brand);
+}
+
+.card,
+.metric,
+.stat,
+.studyBlock,
+.queueItem {
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.metric::after,
+.stat::after,
+.card::before {
+  display: none;
+}
+
+.metric:hover,
+.stat:hover,
+.studyBlock:hover,
+.queueItem:hover {
+  transform: none;
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.metric b,
+.stat .val,
+.dash-metric > strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.045em;
+}
+
+.pagehead h1 {
+  letter-spacing: -0.045em;
+}
+
+.app-topbar {
+  background: var(--bg);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.app-topbar__search,
+.app-topbar__icon,
+.app-topbar__avatar {
+  background: transparent;
+}
+
+.app-topbar__mobile-brand {
+  display: none;
+}
+
+.rail .mark {
+  background: var(--brand);
+  color: var(--void);
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .rail .mark {
+  color: #fff;
+}
+
+/* Home: a main decision has a surface, the remaining data has rhythm. */
+.performance-dashboard {
+  max-width: 1540px;
+}
+
+.dashboard-intro {
+  margin-bottom: 29px;
+}
+
+.dashboard-intro h1 {
+  font-size: clamp(29px, 3vw, 40px);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+}
+
+.dashboard-intro__eyebrow,
+.dash-panel__eyebrow,
+.dash-activity header p {
+  letter-spacing: 0.09em;
+}
+
+.dashboard-grid {
+  gap: 18px 26px;
+}
+
+.dash-panel,
+.dash-activity {
+  animation: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+:root[data-theme="light"] .dash-panel,
+:root[data-theme="light"] .dash-activity {
+  box-shadow: none;
+}
+
+.dash-panel__heading {
+  padding: 18px 0 0;
+}
+
+.dash-panel__heading h2,
+.dash-activity header h2 {
+  font-size: 18px;
+  font-weight: 630;
+}
+
+.dash-mission {
+  min-height: 270px;
+  padding: 30px 34px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-1);
+}
+
+.dash-mission::before {
+  width: 2px;
+  border-radius: 12px 0 0 12px;
+}
+
+.dash-mission__content > p {
+  color: var(--text-faint);
+}
+
+.dash-mission__content h2 {
+  margin: 13px 0 9px;
+  font-size: clamp(29px, 3vw, 42px);
+}
+
+.dash-mission__button {
+  margin-top: 19px;
+}
+
+.dash-readiness {
+  padding: 10px 0 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-readiness__body {
+  justify-items: start;
+  gap: 4px;
+  padding: 18px 0 0;
+}
+
+.dash-readiness__body p {
+  text-align: left;
+}
+
+.dash-radial {
+  width: auto;
+  aspect-ratio: auto;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.dash-radial::before {
+  display: none;
+}
+
+.dash-radial > div {
+  grid-area: auto;
+  justify-content: start;
+  text-align: left;
+}
+
+.dash-radial strong {
+  font-size: clamp(58px, 6vw, 86px);
+  font-weight: 620;
+}
+
+.dash-radial span {
+  color: var(--text-dim);
+  font-size: 26px;
+}
+
+.dash-radial small {
+  font-size: 10px;
+  margin-top: 9px;
+}
+
+.dash-loop {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.dash-loop__step {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 16px 20px 16px 0;
+}
+
+.dash-loop__step + .dash-loop__step {
+  border-left: 0;
+}
+
+.dash-loop__step small {
+  font-size: 10px;
+}
+
+.dash-loop__step strong {
+  font-size: 13px;
+}
+
+.dash-loop__step b {
+  font-size: 23px;
+}
+
+.dash-evolution,
+.dash-reviews {
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-chart {
+  padding: 16px 0 0;
+}
+
+.dash-empty-chart {
+  border: 0;
+  border-top: 1px dashed var(--line);
+  border-radius: 0;
+}
+
+.dash-evolution__metrics {
+  margin-top: 12px;
+}
+
+.dash-metric {
+  padding: 17px 18px 19px 0;
+}
+
+.dash-metric__icon {
+  display: none;
+}
+
+.dash-metric > strong {
+  margin-top: 8px;
+  font-size: 28px;
+}
+
+.dash-list,
+.dash-ranking {
+  margin-top: 15px;
+}
+
+.dash-list li,
+.dash-ranking li {
+  transition: background-color 160ms ease;
+}
+
+.dash-list li:hover,
+.dash-ranking li:hover {
+  background: var(--surface-2);
+}
+
+:root[data-theme="light"] .dash-exams__list > .is-active small {
+  color: #465d4b;
+}
+
+.dash-chip {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+/* Adaptive: one clear action, an unboxed instrument strip, calmer evidence. */
+.adaptive-page {
+  display: grid;
+  gap: 24px;
+}
+
+.adaptive-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr);
+  column-gap: 40px;
+  row-gap: 18px;
+  padding: 16px 0 25px;
+  border-bottom: 1px solid var(--line);
+}
+
+.adaptive-kicker {
+  grid-column: 1 / -1;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.adaptive-intro h1 {
+  grid-column: 1;
+  margin: 0;
+  font-size: clamp(31px, 3.3vw, 46px);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.adaptive-intro__lead {
+  grid-column: 1;
+  margin: -10px 0 3px;
+  color: var(--muted);
+}
+
+.adaptive-recommendation {
+  grid-column: 1;
+  padding: 17px 20px;
+  background: var(--surface-1);
+  border-left: 2px solid var(--brand);
+}
+
+.adaptive-recommendation h2 {
+  margin: 7px 0 5px;
+  font-size: 21px;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+}
+
+.adaptive-recommendation p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.adaptive-objective {
+  grid-column: 2;
+  grid-row: 2 / span 3;
+  align-self: start;
+  padding: 13px 0 0 22px;
+  border-left: 1px solid var(--line);
+}
+
+.adaptive-objective label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.adaptive-objective select {
+  width: 100%;
+}
+
+.adaptive-objective__detail {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.adaptive-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 13px;
+}
+
+.adaptive-actions__alternatives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.adaptive-actions__alternatives .btn {
+  border: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.adaptive-actions__alternatives .btn.secondary {
+  padding: 9px 7px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.adaptive-actions__alternatives .btn:hover {
+  background: var(--surface-2);
+}
+
+.adaptive-intro > .notice {
+  grid-column: 1 / -1;
+}
+
+.adaptive-kpis,
+.adaptive-signals {
+  margin: 0;
+  gap: 0;
+}
+
+.adaptive-kpis .metric,
+.adaptive-signals .metric {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 7px 15px 10px 0;
+}
+
+.adaptive-kpis .metric + .metric,
+.adaptive-signals .metric + .metric {
+  border-left: 1px solid var(--line);
+  padding-left: 19px;
+}
+
+.adaptive-kpis .metric b {
+  font-size: clamp(29px, 3vw, 40px);
+  line-height: 1;
+}
+
+.adaptive-signals {
+  padding: 15px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.adaptive-signals .metric b {
+  font-size: 26px;
+}
+
+.adaptive-kpis__note {
+  margin-top: -17px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.adaptive-goal {
+  margin: 0;
+  background: var(--surface-1);
+  border-color: var(--line);
+  border-radius: 10px;
+}
+
+.adaptive-page > .grid.grid2 > .card,
+.adaptive-page > .card:not(.adaptive-goal) {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 19px 0 0;
+  margin-top: 0 !important;
+}
+
+.adaptive-page > .grid.grid2 {
+  gap: 30px;
+  margin-top: 0 !important;
+}
+
+.adaptive-page .studyBlock {
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 13px 0;
+  background: transparent;
+}
+
+.adaptive-page .studyBlock h3 {
+  font-weight: 620;
+}
+
+.adaptive-page .queueItem {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 0;
+  background: transparent;
+}
+
+.adaptive-page .queueItem .pill {
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  .app-topbar__context::before {
+    content: none;
+  }
+
+  .app-topbar__context .app-topbar__mobile-brand {
+    display: block;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 680;
+    letter-spacing: -0.03em;
+  }
+
+  .app-topbar__context > strong {
+    display: none;
+  }
+
+  .dashboard-grid {
+    gap: 16px;
+  }
+
+  .adaptive-intro {
+    column-gap: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-intro {
+    margin-bottom: 20px;
+  }
+
+  .dash-mission {
+    min-height: auto;
+    padding: 23px;
+  }
+
+  .dash-readiness {
+    padding: 13px 0;
+  }
+
+  .dash-readiness__body {
+    padding-top: 10px;
+  }
+
+  .dash-loop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-loop__step {
+    padding: 12px 14px 12px 0;
+  }
+
+  .dash-loop__step:nth-child(n+3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .dash-evolution__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dash-metric {
+    padding: 13px 8px 16px 0;
+  }
+
+  .dash-metric > strong {
+    font-size: 20px;
+  }
+
+  .adaptive-intro {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding-top: 2px;
+  }
+
+  .adaptive-kicker,
+  .adaptive-intro h1,
+  .adaptive-intro__lead,
+  .adaptive-recommendation,
+  .adaptive-objective,
+  .adaptive-actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .adaptive-intro__lead {
+    margin: -7px 0 0;
+  }
+
+  .adaptive-objective {
+    border-left: 0;
+    padding: 0;
+  }
+
+  .adaptive-actions,
+  .adaptive-actions__alternatives {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .adaptive-actions > .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .adaptive-actions__alternatives .btn {
+    min-height: 42px;
+    width: calc(50% - 3px);
+    text-align: left;
+    justify-content: flex-start;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+  }
+
+  .adaptive-kpis,
+  .adaptive-signals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 14px;
+  }
+
+  .adaptive-kpis .metric:nth-child(odd),
+  .adaptive-signals .metric:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .adaptive-kpis .metric b {
+    font-size: 30px;
+  }
+
+  .adaptive-page > .grid.grid2 {
+    gap: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .app-topbar__train,
+  .dash-list li,
+  .dash-ranking li {
+    transition: none;
+  }
+}

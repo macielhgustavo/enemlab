@@ -235,25 +235,20 @@ export default function AdaptivePage() {
   );
 
   return (
-    <>
-      <Card className="hero glow">
-        <span className="pill">Adaptive Engine · {examLabel(providerId)}</span>
-        <h1 style={{ fontSize: "clamp(34px,4vw,52px)" }}>
-          Seu próximo estudo já está decidido pelos dados.
-        </h1>
-        <p>
-          Retenção, domínio, cobertura, execução e confiança da evidência entram na mesma decisão. Readiness é um
-          índice interno do Studium — não é nota prevista, TRI nem probabilidade de aprovação.
-        </p>
+    <div className="adaptive-page">
+      <section className="adaptive-intro" aria-labelledby="adaptive-title">
+        <span className="adaptive-kicker">Adaptive Engine / {examLabel(providerId)}</span>
+        <h1 id="adaptive-title">Seu próximo estudo, com direção.</h1>
+        <p className="adaptive-intro__lead">Retenção, domínio e execução definem a próxima decisão.</p>
 
-        <div className="studyBlock" style={{ marginTop: 14, marginBottom: 14 }}>
+        <div className="adaptive-recommendation">
           <div className="prio">próxima ação · {recommendation.kind}</div>
-          <h3>{recommendation.title}</h3>
-          <div className="muted">{recommendation.reason}</div>
+          <h2>{recommendation.title}</h2>
+          <p>{recommendation.reason}</p>
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <label htmlFor="adaptive-objective">Objetivo do Adaptive</label>
+        <div className="adaptive-objective">
+          <label htmlFor="adaptive-objective">Objetivo</label>
           <select
             id="adaptive-objective"
             value={objective}
@@ -263,27 +258,21 @@ export default function AdaptivePage() {
               <option value={profile.id} key={profile.id}>{profile.label}</option>
             ))}
           </select>
-          <div className="muted" style={{ marginTop: 5 }}>
+          <div className="muted adaptive-objective__detail">
             {ADAPTIVE_OBJECTIVES[objective].description}
           </div>
         </div>
 
-        <div className="row">
-          <button className="btn" onClick={() => launch("objective", 15)} disabled={busy}>
-            Treinar objetivo · 15
-          </button>
-          <button className="btn secondary" onClick={() => launch("queue", 15)} disabled={busy}>
-            Fila global · 15
-          </button>
-          <button className="btn secondary" onClick={() => launch("diagnostic", 25)} disabled={busy}>
-            Diagnóstico · 25
-          </button>
-          <button className="btn secondary" onClick={inspectQueue} disabled={busy}>
-            Inspecionar próximas 40
-          </button>
-          <button className="btn secondary" onClick={continueCycle} disabled={busy}>
-            {ACTION_LABEL[recommendation.kind] ?? "Continuar ciclo"}
-          </button>
+        <div className="adaptive-actions">
+          <button className="btn" onClick={() => launch("objective", 15)} disabled={busy}>Treinar objetivo · 15</button>
+          <div className="adaptive-actions__alternatives" aria-label="Outras formas de estudar">
+            <button className="btn secondary" onClick={continueCycle} disabled={busy}>
+              {ACTION_LABEL[recommendation.kind] ?? "Continuar ciclo"}
+            </button>
+            <button className="btn secondary" onClick={() => launch("queue", 15)} disabled={busy}>Fila global · 15</button>
+            <button className="btn secondary" onClick={() => launch("diagnostic", 25)} disabled={busy}>Diagnóstico · 25</button>
+            <button className="btn secondary" onClick={inspectQueue} disabled={busy}>Inspecionar próximas 40</button>
+          </div>
         </div>
 
         {(busy || err) && (
@@ -292,9 +281,9 @@ export default function AdaptivePage() {
             {busy ? "Calculando com o banco real desta prova…" : err}
           </div>
         )}
-      </Card>
+      </section>
 
-      <div className="grid grid4" style={{ marginTop: 14 }}>
+      <section className="grid grid4 adaptive-kpis" aria-label="Indicadores de estudo">
         <Metric label="Studium Readiness" value={`${readiness.score}/100`} />
         <Metric label="Conhecimento" value={`${split.knowledgeScore}%`} />
         <Metric label="Execução" value={`${split.executionScore}/100`} />
@@ -302,13 +291,13 @@ export default function AdaptivePage() {
           label="Cobertura calibrada"
           value={coverage.calibratedPct === null ? "—" : `${coverage.calibratedPct}%`}
         />
-      </div>
-      <div className="muted" style={{ marginTop: 7, fontSize: 11 }}>
+      </section>
+      <div className="muted adaptive-kpis__note">
         confiança do readiness: {readiness.confidence} · amostra n={readiness.sample} · {readiness.note}
         {coverage.expected === null ? " · cobertura sem denominador até carregar o banco da prova" : ` · ${coverage.calibrated}/${coverage.expected} conteúdos calibrados no banco carregado`}
       </div>
 
-      <Card style={{ marginTop: 14 }}>
+      <Card className="adaptive-goal">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div>
             <h2>Meta da prova</h2>
@@ -348,12 +337,12 @@ export default function AdaptivePage() {
         )}
       </Card>
 
-      <div className="grid grid4" style={{ marginTop: 14 }}>
+      <section className="grid grid4 adaptive-signals" aria-label="Sinais da fila">
         <Metric label="Revisões vencidas" value={due.length} />
         <Metric label="Erros com certeza" value={certezaWrong} />
         <Metric label="Conteúdos fracos" value={weak.length} />
         <Metric label="Fila de erros" value={cand.length} />
-      </div>
+      </section>
 
       {preview && (
         <Card style={{ marginTop: 14 }}>
@@ -541,6 +530,6 @@ export default function AdaptivePage() {
           {experiment.variants.length === 0 && <Empty>O experimento começa nos próximos treinos inteligentes.</Empty>}
         </Card>
       </div>
-    </>
+    </div>
   );
 }

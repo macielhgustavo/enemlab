@@ -7,7 +7,7 @@ import ProviderSwitcher from "./ProviderSwitcher";
  * peça de documentação vira número inventado no produto.
  */
 const meta: Meta<typeof ProviderSwitcher> = {
-  title: "ENEM Lab/ProviderSwitcher",
+  title: "Studium Labs/ProviderSwitcher",
   component: ProviderSwitcher,
 };
 export default meta;
