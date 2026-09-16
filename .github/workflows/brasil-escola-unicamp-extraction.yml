@@ -1,0 +1,136 @@
+name: Brasil Escola UNICAMP Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-unicamp-extraction.yml'
+      - 'scripts/ingest-unicamp-safe.py'
+      - 'scripts/ingest-objective-mirror-core.py'
+      - 'scripts/ingest-objective-mirror-safe.py'
+      - 'scripts/probe-cederj-safe.py'
+      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
+      - 'scripts/tests/test_ingest_unicamp_safe.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5' 'cryptography>=44,<47'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate UNICAMP objective parser
+        run: |
+          python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py scripts/ingest-unicamp-safe.py scripts/probe-cederj-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_unicamp_safe.py'
+      - name: Acquire UNICAMP mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'universidade-estadual-campinas' \
+            --workers 8 \
+            --catalog '.cache/unicamp-catalog.json' \
+            --download-root '.cache/unicamp-inbox'
+      - name: Probe UNICAMP package structure
+        run: |
+          python scripts/probe-cederj-safe.py \
+            --input '.cache/unicamp-inbox/universidade-estadual-campinas' \
+            --output '.cache/unicamp-probe.json'
+      - name: Extract deterministic UNICAMP regular objective corpus
+        run: |
+          python scripts/ingest-unicamp-safe.py \
+            --profile 'unicamp' \
+            --input '.cache/unicamp-inbox/universidade-estadual-campinas' \
+            --output '.cache/unicamp-extracted'
+      - name: Upload UNICAMP benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UNICAMP-objective-benchmark
+          path: |
+            .cache/unicamp-catalog.json
+            .cache/unicamp-probe.json
+            .cache/unicamp-extracted/unicamp-summary.json
+            .cache/unicamp-extracted/unicamp/**/bundle.json
+          retention-days: 7
+      - name: Enforce exact deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/unicamp-catalog.json').read_text())['bulkAcquisition']
+          summary = json.loads(Path('.cache/unicamp-extracted/unicamp-summary.json').read_text())
+
+          acquisition = {
+              'selected': catalog.get('selected'),
+              'acquired': catalog.get('acquired'),
+              'unavailable': catalog.get('unavailable'),
+              'errors': len(catalog.get('errors', [])),
+          }
+          expected_acquisition = {
+              'selected': 32,
+              'acquired': 8,
+              'unavailable': 24,
+              'errors': 0,
+          }
+          if acquisition != expected_acquisition:
+              raise SystemExit(f'UNICAMP acquisition changed: {acquisition} != {expected_acquisition}')
+
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+
+          expected_global = {
+              'archivesScanned': 8,
+              'uniquePackages': 6,
+              'editions': 5,
+              'expectedQuestions': 360,
+              'extractedQuestions': 265,
+              'completeUnits': 0,
+              'missingIdentities': 95,
+              'visualDependencies': 82,
+          }
+          observed_global = {key: summary.get(key) for key in expected_global}
+          if observed_global != expected_global:
+              raise SystemExit(f'UNICAMP global accounting changed: {observed_global} != {expected_global}')
+
+          expected_cycles = {
+              'unicamp-2021-1': (72, 64, 8, 10),
+              'unicamp-2022-1': (72, 0, 72, 0),
+              'unicamp-2023-1': (72, 67, 5, 19),
+              'unicamp-2025-1': (72, 67, 5, 22),
+              'unicamp-2026-1': (72, 67, 5, 31),
+          }
+          observed_cycles = {
+              cycle['editionId']: (
+                  cycle['expectedQuestions'],
+                  cycle['extractedQuestions'],
+                  cycle['missingIdentities'],
+                  cycle['visualDependencies'],
+              )
+              for cycle in summary.get('cycles', [])
+          }
+          if observed_cycles != expected_cycles:
+              raise SystemExit(f'UNICAMP cycle accounting changed: {observed_cycles} != {expected_cycles}')
+
+          discarded = summary.get('discardedEditions', [])
+          if len(discarded) != 1 or discarded[0].get('editionId') != 'unicamp-2024-1':
+              raise SystemExit(f'UNICAMP discarded-edition accounting changed: {discarded}')
+
+          if summary['missingIdentities'] != summary['expectedQuestions'] - summary['extractedQuestions']:
+              raise SystemExit('UNICAMP missing identity accounting mismatch')
+
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
