@@ -9,90 +9,113 @@ permissions:
   contents: read
 
 jobs:
-  audit-objective-sources:
+  audit-objective-source:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        edition:
+          - 2025-2026
+          - 2024-2025
+          - 2023-2024
+          - 2022-2023
+          - 2021-2022
+          - 2020-2021
+          - 2019-2020
+          - 2018-2019
     runs-on: ubuntu-latest
+    name: ${{ matrix.edition }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Audit every IME objective exam against Wayback
+      - name: Audit objective exam against exact-URL Wayback snapshots
         shell: bash
+        env:
+          EDITION: ${{ matrix.edition }}
         run: |
           set -euo pipefail
           python - <<'PY'
           import hashlib
           import json
+          import os
           import ssl
+          import time
           import urllib.parse
           import urllib.request
           from pathlib import Path
 
-          source_path = Path('src/lib/providers/ime/answer-keys.generated.json')
-          records = json.loads(source_path.read_text(encoding='utf-8'))
-          out = []
+          edition = os.environ['EDITION']
+          records = json.loads(Path('src/lib/providers/ime/answer-keys.generated.json').read_text(encoding='utf-8'))
+          record = records[edition]
+          source = record.get('examUrl')
+          if not source:
+              raise SystemExit(f'{edition}: examUrl ausente')
+
+          headers = {'User-Agent': 'studium-native-source-audit/1.0'}
           unverified = ssl._create_unverified_context()
 
-          def fetch(url: str, *, context=None, timeout=90) -> bytes:
-              request = urllib.request.Request(url, headers={'User-Agent': 'studium-native-source-audit/1.0'})
-              with urllib.request.urlopen(request, context=context, timeout=timeout) as response:
-                  return response.read()
+          def fetch(url: str, *, context=None, timeout=120, attempts=4) -> bytes:
+              last = None
+              for attempt in range(attempts):
+                  try:
+                      request = urllib.request.Request(url, headers=headers)
+                      with urllib.request.urlopen(request, context=context, timeout=timeout) as response:
+                          return response.read()
+                  except Exception as error:
+                      last = error
+                      if attempt + 1 < attempts:
+                          time.sleep(2 ** attempt)
+              raise last
 
-          for edition, record in records.items():
-              source = record.get('examUrl')
-              if not source:
-                  raise SystemExit(f'{edition}: examUrl ausente')
+          candidate = fetch(source, context=unverified)
+          if not candidate.lstrip().startswith(b'%PDF'):
+              raise SystemExit(f'{edition}: endpoint oficial não retornou PDF')
+          candidate_sha = hashlib.sha256(candidate).hexdigest()
 
-              candidate = fetch(source, context=unverified)
-              if not candidate.lstrip().startswith(b'%PDF'):
-                  raise SystemExit(f'{edition}: endpoint oficial não retornou PDF')
-              candidate_sha = hashlib.sha256(candidate).hexdigest()
+          query = urllib.parse.urlencode({
+              'url': source,
+              'output': 'json',
+              'filter': ['statuscode:200', 'mimetype:application/pdf'],
+              'fl': 'timestamp,original,statuscode,mimetype,digest',
+              'collapse': 'digest',
+          }, doseq=True)
+          rows = json.loads(fetch('https://web.archive.org/cdx/search/cdx?' + query).decode('utf-8'))
+          if len(rows) < 2:
+              raise SystemExit(f'{edition}: Wayback sem snapshot PDF do URL exato')
 
-              query = urllib.parse.urlencode({
-                  'url': source,
-                  'output': 'json',
-                  'filter': ['statuscode:200', 'mimetype:application/pdf'],
-                  'fl': 'timestamp,original,statuscode,mimetype,digest',
-                  'collapse': 'digest',
-              }, doseq=True)
-              cdx = 'https://web.archive.org/cdx/search/cdx?' + query
-              rows = json.loads(fetch(cdx, timeout=120).decode('utf-8'))
-              if len(rows) < 2:
-                  raise SystemExit(f'{edition}: Wayback sem snapshot PDF do URL exato')
+          matched_url = None
+          for row in reversed(rows[1:]):
+              timestamp = row[0]
+              snapshot = f'https://web.archive.org/web/{timestamp}id_/{source}'
+              try:
+                  archived = fetch(snapshot, attempts=2)
+              except Exception:
+                  continue
+              if not archived.lstrip().startswith(b'%PDF'):
+                  continue
+              if hashlib.sha256(archived).hexdigest() == candidate_sha and archived == candidate:
+                  matched_url = snapshot
+                  break
+          if not matched_url:
+              raise SystemExit(f'{edition}: nenhuma cópia Wayback é byte-idêntica ao endpoint oficial')
 
-              # Prefer the newest unique snapshot; if it differs, walk backward
-              # until we find the exact bytes currently returned by the official URL.
-              matched_url = None
-              for row in reversed(rows[1:]):
-                  timestamp = row[0]
-                  snapshot = f'https://web.archive.org/web/{timestamp}id_/{source}'
-                  archived = fetch(snapshot, timeout=120)
-                  if not archived.lstrip().startswith(b'%PDF'):
-                      continue
-                  if hashlib.sha256(archived).hexdigest() == candidate_sha and archived == candidate:
-                      matched_url = snapshot
-                      break
-              if not matched_url:
-                  raise SystemExit(f'{edition}: nenhuma cópia Wayback é byte-idêntica ao endpoint oficial')
-
-              item = {
-                  'edition': edition,
-                  'examUrl': source,
-                  'examArchiveUrl': matched_url,
-                  'examSha256': candidate_sha,
-                  'examBytes': len(candidate),
-              }
-              out.append(item)
-              print(f"OK {edition}: {candidate_sha} ({len(candidate)} bytes)")
-
-          Path('ime-source-audit.json').write_text(
-              json.dumps(out, ensure_ascii=False, indent=2) + '\n',
-              encoding='utf-8',
-          )
+          item = {
+              'edition': edition,
+              'examUrl': source,
+              'examArchiveUrl': matched_url,
+              'examSha256': candidate_sha,
+              'examBytes': len(candidate),
+          }
+          output = Path(f'ime-source-audit-{edition}.json')
+          output.write_text(json.dumps(item, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(f"OK {edition}: {candidate_sha} ({len(candidate)} bytes)")
+          print(matched_url)
           PY
 
       - name: Upload source audit only
         uses: actions/upload-artifact@v4
         with:
-          name: ime-source-audit
-          path: ime-source-audit.json
+          name: ime-source-audit-${{ matrix.edition }}
+          path: ime-source-audit-${{ matrix.edition }}.json
           retention-days: 7
           if-no-files-found: error
