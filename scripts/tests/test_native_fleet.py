@@ -131,8 +131,8 @@ class NativeFleetTests(unittest.TestCase):
         wanted = SimpleNamespace(
             status="ready",
             provider_id="eear",
-            identity="eear:2018-eags-enfermagem:single",
-            edition_id="2018-eags-enfermagem",
+            identity="eear:2018-eags-eletronica:single",
+            edition_id="2018-eags-eletronica",
             year=2018,
             phase="single",
             total=100,
