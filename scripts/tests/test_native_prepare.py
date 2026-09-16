@@ -97,10 +97,28 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             output_dir=output,
         )
 
-    def write_catalog(self, root: Path, record: dict) -> None:
-        path = root / "ime" / "answer-keys.generated.json"
+    def write_audit(self, root: Path, record: dict, *, provider: str = "ime", schema: int = 1) -> None:
+        path = root / "ime" / native_prepare.SOURCE_AUDIT_FILENAME
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"2025-2026": record}), encoding="utf-8")
+        path.write_text(
+            json.dumps(
+                {
+                    "schemaVersion": schema,
+                    "provider": provider,
+                    "auditRevision": "fixture@1",
+                    "records": {"2025-2026": record},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    def audited_record(self, target, archive: str, digest: str, byte_length: int) -> dict:
+        return {
+            "examUrl": target.exam_url,
+            "examArchiveUrl": archive,
+            "examSha256": digest,
+            "examBytes": byte_length,
+        }
 
     def test_matching_pinned_archive_is_accepted(self):
         payload = b"%PDF-1.7\nverified fixture\n%%EOF\n"
@@ -111,14 +129,7 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             output = temp_path / "out"
             target = self.target(output)
             archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
-            self.write_catalog(
-                providers,
-                {
-                    "examArchiveUrl": archive,
-                    "examSha256": digest,
-                    "examBytes": len(payload),
-                },
-            )
+            self.write_audit(providers, self.audited_record(target, archive, digest, len(payload)))
 
             def fake_download(url: str, destination: Path):
                 self.assertEqual(url, archive)
@@ -142,13 +153,9 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             output = temp_path / "out"
             target = self.target(output)
             archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
-            self.write_catalog(
+            self.write_audit(
                 providers,
-                {
-                    "examArchiveUrl": archive,
-                    "examSha256": "0" * 64,
-                    "examBytes": len(payload),
-                },
+                self.audited_record(target, archive, "0" * 64, len(payload)),
             )
 
             def fake_download(_url: str, destination: Path):
@@ -170,14 +177,28 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             temp_path = Path(temp)
             providers = temp_path / "providers"
             target = self.target(temp_path / "out")
-            self.write_catalog(
+            self.write_audit(
                 providers,
-                {
-                    "examArchiveUrl": "https://web.archive.org/web/20260909011213id_/https://other.example/prova.pdf",
-                    "examSha256": "a" * 64,
-                    "examBytes": 123,
-                },
+                self.audited_record(
+                    target,
+                    "https://web.archive.org/web/20260909011213id_/https://other.example/prova.pdf",
+                    "a" * 64,
+                    123,
+                ),
             )
+            with patch.object(native_prepare.core, "PROVIDERS", providers):
+                with self.assertRaises(native_prepare.fleet.NativeFleetError):
+                    native_prepare._pinned_archive_metadata(target)
+
+    def test_audited_official_url_must_match_executable_catalog(self):
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            target = self.target(temp_path / "out")
+            archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
+            record = self.audited_record(target, archive, "a" * 64, 123)
+            record["examUrl"] = "https://official.example/outra-prova.pdf"
+            self.write_audit(providers, record)
             with patch.object(native_prepare.core, "PROVIDERS", providers):
                 with self.assertRaises(native_prepare.fleet.NativeFleetError):
                     native_prepare._pinned_archive_metadata(target)
@@ -187,9 +208,10 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             temp_path = Path(temp)
             providers = temp_path / "providers"
             target = self.target(temp_path / "out")
-            self.write_catalog(
+            self.write_audit(
                 providers,
                 {
+                    "examUrl": target.exam_url,
                     "examArchiveUrl": "https://web.archive.org/web/20260909011213id_/" + target.exam_url,
                     "examSha256": "a" * 64,
                 },
@@ -197,6 +219,21 @@ class NativePreparePinnedSourceTests(unittest.TestCase):
             with patch.object(native_prepare.core, "PROVIDERS", providers):
                 with self.assertRaises(native_prepare.fleet.NativeFleetError):
                     native_prepare._pinned_archive_metadata(target)
+
+    def test_manifest_provider_mismatch_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+            providers = temp_path / "providers"
+            target = self.target(temp_path / "out")
+            archive = "https://web.archive.org/web/20260909011213id_/" + target.exam_url
+            self.write_audit(
+                providers,
+                self.audited_record(target, archive, "a" * 64, 123),
+                provider="afa",
+            )
+            with patch.object(native_prepare.core, "PROVIDERS", providers):
+                with self.assertRaises(native_prepare.fleet.NativeFleetError):
+                    native_prepare._source_audit_record(target)
 
     def test_provider_without_pinned_metadata_keeps_default_source_path(self):
         target = SimpleNamespace(
