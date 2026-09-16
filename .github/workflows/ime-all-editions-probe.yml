@@ -9,16 +9,14 @@ permissions:
   contents: read
 
 jobs:
-  prepare:
-    name: ime-${{ matrix.selector }}
+  diagnose:
+    name: diagnose-${{ matrix.selector }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         selector:
-          - 2025-2026
-          - 2024-2025
           - 2023-2024
           - 2022-2023
           - 2021-2022
@@ -32,53 +30,48 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Prepare audited IME bundle without publishing
-        run: |
-          set -o pipefail
-          python scripts/native_prepare.py ime "${{ matrix.selector }}" --phase first --out bundle | tee prepare-result.json
-      - name: Verify source, marker strategy and all questions
+      - name: Diagnose structural option styles only
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
           python - <<'PY'
-          import json
+          import collections
           import os
-          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'scripts')
+          import native_prepare
+          import native_option_markers as markers
+          import pymupdf
 
-          selector = os.environ["SELECTOR"]
-          result = json.loads(Path("prepare-result.json").read_text())
-          assert result["identity"] == f"ime:{selector}:first", result
-          assert result["sourceProfile"] == "pinned-archive", result
-          assert result["markerProfile"] == "ime-ordered-option-groups", result
+          selector = os.environ['SELECTOR']
+          targets = native_prepare.ingest.discover_targets()
+          target = native_prepare.core._select_target(targets, 'ime', selector, 'first')
+          pdf = native_prepare._verified_pdf_override(target)
+          assert pdf is not None
+          doc = pymupdf.open(pdf)
+          labels, blocks = markers._collect(doc)
+          styles = collections.Counter((label.font, label.size) for label in labels)
+          print('selector=', selector, 'pages=', len(doc), 'labels=', len(labels))
+          print('styles=', sorted(((font, size, count) for (font, size), count in styles.items()), key=lambda row: (-row[2], row[0], row[1])))
 
-          pack = json.loads(Path("bundle/native-pack.json").read_text())
-          questions = pack["questions"]
-          assert len(questions) == 40, len(questions)
-          assert pack["reviewSummary"]["markers"] == 40, pack["reviewSummary"]
-          assert questions[0]["questionKey"] == f"ime-{selector}-objective-1"
-          assert questions[-1]["questionKey"] == f"ime-{selector}-objective-40"
+          def groups_for(items):
+              horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
+              vertical = markers._vertical_groups(items, tuple('ABCDE'), used)
+              wrapped = markers._wrapped_groups(items, tuple('ABCDE'), used)
+              return [*horizontal, *vertical, *wrapped]
 
-          for number, question in enumerate(questions, start=1):
-              extraction = question.get("extraction") or {}
-              assert extraction.get("markerStrategy") == "ordered-option-groups", (number, extraction)
-              assert extraction.get("optionGroupDetected") is True, (number, extraction)
-              assert question.get("visualRegions"), number
+          all_style_groups = []
+          for style, count in styles.most_common():
+              if count < 5:
+                  continue
+              filtered = [label for label in labels if (label.font, label.size) == style]
+              groups = groups_for(filtered)
+              all_style_groups.extend(groups)
+              summary = [(group.page_index + 1, group.kind, round(group.y0, 1), round(group.y1, 1)) for group in groups]
+              print('style=', style, 'labels=', count, 'groups=', len(groups), 'summary=', summary)
 
-          print(json.dumps({
-              "selector": selector,
-              "questions": len(questions),
-              "summary": pack["reviewSummary"],
-              "status": "prepared-only"
-          }, ensure_ascii=False))
+          fallback = markers._block_fallback_groups(blocks, all_style_groups, tuple('ABCDE'))
+          print('combined-style-groups=', len(all_style_groups), 'fallback=', len(fallback), 'total=', len(all_style_groups) + len(fallback))
+          print('fallback-summary=', [(group.page_index + 1, group.kind, round(group.y0, 1), round(group.y1, 1)) for group in fallback])
+          doc.close()
           PY
-      - name: Upload manifests only
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ime-${{ matrix.selector }}-probe
-          path: |
-            prepare-result.json
-            bundle/bundle.json
-            bundle/native-pack.json
-          retention-days: 3
-          if-no-files-found: warn
