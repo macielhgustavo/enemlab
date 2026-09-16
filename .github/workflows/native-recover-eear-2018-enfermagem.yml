@@ -1,0 +1,43 @@
+name: Recover EEAR 2018 EAGS Enfermagem
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/native-recover-eear-2018-enfermagem.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    name: eear:2018-eags-enfermagem:single
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native dependencies
+        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare validated bundle
+        run: python scripts/native_prepare.py eear 2018-eags-enfermagem --phase single --out bundle
+      - name: Publish through OIDC broker
+        run: |
+          set -o pipefail
+          python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
+      - name: Upload manifest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-eear-2018-eags-enfermagem
+          path: |
+            bundle/bundle.json
+            bundle/native-pack.json
+            publication-result.json
+          retention-days: 7
+          if-no-files-found: warn
