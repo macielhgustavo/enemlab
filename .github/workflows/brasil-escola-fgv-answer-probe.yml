@@ -1,0 +1,77 @@
+name: Brasil Escola FGV Answer Marking Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-fgv-answer-probe.yml'
+      - 'scripts/probe-fgv-answer-marking.py'
+      - 'scripts/probe-fgv-economia-graphics.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/ingest-uece-mirror.py'
+      - 'scripts/ingest-uece-inbox.py'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
+      - name: Validate probe
+        run: |
+          python -m py_compile scripts/probe-fgv-answer-marking.py
+          python -m py_compile scripts/probe-fgv-economia-graphics.py
+      - name: Acquire FGV mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'fundacao-getulio-vargas' \
+            --workers 8 \
+            --catalog '.cache/fgv-catalog.json' \
+            --download-root '.cache/fgv-inbox'
+      - name: Compare objective and answer-marked PDFs
+        run: |
+          python scripts/probe-fgv-answer-marking.py \
+            --input '.cache/fgv-inbox/fundacao-getulio-vargas' \
+            --output '.cache/fgv-answer-marking-probe.json'
+          python scripts/probe-fgv-economia-graphics.py \
+            --input '.cache/fgv-inbox/fundacao-getulio-vargas' \
+            --output '.cache/fgv-economia-graphics.json'
+      - name: Enforce probe accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path('.cache/fgv-catalog.json').read_text())['bulkAcquisition']
+          probe = json.loads(Path('.cache/fgv-answer-marking-probe.json').read_text())
+          graphics = json.loads(Path('.cache/fgv-economia-graphics.json').read_text())
+          if catalog.get('errors'):
+              raise SystemExit(catalog['errors'])
+          if (catalog.get('selected'), catalog.get('acquired'), catalog.get('unavailable')) != (67, 9, 58):
+              raise SystemExit(f"FGV acquisition drift: {catalog.get('selected')}/{catalog.get('acquired')}/{catalog.get('unavailable')}")
+          if probe.get('failures') or graphics.get('failures'):
+              raise SystemExit(probe.get('failures') or graphics.get('failures'))
+          if probe.get('pairCount', 0) != 8:
+              raise SystemExit(f"FGV pair drift: {probe.get('pairCount')}")
+          if graphics.get('packageCount') != 1:
+              raise SystemExit(f"FGV Economia package drift: {graphics.get('packageCount')}")
+          print(json.dumps({'pairCount': probe['pairCount'], 'economiaPackages': graphics['packageCount']}, indent=2))
+          PY
+      - name: Upload FGV answer-marking probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-FGV-answer-marking-probe
+          path: |
+            .cache/fgv-catalog.json
+            .cache/fgv-answer-marking-probe.json
+            .cache/fgv-economia-graphics.json
+          retention-days: 7

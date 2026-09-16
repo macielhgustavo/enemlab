@@ -1,0 +1,97 @@
+name: Brasil Escola FGV Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-fgv-extraction.yml'
+      - 'scripts/ingest-fgv-safe.py'
+      - 'scripts/ingest-fgv-safe-v2.py'
+      - 'scripts/tests/test_ingest_fgv_safe.py'
+      - 'scripts/tests/test_ingest_fgv_safe_v2.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/ingest-uece-mirror.py'
+      - 'scripts/ingest-uece-inbox.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
+      - name: Validate FGV extractor
+        run: |
+          python -m py_compile scripts/ingest-fgv-safe.py scripts/ingest-fgv-safe-v2.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_fgv_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_fgv_safe_v2.py'
+      - name: Acquire FGV mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'fundacao-getulio-vargas' \
+            --workers 8 \
+            --catalog '.cache/fgv-catalog.json' \
+            --download-root '.cache/fgv-inbox'
+      - name: Extract deterministic FGV objective corpus
+        run: |
+          python scripts/ingest-fgv-safe-v2.py \
+            --input '.cache/fgv-inbox/fundacao-getulio-vargas' \
+            --output '.cache/fgv-extracted'
+      - name: Enforce deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path('.cache/fgv-catalog.json').read_text())['bulkAcquisition']
+          summary = json.loads(Path('.cache/fgv-extracted/fgv-summary.json').read_text())
+          if catalog.get('errors'):
+              raise SystemExit(catalog['errors'])
+          actual = (catalog.get('selected'), catalog.get('acquired'), catalog.get('unavailable'))
+          if actual != (67, 9, 58):
+              raise SystemExit(f'FGV acquisition drift: {actual}')
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+          exact = (
+              summary.get('editions'),
+              summary.get('expectedQuestions'),
+              summary.get('extractedQuestions'),
+              summary.get('completeUnits'),
+              summary.get('missingIdentities'),
+              summary.get('visualDependencies'),
+          )
+          if exact != (3, 150, 150, 5, 0, 14):
+              raise SystemExit(f'FGV benchmark drift: {exact}')
+          cycles = {
+              item['editionId']: (
+                  item['expectedQuestions'], item['extractedQuestions'],
+                  item['completeUnits'], item['missingIdentities'],
+              )
+              for item in summary.get('cycles', [])
+          }
+          expected_cycles = {
+              'fgv-administracao-eaesp-2020-2': (60, 60, 2, 0),
+              'fgv-unificado-rio-2021-1': (60, 60, 2, 0),
+              'fgv-administracao-eaesp-2021-2': (30, 30, 1, 0),
+          }
+          if cycles != expected_cycles:
+              raise SystemExit(f'FGV cycle drift: {cycles}')
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload FGV benchmark artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-FGV-objective-benchmark
+          path: |
+            .cache/fgv-catalog.json
+            .cache/fgv-extracted/fgv-summary.json
+            .cache/fgv-extracted/fgv/**/bundle.json
+          retention-days: 7
