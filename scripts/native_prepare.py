@@ -3,8 +3,8 @@
 
 Keeps provider-specific layout/source knowledge outside the generic extraction
 core. Identity, answer keys and publication gates remain authoritative and
-fail closed. Archived source fallback is allowed only when the catalog pins the
-exact official URL snapshot, SHA-256 and byte length.
+fail closed. Archived source fallback is allowed only when a dedicated audit
+manifest pins the exact official URL snapshot, SHA-256 and byte length.
 """
 
 from __future__ import annotations
@@ -32,9 +32,12 @@ PROVIDER_MARKER_PATTERNS: dict[str, str] = {
 
 # These providers have an audited reason to use archived copies of their exact
 # official PDF URLs when the live host is unavailable to GitHub Actions. Adding
-# a provider here never bypasses integrity checks: metadata must still prove the
-# exact URL + digest + byte length for each edition.
+# a provider here never bypasses integrity checks: each edition needs a
+# dedicated audit record proving official URL + exact archive URL + digest +
+# byte length.
 PINNED_ARCHIVE_PROVIDERS = {"ime", "afa", "epcar"}
+SOURCE_AUDIT_FILENAME = "exam-sources.audit.json"
+SOURCE_AUDIT_SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -45,27 +48,43 @@ def apply_layout_profile(target: core.NativeTarget) -> core.NativeTarget:
     return replace(target, marker_pattern=marker_pattern)
 
 
-def _catalog_record(target: core.NativeTarget) -> dict[str, object] | None:
+def _source_audit_record(target: core.NativeTarget) -> dict[str, object] | None:
     if target.provider_id not in PINNED_ARCHIVE_PROVIDERS:
         return None
-    path = core.PROVIDERS / target.provider_id / "answer-keys.generated.json"
+
+    path = core.PROVIDERS / target.provider_id / SOURCE_AUDIT_FILENAME
     if not path.exists():
         return None
+
     raw = json.loads(path.read_text(encoding="utf-8"))
+    if raw.get("schemaVersion") != SOURCE_AUDIT_SCHEMA_VERSION:
+        raise fleet.NativeFleetError(
+            f"{target.identity}: versão do manifesto de fonte auditada não suportada"
+        )
+    if raw.get("provider") != target.provider_id:
+        raise fleet.NativeFleetError(
+            f"{target.identity}: manifesto de fonte pertence a outro provider"
+        )
+
+    records = raw.get("records")
+    if not isinstance(records, dict):
+        raise fleet.NativeFleetError(f"{target.identity}: manifesto de fonte sem records")
+
     key = target.edition_id if target.edition_id else str(target.year)
-    record = raw.get(key)
+    record = records.get(key)
     return record if isinstance(record, dict) else None
 
 
 def _pinned_archive_metadata(target: core.NativeTarget) -> tuple[str, str, int] | None:
-    record = _catalog_record(target)
+    record = _source_audit_record(target)
     if not record:
         return None
 
+    official = record.get("examUrl")
     archive = record.get("examArchiveUrl")
     digest = record.get("examSha256")
     byte_length = record.get("examBytes")
-    present = [archive is not None, digest is not None, byte_length is not None]
+    present = [official is not None, archive is not None, digest is not None, byte_length is not None]
     if any(present) and not all(present):
         raise fleet.NativeFleetError(f"{target.identity}: metadados de fonte pinada incompletos")
     if not all(present):
@@ -73,12 +92,18 @@ def _pinned_archive_metadata(target: core.NativeTarget) -> tuple[str, str, int] 
 
     if not target.exam_url:
         raise fleet.NativeFleetError(f"{target.identity}: fonte pinada sem URL oficial")
+    official = str(official)
     archive = str(archive)
     digest = str(digest).lower()
     try:
         byte_length = int(byte_length)
     except (TypeError, ValueError) as error:
         raise fleet.NativeFleetError(f"{target.identity}: examBytes inválido") from error
+
+    if official != target.exam_url:
+        raise fleet.NativeFleetError(
+            f"{target.identity}: URL oficial do audit diverge do catálogo executável"
+        )
 
     expected_archive = re.compile(
         r"^https://web\.archive\.org/web/\d{14}id_/" + re.escape(target.exam_url) + r"$"
