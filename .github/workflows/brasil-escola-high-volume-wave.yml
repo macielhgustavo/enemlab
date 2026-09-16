@@ -1,0 +1,135 @@
+name: Brasil Escola High Volume Wave
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-high-volume-wave.yml'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - 'scripts/ingest-uece-mirror.py'
+      - 'scripts/ingest-inbox.py'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: UEG
+            region: centro-oeste
+            slug: universidade-estadual-goias-1
+            min_acquired: 11
+          - label: FATEC
+            region: sudeste
+            slug: faculdade-tecnologia-sao-paulo
+            min_acquired: 9
+          - label: UFU
+            region: sudeste
+            slug: universidade-federal-uberlandia
+            min_acquired: 8
+          - label: UNESP
+            region: sudeste
+            slug: universidade-estadual-paulista
+            min_acquired: 7
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
+
+      - name: Validate scripts
+        run: |
+          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/inspect-brasil-escola-bulk.py scripts/ingest-uece-mirror.py scripts/ingest-inbox.py
+          command -v 7zz || command -v 7z || true
+
+      - name: Acquire ${{ matrix.label }} mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region '${{ matrix.region }}' \
+            --institution '${{ matrix.slug }}' \
+            --workers 8 \
+            --catalog '.cache/${{ matrix.slug }}-catalog.json' \
+            --download-root '.cache/${{ matrix.slug }}-inbox'
+
+      - name: Inspect ${{ matrix.label }} package family
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input '.cache/${{ matrix.slug }}-inbox' \
+            --output '.cache/${{ matrix.slug }}-inspection.json'
+
+      - name: Enforce acquisition and structural accounting
+        env:
+          SLUG: ${{ matrix.slug }}
+          LABEL: ${{ matrix.label }}
+          MIN_ACQUIRED: ${{ matrix.min_acquired }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          slug = os.environ['SLUG']
+          label = os.environ['LABEL']
+          minimum = int(os.environ['MIN_ACQUIRED'])
+          catalog = json.loads(Path(f'.cache/{slug}-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('bulkAcquisition', {})
+          inspection = json.loads(Path(f'.cache/{slug}-inspection.json').read_text(encoding='utf-8'))
+
+          if acquisition.get('errors'):
+              raise SystemExit(f'{label} acquisition errors: {acquisition["errors"]}')
+          selected = acquisition.get('selected', 0)
+          acquired = acquisition.get('acquired', 0)
+          unavailable = acquisition.get('unavailable', 0)
+          if acquired + unavailable != selected:
+              raise SystemExit(f'{label} accounting mismatch: {acquired}+{unavailable}!={selected}')
+          if acquired < minimum:
+              raise SystemExit(f'{label} acquired only {acquired}; expected at least {minimum}')
+          if inspection.get('failures'):
+              raise SystemExit(f'{label} inspection failures: {inspection["failures"]}')
+          if inspection.get('packagesScanned') != acquired:
+              raise SystemExit(f'{label} inspector coverage mismatch: {inspection.get("packagesScanned")} != {acquired}')
+
+          institution = inspection.get('institutions', {}).get(slug, {})
+          summary = {
+              'institution': label,
+              'institutionSlug': slug,
+              'region': acquisition.get('region'),
+              'selected': selected,
+              'acquired': acquired,
+              'unavailable': unavailable,
+              'bytes': acquisition.get('bytes', 0),
+              'formats': acquisition.get('formats', {}),
+              'documents': institution.get('documents', 0),
+              'examCandidates': institution.get('examCandidates', 0),
+              'answerKeyCandidates': institution.get('answerKeyCandidates', 0),
+              'unknownDocuments': institution.get('unknownDocuments', 0),
+              'questionNumberSignal': institution.get('questionNumberSignal', 0),
+          }
+          Path(f'.cache/{slug}-summary.json').write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload ${{ matrix.label }} structural artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-${{ matrix.label }}-volume-probe
+          path: |
+            .cache/${{ matrix.slug }}-catalog.json
+            .cache/${{ matrix.slug }}-inspection.json
+            .cache/${{ matrix.slug }}-summary.json
+          retention-days: 7

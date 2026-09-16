@@ -1,0 +1,149 @@
+name: Brasil Escola CEDERJ Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/harvest-brasil-escola.py'
+      - 'scripts/harvest-uece-brasil-escola.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - 'scripts/probe-cederj-safe.py'
+      - 'scripts/ingest-cederj-safe.py'
+      - 'scripts/tests/test_probe_cederj_safe.py'
+      - 'scripts/tests/test_ingest_cederj_safe.py'
+      - '.github/workflows/brasil-escola-cederj-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
+      - name: Report compressed archive support
+        run: command -v 7zz || command -v 7z || true
+      - name: Validate regional harvester and CEDERJ tests
+        run: |
+          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/probe-cederj-safe.py scripts/ingest-cederj-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_probe_cederj_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_cederj_safe.py'
+      - name: Acquire CEDERJ mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region sudeste \
+            --institution centro-ciencias-educacao-superior-distancia-estado- \
+            --workers 8 \
+            --catalog .cache/cederj-catalog.json \
+            --download-root .cache/cederj-inbox
+      - name: Inspect CEDERJ package family
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input .cache/cederj-inbox \
+            --output .cache/cederj-inspection.json
+      - name: Probe CEDERJ native structure
+        run: |
+          python scripts/probe-cederj-safe.py \
+            --input .cache/cederj-inbox/centro-ciencias-educacao-superior-distancia-estado- \
+            --output .cache/cederj-probe.json
+      - name: Extract CEDERJ objective corpus
+        run: |
+          python scripts/ingest-cederj-safe.py \
+            --input .cache/cederj-inbox/centro-ciencias-educacao-superior-distancia-estado- \
+            --output .cache/cederj-extracted
+      - name: Enforce CEDERJ accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/cederj-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('bulkAcquisition', {})
+          institutions = acquisition.get('institutions', [])
+          if acquisition.get('region') != 'sudeste':
+              raise SystemExit(f"expected sudeste region, got {acquisition.get('region')}")
+          if len(institutions) != 1:
+              raise SystemExit(f'expected one CEDERJ institution, got {institutions}')
+          if acquisition.get('errors'):
+              raise SystemExit(f"CEDERJ acquisition errors: {acquisition['errors']}")
+          accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0)
+          if accounted != acquisition.get('selected', 0):
+              raise SystemExit(f"CEDERJ accounting mismatch: {accounted} != {acquisition.get('selected')}")
+          if acquisition.get('selected') != 34:
+              raise SystemExit(f"expected 34 CEDERJ catalog entries, got {acquisition.get('selected')}")
+          if acquisition.get('acquired') != 11 or acquisition.get('unavailable') != 23:
+              raise SystemExit(
+                  f"expected CEDERJ live/unavailable split 11/23, got {acquisition.get('acquired')}/{acquisition.get('unavailable')}"
+              )
+
+          inspection = json.loads(Path('.cache/cederj-inspection.json').read_text(encoding='utf-8'))
+          if inspection.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(
+                  f"CEDERJ inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}"
+              )
+          if inspection.get('failures'):
+              raise SystemExit(f"CEDERJ inspector failures: {inspection['failures']}")
+
+          probe = json.loads(Path('.cache/cederj-probe.json').read_text(encoding='utf-8'))
+          if probe.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(
+                  f"CEDERJ probe coverage mismatch: {probe.get('packagesScanned')} != {acquisition.get('acquired')}"
+              )
+          if probe.get('failures'):
+              raise SystemExit(f"CEDERJ probe failures: {probe['failures']}")
+
+          cederj = json.loads(Path('.cache/cederj-extracted/cederj-summary.json').read_text(encoding='utf-8'))
+          if cederj.get('parserVersion') != 'inbox-cederj@0.1.0':
+              raise SystemExit(f"unexpected CEDERJ parser version: {cederj.get('parserVersion')}")
+          if cederj.get('failures'):
+              raise SystemExit(f"CEDERJ extraction failures: {cederj['failures']}")
+          if cederj.get('editions') != 11:
+              raise SystemExit(f"expected 11 CEDERJ live editions, got {cederj.get('editions')}")
+          if cederj.get('expectedQuestions', 0) < 450:
+              raise SystemExit(f"expected at least 450 CEDERJ identities, got {cederj.get('expectedQuestions')}")
+          if cederj.get('extractedQuestions', 0) < 200:
+              raise SystemExit(f"expected at least 200 deterministic CEDERJ questions, got {cederj.get('extractedQuestions')}")
+          expected_missing = cederj.get('expectedQuestions', 0) - cederj.get('extractedQuestions', 0)
+          if cederj.get('missingIdentities') != expected_missing:
+              raise SystemExit(
+                  f"CEDERJ missing identity accounting mismatch: {cederj.get('missingIdentities')} != {expected_missing}"
+              )
+          cycles = {item.get('editionId'): item for item in cederj.get('cycles', [])}
+          if 'cederj-2026-1' not in cycles:
+              raise SystemExit(f"expected document evidence to identify CEDERJ 2026-1, got {sorted(cycles)}")
+
+          print(json.dumps({
+              'selected': acquisition.get('selected'),
+              'acquired': acquisition.get('acquired'),
+              'unavailable': acquisition.get('unavailable'),
+              'bytes': acquisition.get('bytes'),
+              'probeRoles': probe.get('roleCounts'),
+              'nativeTextDocuments': probe.get('nativeTextDocuments'),
+              'likelyScannedDocuments': probe.get('likelyScannedDocuments'),
+              'cederjEditions': cederj.get('editions'),
+              'cederjExpected': cederj.get('expectedQuestions'),
+              'cederjExtracted': cederj.get('extractedQuestions'),
+              'cederjCompleteUnits': cederj.get('completeUnits'),
+              'cederjMissingIdentities': cederj.get('missingIdentities'),
+              'cederjVisualDependencies': cederj.get('visualDependencies'),
+              'cycles': cederj.get('cycles'),
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload CEDERJ benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-cederj-benchmark
+          path: |
+            .cache/cederj-catalog.json
+            .cache/cederj-inspection.json
+            .cache/cederj-probe.json
+            .cache/cederj-extracted/cederj-summary.json
+            .cache/cederj-extracted/cederj/**/bundle.json
+          retention-days: 7

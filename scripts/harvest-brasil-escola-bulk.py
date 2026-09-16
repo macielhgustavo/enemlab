@@ -24,6 +24,13 @@ def load_module(name: str, path: Path):
 base = load_module("harvest_brasil_escola_bulk_base", BASE_SCRIPT)
 mirror = load_module("harvest_brasil_escola_bulk_mirror", MIRROR_SCRIPT)
 
+REGIONS = {
+    "centro-oeste": f"{base.BASE_URL}/downloads/centrooeste.htm",
+    "nordeste": f"{base.BASE_URL}/downloads/nordeste.htm",
+    "norte": f"{base.BASE_URL}/downloads/norte.htm",
+    "sudeste": f"{base.BASE_URL}/downloads/sudeste.htm",
+    "sul": f"{base.BASE_URL}/downloads/sul.htm",
+}
 DEFAULT_INSTITUTIONS = ("UPE", "URCA", "UEMA", "UFPE")
 
 
@@ -36,22 +43,26 @@ def matches(entry, filters: list[str]) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Bulk-acquire multiple Nordeste vestibular mirrors from Brasil Escola."
+        description="Bulk-acquire vestibular mirrors from Brasil Escola across Brazilian regions."
     )
+    parser.add_argument("--region", choices=sorted(REGIONS), default="nordeste")
     parser.add_argument("--institution", action="append", default=[], help="institution name/slug filter; repeatable")
     parser.add_argument("--limit-per-institution", type=int, default=None)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--strict", action="store_true")
-    parser.add_argument("--catalog", default=".ingestion-cache/brasil-escola/nordeste/bulk-catalog.json")
-    parser.add_argument("--download-root", default=".ingestion-inbox/brasil-escola/nordeste")
+    parser.add_argument("--catalog", default=None)
+    parser.add_argument("--download-root", default=None)
     args = parser.parse_args()
 
-    filters = args.institution or list(DEFAULT_INSTITUTIONS)
+    base.REGIONS.update(REGIONS)
+    filters = args.institution or (list(DEFAULT_INSTITUTIONS) if args.region == "nordeste" else [])
     workers = max(1, min(args.workers, 8))
+    catalog_path = Path(args.catalog or f".ingestion-cache/brasil-escola/{args.region}/bulk-catalog.json")
+    root = Path(args.download_root or f".ingestion-inbox/brasil-escola/{args.region}")
     try:
-        catalog = base.catalog_region("nordeste", workers=workers, timeout=args.timeout)
+        catalog = base.catalog_region(args.region, workers=workers, timeout=args.timeout)
     except Exception as error:
         print(f"catalog failed: {error}", file=sys.stderr)
         return 2
@@ -69,7 +80,6 @@ def main() -> int:
         selected.extend(entries)
     selected.sort(key=lambda item: (item.institution_slug, -(item.year or 0), -item.download_id))
 
-    root = Path(args.download_root)
     results = {}
     unavailable_entries: list[dict] = []
     errors: list[dict] = []
@@ -152,6 +162,7 @@ def main() -> int:
         })
 
     acquisition = {
+        "region": args.region,
         "filters": filters,
         "selected": len(selected),
         "acquired": len(results),
@@ -165,10 +176,9 @@ def main() -> int:
         "errors": sorted(errors, key=lambda item: (item["institutionSlug"], -item["downloadId"])),
     }
     catalog["bulkAcquisition"] = acquisition
-    base.write_catalog(catalog, Path(args.catalog))
+    base.write_catalog(catalog, catalog_path)
     print(json.dumps({
         "providerId": base.PROVIDER_ID,
-        "region": "nordeste",
         **acquisition,
     }, ensure_ascii=False, indent=2))
 

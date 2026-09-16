@@ -1,0 +1,103 @@
+name: Brasil Escola UVA Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - 'scripts/harvest-brasil-escola-bulk.py'
+      - 'scripts/harvest-brasil-escola.py'
+      - 'scripts/harvest-uece-brasil-escola.py'
+      - 'scripts/inspect-brasil-escola-bulk.py'
+      - 'scripts/probe-uva-safe.py'
+      - 'scripts/tests/test_probe_uva_safe.py'
+      - '.github/workflows/brasil-escola-uncisal-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check "pypdf>=6,<7" "fonttools>=4,<5"
+      - name: Report compressed archive support
+        run: command -v 7zz || command -v 7z || true
+      - name: Validate UVA probe tests
+        run: python -m unittest discover -s scripts/tests -p 'test_probe_uva_safe.py'
+      - name: Acquire UVA mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --institution vale-acarau \
+            --workers 6 \
+            --catalog .cache/uva-catalog.json \
+            --download-root .cache/uva-inbox
+      - name: Inspect UVA package family
+        run: |
+          python scripts/inspect-brasil-escola-bulk.py \
+            --input .cache/uva-inbox \
+            --output .cache/uva-inspection.json
+      - name: Probe UVA native structure
+        run: |
+          python scripts/probe-uva-safe.py \
+            --input .cache/uva-inbox/universidade-estadual-vale-acarau \
+            --output .cache/uva-probe.json
+      - name: Enforce UVA probe accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/uva-catalog.json').read_text(encoding='utf-8'))
+          acquisition = catalog.get('bulkAcquisition', {})
+          institutions = acquisition.get('institutions', [])
+          if len(institutions) != 1 or institutions[0].get('institutionSlug') != 'universidade-estadual-vale-acarau':
+              raise SystemExit(f'expected UVA only, got {institutions}')
+          if acquisition.get('errors'):
+              raise SystemExit(f"UVA acquisition errors: {acquisition['errors']}")
+          accounted = acquisition.get('acquired', 0) + acquisition.get('unavailable', 0)
+          if accounted != acquisition.get('selected', 0):
+              raise SystemExit(f"UVA accounting mismatch: {accounted} != {acquisition.get('selected')}")
+          if acquisition.get('acquired', 0) < 3:
+              raise SystemExit(f"expected at least 3 live UVA packages, got {acquisition.get('acquired')}")
+
+          inspection = json.loads(Path('.cache/uva-inspection.json').read_text(encoding='utf-8'))
+          if inspection.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(f"UVA inspector coverage mismatch: {inspection.get('packagesScanned')} != {acquisition.get('acquired')}")
+          if inspection.get('failures'):
+              raise SystemExit(f"UVA inspector failures: {inspection['failures']}")
+
+          probe = json.loads(Path('.cache/uva-probe.json').read_text(encoding='utf-8'))
+          if probe.get('failures'):
+              raise SystemExit(f"UVA probe failures: {probe['failures']}")
+          if probe.get('packagesScanned') != acquisition.get('acquired'):
+              raise SystemExit(f"UVA probe coverage mismatch: {probe.get('packagesScanned')} != {acquisition.get('acquired')}")
+          if probe.get('roleCounts', {}).get('exam', 0) < 10:
+              raise SystemExit(f"expected at least 10 UVA exam documents, got {probe.get('roleCounts')}")
+
+          print(json.dumps({
+              'selected': acquisition.get('selected'),
+              'acquired': acquisition.get('acquired'),
+              'unavailable': acquisition.get('unavailable'),
+              'bytes': acquisition.get('bytes'),
+              'formats': acquisition.get('formats'),
+              'probe': {key: probe.get(key) for key in (
+                  'roleCounts', 'trackCounts', 'nativeTextDocuments', 'likelyScannedDocuments',
+                  'questionNumberSignal', 'answerKeyPairSignal'
+              )},
+          }, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload UVA probe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-uva-probe
+          path: |
+            .cache/uva-catalog.json
+            .cache/uva-inspection.json
+            .cache/uva-probe.json
+          retention-days: 7
