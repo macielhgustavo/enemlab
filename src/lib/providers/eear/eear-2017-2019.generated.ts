@@ -82,26 +82,6 @@ export const EEAR_SPECS_2017_2019: CompactEearSpec[] = [
     "variants": []
   },
   {
-    "id": "2018-eags-enfermagem",
-    "year": 2018,
-    "label": "EEAR EAGS - Enfermagem",
-    "kind": "eags",
-    "specialty": "Enfermagem",
-    "total": 100,
-    "canonical": {
-      "id": "unica",
-      "label": "Prova canônica",
-      "answers": "CADBACADCBCDACACDCCBAAACCBCDAXBADBAABBCBDDADBDBDDBCCBDXDCBDAXDDAADDBBBACADCDACADAAADAADBCXXCDCACCCDX",
-      "examUrl": "https://arquivos.qconcursos.com/prova/arquivo_prova/56979/aeronautica-2018-eear-sargento-da-aeronautica-enfermagem-prova.pdf",
-      "answerKeyUrl": "https://arquivos.qconcursos.com/prova/arquivo_gabarito/56979/aeronautica-2018-eear-sargento-da-aeronautica-enfermagem-gabarito.pdf",
-      "examSha256": "402d0586c7256eaaf6110ae74ab98f77b798080063b6cf2760b7ec5fc1358e89",
-      "examBytes": 259833,
-      "keySha256": "d3588eeb4682f588fbab6150ecc7d23d5f171809b534870ff9472666cf79ed8a",
-      "keyBytes": 260356
-    },
-    "variants": []
-  },
-  {
     "id": "2019-eags-administracao",
     "year": 2019,
     "label": "EEAR EAGS - Administração",
