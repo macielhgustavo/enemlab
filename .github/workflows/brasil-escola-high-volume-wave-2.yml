@@ -1,4 +1,4 @@
-name: Brasil Escola High Volume Wave
+name: Brasil Escola High Volume Wave 2
 
 on:
   workflow_dispatch:
@@ -6,12 +6,10 @@ on:
     branches:
       - feat/generic-source-harvesting
     paths:
-      - '.github/workflows/brasil-escola-high-volume-wave.yml'
+      - '.github/workflows/brasil-escola-high-volume-wave-2.yml'
       - 'scripts/harvest-brasil-escola-bulk.py'
       - 'scripts/inspect-brasil-escola-bulk.py'
       - 'scripts/probe-cederj-safe.py'
-      - 'scripts/ingest-objective-mirror-safe.py'
-      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
       - 'scripts/ingest-uece-mirror.py'
       - 'scripts/ingest-inbox.py'
 
@@ -26,26 +24,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: UEG
-            profile: ueg
-            region: centro-oeste
-            slug: universidade-estadual-goias-1
-            min_acquired: 11
-          - label: FATEC
-            profile: fatec
+          - label: FGV
             region: sudeste
-            slug: faculdade-tecnologia-sao-paulo
+            slug: fundacao-getulio-vargas
             min_acquired: 9
-          - label: UFU
-            profile: ufu
+          - label: UNICAMP
             region: sudeste
-            slug: universidade-federal-uberlandia
+            slug: universidade-estadual-campinas
             min_acquired: 8
-          - label: UNESP
-            profile: unesp
-            region: sudeste
-            slug: universidade-estadual-paulista
-            min_acquired: 7
+          - label: UEL
+            region: sul
+            slug: universidade-estadual-londrina
+            min_acquired: 8
+          - label: UNIOESTE
+            region: sul
+            slug: universidade-estadual-oeste-parana
+            min_acquired: 6
+          - label: UNEMAT
+            region: centro-oeste
+            slug: universidade-estado-mato-grosso
+            min_acquired: 6
 
     steps:
       - uses: actions/checkout@v4
@@ -57,10 +55,9 @@ jobs:
       - name: Install deterministic PDF dependencies
         run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
 
-      - name: Validate scripts and objective mirror tests
+      - name: Validate structural scripts
         run: |
-          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/inspect-brasil-escola-bulk.py scripts/probe-cederj-safe.py scripts/ingest-objective-mirror-safe.py scripts/ingest-uece-mirror.py scripts/ingest-inbox.py
-          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+          python -m py_compile scripts/harvest-brasil-escola-bulk.py scripts/inspect-brasil-escola-bulk.py scripts/probe-cederj-safe.py scripts/ingest-uece-mirror.py scripts/ingest-inbox.py
           command -v 7zz || command -v 7z || true
 
       - name: Acquire ${{ matrix.label }} mirror packages
@@ -84,18 +81,10 @@ jobs:
             --input '.cache/${{ matrix.slug }}-inbox/${{ matrix.slug }}' \
             --output '.cache/${{ matrix.slug }}-deep-probe.json'
 
-      - name: Extract deterministic objective corpus
-        run: |
-          python scripts/ingest-objective-mirror-safe.py \
-            --profile '${{ matrix.profile }}' \
-            --input '.cache/${{ matrix.slug }}-inbox/${{ matrix.slug }}' \
-            --output '.cache/${{ matrix.slug }}-extracted'
-
-      - name: Enforce acquisition, probe, and extraction accounting
+      - name: Enforce acquisition and structural accounting
         env:
           SLUG: ${{ matrix.slug }}
           LABEL: ${{ matrix.label }}
-          PROFILE: ${{ matrix.profile }}
           MIN_ACQUIRED: ${{ matrix.min_acquired }}
         run: |
           python - <<'PY'
@@ -105,14 +94,11 @@ jobs:
 
           slug = os.environ['SLUG']
           label = os.environ['LABEL']
-          profile = os.environ['PROFILE']
           minimum = int(os.environ['MIN_ACQUIRED'])
           catalog = json.loads(Path(f'.cache/{slug}-catalog.json').read_text(encoding='utf-8'))
           acquisition = catalog.get('bulkAcquisition', {})
           inspection = json.loads(Path(f'.cache/{slug}-inspection.json').read_text(encoding='utf-8'))
           deep = json.loads(Path(f'.cache/{slug}-deep-probe.json').read_text(encoding='utf-8'))
-          extracted = json.loads(Path(f'.cache/{slug}-extracted/{profile}-summary.json').read_text(encoding='utf-8'))
-
           if acquisition.get('errors'):
               raise SystemExit(f'{label} acquisition errors: {acquisition["errors"]}')
           selected = acquisition.get('selected', 0)
@@ -130,16 +116,6 @@ jobs:
               raise SystemExit(f'{label} deep-probe failures: {deep["failures"]}')
           if deep.get('packagesScanned') != acquired:
               raise SystemExit(f'{label} deep-probe coverage mismatch: {deep.get("packagesScanned")} != {acquired}')
-          if extracted.get('failures'):
-              raise SystemExit(f'{label} extraction failures: {extracted["failures"]}')
-          expected = extracted.get('expectedQuestions', 0)
-          emitted = extracted.get('extractedQuestions', 0)
-          missing = extracted.get('missingIdentities', 0)
-          if emitted > expected:
-              raise SystemExit(f'{label} emitted {emitted} > expected {expected}')
-          if missing != expected - emitted:
-              raise SystemExit(f'{label} missing identity accounting mismatch: {missing} != {expected - emitted}')
-
           institution = inspection.get('institutions', {}).get(slug, {})
           summary = {
               'institution': label,
@@ -156,14 +132,8 @@ jobs:
               'unknownDocuments': institution.get('unknownDocuments', 0),
               'nativeTextDocuments': deep.get('nativeTextDocuments', 0),
               'likelyScannedDocuments': deep.get('likelyScannedDocuments', 0),
+              'deepQuestionNumberSignal': deep.get('questionNumberSignal', 0),
               'answerKeyPairSignal': deep.get('answerKeyPairSignal', 0),
-              'editions': extracted.get('editions', 0),
-              'expectedQuestions': expected,
-              'extractedQuestions': emitted,
-              'completeUnits': extracted.get('completeUnits', 0),
-              'missingIdentities': missing,
-              'visualDependencies': extracted.get('visualDependencies', 0),
-              'cycles': extracted.get('cycles', []),
           }
           Path(f'.cache/{slug}-summary.json').write_text(
               json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
@@ -171,15 +141,13 @@ jobs:
           print(json.dumps(summary, ensure_ascii=False, indent=2))
           PY
 
-      - name: Upload ${{ matrix.label }} benchmark artifact
+      - name: Upload ${{ matrix.label }} structural artifact
         uses: actions/upload-artifact@v4
         with:
-          name: brasil-escola-${{ matrix.label }}-volume-benchmark
+          name: brasil-escola-${{ matrix.label }}-wave-2-probe
           path: |
             .cache/${{ matrix.slug }}-catalog.json
             .cache/${{ matrix.slug }}-inspection.json
             .cache/${{ matrix.slug }}-deep-probe.json
             .cache/${{ matrix.slug }}-summary.json
-            .cache/${{ matrix.slug }}-extracted/${{ matrix.profile }}-summary.json
-            .cache/${{ matrix.slug }}-extracted/${{ matrix.profile }}/**/bundle.json
           retention-days: 7
