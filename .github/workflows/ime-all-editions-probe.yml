@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   diagnose:
-    name: broad-options-${{ matrix.selector }}
+    name: anchors-${{ matrix.selector }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -18,9 +18,6 @@ jobs:
       matrix:
         selector:
           - 2023-2024
-          - 2022-2023
-          - 2021-2022
-          - 2020-2021
           - 2019-2020
           - 2018-2019
     steps:
@@ -30,7 +27,7 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Probe broader line-prefix option labels
+      - name: Anchor detected option groups to nearby numeric question markers
         env:
           SELECTOR: ${{ matrix.selector }}
         run: |
@@ -45,17 +42,15 @@ jobs:
           import pymupdf
 
           selector = os.environ['SELECTOR']
-          targets = native_prepare.ingest.discover_targets()
-          target = native_prepare.core._select_target(targets, 'ime', selector, 'first')
+          target = native_prepare.core._select_target(
+              native_prepare.ingest.discover_targets(), 'ime', selector, 'first'
+          )
           pdf = native_prepare._verified_pdf_override(target)
           assert pdf is not None
           doc = pymupdf.open(pdf)
 
           labels, blocks = markers._collect(doc)
-          # Accept canonical punctuation OR a standalone leading A-E followed by whitespace.
-          # A candidate is still useless unless it joins a complete geometric A->E group.
-          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])(?:[\])\.:;-]\s*|\s+)')
-          added = []
+          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s*')
           for page_index, page in enumerate(doc):
               data = page.get_text('dict', sort=True)
               for block_index, block in enumerate(data.get('blocks', [])):
@@ -71,22 +66,17 @@ jobs:
                       x0, y0, x1, y1 = map(float, line.get('bbox', first['bbox']))
                       letter = match.group(1).upper()
                       if any(
-                          label.page_index == page_index
-                          and label.block_index == block_index
-                          and label.letter == letter
-                          and abs(label.y0 - y0) <= 4.5
+                          label.page_index == page_index and label.block_index == block_index
+                          and label.letter == letter and abs(label.y0 - y0) <= 4.5
                           for label in labels
                       ):
                           continue
                       labels.append(markers.OptionLabel(
-                          page_index=page_index,
-                          block_index=block_index,
-                          letter=letter,
+                          page_index=page_index, block_index=block_index, letter=letter,
                           x0=x0, y0=y0, x1=x1, y1=y1,
                           font=str(first.get('font','')),
                           size=round(float(first.get('size',0)),1),
                       ))
-                      added.append((page_index, block_index, letter, y0))
 
           def detect_for(items):
               horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
@@ -99,26 +89,53 @@ jobs:
           for style, count in styles.most_common():
               if count < 5:
                   continue
-              filtered = [label for label in labels if (label.font, label.size) == style]
-              groups.extend(detect_for(filtered))
-
-          groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
-          deduped = []
+              groups.extend(detect_for([label for label in labels if (label.font,label.size)==style]))
+          groups.sort(key=lambda g:(g.page_index,g.y0,g.x0))
+          deduped=[]
           for group in groups:
-              duplicate = any(
-                  other.page_index == group.page_index
-                  and max(0.0, min(other.y1, group.y1) - max(other.y0, group.y0))
-                      >= 0.70 * min(max(1.0, other.y1-other.y0), max(1.0, group.y1-group.y0))
-                  and max(other.x0, group.x0) <= min(other.x1, group.x1) + 8
+              if any(
+                  other.page_index==group.page_index
+                  and abs(other.y0-group.y0)<=5 and abs(other.y1-group.y1)<=5
+                  and max(other.x0,group.x0)<=min(other.x1,group.x1)+8
                   for other in deduped
-              )
-              if not duplicate:
-                  deduped.append(group)
+              ):
+                  continue
+              deduped.append(group)
+          deduped.extend(markers._block_fallback_groups(blocks,deduped,tuple('ABCDE')))
+          groups=sorted(deduped,key=lambda g:(g.page_index,g.y0,g.x0))
 
-          fallback = markers._block_fallback_groups(blocks, deduped, tuple('ABCDE'))
-          combined = sorted([*deduped, *fallback], key=lambda group: (group.page_index, group.y0, group.x0))
+          # Collect only structural line-leading numeric candidates. No neighboring text.
+          line_num = re.compile(r'^\s*0?(\d{1,2})\s*([.)\-–—:]?)\s*(?:$|\s)')
+          numeric_by_page = collections.defaultdict(list)
+          for page_index,page in enumerate(doc):
+              data=page.get_text('dict',sort=True)
+              for block in data.get('blocks',[]):
+                  for line in block.get('lines',[]):
+                      spans=line.get('spans',[])
+                      if not spans:
+                          continue
+                      text=''.join(str(span.get('text','')) for span in spans)
+                      match=line_num.match(text)
+                      if not match:
+                          continue
+                      number=int(match.group(1))
+                      if not 1<=number<=40:
+                          continue
+                      first=spans[0]
+                      x0,y0,*_=map(float,line.get('bbox',first['bbox']))
+                      numeric_by_page[page_index].append((number,match.group(2),round(x0,1),round(y0,1),round(float(first.get('size',0)),1),str(first.get('font',''))))
 
-          print('selector=', selector, 'added=', len(added), 'raw=', len(groups), 'deduped=', len(deduped), 'fallback=', len(fallback), 'total=', len(combined))
-          print('groups=', [(group.page_index+1, group.kind, round(group.y0,1), round(group.y1,1)) for group in combined])
+          print('selector=',selector,'groups=',len(groups))
+          previous=None
+          for idx,group in enumerate(groups,1):
+              page_index=group.page_index
+              floor=0.0
+              if previous is not None and previous.page_index==page_index:
+                  floor=previous.y1+2
+              candidates=[row for row in numeric_by_page[page_index] if floor<=row[3]<group.y0-2]
+              # punctuation and left-margin candidates are most useful; retain all if none.
+              strong=[row for row in candidates if row[1] or row[2]<120]
+              print('g',idx,'p',page_index+1,'y',round(group.y0,1),'candidates=',strong or candidates)
+              previous=group
           doc.close()
           PY
