@@ -1,0 +1,65 @@
+name: Brasil Escola UFU Native Layout Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-ufu-layout-probe.yml'
+      - 'scripts/probe-ufu-layout.py'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate probe
+        run: python -m py_compile scripts/probe-ufu-layout.py
+      - name: Acquire UFU mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'universidade-federal-uberlandia' \
+            --workers 8 \
+            --catalog '.cache/ufu-catalog.json' \
+            --download-root '.cache/ufu-inbox'
+      - name: Probe UFU native layouts
+        run: |
+          python scripts/probe-ufu-layout.py \
+            --input '.cache/ufu-inbox/universidade-federal-uberlandia' \
+            --output '.cache/ufu-layout.json'
+      - name: Upload UFU layout probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UFU-layout-probe
+          path: |
+            .cache/ufu-catalog.json
+            .cache/ufu-layout.json
+          retention-days: 7
+      - name: Enforce acquisition health
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          catalog = json.loads(Path('.cache/ufu-catalog.json').read_text())['bulkAcquisition']
+          probe = json.loads(Path('.cache/ufu-layout.json').read_text())
+          if catalog.get('errors'):
+              raise SystemExit(catalog['errors'])
+          if catalog.get('acquired', 0) <= 0:
+              raise SystemExit('UFU has no acquired packages')
+          if probe['summary'].get('failures'):
+              raise SystemExit(probe['summary']['failures'])
+          print(json.dumps({'acquisition': catalog, 'probe': probe['summary']}, ensure_ascii=False, indent=2))
+          PY
