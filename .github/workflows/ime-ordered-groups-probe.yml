@@ -1,0 +1,79 @@
+name: IME ordered-option probe
+
+on:
+  push:
+    branches:
+      - probe/ime-ordered-groups-current
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition:
+          - 2018-2019
+          - 2019-2020
+          - 2020-2021
+          - 2021-2022
+          - 2022-2023
+          - 2023-2024
+          - 2024-2025
+          - 2025-2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native dependencies
+        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare audited IME edition without publishing
+        run: |
+          set -o pipefail
+          python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle | tee prepare-result.json
+      - name: Verify source, marker strategy and 40-question identity
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          edition = os.environ['EDITION']
+          result = json.loads(Path('prepare-result.json').read_text())
+          assert result['identity'] == f'ime:{edition}:first', result
+          assert result['sourceProfile'] == 'pinned-archive', result
+          assert result['markerProfile'] == 'ime-ordered-option-groups', result
+
+          pack = json.loads(Path('bundle/native-pack.json').read_text())
+          questions = pack['questions']
+          assert len(questions) == 40, len(questions)
+          expected = [f'ime-{edition}-objective-{n}' for n in range(1, 41)]
+          actual = [q['questionKey'] for q in questions]
+          assert actual == expected, (actual[:3], actual[-3:])
+          assert all(q.get('extraction', {}).get('markerStrategy') == 'ordered-option-groups' for q in questions)
+          assert all(q.get('extraction', {}).get('optionGroupDetected') is True for q in questions)
+          assert all(q.get('visualRegions') for q in questions)
+          print(json.dumps({
+              'edition': edition,
+              'questions': len(questions),
+              'markerProfile': result['markerProfile'],
+              'sourceProfile': result['sourceProfile'],
+              'status': 'prepared-only',
+          }))
+          PY
+      - name: Upload manifests only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ime-${{ matrix.edition }}-probe
+          path: |
+            prepare-result.json
+            bundle/bundle.json
+            bundle/native-pack.json
+          retention-days: 3
+          if-no-files-found: warn
