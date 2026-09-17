@@ -13,6 +13,7 @@ import "../styles/refinement.css";
 import "./dashboard-v2.css";
 import "./dashboard-a11y.css";
 import "./studium-green.css";
+import "./studium-workspace.css";
 import { PRODUCT_BRAND } from "@/components/Brand";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/AppShell";

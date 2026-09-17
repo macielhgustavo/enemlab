@@ -2,33 +2,29 @@
 
 A interface trata estudo como trabalho intelectual cotidiano: uma decisão clara,
 evidências legíveis e caminhos secundários que não competem com a próxima ação.
-O verde identifica ação e estado positivo; títulos, números, linhas e espaço
-organizam o restante. O produto continua técnico e denso, sem brilho decorativo.
+“Ultimate Green” é apenas o nome da edição. Preto, cinza e branco compõem a
+identidade; títulos, números, linhas e espaço organizam o conteúdo.
 
 ## Hierarquia visual
 
 - Home: a próxima sessão ocupa o único painel de destaque. Prontidão é um
   número, o ciclo é uma faixa de dados e as seções analíticas são agrupadas por
   linhas e alinhamento.
-- Adaptive: recomendação, objetivo e lançamento são uma decisão. Indicadores
-  são uma régua sem cartões; metas preservam uma superfície própria por serem
-  editáveis; diagnósticos passam a listas.
+- Adaptive: sessão, diagnóstico, metas e histórico são áreas navegáveis.
+  Escolher objetivo usa Choicebox; o ciclo usa Timeline. Rascunhos de metas
+  são preservados ao trocar de aba.
 - Navegação móvel: o nome exibido vem de `PRODUCT_BRAND`. A sigla da prova
   permanece no seletor, onde tem função.
-- Temas: o escuro usa grafite esverdeado, o claro usa branco e um canvas
-  levemente quente. Ambos compartilham a mesma hierarquia.
+- Temas: grafite neutro no escuro e branco no claro, sem pigmentação verde.
 
 ## Componentes e referências
 
-As referências foram avaliadas como repertório de composição, não como tema a
-instalar. O padrão de abas em linha do [ReUI](https://reui.io/components/tabs/c-tabs-2)
-foi adaptado ao primitive Radix existente em `TabsList variant="line"`; o
-estado e o foco seguem os tokens locais. A preferência por controls compostos
-vem de [Origin UI](https://originui.com/). [Magic UI](https://magicui.design/)
-e [Aceternity UI](https://ui.aceternity.com/components) foram consultados,
-mas seus efeitos de partículas, spotlight e parallax não servem à leitura
-analítica desta aplicação. [Kibo UI](https://www.kibo-ui.com/) é referência
-para componentes complexos caso apareça uma necessidade funcional concreta.
+O código do [ReUI Timeline](https://github.com/keenthemes/reui/blob/main/registry-reui/bases/radix/reui/timeline.tsx)
+foi incorporado ao ciclo de estudo, horizontal no desktop e vertical no mobile.
+O [Kibo UI Choicebox](https://www.kibo-ui.com/components/choicebox) foi adaptado
+ao Radix existente para a escolha do objetivo, com título, descrição e indicador.
+Ambos têm exemplos no Storybook. Licenças e origens estão em
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 Nenhuma nova biblioteca de interface foi adicionada. A identidade visível fica
 em `src/components/Brand.tsx`; chaves de persistência e IDs de prova conservam

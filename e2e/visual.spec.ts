@@ -72,6 +72,25 @@ test.describe("capturas de referência", () => {
     await expect(menu).toHaveScreenshot("provider-switcher.png");
   });
 
+  test("objetivos do Adaptive", async ({ page }) => {
+    await prepare(page, { theme: "dark", comHistorico: true });
+    await page.goto("/adaptive");
+    await aguardarApp(page);
+    await prepararCaptura(page);
+    await page.getByRole("button", { name: "Escolher objetivo" }).click();
+    await expect(page.getByRole("radiogroup", { name: "Objetivo do treino" })).toBeVisible();
+    await expect(page.locator(".objective-popover")).toHaveScreenshot("adaptive-objective.png");
+  });
+
+  test("metas do Adaptive", async ({ page }) => {
+    await prepare(page, { theme: "light", comHistorico: true });
+    await page.goto("/adaptive");
+    await aguardarApp(page);
+    await page.getByRole("tab", { name: "Metas", exact: true }).click();
+    await prepararCaptura(page);
+    await expect(page).toHaveScreenshot("adaptive-goals.png", { fullPage: true });
+  });
+
   test("paleta de comandos", async ({ page }) => {
     await prepare(page, { theme: "dark" });
     await page.goto("/");

@@ -1,34 +1,37 @@
 /*
  * Studium Labs — Ultimate Green.
- * Green identifies a study decision or a real state. Typography and rhythm
- * carry hierarchy everywhere else. The existing semantic tokens remain the API.
+ * Edition name only. Neutral surfaces and typography carry the identity.
  */
 :root,
 :root[data-theme="dark"] {
-  --void: #090e0b;
-  --bg: #0b100d;
-  --bg-deep: #090e0b;
-  --surface-1: #121a15;
-  --surface-2: #17211a;
-  --surface-3: #1e2a21;
-  --panel: #121a15;
-  --panel-solid: #121a15;
-  --glass: #17211a;
-  --glass-strong: #1e2a21;
-  --text: #eff3ed;
-  --text-dim: #c4d0c3;
-  --muted: #a2b4a3;
-  --text-faint: #96aa98;
-  --line: #29372d;
-  --line-strong: #3a4a3d;
-  --brand: #7edfa4;
-  --brand-dim: #5dbb84;
-  --brand-strong: #9aedb9;
-  --brand-ink: #a7efbf;
-  --brand-soft: #173822;
+  --void: #101012;
+  --bg: #141416;
+  --bg-deep: #101012;
+  --surface-1: #1b1b1e;
+  --surface-2: #222225;
+  --surface-3: #2b2b30;
+  --panel: #1b1b1e;
+  --panel-solid: #1b1b1e;
+  --panel-2: #222225;
+  --glass: #222225;
+  --glass-strong: #2b2b30;
+  --text: #f1f1f2;
+  --text-dim: #d1d1d5;
+  --muted: #a6a6af;
+  --text-faint: #9797a2;
+  --line: #303036;
+  --line-strong: #474750;
+  --brand: #e4e4e7;
+  --brand-dim: #c4c4cc;
+  --brand-strong: #ffffff;
+  --brand-ink: #e4e4e7;
+  --brand-soft: #29292f;
+  --ok: #aabacb;
+  --cyan: #aabacb;
+  --text-on-accent: #141416;
   --brand2: var(--brand-soft);
   --brand3: var(--brand-ink);
-  --line-glow: #477e57;
+  --line-glow: #60606b;
   --shadow: 0 12px 28px -22px #000;
   --shadow-lg: 0 20px 42px -24px #000;
   --glow: 0 0 0 1px var(--line-strong);
@@ -42,37 +45,47 @@
 }
 
 :root[data-theme="light"] {
-  --void: #f5f7f0;
-  --bg: #f5f7f0;
-  --bg-deep: #e9ede3;
+  --void: #fafafa;
+  --bg: #fafafa;
+  --bg-deep: #f1f1f3;
   --surface-1: #ffffff;
-  --surface-2: #f1f4ed;
-  --surface-3: #e9eee4;
+  --surface-2: #f3f3f5;
+  --surface-3: #ebebef;
   --panel: #fff;
   --panel-solid: #fff;
-  --glass: #f1f4ed;
-  --glass-strong: #e9eee4;
-  --text: #17271b;
-  --text-dim: #344b39;
-  --muted: #536957;
-  --text-faint: #5d715f;
-  --line: #d9e2d7;
-  --line-strong: #bdcbbb;
-  --brand: #156b3e;
-  --brand-dim: #125a35;
-  --brand-strong: #1e8650;
-  --brand-ink: #155d37;
-  --brand-soft: #e5f3e8;
+  --glass: #f3f3f5;
+  --glass-strong: #ebebef;
+  --panel-2: #f3f3f5;
+  --text: #202024;
+  --text-dim: #3f3f46;
+  --muted: #61616c;
+  --text-faint: #6b6b76;
+  --line: #e1e1e6;
+  --line-strong: #c6c6cf;
+  --brand: #27272a;
+  --brand-dim: #18181b;
+  --brand-strong: #45454d;
+  --brand-ink: #35353d;
+  --brand-soft: #ededf0;
+  --ok: #465b72;
+  --cyan: #465b72;
+  --text-on-accent: #ffffff;
   --brand2: var(--brand-soft);
   --brand3: var(--brand-ink);
   --warn: #775100;
   --bad: #9f2424;
-  --line-glow: #a5c8ac;
-  --shadow: 0 12px 28px -24px #344b39;
-  --shadow-lg: 0 20px 42px -28px #344b39;
+  --line-glow: #b1b1bd;
+  --shadow: 0 12px 28px -24px #202024;
+  --shadow-lg: 0 20px 42px -28px #202024;
   --glow: 0 0 0 1px var(--line-strong);
   --glow-strong: 0 0 0 1px var(--line-glow);
   --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand);
+}
+
+:root {
+  --info: var(--cyan);
+  --petrol: var(--surface-3);
+  --border-default: var(--line);
 }
 
 html,
@@ -451,7 +464,7 @@ body::after {
 }
 
 :root[data-theme="light"] .dash-exams__list > .is-active small {
-  color: #465d4b;
+  color: var(--muted);
 }
 
 .dash-chip {
