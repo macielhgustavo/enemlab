@@ -254,6 +254,7 @@
   padding: 20px 24px 0 0;
 }
 .adaptive-plan [data-slot="timeline-indicator"] {
+  translate: none;
   position: absolute;
   width: 10px;
   height: 10px;
@@ -270,6 +271,7 @@
   border-color: var(--text);
 }
 .adaptive-plan [data-slot="timeline-separator"] {
+  translate: none;
   position: absolute;
   left: 16px;
   top: 4px;

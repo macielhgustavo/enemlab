@@ -87,6 +87,7 @@ test.describe("capturas de referência", () => {
     await page.goto("/adaptive");
     await aguardarApp(page);
     await page.getByRole("tab", { name: "Metas", exact: true }).click();
+    await page.evaluate(() => window.scrollTo(0, 0));
     await prepararCaptura(page);
     await expect(page).toHaveScreenshot("adaptive-goals.png", { fullPage: true });
   });
