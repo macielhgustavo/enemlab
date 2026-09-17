@@ -9,21 +9,15 @@ permissions:
   contents: read
 
 jobs:
-  prepare:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         edition:
-          - 2018-2019
           - 2019-2020
-          - 2020-2021
-          - 2021-2022
           - 2022-2023
-          - 2023-2024
-          - 2024-2025
-          - 2025-2026
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,49 +25,55 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Prepare audited IME edition without publishing
-        run: |
-          set -o pipefail
-          python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle | tee prepare-result.json
-      - name: Verify source, marker strategy and 40-question identity
+      - name: Diagnose option-label styles and geometry only
         env:
           EDITION: ${{ matrix.edition }}
         run: |
           python - <<'PY'
-          import json, os
-          from pathlib import Path
+          import collections
+          import os
+          import sys
+          sys.path.insert(0, 'scripts')
+          import native_option_markers as markers
+          import native_prepare
 
           edition = os.environ['EDITION']
-          result = json.loads(Path('prepare-result.json').read_text())
-          assert result['identity'] == f'ime:{edition}:first', result
-          assert result['sourceProfile'] == 'pinned-archive', result
-          assert result['markerProfile'] == 'ime-ordered-option-groups', result
+          target = native_prepare.core._select_target(
+              native_prepare.ingest.discover_targets(), 'ime', edition, 'first'
+          )
+          pdf = native_prepare._verified_pdf_override(target)
+          assert pdf is not None
+          pipeline = native_prepare.core._load_native_pipeline()
+          fitz, _ = pipeline._imports()
+          doc = fitz.open(pdf)
+          labels, blocks = markers._collect(doc)
+          styles = collections.Counter((label.font, label.size) for label in labels)
+          print('edition=', edition)
+          print('pages=', len(doc), 'labels=', len(labels), 'blocks=', len(blocks))
+          print('styles=', styles.most_common())
 
-          pack = json.loads(Path('bundle/native-pack.json').read_text())
-          questions = pack['questions']
-          assert len(questions) == 40, len(questions)
-          expected = [f'ime-{edition}-objective-{n}' for n in range(1, 41)]
-          actual = [q['questionKey'] for q in questions]
-          assert actual == expected, (actual[:3], actual[-3:])
-          assert all(q.get('extraction', {}).get('markerStrategy') == 'ordered-option-groups' for q in questions)
-          assert all(q.get('extraction', {}).get('optionGroupDetected') is True for q in questions)
-          assert all(q.get('visualRegions') for q in questions)
-          print(json.dumps({
-              'edition': edition,
-              'questions': len(questions),
-              'markerProfile': result['markerProfile'],
-              'sourceProfile': result['sourceProfile'],
-              'status': 'prepared-only',
-          }))
+          def detect(items):
+              horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
+              vertical = markers._vertical_groups(items, tuple('ABCDE'), used)
+              wrapped = markers._wrapped_groups(items, tuple('ABCDE'), used)
+              groups = [*horizontal, *vertical, *wrapped]
+              groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+              return groups
+
+          for style, count in styles.most_common():
+              if count < 5:
+                  continue
+              filtered = [label for label in labels if (label.font, label.size) == style]
+              groups = detect(filtered)
+              if groups:
+                  print('style=', style, 'labels=', count, 'groups=', len(groups),
+                        'geometry=', [(g.page_index + 1, g.kind, round(g.x0,1), round(g.y0,1), round(g.x1,1), round(g.y1,1)) for g in groups])
+
+          groups = detect(labels)
+          fallback = markers._block_fallback_groups(blocks, groups, tuple('ABCDE'))
+          combined = [*groups, *fallback]
+          combined.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+          print('all-style-groups=', len(groups), 'fallback=', len(fallback), 'combined=', len(combined))
+          print('all-style-geometry=', [(g.page_index + 1, g.kind, round(g.x0,1), round(g.y0,1), round(g.x1,1), round(g.y1,1)) for g in combined])
+          doc.close()
           PY
-      - name: Upload manifests only
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ime-${{ matrix.edition }}-probe
-          path: |
-            prepare-result.json
-            bundle/bundle.json
-            bundle/native-pack.json
-          retention-days: 3
-          if-no-files-found: warn
