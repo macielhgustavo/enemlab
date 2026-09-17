@@ -11,13 +11,17 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         edition:
+          - 2018-2019
           - 2019-2020
+          - 2020-2021
+          - 2021-2022
           - 2022-2023
+          - 2023-2024
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,13 +29,14 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Diagnose option-label styles and geometry only
+      - name: Test broad line-prefix collection without question text
         env:
           EDITION: ${{ matrix.edition }}
         run: |
           python - <<'PY'
           import collections
           import os
+          import re
           import sys
           sys.path.insert(0, 'scripts')
           import native_option_markers as markers
@@ -46,11 +51,47 @@ jobs:
           pipeline = native_prepare.core._load_native_pipeline()
           fitz, _ = pipeline._imports()
           doc = fitz.open(pdf)
-          labels, blocks = markers._collect(doc)
-          styles = collections.Counter((label.font, label.size) for label in labels)
-          print('edition=', edition)
-          print('pages=', len(doc), 'labels=', len(labels), 'blocks=', len(blocks))
-          print('styles=', styles.most_common())
+
+          prefix = re.compile(r'^\s*[\[(]?([A-Ea-e])(?P<sep>[\])\.:;\-]|\s)')
+          broad = []
+          sep_counts = collections.Counter()
+          block_sequences = []
+          for page_index, page in enumerate(doc):
+              data = page.get_text('dict', sort=True)
+              for block_index, block in enumerate(data.get('blocks', [])):
+                  letters = []
+                  bbox = tuple(float(v) for v in block.get('bbox', (0,0,0,0)))
+                  for line in block.get('lines', []):
+                      spans = line.get('spans', [])
+                      if not spans:
+                          continue
+                      raw = ''.join(str(span.get('text', '')) for span in spans)
+                      match = prefix.match(raw)
+                      if not match:
+                          continue
+                      first = spans[0]
+                      x0, y0, x1, y1 = map(float, first['bbox'])
+                      letter = match.group(1).upper()
+                      separator = match.group('sep')
+                      sep_counts['space' if separator.isspace() else separator] += 1
+                      letters.append(letter)
+                      broad.append(markers.OptionLabel(
+                          page_index=page_index,
+                          block_index=block_index,
+                          letter=letter,
+                          x0=x0,
+                          y0=y0,
+                          x1=x1,
+                          y1=y1,
+                          font=str(first.get('font','')),
+                          size=round(float(first.get('size',0)),1),
+                      ))
+                  dedup=[]
+                  for letter in letters:
+                      if not dedup or dedup[-1] != letter:
+                          dedup.append(letter)
+                  if len(dedup) >= 2:
+                      block_sequences.append((page_index + 1, ''.join(dedup), tuple(round(v,1) for v in bbox)))
 
           def detect(items):
               horizontal, used = markers._horizontal_groups(items, tuple('ABCDE'))
@@ -60,20 +101,18 @@ jobs:
               groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
               return groups
 
-          for style, count in styles.most_common():
-              if count < 5:
-                  continue
-              filtered = [label for label in labels if (label.font, label.size) == style]
-              groups = detect(filtered)
-              if groups:
-                  print('style=', style, 'labels=', count, 'groups=', len(groups),
-                        'geometry=', [(g.page_index + 1, g.kind, round(g.x0,1), round(g.y0,1), round(g.x1,1), round(g.y1,1)) for g in groups])
-
-          groups = detect(labels)
-          fallback = markers._block_fallback_groups(blocks, groups, tuple('ABCDE'))
+          groups = detect(broad)
+          broad_blocks = []
+          for page, sequence, bbox in block_sequences:
+              broad_blocks.append({'page_index': page - 1, 'letters': list(sequence), 'bbox': bbox})
+          fallback = markers._block_fallback_groups(broad_blocks, groups, tuple('ABCDE'))
           combined = [*groups, *fallback]
           combined.sort(key=lambda group: (group.page_index, group.y0, group.x0))
-          print('all-style-groups=', len(groups), 'fallback=', len(fallback), 'combined=', len(combined))
-          print('all-style-geometry=', [(g.page_index + 1, g.kind, round(g.x0,1), round(g.y0,1), round(g.x1,1), round(g.y1,1)) for g in combined])
+
+          print('edition=', edition, 'pages=', len(doc), 'broad-labels=', len(broad))
+          print('separator-counts=', dict(sep_counts))
+          print('geometric=', len(groups), 'fallback=', len(fallback), 'combined=', len(combined))
+          print('group-pages=', [group.page_index + 1 for group in combined])
+          print('partial-blocks=', [(page, seq, bbox) for page, seq, bbox in block_sequences if seq != 'ABCDE'])
           doc.close()
           PY
