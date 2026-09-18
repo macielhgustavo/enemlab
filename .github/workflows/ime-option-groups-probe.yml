@@ -95,12 +95,66 @@ jobs:
                   })
 
               styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+
+              import re
+              line_re = re.compile(r"^\\s*[\\[(]?([A-Ea-e])[\\])\\.:;-]\\s*")
+              inline_labels = []
+              for page_index, page in enumerate(doc):
+                  data = page.get_text("dict", sort=True)
+                  serial = 0
+                  for block in data.get("blocks", []):
+                      for line in block.get("lines", []):
+                          spans = line.get("spans", [])
+                          if not spans:
+                              continue
+                          raw = "".join(str(span.get("text", "")) for span in spans)
+                          match = line_re.match(raw)
+                          if not match:
+                              continue
+                          boxes = [tuple(map(float, span["bbox"])) for span in spans if span.get("bbox")]
+                          if not boxes:
+                              continue
+                          first = spans[0]
+                          inline_labels.append(markers.OptionLabel(
+                              page_index=page_index,
+                              block_index=serial,
+                              letter=match.group(1).upper(),
+                              x0=min(box[0] for box in boxes),
+                              y0=min(box[1] for box in boxes),
+                              x1=max(box[2] for box in boxes),
+                              y1=max(box[3] for box in boxes),
+                              font=str(first.get("font", "")),
+                              size=round(float(first.get("size", 0)), 1),
+                          ))
+                          serial += 1
+
+              inline_styles = []
+              inline_by_style = collections.defaultdict(list)
+              for label in inline_labels:
+                  inline_by_style[(label.font, label.size)].append(label)
+              for (font, size), items in inline_by_style.items():
+                  horizontal, used = markers._horizontal_groups(items, tuple("ABCDE"))
+                  vertical = markers._vertical_groups(items, tuple("ABCDE"), used)
+                  wrapped = markers._wrapped_groups(items, tuple("ABCDE"), used)
+                  groups = [*horizontal, *vertical, *wrapped]
+                  inline_styles.append({
+                      "font": font,
+                      "size": size,
+                      "labels": len(items),
+                      "groups": len(groups),
+                      "kinds": dict(sorted(collections.Counter(g.kind for g in groups).items())),
+                      "pages": dict(sorted(collections.Counter(g.page_index + 1 for g in groups).items())),
+                  })
+              inline_styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+
               fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
               print(json.dumps({
                   "edition": edition,
                   "labelCount": len(labels),
                   "blockCandidateCount": len(blocks),
                   "styles": styles[:16],
+                  "inlineLabelCount": len(inline_labels),
+                  "inlineStyles": inline_styles[:16],
                   "blockFallbackGroups": len(fallback),
                   "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
               }, ensure_ascii=False, sort_keys=True))
