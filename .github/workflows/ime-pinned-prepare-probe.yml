@@ -1,4 +1,4 @@
-name: IME 2020 header-rule diagnostic
+name: IME targeted preparation verification
 
 on:
   pull_request:
@@ -10,56 +10,47 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  verify:
+    name: IME ${{ matrix.edition }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: ["2018-2019", "2020-2021"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Inspect repeated full-width header rules
+      - name: Prepare without publishing
+        run: python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle | tee prepare-result.json
+      - name: Validate
+        env:
+          EDITION: ${{ matrix.edition }}
         run: |
           python - <<'PY'
-          import json, sys
+          import json, os
           from pathlib import Path
-          sys.path.insert(0, str(Path("scripts").resolve()))
-          import native_ingest as ingest
-          import native_orchestrator as core
-          import native_prepare
-
-          target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
-          pdf=native_prepare._verified_pdf_override(target)
-          pipeline=core._load_native_pipeline()
-          fitz,_=pipeline._imports()
-          doc=fitz.open(pdf)
-          try:
-              total_pairs=0
-              for pi,page in enumerate(doc):
-                  width=float(page.rect.width)
-                  ys=[]
-                  for drawing in page.get_drawings():
-                      for item in drawing.get("items",[]):
-                          kind=item[0]
-                          if kind=="l":
-                              p1,p2=item[1],item[2]
-                              if abs(float(p1.y)-float(p2.y))<=1.0 and abs(float(p2.x)-float(p1.x))>=width*0.60:
-                                  ys.append(round((float(p1.y)+float(p2.y))/2,1))
-                          elif kind=="re":
-                              r=item[1]
-                              if float(r.width)>=width*0.60:
-                                  ys.extend([round(float(r.y0),1),round(float(r.y1),1)])
-                  ys=sorted(set(ys))
-                  pairs=[]
-                  for a,b in zip(ys,ys[1:]):
-                      gap=round(b-a,1)
-                      if 10<=gap<=28:
-                          pairs.append([a,b,gap])
-                  total_pairs+=len(pairs)
-                  if ys:
-                      print(json.dumps({"page":pi+1,"width":round(width,1),"ys":ys,"headerPairs":pairs},sort_keys=True))
-              print(json.dumps({"totalHeaderPairs":total_pairs},sort_keys=True))
-          finally:
-              doc.close()
+          edition=os.environ["EDITION"]
+          result=json.loads(Path("prepare-result.json").read_text())
+          pack=json.loads(Path("bundle/native-pack.json").read_text())
+          audit=json.loads(Path("src/lib/providers/ime/exam-sources.audit.json").read_text())
+          qs=pack.get("questions") or []
+          assert result["identity"] == f"ime:{edition}:first"
+          assert result["sourceProfile"] == "pinned-archive"
+          assert result["markerProfile"] == "ime-ordered-option-groups"
+          assert len(qs) == 40
+          assert [q.get("questionKey") for q in qs] == [f"ime-{edition}-objective-{n}" for n in range(1,41)]
+          docs=pack.get("documents") or []
+          assert len(docs)==1 and docs[0].get("sourceSha256")==audit["records"][edition]["examSha256"]
+          for n,q in enumerate(qs,1):
+              ex=q.get("extraction") or {}
+              vc=ex.get("visualCompleteness") or {}
+              assert ex.get("optionGroupDetected") is True, n
+              assert ex.get("markerStrategy") == "ordered-option-groups", n
+              assert vc.get("resolved") is True, n
+              assert q.get("visualRegions"), n
+          print(json.dumps({"edition":edition,"questions":len(qs),"first":qs[0]["questionKey"],"last":qs[-1]["questionKey"]}))
           PY
