@@ -45,6 +45,7 @@ class OptionGroup:
     y0: float
     x1: float
     y1: float
+    core_y1: float | None = None
 
 
 _TOKEN_RE = re.compile(r"^\s*[\[(]?([A-Ea-e])[\])\.:;-]?\s*$")
@@ -172,6 +173,7 @@ def _ordered_line_group(
             label.tail_y1 if label.tail_y1 is not None else label.y1
             for label in labels
         ),
+        core_y1=max(label.y1 for label in labels),
     )
 
 
@@ -451,9 +453,10 @@ def _intersects_2d(
     if group.page_index != page_index:
         return False
     bx0, by0, bx1, by1 = bbox
+    group_y1 = group.core_y1 if group.core_y1 is not None else group.y1
     return (
         max(0.0, min(group.x1, bx1) - max(group.x0, bx0)) > 2
-        and max(0.0, min(group.y1, by1) - max(group.y0, by0)) > 2
+        and max(0.0, min(group_y1, by1) - max(group.y0, by0)) > 2
     )
 
 
