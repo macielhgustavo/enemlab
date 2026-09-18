@@ -187,30 +187,39 @@ class OrderedOptionMarkerTests(unittest.TestCase):
 
         self.assertEqual(groups, [])
 
-    def test_near_complete_line_partition_uses_one_geometric_supplement(self):
+    def test_near_complete_line_partition_uses_geometric_supplements(self):
         punctuated_blocks = []
         for group_index, letters in enumerate(("ABCDE", "ACEBD", "ABCDE")):
             lines = [
-                line(span(f"{letter}) option", 60, 100 + group_index * 150 + row * 22))
+                line(span(f"{letter}) option", 60, 80 + group_index * 130 + row * 18))
                 for row, letter in enumerate(letters)
             ]
             punctuated_blocks.append(
-                block(lines, (60, 100 + group_index * 150, 500, 210 + group_index * 150))
+                block(lines, (60, 80 + group_index * 130, 500, 175 + group_index * 130))
             )
 
-        isolated = block(
+        isolated_one = block(
             [
-                line(span(letter, 40, 590 + row * 24, font="Option"))
+                line(span(letter, 40, 500 + row * 18, font="Option"))
                 for row, letter in enumerate("ABCDE")
             ],
-            (40, 590, 180, 710),
+            (40, 500, 180, 585),
+        )
+        isolated_two = block(
+            [
+                line(span(letter, 40, 650 + row * 18, font="Option"))
+                for row, letter in enumerate("ABCDE")
+            ],
+            (40, 650, 180, 735),
         )
 
         groups = markers.detect_ordered_option_groups(
-            [FakePage([*punctuated_blocks, isolated])], tuple("ABCDE"), 4
+            [FakePage([*punctuated_blocks, isolated_one, isolated_two])],
+            tuple("ABCDE"),
+            5,
         )
 
-        self.assertEqual(len(groups), 4)
+        self.assertEqual(len(groups), 5)
         self.assertEqual(sum(group.kind == "ordered-lines" for group in groups), 3)
 
     def test_ordered_line_group_extends_to_containing_block_tail(self):
