@@ -1,0 +1,294 @@
+name: IME option-groups dry-run probe
+# base-refresh: 2ec93004c8ff087810f6d84b173f60fd22116b89
+
+on:
+  pull_request:
+    branches:
+      - fix/native-ime-pinned-source
+
+permissions:
+  contents: read
+
+jobs:
+  ime:
+    name: IME ${{ matrix.edition }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        edition:
+          - "2018-2019"
+          - "2019-2020"
+          - "2020-2021"
+          - "2021-2022"
+          - "2022-2023"
+          - "2023-2024"
+          - "2024-2025"
+          - "2025-2026"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install native dependencies
+        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare IME without publication
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          set -euo pipefail
+          python scripts/native_prepare.py ime "$EDITION" --phase first --out bundle > prepare-result.json
+          cat prepare-result.json
+      - name: Structural diagnostics on failure
+        if: failure()
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          python - <<'PY'
+          import collections
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import fitz
+          import native_ingest as ingest
+          import native_option_markers as markers
+          import native_prepare as prepare
+
+          edition = os.environ["EDITION"]
+          target = prepare.core._select_target(
+              ingest.discover_targets(), "ime", edition, "first"
+          )
+          profiled = prepare.apply_layout_profile(target)
+          pdf = prepare._verified_pdf_override(profiled)
+          if pdf is None:
+              raise SystemExit("pinned source unavailable")
+
+          doc = fitz.open(pdf)
+          try:
+              labels, blocks = markers._collect(doc)
+              by_style = collections.defaultdict(list)
+              for label in labels:
+                  by_style[(label.font, label.size)].append(label)
+
+              styles = []
+              for (font, size), items in by_style.items():
+                  used = set()
+                  horizontal, used = markers._horizontal_groups(items, tuple("ABCDE"))
+                  vertical = markers._vertical_groups(items, tuple("ABCDE"), used)
+                  wrapped = markers._wrapped_groups(items, tuple("ABCDE"), used)
+                  groups = [*horizontal, *vertical, *wrapped]
+                  if len(items) < 5 and not groups:
+                      continue
+                  styles.append({
+                      "font": font,
+                      "size": size,
+                      "labels": len(items),
+                      "letters": dict(sorted(collections.Counter(x.letter for x in items).items())),
+                      "groups": len(groups),
+                      "kinds": dict(sorted(collections.Counter(g.kind for g in groups).items())),
+                      "pages": dict(sorted(collections.Counter(g.page_index + 1 for g in groups).items())),
+                  })
+
+              styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+
+              import re
+              line_re = re.compile(r"^\s*(?:\[|\()?([A-Ea-e])(?:\]|\)|\.|:|;|-)\s*")
+              inline_labels = []
+              for page_index, page in enumerate(doc):
+                  data = page.get_text("dict", sort=True)
+                  serial = 0
+                  for block in data.get("blocks", []):
+                      for line in block.get("lines", []):
+                          spans = line.get("spans", [])
+                          if not spans:
+                              continue
+                          raw = "".join(str(span.get("text", "")) for span in spans)
+                          match = line_re.match(raw)
+                          if not match:
+                              continue
+                          boxes = [tuple(map(float, span["bbox"])) for span in spans if span.get("bbox")]
+                          if not boxes:
+                              continue
+                          first = spans[0]
+                          inline_labels.append(markers.OptionLabel(
+                              page_index=page_index,
+                              block_index=serial,
+                              letter=match.group(1).upper(),
+                              x0=min(box[0] for box in boxes),
+                              y0=min(box[1] for box in boxes),
+                              x1=max(box[2] for box in boxes),
+                              y1=max(box[3] for box in boxes),
+                              font=str(first.get("font", "")),
+                              size=round(float(first.get("size", 0)), 1),
+                          ))
+                          serial += 1
+
+              inline_styles = []
+              inline_groups_all = []
+              inline_by_style = collections.defaultdict(list)
+              for label in inline_labels:
+                  inline_by_style[(label.font, label.size)].append(label)
+              for (font, size), items in inline_by_style.items():
+                  horizontal, used = markers._horizontal_groups(items, tuple("ABCDE"))
+                  vertical = markers._vertical_groups(items, tuple("ABCDE"), used)
+                  wrapped = markers._wrapped_groups(items, tuple("ABCDE"), used)
+                  groups = [*horizontal, *vertical, *wrapped]
+                  inline_groups_all.extend(groups)
+                  inline_styles.append({
+                      "font": font,
+                      "size": size,
+                      "labels": len(items),
+                      "groups": len(groups),
+                      "kinds": dict(sorted(collections.Counter(g.kind for g in groups).items())),
+                      "pages": dict(sorted(collections.Counter(g.page_index + 1 for g in groups).items())),
+                  })
+              inline_styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+              inline_letters = [label.letter for label in inline_labels]
+              inline_chunks = [
+                  "".join(inline_letters[index:index + 5])
+                  for index in range(0, len(inline_letters), 5)
+              ]
+              canonical_inline_chunks = sum(chunk == "ABCDE" for chunk in inline_chunks)
+              inline_mismatches = [
+                  {"chunk": index + 1, "letters": chunk}
+                  for index, chunk in enumerate(inline_chunks)
+                  if chunk != "ABCDE"
+              ][:12]
+
+              fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
+
+              target_groups = min(40, len(inline_labels) // 5)
+              noise = len(inline_labels) - target_groups * 5
+              valid_skip_candidates = []
+              if noise == 1:
+                  counts = collections.Counter(label.letter for label in inline_labels)
+                  surplus_letters = {
+                      letter for letter in "ABCDE"
+                      if counts[letter] > target_groups
+                  }
+                  for skip_index, skipped in enumerate(inline_labels):
+                      if skipped.letter not in surplus_letters:
+                          continue
+                      filtered = [
+                          label for index, label in enumerate(inline_labels)
+                          if index != skip_index
+                      ]
+                      valid = True
+                      for offset in range(0, len(filtered), 5):
+                          chunk = filtered[offset:offset + 5]
+                          if len(chunk) != 5:
+                              valid = False
+                              break
+                          if len({label.page_index for label in chunk}) != 1:
+                              valid = False
+                              break
+                          if collections.Counter(label.letter for label in chunk) != collections.Counter("ABCDE"):
+                              valid = False
+                              break
+                      if valid:
+                          valid_skip_candidates.append({
+                              "index": skip_index + 1,
+                              "page": skipped.page_index + 1,
+                              "letter": skipped.letter,
+                              "font": skipped.font,
+                              "size": skipped.size,
+                              "x0": round(skipped.x0, 2),
+                              "y0": round(skipped.y0, 2),
+                          })
+
+              merged = markers._style_option_groups(labels, tuple("ABCDE"))
+              merged.extend(markers._block_fallback_groups(blocks, merged, tuple("ABCDE")))
+              merged.extend(markers._block_single_label_groups(blocks, merged, tuple("ABCDE")))
+              for candidate in inline_groups_all:
+                  bbox = (candidate.x0, candidate.y0, candidate.x1, candidate.y1)
+                  if any(markers._intersects_2d(existing, candidate.page_index, bbox) for existing in merged):
+                      continue
+                  merged.append(candidate)
+              merged.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+
+              print(json.dumps({
+                  "edition": edition,
+                  "labelCount": len(labels),
+                  "blockCandidateCount": len(blocks),
+                  "styles": styles[:16],
+                  "inlineLabelCount": len(inline_labels),
+                  "inlineLetterCounts": dict(sorted(collections.Counter(inline_letters).items())),
+                  "canonicalInlineChunks": canonical_inline_chunks,
+                  "inlineChunkMismatches": inline_mismatches,
+                  "validSkipCandidates": valid_skip_candidates[:12],
+                  "inlineStyles": inline_styles[:16],
+                  "blockFallbackGroups": len(fallback),
+                  "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
+                  "mergedGroupCount": len(merged),
+                  "mergedKinds": dict(sorted(collections.Counter(g.kind for g in merged).items())),
+                  "mergedPages": dict(sorted(collections.Counter(g.page_index + 1 for g in merged).items())),
+              }, ensure_ascii=False, sort_keys=True))
+          finally:
+              doc.close()
+          PY
+      - name: Validate structural invariants
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          python - <<'PY'
+          import collections
+          import json
+          import os
+          from pathlib import Path
+
+          edition = os.environ["EDITION"]
+          result = json.loads(Path("prepare-result.json").read_text(encoding="utf-8"))
+          pack = json.loads(Path("bundle/native-pack.json").read_text(encoding="utf-8"))
+          audit = json.loads(
+              Path("src/lib/providers/ime/exam-sources.audit.json").read_text(encoding="utf-8")
+          )
+          expected_identity = f"ime:{edition}:first"
+          expected_keys = [
+              f"ime-{edition}-objective-{number}" for number in range(1, 41)
+          ]
+          expected_sha = audit["records"][edition]["examSha256"]
+
+          assert result["identity"] == expected_identity, result
+          assert result["sourceProfile"] == "pinned-archive", result
+          assert result["markerProfile"] == "ime-ordered-option-groups", result
+
+          documents = pack.get("documents") or []
+          questions = pack.get("questions") or []
+          assert len(documents) == 1
+          assert len(questions) == 40
+          assert [q.get("number") for q in questions] == list(range(1, 41))
+          assert [q.get("questionKey") for q in questions] == expected_keys
+          assert documents[0].get("sourceSha256") == expected_sha
+
+          kinds = collections.Counter()
+          visual_regions = 0
+          for question in questions:
+              extraction = question.get("extraction") or {}
+              completeness = extraction.get("visualCompleteness") or {}
+              regions = question.get("visualRegions") or []
+              assert extraction.get("markerDetected") is True
+              assert extraction.get("markerStrategy") == "ordered-option-groups"
+              assert extraction.get("optionGroupDetected") is True
+              assert completeness.get("resolved") is True
+              assert regions
+              kinds[str(extraction.get("optionGroupKind") or "unknown")] += 1
+              visual_regions += len(regions)
+              for region in regions:
+                  rect = region.get("rect") or {}
+                  assert float(rect.get("width") or 0) > 0
+                  assert float(rect.get("height") or 0) > 0
+
+          print(json.dumps({
+              "edition": edition,
+              "identity": expected_identity,
+              "questions": len(questions),
+              "sourceSha256": expected_sha,
+              "optionGroupKinds": dict(sorted(kinds.items())),
+              "visualRegions": visual_regions,
+          }, sort_keys=True))
+          PY
