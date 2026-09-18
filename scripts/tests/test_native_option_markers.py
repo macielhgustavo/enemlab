@@ -155,6 +155,78 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0].kind, "horizontal")
 
+    def test_ordered_line_partition_accepts_noncanonical_visual_order(self):
+        labels = []
+        y = 100.0
+        for letters in ("ABCDE", "ACEBD", "ABCDE", "DEABC"):
+            for letter in letters:
+                labels.append(
+                    markers.OptionLabel(
+                        0, len(labels), letter, 40, y, 500, y + 12, "Body", 12.0, y + 18
+                    )
+                )
+                y += 18
+
+        groups = markers._partition_ordered_line_groups(labels, tuple("ABCDE"), 4)
+
+        self.assertEqual(len(groups), 4)
+        self.assertTrue(all(group.kind == "ordered-lines" for group in groups))
+
+    def test_ordered_line_partition_fails_closed_on_ambiguous_surplus(self):
+        labels = []
+        for page, letters in enumerate(("ABCDE", "AABCDE", "ABCDE")):
+            for letter in letters:
+                index = len(labels)
+                labels.append(
+                    markers.OptionLabel(
+                        page, index, letter, 40, 100 + index, 500, 112 + index, "Body", 12.0
+                    )
+                )
+
+        groups = markers._partition_ordered_line_groups(labels, tuple("ABCDE"), 3)
+
+        self.assertEqual(groups, [])
+
+    def test_near_complete_line_partition_uses_one_geometric_supplement(self):
+        punctuated_blocks = []
+        for group_index, letters in enumerate(("ABCDE", "ACEBD", "ABCDE")):
+            lines = [
+                line(span(f"{letter}) option", 60, 100 + group_index * 150 + row * 22))
+                for row, letter in enumerate(letters)
+            ]
+            punctuated_blocks.append(
+                block(lines, (60, 100 + group_index * 150, 500, 210 + group_index * 150))
+            )
+
+        isolated = block(
+            [
+                line(span(letter, 40, 590 + row * 24, font="Option"))
+                for row, letter in enumerate("ABCDE")
+            ],
+            (40, 590, 180, 710),
+        )
+
+        groups = markers.detect_ordered_option_groups(
+            [FakePage([*punctuated_blocks, isolated])], tuple("ABCDE"), 4
+        )
+
+        self.assertEqual(len(groups), 4)
+        self.assertEqual(sum(group.kind == "ordered-lines" for group in groups), 3)
+
+    def test_ordered_line_group_extends_to_containing_block_tail(self):
+        option_block = block(
+            [
+                line(span(f"{letter}) option", 60, 100 + row * 25))
+                for row, letter in enumerate("ABCDE")
+            ],
+            (60, 100, 500, 260),
+        )
+        labels = markers._collect_line_option_labels([FakePage([option_block])])
+        group = markers._ordered_line_group(labels, tuple("ABCDE"))
+
+        self.assertIsNotNone(group)
+        self.assertAlmostEqual(group.y1, 260.0)
+
     def test_ignores_formula_letters_in_minor_style(self):
         horizontal = block(
             [
