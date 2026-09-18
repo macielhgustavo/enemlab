@@ -1,4 +1,4 @@
-name: IME 2020 heading-to-options diagnostic
+name: IME 2020 tolerant-heading diagnostic
 
 on:
   pull_request:
@@ -19,10 +19,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Validate exact heading sequence and map option groups
+      - name: Validate tolerant reversed heading sequence
         run: |
           python - <<'PY'
-          import json, re, sys
+          import collections, json, re, sys
           from pathlib import Path
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
@@ -35,9 +35,9 @@ jobs:
           pipeline=core._load_native_pipeline()
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
-          rx=re.compile(r"^\s*(\d{1,2})\s*[ªº°]\s*QUEST(?:Ã|A)O\b",re.I)
+          rx=re.compile(r"^\s*(\d{1,2}).{0,6}?QUEST(?:ÃO|AO)\b",re.I)
           try:
-              headings=[]
+              hits=[]
               for pi,page in enumerate(doc):
                   data=page.get_text("dict",sort=True)
                   for block in data.get("blocks",[]):
@@ -49,45 +49,41 @@ jobs:
                           if not m: continue
                           boxes=[tuple(map(float,s["bbox"])) for s in spans if s.get("bbox")]
                           if not boxes: continue
-                          n=int(m.group(1))
                           first=spans[0]
-                          headings.append({
-                              "n":n,"page":pi,
-                              "x0":min(b[0] for b in boxes),
-                              "y0":min(b[1] for b in boxes),
-                              "x1":max(b[2] for b in boxes),
-                              "y1":max(b[3] for b in boxes),
-                              "font":str(first.get("font","")),
-                              "size":round(float(first.get("size",0)),1),
-                          })
-              headings.sort(key=lambda h:(h["page"],h["y0"],h["x0"]))
+                          hits.append([
+                              int(m.group(1)),pi+1,
+                              round(min(b[0] for b in boxes),1),
+                              round(min(b[1] for b in boxes),1),
+                              str(first.get("font","")),
+                              round(float(first.get("size",0)),1),
+                          ])
+              counts=collections.Counter(h[0] for h in hits)
               print(json.dumps({
-                  "count":len(headings),
-                  "numbers":[h["n"] for h in headings],
-                  "pages":[h["page"]+1 for h in headings],
-                  "styles":sorted({(h["font"],h["size"]) for h in headings}),
+                  "count":len(hits),
+                  "numbers":[h[0] for h in hits],
+                  "missing":[n for n in range(1,41) if counts[n]==0],
+                  "duplicates":{str(n):c for n,c in counts.items() if c>1},
+                  "styles":[[list(k),v] for k,v in collections.Counter((h[4],h[5]) for h in hits).most_common()],
+                  "markers":hits
               },sort_keys=True))
 
               line_labels=om._collect_line_option_labels(doc)
               groups=om._partition_ordered_line_groups(line_labels,tuple("ABCDE"),40)
-              coverage={n:0 for n in range(1,41)}
-              assigned=[]
-              for g in groups:
-                  containing=None
-                  for i,h in enumerate(headings):
-                      if h["page"]>g.page_index or (h["page"]==g.page_index and h["y0"]>g.y0):
-                          break
-                      containing=h
-                  if containing:
-                      coverage[containing["n"]]+=1
-                      assigned.append([containing["n"],g.page_index+1,round(g.y0,1),round(g.core_y1 or g.y1,1)])
-              print(json.dumps({
-                  "lineGroups":len(groups),
-                  "coverage":coverage,
-                  "uncovered":[n for n,c in coverage.items() if c==0],
-                  "multi":[n for n,c in coverage.items() if c>1],
-                  "assigned":assigned,
-              },sort_keys=True))
+              if len(hits)==40 and [h[0] for h in hits]==list(range(1,41)):
+                  coverage={n:0 for n in range(1,41)}
+                  for g in groups:
+                      candidate=None
+                      for h in hits:
+                          if h[1]-1>g.page_index or (h[1]-1==g.page_index and h[3]>g.y0):
+                              break
+                          candidate=h
+                      if candidate:
+                          coverage[candidate[0]]+=1
+                  print(json.dumps({
+                      "lineGroups":len(groups),
+                      "uncovered":[n for n,c in coverage.items() if c==0],
+                      "multi":[n for n,c in coverage.items() if c>1],
+                  },sort_keys=True))
           finally:
               doc.close()
           PY
