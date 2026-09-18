@@ -1,0 +1,135 @@
+name: Brasil Escola UEL Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-uel-extraction.yml'
+      - 'scripts/ingest-uel-safe.py'
+      - 'scripts/ingest-objective-mirror-core.py'
+      - 'scripts/ingest-objective-mirror-safe.py'
+      - 'scripts/probe-cederj-safe.py'
+      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
+      - 'scripts/tests/test_ingest_uel_safe.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5' 'cryptography>=44,<47'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate UEL objective parser
+        run: |
+          python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py scripts/ingest-uel-safe.py scripts/probe-cederj-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uel_safe.py'
+      - name: Acquire UEL mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sul' \
+            --institution 'universidade-estadual-londrina' \
+            --workers 8 \
+            --catalog '.cache/uel-catalog.json' \
+            --download-root '.cache/uel-inbox'
+      - name: Probe UEL package structure
+        run: |
+          python scripts/probe-cederj-safe.py \
+            --input '.cache/uel-inbox/universidade-estadual-londrina' \
+            --output '.cache/uel-probe.json'
+      - name: Extract deterministic UEL regular objective corpus
+        run: |
+          python scripts/ingest-uel-safe.py \
+            --profile 'uel' \
+            --input '.cache/uel-inbox/universidade-estadual-londrina' \
+            --output '.cache/uel-extracted'
+      - name: Upload UEL benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UEL-objective-benchmark
+          path: |
+            .cache/uel-catalog.json
+            .cache/uel-probe.json
+            .cache/uel-extracted/uel-summary.json
+            .cache/uel-extracted/uel/**/bundle.json
+          retention-days: 7
+      - name: Enforce exact deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/uel-catalog.json').read_text())['bulkAcquisition']
+          summary = json.loads(Path('.cache/uel-extracted/uel-summary.json').read_text())
+
+          acquisition = {
+              'selected': catalog.get('selected'),
+              'acquired': catalog.get('acquired'),
+              'unavailable': catalog.get('unavailable'),
+              'errors': len(catalog.get('errors', [])),
+          }
+          expected_acquisition = {
+              'selected': 25,
+              'acquired': 8,
+              'unavailable': 17,
+              'errors': 0,
+          }
+          if acquisition != expected_acquisition:
+              raise SystemExit(f'UEL acquisition changed: {acquisition} != {expected_acquisition}')
+
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+
+          expected_global = {
+              'archivesScanned': 8,
+              'uniquePackages': 6,
+              'editions': 3,
+              'expectedQuestions': 180,
+              'extractedQuestions': 110,
+              'completeUnits': 0,
+              'missingIdentities': 70,
+              'visualDependencies': 24,
+          }
+          observed_global = {key: summary.get(key) for key in expected_global}
+          if observed_global != expected_global:
+              raise SystemExit(f'UEL global accounting changed: {observed_global} != {expected_global}')
+
+          expected_cycles = {
+              'uel-2023-1': (60, 44, 16, 13),
+              'uel-2025-1': (60, 33, 27, 6),
+              'uel-2026-1': (60, 33, 27, 5),
+          }
+          observed_cycles = {
+              cycle['editionId']: (
+                  cycle['expectedQuestions'],
+                  cycle['extractedQuestions'],
+                  cycle['missingIdentities'],
+                  cycle['visualDependencies'],
+              )
+              for cycle in summary.get('cycles', [])
+          }
+          if observed_cycles != expected_cycles:
+              raise SystemExit(f'UEL cycle accounting changed: {observed_cycles} != {expected_cycles}')
+
+          expected_discarded = {'uel-2021-1', 'uel-2022-1', 'uel-2024-1'}
+          discarded = {item.get('editionId') for item in summary.get('discardedEditions', [])}
+          if discarded != expected_discarded:
+              raise SystemExit(f'UEL discarded-edition accounting changed: {discarded}')
+
+          if summary['missingIdentities'] != summary['expectedQuestions'] - summary['extractedQuestions']:
+              raise SystemExit('UEL missing identity accounting mismatch')
+
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
