@@ -74,6 +74,7 @@ def _decorate(pack: dict[str, Any], doc: Any, groups: list[option_markers.Option
             completeness["reasons"] = list(
                 dict.fromkeys([*reasons, "layout:ordered-option-page-transition"])
             )
+            ingest._remove_visual_dependency_issue(extraction)
             extraction["confidence"] = max(float(extraction.get("confidence") or 0), 0.9)
     return pack
 
