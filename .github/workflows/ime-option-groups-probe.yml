@@ -1,5 +1,5 @@
 name: IME option-groups dry-run probe
-# base-refresh: d96445d8a306b3294a44f6b10cf5817644762ac5
+# base-refresh: 2ec93004c8ff087810f6d84b173f60fd22116b89
 
 on:
   pull_request:
@@ -162,6 +162,45 @@ jobs:
 
               fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
 
+              target_groups = min(40, len(inline_labels) // 5)
+              noise = len(inline_labels) - target_groups * 5
+              valid_skip_candidates = []
+              if noise == 1:
+                  counts = collections.Counter(label.letter for label in inline_labels)
+                  surplus_letters = {
+                      letter for letter in "ABCDE"
+                      if counts[letter] > target_groups
+                  }
+                  for skip_index, skipped in enumerate(inline_labels):
+                      if skipped.letter not in surplus_letters:
+                          continue
+                      filtered = [
+                          label for index, label in enumerate(inline_labels)
+                          if index != skip_index
+                      ]
+                      valid = True
+                      for offset in range(0, len(filtered), 5):
+                          chunk = filtered[offset:offset + 5]
+                          if len(chunk) != 5:
+                              valid = False
+                              break
+                          if len({label.page_index for label in chunk}) != 1:
+                              valid = False
+                              break
+                          if collections.Counter(label.letter for label in chunk) != collections.Counter("ABCDE"):
+                              valid = False
+                              break
+                      if valid:
+                          valid_skip_candidates.append({
+                              "index": skip_index + 1,
+                              "page": skipped.page_index + 1,
+                              "letter": skipped.letter,
+                              "font": skipped.font,
+                              "size": skipped.size,
+                              "x0": round(skipped.x0, 2),
+                              "y0": round(skipped.y0, 2),
+                          })
+
               merged = markers._style_option_groups(labels, tuple("ABCDE"))
               merged.extend(markers._block_fallback_groups(blocks, merged, tuple("ABCDE")))
               merged.extend(markers._block_single_label_groups(blocks, merged, tuple("ABCDE")))
@@ -181,6 +220,7 @@ jobs:
                   "inlineLetterCounts": dict(sorted(collections.Counter(inline_letters).items())),
                   "canonicalInlineChunks": canonical_inline_chunks,
                   "inlineChunkMismatches": inline_mismatches,
+                  "validSkipCandidates": valid_skip_candidates[:12],
                   "inlineStyles": inline_styles[:16],
                   "blockFallbackGroups": len(fallback),
                   "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
