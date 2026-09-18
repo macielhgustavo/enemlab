@@ -128,6 +128,33 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         self.assertEqual(len(groups), 2)
         self.assertLess(groups[0].x1, groups[1].x0)
 
+    def test_recovers_vertical_options_split_across_text_blocks(self):
+        blocks = [
+            block(
+                [line(span(f"{letter}) option", 60, 100 + index * 28))],
+                (60, 100 + index * 28, 500, 122 + index * 28),
+            )
+            for index, letter in enumerate("ABCDE")
+        ]
+        groups = markers.detect_ordered_option_groups([FakePage(blocks)], tuple("ABCDE"), 1)
+
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].kind, "vertical")
+        self.assertGreater(groups[0].y1, groups[0].y0)
+
+    def test_recovers_horizontal_options_split_across_text_blocks(self):
+        blocks = [
+            block(
+                [line(span(f"{letter}) option", 40 + index * 105, 140))],
+                (40 + index * 105, 140, 130 + index * 105, 162),
+            )
+            for index, letter in enumerate("ABCDE")
+        ]
+        groups = markers.detect_ordered_option_groups([FakePage(blocks)], tuple("ABCDE"), 1)
+
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].kind, "horizontal")
+
     def test_ignores_formula_letters_in_minor_style(self):
         horizontal = block(
             [
