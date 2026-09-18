@@ -85,6 +85,89 @@ class NativePrepareProfileTests(unittest.TestCase):
         self.assertEqual([marker.number for marker in markers], [1, 2])
 
 
+class NativeImePrepareTests(unittest.TestCase):
+    def test_shared_context_resolution_clears_visual_dependency_issue(self):
+        pages = [
+            SimpleNamespace(rect=SimpleNamespace(width=600.0, height=840.0)),
+            SimpleNamespace(rect=SimpleNamespace(width=600.0, height=840.0)),
+        ]
+        groups = [
+            native_prepare.ime_prepare.option_markers.OptionGroup(
+                0, "ordered-lines", 40.0, 100.0, 500.0, 300.0
+            ),
+            native_prepare.ime_prepare.option_markers.OptionGroup(
+                1, "ordered-lines", 40.0, 100.0, 500.0, 300.0
+            ),
+        ]
+        full_region = {
+            "page": 1,
+            "role": "question",
+            "rect": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0},
+        }
+        pack = {
+            "questions": [
+                {
+                    "number": 1,
+                    "visualRegions": [full_region],
+                    "extraction": {
+                        "issues": [],
+                        "visualCompleteness": {
+                            "required": False,
+                            "resolved": True,
+                            "reasons": [],
+                        },
+                    },
+                },
+                {
+                    "number": 2,
+                    "visualRegions": [
+                        {
+                            "page": 2,
+                            "role": "question",
+                            "rect": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0},
+                        }
+                    ],
+                    "extraction": {
+                        "issues": [
+                            "dependência visual/contextual não resolvida automaticamente: media:chart"
+                        ],
+                        "visualCompleteness": {
+                            "required": True,
+                            "resolved": False,
+                            "reasons": ["media:chart"],
+                        },
+                    },
+                },
+            ]
+        }
+
+        def normalized(rect, page):
+            x0, y0, x1, y1 = rect
+            return {
+                "x": x0 / page.rect.width,
+                "y": y0 / page.rect.height,
+                "width": (x1 - x0) / page.rect.width,
+                "height": (y1 - y0) / page.rect.height,
+            }
+
+        result = native_prepare.ime_prepare._decorate(
+            pack,
+            pages,
+            groups,
+            SimpleNamespace(_normalized_rect=normalized),
+            RuntimeError,
+        )
+
+        extraction = result["questions"][1]["extraction"]
+        self.assertEqual(extraction["issues"], [])
+        self.assertTrue(extraction["visualCompleteness"]["resolved"])
+        self.assertEqual(extraction["visualCompleteness"]["strategy"], "shared-context")
+        self.assertIn(
+            "layout:ordered-option-page-transition",
+            extraction["visualCompleteness"]["reasons"],
+        )
+
+
 class NativePreparePinnedSourceTests(unittest.TestCase):
     def target(self, output: Path):
         return SimpleNamespace(
