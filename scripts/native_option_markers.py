@@ -48,6 +48,14 @@ class OptionGroup:
     core_y1: float | None = None
 
 
+@dataclass(frozen=True)
+class HeaderBoundary:
+    page_index: int
+    y0: float
+    y1: float
+    divider_ratio: float
+
+
 _TOKEN_RE = re.compile(r"^\s*[\[(]?([A-Ea-e])[\])\.:;-]?\s*$")
 _INLINE_RE = re.compile(r"(?m)^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s+")
 _LINE_OPTION_RE = re.compile(
@@ -586,6 +594,220 @@ def _block_single_label_groups(
     return recovered
 
 
+def _vector_header_boundaries(doc: Any, total: int) -> list[HeaderBoundary]:
+    """Detecta a assinatura vetorial dominante dos cabeçalhos de questão.
+
+    Alguns cadernos usam uma pequena faixa horizontal com um divisor vertical
+    repetido no início de cada questão. Candidatos são agrupados pela posição
+    normalizada do divisor; só aceitamos uma assinatura dominante que produza
+    exatamente `total` cabeçalhos. Qualquer empate ou contagem divergente
+    mantém o fallback fechado.
+    """
+    candidates: list[HeaderBoundary] = []
+    for page_index, page in enumerate(doc):
+        get_drawings = getattr(page, "get_drawings", None)
+        if not callable(get_drawings):
+            continue
+
+        width = float(page.rect.width)
+        horizontal_ys: set[float] = set()
+        verticals: list[tuple[float, float, float]] = []
+        for drawing in get_drawings():
+            for item in drawing.get("items", []):
+                if not item:
+                    continue
+                kind = item[0]
+                if kind == "l":
+                    p1, p2 = item[1], item[2]
+                    x0, x1 = sorted((float(p1.x), float(p2.x)))
+                    y0, y1 = sorted((float(p1.y), float(p2.y)))
+                    if abs(y1 - y0) <= 1.0 and x1 - x0 >= width * 0.60:
+                        horizontal_ys.add(round((y0 + y1) / 2, 1))
+                    if abs(x1 - x0) <= 1.0 and y1 - y0 >= 8:
+                        verticals.append(((x0 + x1) / 2, y0, y1))
+                elif kind == "re":
+                    rect = item[1]
+                    if float(rect.width) >= width * 0.60:
+                        horizontal_ys.add(round(float(rect.y0), 1))
+                        horizontal_ys.add(round(float(rect.y1), 1))
+                    if float(rect.height) >= 8:
+                        verticals.append((float(rect.x0), float(rect.y0), float(rect.y1)))
+                        verticals.append((float(rect.x1), float(rect.y0), float(rect.y1)))
+
+        ys = sorted(horizontal_ys)
+        for top, bottom in zip(ys, ys[1:]):
+            gap = bottom - top
+            if not 15.0 <= gap <= 21.0:
+                continue
+            dividers = [
+                x
+                for x, y0, y1 in verticals
+                if y0 <= top + 2.5
+                and y1 >= bottom - 2.5
+                and width * 0.50 <= x <= width * 0.80
+            ]
+            if not dividers:
+                continue
+            divider = sum(dividers) / len(dividers)
+            candidates.append(
+                HeaderBoundary(
+                    page_index=page_index,
+                    y0=top,
+                    y1=bottom,
+                    divider_ratio=divider / width,
+                )
+            )
+
+    if len(candidates) < total:
+        return []
+
+    clusters: list[list[HeaderBoundary]] = []
+    for candidate in sorted(candidates, key=lambda item: item.divider_ratio):
+        placed = False
+        for cluster in clusters:
+            center = sum(item.divider_ratio for item in cluster) / len(cluster)
+            if abs(candidate.divider_ratio - center) <= 0.008:
+                cluster.append(candidate)
+                placed = True
+                break
+        if not placed:
+            clusters.append([candidate])
+
+    exact = [cluster for cluster in clusters if len(cluster) == total]
+    if len(exact) != 1:
+        return []
+    return sorted(exact[0], key=lambda item: (item.page_index, item.y0))
+
+
+def _significant_raster_group(
+    doc: Any,
+    boundary: HeaderBoundary,
+    next_boundary: HeaderBoundary | None,
+) -> OptionGroup | None:
+    """Cria evidência visual para uma questão cujas alternativas são rasterizadas."""
+    page = doc[boundary.page_index]
+    width = float(page.rect.width)
+    height = float(page.rect.height)
+    start = boundary.y1 + 2.0
+    if next_boundary is not None and next_boundary.page_index == boundary.page_index:
+        end = max(start, next_boundary.y0 - 4.0)
+    else:
+        end = height * 0.94
+    if end <= start:
+        return None
+
+    get_images = getattr(page, "get_images", None)
+    get_image_rects = getattr(page, "get_image_rects", None)
+    if not callable(get_images) or not callable(get_image_rects):
+        return None
+
+    minimum_area = width * height * 0.015
+    rects: list[tuple[float, float, float, float]] = []
+    seen: set[tuple[float, float, float, float]] = set()
+    for image in get_images(full=True):
+        if not image:
+            continue
+        for rect in get_image_rects(image[0]):
+            x0, y0, x1, y1 = map(float, (rect.x0, rect.y0, rect.x1, rect.y1))
+            if y1 < start or y0 > end:
+                continue
+            clipped_y0 = max(start, y0)
+            clipped_y1 = min(end, y1)
+            if (x1 - x0) * (clipped_y1 - clipped_y0) < minimum_area:
+                continue
+            key = (round(x0, 2), round(clipped_y0, 2), round(x1, 2), round(clipped_y1, 2))
+            if key in seen:
+                continue
+            seen.add(key)
+            rects.append((x0, clipped_y0, x1, clipped_y1))
+
+    if not rects:
+        return None
+
+    return OptionGroup(
+        page_index=boundary.page_index,
+        kind="raster-header-image",
+        x0=min(rect[0] for rect in rects),
+        y0=min(rect[1] for rect in rects),
+        x1=max(rect[2] for rect in rects),
+        y1=end,
+        core_y1=max(rect[3] for rect in rects),
+    )
+
+
+def _header_interval_index(
+    group: OptionGroup,
+    boundaries: list[HeaderBoundary],
+) -> int | None:
+    matches: list[int] = []
+    for index, boundary in enumerate(boundaries):
+        if group.page_index < boundary.page_index:
+            continue
+        if group.page_index == boundary.page_index and group.y0 < boundary.y1:
+            continue
+
+        next_boundary = boundaries[index + 1] if index + 1 < len(boundaries) else None
+        if next_boundary is not None:
+            if group.page_index > next_boundary.page_index:
+                continue
+            if (
+                group.page_index == next_boundary.page_index
+                and group.y0 >= next_boundary.y0
+            ):
+                continue
+        matches.append(index)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _supplement_raster_header_gap(
+    doc: Any,
+    line_groups: list[OptionGroup],
+    total: int,
+) -> list[OptionGroup]:
+    """Supre exatamente uma questão rasterizada usando evidência independente.
+
+    Exige N-1 grupos textuais já provados, N cabeçalhos vetoriais com assinatura
+    dominante, mapeamento um-a-um dos grupos para os intervalos e exatamente um
+    intervalo vazio contendo uma imagem significativa. Assim o detector não
+    inventa uma questão só para atingir a contagem esperada.
+    """
+    if len(line_groups) != total - 1:
+        return []
+
+    boundaries = _vector_header_boundaries(doc, total)
+    if len(boundaries) != total:
+        return []
+
+    occupied: set[int] = set()
+    for group in line_groups:
+        index = _header_interval_index(group, boundaries)
+        if index is None or index in occupied:
+            return []
+        occupied.add(index)
+
+    missing = [index for index in range(total) if index not in occupied]
+    if len(missing) != 1:
+        return []
+
+    missing_index = missing[0]
+    next_boundary = (
+        boundaries[missing_index + 1]
+        if missing_index + 1 < len(boundaries)
+        else None
+    )
+    raster = _significant_raster_group(
+        doc,
+        boundaries[missing_index],
+        next_boundary,
+    )
+    if raster is None:
+        return []
+
+    groups = [*line_groups, raster]
+    groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+    return groups if len(groups) == total else []
+
+
 def detect_ordered_option_groups(
     doc: Any,
     option_ids: tuple[str, ...],
@@ -628,6 +850,11 @@ def detect_ordered_option_groups(
             groups = [*line_groups, *supplements]
             groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
             return groups
+
+        if missing == 1 and not supplements:
+            raster_groups = _supplement_raster_header_gap(doc, line_groups, total)
+            if len(raster_groups) == total:
+                return raster_groups
 
         raise OrderedOptionMarkerError(
             "grupos de linhas pontuadas exigem suplemento inequívoco: "
