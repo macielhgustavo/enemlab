@@ -191,7 +191,9 @@ def _partition_ordered_line_groups(
     width = len(option_ids)
     if width < 1:
         return []
-    minimum_groups = max(1, total - 2)
+    if total < 3:
+        return []
+    minimum_groups = max(3, total - 2)
     target = min(total, len(labels) // width)
     if target < minimum_groups:
         return []
