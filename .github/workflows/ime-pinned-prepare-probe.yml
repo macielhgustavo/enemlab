@@ -1,0 +1,62 @@
+name: IME targeted current-head probe
+
+on:
+  pull_request:
+    branches: [fix/native-ime-pinned-source]
+    paths:
+      - ".github/workflows/ime-pinned-prepare-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ime:
+    name: IME ${{ matrix.edition }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: ["2018-2019", "2020-2021"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Prepare without publishing
+        run: python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle
+      - name: Validate structural invariants
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          edition=os.environ["EDITION"]
+          pack=json.loads(Path("bundle/native-pack.json").read_text(encoding="utf-8"))
+          bundle=json.loads(Path("bundle/bundle.json").read_text(encoding="utf-8"))
+          qs=pack.get("questions") or []
+          if len(qs)!=40: raise SystemExit(f"question-count:{len(qs)}")
+          expected=[f"ime-{edition}-objective-{i}" for i in range(1,41)]
+          actual=[q.get("questionKey") for q in qs]
+          if actual!=expected: raise SystemExit("question-keys-mismatch")
+          kinds={}
+          for i,q in enumerate(qs,1):
+              regions=q.get("visualRegions") or []
+              if not regions: raise SystemExit(f"q{i}:no-visual-region")
+              ex=q.get("extraction") or {}
+              if ex.get("optionGroupDetected") is not True: raise SystemExit(f"q{i}:option-group-not-confirmed")
+              vc=ex.get("visualCompleteness") or {}
+              if vc.get("required") and not vc.get("resolved"): raise SystemExit(f"q{i}:visual-completeness-unresolved")
+              k=ex.get("optionGroupKind") or "unknown"
+              kinds[k]=kinds.get(k,0)+1
+          print(json.dumps({
+              "edition":edition,
+              "questions":len(qs),
+              "assets":bundle.get("assetCount"),
+              "firstKey":actual[0],
+              "lastKey":actual[-1],
+              "kinds":kinds
+          },sort_keys=True))
+          PY
