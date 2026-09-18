@@ -1,4 +1,4 @@
-name: IME 2020 numeric-marker diagnostic
+name: IME 2020 temporary visual diagnostic
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  render:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -19,11 +19,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Diagnose sequential numeric markers
+      - name: Render temporary contact sheets
         run: |
           python - <<'PY'
-          import collections, json, re, sys
+          import sys
           from pathlib import Path
+          from PIL import Image, ImageOps, ImageDraw
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
           import native_orchestrator as core
@@ -34,51 +35,32 @@ jobs:
           pipeline=core._load_native_pipeline()
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
-          patterns={
-              "dot":re.compile(r"^\s*(\d{1,2})\s*\.\s+"),
-              "paren":re.compile(r"^\s*(\d{1,2})\s*\)\s+"),
-              "dash":re.compile(r"^\s*(\d{1,2})\s*[–—-]\s+"),
-              "colon":re.compile(r"^\s*(\d{1,2})\s*:\s+"),
-          }
+          out=Path("visual-diagnostic")
+          out.mkdir()
           try:
-              for name,rx in patterns.items():
-                  hits=[]
-                  for pi,page in enumerate(doc):
-                      data=page.get_text("dict",sort=True)
-                      for block in data.get("blocks",[]):
-                          for line in block.get("lines",[]):
-                              spans=line.get("spans",[])
-                              if not spans: continue
-                              raw="".join(str(s.get("text","")) for s in spans)
-                              m=rx.match(raw)
-                              if not m: continue
-                              n=int(m.group(1))
-                              if not 1<=n<=40: continue
-                              boxes=[tuple(map(float,s["bbox"])) for s in spans if s.get("bbox")]
-                              if not boxes: continue
-                              first=spans[0]
-                              hits.append([
-                                  n,pi+1,
-                                  round(min(b[0] for b in boxes),1),
-                                  round(min(b[1] for b in boxes),1),
-                                  str(first.get("font","")),
-                                  round(float(first.get("size",0)),1)
-                              ])
-                  counts=collections.Counter(h[0] for h in hits)
-                  seq=[n for n in range(1,41) if counts[n]==1]
-                  dup={str(n):counts[n] for n in range(1,41) if counts[n]>1}
-                  missing=[n for n in range(1,41) if counts[n]==0]
-                  style=collections.Counter((h[4],h[5]) for h in hits)
-                  print(json.dumps({
-                      "pattern":name,
-                      "hits":len(hits),
-                      "uniqueExactlyOnce":len(seq),
-                      "missing":missing,
-                      "duplicates":dup,
-                      "styles":[[f,s,c] for (f,s),c in style.most_common(8)]
-                  },sort_keys=True))
-                  if len(seq)>=30:
-                      print(json.dumps({"pattern":name,"markers":hits},sort_keys=True))
+              thumbs=[]
+              for pi in range(1,min(21,len(doc))):  # pages 2..21, 1-indexed
+                  page=doc[pi]
+                  pix=page.get_pixmap(matrix=fitz.Matrix(0.9,0.9),alpha=False)
+                  img=Image.frombytes("RGB",[pix.width,pix.height],pix.samples)
+                  img.thumbnail((420,590))
+                  canvas=Image.new("RGB",(440,630),"white")
+                  canvas.paste(img,((440-img.width)//2,30))
+                  ImageDraw.Draw(canvas).text((10,8),f"page {pi+1}",fill="black")
+                  thumbs.append(canvas)
+              for sheet_index in range(0,len(thumbs),4):
+                  batch=thumbs[sheet_index:sheet_index+4]
+                  sheet=Image.new("RGB",(880,1260),"white")
+                  for j,img in enumerate(batch):
+                      sheet.paste(img,((j%2)*440,(j//2)*630))
+                  sheet.save(out/f"sheet-{sheet_index//4+1}.jpg",quality=82)
           finally:
               doc.close()
           PY
+      - name: Upload temporary visual diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: ime-2020-visual-diagnostic
+          path: visual-diagnostic/*.jpg
+          retention-days: 1
+          if-no-files-found: error
