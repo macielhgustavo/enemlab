@@ -1,4 +1,4 @@
-name: IME targeted preparation verification
+name: IME 2020 structural gap diagnostic
 
 on:
   pull_request:
@@ -10,47 +10,80 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: IME ${{ matrix.edition }}
+  diagnose:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        edition: ["2018-2019", "2020-2021"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Prepare without publishing
-        run: python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle | tee prepare-result.json
-      - name: Validate
-        env:
-          EDITION: ${{ matrix.edition }}
+      - name: Inspect 2020 group geometry
         run: |
           python - <<'PY'
-          import json, os
+          import json, sys
           from pathlib import Path
-          edition=os.environ["EDITION"]
-          result=json.loads(Path("prepare-result.json").read_text())
-          pack=json.loads(Path("bundle/native-pack.json").read_text())
-          audit=json.loads(Path("src/lib/providers/ime/exam-sources.audit.json").read_text())
-          qs=pack.get("questions") or []
-          assert result["identity"] == f"ime:{edition}:first"
-          assert result["sourceProfile"] == "pinned-archive"
-          assert result["markerProfile"] == "ime-ordered-option-groups"
-          assert len(qs) == 40
-          assert [q.get("questionKey") for q in qs] == [f"ime-{edition}-objective-{n}" for n in range(1,41)]
-          docs=pack.get("documents") or []
-          assert len(docs)==1 and docs[0].get("sourceSha256")==audit["records"][edition]["examSha256"]
-          for n,q in enumerate(qs,1):
-              ex=q.get("extraction") or {}
-              vc=ex.get("visualCompleteness") or {}
-              assert ex.get("optionGroupDetected") is True, n
-              assert ex.get("markerStrategy") == "ordered-option-groups", n
-              assert vc.get("resolved") is True, n
-              assert q.get("visualRegions"), n
-          print(json.dumps({"edition":edition,"questions":len(qs),"first":qs[0]["questionKey"],"last":qs[-1]["questionKey"]}))
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import native_ingest as ingest
+          import native_orchestrator as core
+          import native_prepare
+          import native_option_markers as markers
+
+          target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
+          pdf=native_prepare._verified_pdf_override(target)
+          pipeline=core._load_native_pipeline()
+          fitz,_=pipeline._imports()
+          doc=fitz.open(pdf)
+          try:
+              line_labels=markers._collect_line_option_labels(doc)
+              line_groups=markers._partition_ordered_line_groups(line_labels, tuple("ABCDE"), 40)
+              labels,blocks=markers._collect(doc)
+              geometric=markers._style_option_groups(labels, tuple("ABCDE"))
+              geometric.extend(markers._block_fallback_groups(blocks, geometric, tuple("ABCDE")))
+              geometric.extend(markers._block_single_label_groups(blocks, geometric, tuple("ABCDE")))
+              geometric.sort(key=lambda g:(g.page_index,g.y0,g.x0))
+
+              print(json.dumps({
+                  "lineLabelCount":len(line_labels),
+                  "lineGroups":len(line_groups),
+                  "lineGroupGeometry":[
+                      {"n":i+1,"page":g.page_index+1,"x0":round(g.x0,1),"y0":round(g.y0,1),"x1":round(g.x1,1),"y1":round(g.y1,1)}
+                      for i,g in enumerate(line_groups)
+                  ],
+                  "geometricGroups":len(geometric),
+                  "geometricGeometry":[
+                      {"page":g.page_index+1,"kind":g.kind,"x0":round(g.x0,1),"y0":round(g.y0,1),"x1":round(g.x1,1),"y1":round(g.y1,1)}
+                      for g in geometric
+                  ],
+              },sort_keys=True))
+
+              for pi,page in enumerate(doc):
+                  width=float(page.rect.width)
+                  ys=[]
+                  for drawing in page.get_drawings():
+                      for item in drawing.get("items",[]):
+                          kind=item[0]
+                          if kind=="l":
+                              p1,p2=item[1],item[2]
+                              if abs(float(p1.y)-float(p2.y))<=1.0 and abs(float(p2.x)-float(p1.x))>=width*0.60:
+                                  ys.append(round((float(p1.y)+float(p2.y))/2,1))
+                          elif kind=="re":
+                              r=item[1]
+                              if float(r.width)>=width*0.60:
+                                  ys.extend([round(float(r.y0),1),round(float(r.y1),1)])
+                  ys=sorted(set(ys))
+                  pairs=[]
+                  for a,b in zip(ys,ys[1:]):
+                      gap=round(b-a,1)
+                      if 15<=gap<=21:
+                          pairs.append([a,b,gap])
+                  if pairs:
+                      group_ys=[
+                          [i+1,round(g.y0,1),round(g.y1,1)]
+                          for i,g in enumerate(line_groups) if g.page_index==pi
+                      ]
+                      print(json.dumps({"page":pi+1,"rulePairs":pairs,"groups":group_ys},sort_keys=True))
+          finally:
+              doc.close()
           PY
