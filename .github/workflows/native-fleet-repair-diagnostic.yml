@@ -1,4 +1,4 @@
-name: Native fleet repair diagnostic
+name: Native source equivalence diagnostic
 
 on:
   push:
@@ -14,262 +14,122 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
-    name: ${{ matrix.provider }}:${{ matrix.selector }}:${{ matrix.phase }}
+  source-audit:
+    name: ${{ matrix.identity }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 6
       matrix:
         include:
-          - { provider: eear, selector: "2017-eags-administracao", phase: single }
-          - { provider: eear, selector: "2017-eags-enfermagem", phase: single }
-          - { provider: fatec, selector: "2024.1", phase: single }
-          - { provider: espcex, selector: "2025", phase: day1 }
-          - { provider: espcex, selector: "2025", phase: day2 }
-          - { provider: espcex, selector: "2024", phase: day1 }
-          - { provider: espcex, selector: "2024", phase: day2 }
-          - { provider: espcex, selector: "2023", phase: day1 }
-          - { provider: espcex, selector: "2023", phase: day2 }
-          - { provider: espcex, selector: "2022", phase: day1 }
-          - { provider: espcex, selector: "2022", phase: day2 }
-          - { provider: espcex, selector: "2021", phase: day1 }
-          - { provider: espcex, selector: "2021", phase: day2 }
-          - { provider: espcex, selector: "2020", phase: day1 }
-          - { provider: espcex, selector: "2020", phase: day2 }
-          - { provider: espcex, selector: "2019", phase: day1 }
-          - { provider: espcex, selector: "2019", phase: day2 }
-          - { provider: espcex, selector: "2018", phase: day1 }
-          - { provider: espcex, selector: "2018", phase: day2 }
-          - { provider: espcex, selector: "2017", phase: day1 }
-          - { provider: espcex, selector: "2017", phase: day2 }
-          - { provider: espcex, selector: "2016", phase: day1 }
-          - { provider: espcex, selector: "2016", phase: day2 }
-          - { provider: espcex, selector: "2015", phase: day1 }
-          - { provider: espcex, selector: "2015", phase: day2 }
-          - { provider: espcex, selector: "2014", phase: day1 }
-          - { provider: espcex, selector: "2014", phase: day2 }
-          - { provider: espcex, selector: "2013", phase: day1 }
-          - { provider: espcex, selector: "2013", phase: day2 }
-          - { provider: espcex, selector: "2012", phase: day1 }
-          - { provider: espcex, selector: "2012", phase: day2 }
-          - { provider: unioeste, selector: "2026", phase: morning }
-          - { provider: unioeste, selector: "2026", phase: afternoon }
-          - { provider: unioeste, selector: "2025", phase: morning }
-          - { provider: unioeste, selector: "2025", phase: afternoon }
-          - { provider: unioeste, selector: "2024", phase: morning }
-          - { provider: unioeste, selector: "2024", phase: afternoon }
-          - { provider: unioeste, selector: "2023", phase: morning }
-          - { provider: unioeste, selector: "2023", phase: afternoon }
-          - { provider: unioeste, selector: "2022", phase: morning }
-          - { provider: unioeste, selector: "2022", phase: afternoon }
-          - { provider: unioeste, selector: "2021", phase: morning }
-          - { provider: unioeste, selector: "2021", phase: afternoon }
+          - identity: espcex-2025-day1
+            live: "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20A.pdf"
+            candidate: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/provas/2025-modelo-a-1-dia-de-prova.pdf"
+            insecure_live: "1"
+          - identity: espcex-2025-day2
+            live: "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20D.pdf"
+            candidate: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/provas/2025-modelo-d-2-dia-de-prova.pdf"
+            insecure_live: "1"
+          - identity: espcex-2024-day1
+            live: "https://onlineespecifico.com.br/wp-content/uploads/2025/01/2024-Prova-EsPCEx-1-dia.pdf"
+            candidate: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2024/provas/2024-modelo-a-1-dia-de-prova.pdf"
+            insecure_live: "0"
+          - identity: espcex-2024-day2
+            live: "https://onlineespecifico.com.br/wp-content/uploads/2025/01/2024-Prova-EsPCEx-2-dia.pdf"
+            candidate: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2024/provas/2024-modelo-d-2-dia-de-prova.pdf"
+            insecure_live: "0"
+          - identity: espcex-2023-day1
+            live: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/provas/2023-modelo-a-1-dia-de-prova.pdf"
+            candidate: "https://arquivos.qconcursos.com/prova/arquivo_prova/100390/exercito-2023-espcex-cadete-do-exercito-1-dia-prova.pdf"
+            insecure_live: "0"
+          - identity: espcex-2023-day2
+            live: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2023/provas/2023-modelo-d-2-dia-de-prova.pdf"
+            candidate: "https://arquivos.qconcursos.com/prova/arquivo_prova/100391/exercito-2023-espcex-cadete-do-exercito-2-dia-prova.pdf"
+            insecure_live: "0"
+          - identity: espcex-2019-day2
+            live: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D.pdf"
+            candidate: "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING-%20MODELO%20D.pdf"
+            insecure_live: "0"
 
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install native dependencies
-        run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Structural/source diagnostic
+      - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Compare source candidates without exposing exam text
         env:
-          PROVIDER: ${{ matrix.provider }}
-          SELECTOR: ${{ matrix.selector }}
-          PHASE: ${{ matrix.phase }}
+          IDENTITY: ${{ matrix.identity }}
+          LIVE: ${{ matrix.live }}
+          CANDIDATE: ${{ matrix.candidate }}
+          INSECURE_LIVE: ${{ matrix.insecure_live }}
         run: |
+          set -euo pipefail
+          ua='Mozilla/5.0 (compatible; StudiumNativeAudit/1.0)'
+          live_args=(--fail --location --silent --show-error --retry 3 --retry-all-errors --connect-timeout 20 --max-time 180 --user-agent "$ua")
+          if [ "$INSECURE_LIVE" = "1" ]; then live_args+=(--insecure); fi
+          curl "${live_args[@]}" --output live.pdf "$LIVE" || true
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --connect-timeout 20 --max-time 180 --user-agent "$ua" --output candidate.pdf "$CANDIDATE" || true
           python - <<'PY'
-          import collections
-          import hashlib
-          import json
-          import os
-          import subprocess
-          import sys
-          import time
-          import urllib.parse
-          import urllib.request
+          import hashlib, json, os
           from pathlib import Path
+          import pymupdf as fitz
+          from PIL import Image
 
-          sys.path.insert(0, "scripts")
-          import native_ingest as ingest
-          import native_option_markers as option_markers
-          import native_orchestrator as core
-          import native_prepare
-
-          provider = os.environ["PROVIDER"]
-          selector = os.environ["SELECTOR"]
-          phase = os.environ["PHASE"]
-          target = core._select_target(ingest.discover_targets(), provider, selector, phase)
-          target = native_prepare.apply_layout_profile(target)
-          dest = Path("source.pdf")
-
-          def sha256(path):
-              h = hashlib.sha256()
+          def sha(path):
+              h=hashlib.sha256()
               with path.open("rb") as f:
-                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                  for chunk in iter(lambda:f.read(1024*1024), b""):
                       h.update(chunk)
               return h.hexdigest()
 
-          def valid_pdf(path):
-              return path.exists() and path.stat().st_size > 4 and path.read_bytes()[:4] == b"%PDF"
+          def ahash(page):
+              pix=page.get_pixmap(matrix=fitz.Matrix(0.22,0.22), colorspace=fitz.csGRAY, alpha=False)
+              im=Image.frombytes("L",(pix.width,pix.height),pix.samples).resize((32,32))
+              values=list(im.getdata())
+              avg=sum(values)/len(values)
+              return [v>=avg for v in values]
 
-          errors = []
-          source_profile = None
-          archive_url = None
-
-          for attempt in range(3):
+          def meta(path):
+              if not path.exists() or path.stat().st_size < 5 or path.read_bytes()[:4] != b"%PDF":
+                  return {"available":False}
+              doc=fitz.open(path)
+              text_chars=0
+              blocks=0
+              hashes=[]
               try:
-                  dest.unlink(missing_ok=True)
-                  core._download_pdf(target.exam_url, dest)
-                  if not valid_pdf(dest):
-                      raise RuntimeError("downloaded file is not a PDF")
-                  source_profile = "urllib-live"
-                  break
-              except Exception as exc:
-                  errors.append(f"urllib:{type(exc).__name__}")
-                  time.sleep(2 * (attempt + 1))
-
-          if source_profile is None:
-              dest.unlink(missing_ok=True)
-              result = subprocess.run(
-                  [
-                      "curl", "--fail", "--location", "--silent", "--show-error",
-                      "--retry", "4", "--retry-all-errors", "--retry-delay", "2",
-                      "--connect-timeout", "20", "--max-time", "120",
-                      "--output", str(dest), target.exam_url,
-                  ],
-                  text=True, capture_output=True,
-              )
-              if result.returncode == 0 and valid_pdf(dest):
-                  source_profile = "curl-live"
-              else:
-                  errors.append(f"curl:{result.returncode}")
-
-          if source_profile is None:
-              cdx = (
-                  "https://web.archive.org/cdx/search/cdx?"
-                  + urllib.parse.urlencode(
-                      {
-                          "url": target.exam_url,
-                          "matchType": "exact",
-                          "output": "json",
-                          "fl": "timestamp,original,statuscode,mimetype,digest,length",
-                          "filter": ["statuscode:200", "mimetype:application/pdf"],
-                          "collapse": "digest",
-                          "limit": "10",
-                      },
-                      doseq=True,
-                  )
-              )
-              cdx_result = subprocess.run(
-                  [
-                      "curl", "--fail", "--location", "--silent", "--show-error",
-                      "--retry", "3", "--retry-all-errors", "--max-time", "90", cdx,
-                  ],
-                  text=True, capture_output=True,
-              )
-              rows = []
-              if cdx_result.returncode == 0:
-                  try:
-                      payload = json.loads(cdx_result.stdout)
-                      rows = payload[1:] if isinstance(payload, list) and payload else []
-                  except Exception:
-                      rows = []
-              errors.append(f"cdx-candidates:{len(rows)}")
-              for row in reversed(rows):
-                  timestamp = str(row[0])
-                  candidate = f"https://web.archive.org/web/{timestamp}id_/{target.exam_url}"
-                  dest.unlink(missing_ok=True)
-                  snap = subprocess.run(
-                      [
-                          "curl", "--fail", "--location", "--silent", "--show-error",
-                          "--retry", "3", "--retry-all-errors", "--max-time", "120",
-                          "--output", str(dest), candidate,
-                      ],
-                      text=True, capture_output=True,
-                  )
-                  if snap.returncode == 0 and valid_pdf(dest):
-                      source_profile = "wayback-exact-url"
-                      archive_url = candidate
-                      break
-
-          if source_profile is None:
-              print(json.dumps({
-                  "identity": target.identity,
-                  "source": "unavailable",
-                  "errors": errors,
-              }, sort_keys=True))
-              raise SystemExit(0)
-
-          fitz, _ = core._load_native_pipeline()._imports()
-          doc = fitz.open(dest)
-          try:
-              pipeline = core._load_native_pipeline()
-              markers = pipeline.detect_markers(doc, target.marker_pattern or pipeline.DEFAULT_MARKER)
-              nums = [m.number for m in markers]
-              duplicates = sorted(n for n, c in collections.Counter(nums).items() if c > 1)
-              missing = sorted(set(range(1, target.total + 1)) - set(nums))
-              extra = sorted(set(nums) - set(range(1, target.total + 1)))
-
-              labels, blocks = option_markers._collect(doc)
-              line_labels = option_markers._collect_line_option_labels(doc)
-              line_groups = option_markers._partition_ordered_line_groups(
-                  line_labels, tuple(target.option_ids), target.total
-              )
-              geometric = option_markers._style_option_groups(labels, tuple(target.option_ids))
-              geometric.extend(
-                  option_markers._block_fallback_groups(blocks, geometric, tuple(target.option_ids))
-              )
-              geometric.extend(
-                  option_markers._block_single_label_groups(blocks, geometric, tuple(target.option_ids))
-              )
-              geometric.sort(key=lambda g: (g.page_index, g.y0, g.x0))
-
-              option_result = {"ok": False}
-              try:
-                  groups = option_markers.detect_ordered_option_groups(
-                      doc, tuple(target.option_ids), target.total
-                  )
-                  synthetic = option_markers.markers_from_groups(doc, groups, pipeline.Marker)
-                  pipeline.validate_marker_numbers(synthetic, target.total)
-                  option_result = {
-                      "ok": True,
-                      "count": len(groups),
-                      "kinds": dict(collections.Counter(g.kind for g in groups)),
-                      "pages": dict(collections.Counter(g.page_index + 1 for g in groups)),
+                  for page in doc:
+                      text_chars += len(page.get_text("text"))
+                      blocks += len(page.get_text("blocks"))
+                      hashes.append(ahash(page))
+                  return {
+                      "available":True,
+                      "sha256":sha(path),
+                      "bytes":path.stat().st_size,
+                      "pages":len(doc),
+                      "textChars":text_chars,
+                      "textBlocks":blocks,
+                      "_hashes":hashes,
                   }
-              except Exception as exc:
-                  option_result = {
-                      "ok": False,
-                      "error": f"{type(exc).__name__}:{exc}",
-                      "lineGroups": len(line_groups),
-                      "geometricGroups": len(geometric),
-                      "labels": len(labels),
-                      "lineLabels": len(line_labels),
-                      "blocks": len(blocks),
-                  }
+              finally:
+                  doc.close()
 
-              print(json.dumps({
-                  "identity": target.identity,
-                  "source": source_profile,
-                  "archiveUrl": archive_url,
-                  "sourceSha256": sha256(dest),
-                  "sourceBytes": dest.stat().st_size,
-                  "pageCount": len(doc),
-                  "regex": {
-                      "count": len(markers),
-                      "unique": len(set(nums)),
-                      "duplicateCount": len(duplicates),
-                      "missingCount": len(missing),
-                      "extraCount": len(extra),
-                      "duplicates": duplicates[:20],
-                      "missingHead": missing[:20],
-                  },
-                  "optionGroups": option_result,
-                  "errors": errors,
-              }, sort_keys=True))
-          finally:
-              doc.close()
+          live=meta(Path("live.pdf"))
+          candidate=meta(Path("candidate.pdf"))
+          similarity=None
+          if live.get("available") and candidate.get("available") and live.get("pages")==candidate.get("pages"):
+              distances=[]
+              for a,b in zip(live["_hashes"],candidate["_hashes"]):
+                  distances.append(sum(x!=y for x,y in zip(a,b))/len(a))
+              similarity={
+                  "maxHammingRatio":max(distances) if distances else 0,
+                  "meanHammingRatio":sum(distances)/len(distances) if distances else 0,
+              }
+          live.pop("_hashes",None)
+          candidate.pop("_hashes",None)
+          print(json.dumps({
+              "identity":os.environ["IDENTITY"],
+              "live":live,
+              "candidate":candidate,
+              "visualSimilarity":similarity,
+          },sort_keys=True))
           PY
