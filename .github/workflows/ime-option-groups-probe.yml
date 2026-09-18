@@ -1,4 +1,5 @@
 name: IME option-groups dry-run probe
+# base-refresh: 546692409170e40edac93b3dc8162f1f512ea281
 
 on:
   pull_request:
