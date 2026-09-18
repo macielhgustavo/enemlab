@@ -1,4 +1,4 @@
-name: IME 2020 missing-question window diagnostic
+name: IME 2020 header signature diagnostic
 
 on:
   pull_request:
@@ -19,10 +19,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Inspect candidate window without question text
+      - name: Count header signatures
         run: |
           python - <<'PY'
-          import json, re, sys
+          import json, sys
           from pathlib import Path
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
@@ -34,52 +34,50 @@ jobs:
           pipeline=core._load_native_pipeline()
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
+          signatures=[]
           try:
-              windows={14:(182.5, float(doc[14].rect.height)*0.975),15:(0.0,143.1)}
-              for pi,(wy0,wy1) in windows.items():
-                  page=doc[pi]
-                  data=page.get_text("dict",sort=True)
-                  entries=[]
-                  for bi,block in enumerate(data.get("blocks",[])):
-                      for li,line in enumerate(block.get("lines",[])):
-                          spans=line.get("spans",[])
-                          if not spans: continue
-                          y0=min(float(s["bbox"][1]) for s in spans if s.get("bbox"))
-                          y1=max(float(s["bbox"][3]) for s in spans if s.get("bbox"))
-                          if y1 < wy0 or y0 > wy1: continue
-                          raw="".join(str(s.get("text","")) for s in spans)
-                          stripped=raw.lstrip()
-                          if not stripped or stripped[0].upper() not in "ABCDE": continue
-                          prefix=stripped[:4]
-                          codepoints=[ord(ch) for ch in prefix]
-                          first=spans[0]
-                          entries.append({
-                              "block":bi,"line":li,
-                              "lead":stripped[0].upper(),
-                              "prefixCodepoints":codepoints,
-                              "x0":round(min(float(s["bbox"][0]) for s in spans if s.get("bbox")),1),
-                              "y0":round(y0,1),"y1":round(y1,1),
-                              "font":str(first.get("font","")),
-                              "size":round(float(first.get("size",0)),1),
-                          })
-                  images=[]
-                  for img in page.get_images(full=True):
-                      xref=img[0]
-                      for rect in page.get_image_rects(xref):
-                          if rect.y1>=wy0 and rect.y0<=wy1:
-                              images.append([round(rect.x0,1),round(rect.y0,1),round(rect.x1,1),round(rect.y1,1)])
-                  drawings=[]
-                  for d in page.get_drawings():
-                      r=d.get("rect")
-                      if r and r.y1>=wy0 and r.y0<=wy1:
-                          drawings.append([round(r.x0,1),round(r.y0,1),round(r.x1,1),round(r.y1,1)])
-                  print(json.dumps({
-                      "page":pi+1,"window":[round(wy0,1),round(wy1,1)],
-                      "leadingAtoE":entries,
-                      "imageRects":images[:40],
-                      "drawingRects":drawings[:80],
-                      "drawingCount":len(drawings),
-                  },sort_keys=True))
+              for pi,page in enumerate(doc):
+                  width=float(page.rect.width)
+                  horizontals=[]
+                  verticals=[]
+                  for drawing in page.get_drawings():
+                      for item in drawing.get("items",[]):
+                          if item[0]=="l":
+                              p1,p2=item[1],item[2]
+                              x0,x1=sorted((float(p1.x),float(p2.x)))
+                              y0,y1=sorted((float(p1.y),float(p2.y)))
+                              if abs(y1-y0)<=1.0 and x1-x0>=width*0.60:
+                                  horizontals.append((round((y0+y1)/2,1),round(x0,1),round(x1,1)))
+                              if abs(x1-x0)<=1.0 and y1-y0>=8:
+                                  verticals.append((round((x0+x1)/2,1),round(y0,1),round(y1,1)))
+                          elif item[0]=="re":
+                              r=item[1]
+                              if float(r.width)>=width*0.60:
+                                  horizontals.extend([
+                                      (round(float(r.y0),1),round(float(r.x0),1),round(float(r.x1),1)),
+                                      (round(float(r.y1),1),round(float(r.x0),1),round(float(r.x1),1)),
+                                  ])
+                              if float(r.height)>=8:
+                                  verticals.extend([
+                                      (round(float(r.x0),1),round(float(r.y0),1),round(float(r.y1),1)),
+                                      (round(float(r.x1),1),round(float(r.y0),1),round(float(r.y1),1)),
+                                  ])
+                  ys=sorted(set(y for y,_,__ in horizontals))
+                  page_sigs=[]
+                  for a,b in zip(ys,ys[1:]):
+                      gap=b-a
+                      if not 15<=gap<=21: continue
+                      dividers=[
+                          [x,vy0,vy1] for x,vy0,vy1 in verticals
+                          if vy0<=a+2.5 and vy1>=b-2.5 and width*0.50<=x<=width*0.80
+                      ]
+                      if dividers:
+                          rec={"page":pi+1,"top":round(a,1),"bottom":round(b,1),"gap":round(gap,1),"dividers":dividers[:6]}
+                          page_sigs.append(rec)
+                          signatures.append(rec)
+                  if page_sigs:
+                      print(json.dumps({"page":pi+1,"signatures":page_sigs},sort_keys=True))
+              print(json.dumps({"signatureCount":len(signatures),"pages":[s["page"] for s in signatures]},sort_keys=True))
           finally:
               doc.close()
           PY
