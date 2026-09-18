@@ -148,6 +148,17 @@ jobs:
                       "pages": dict(sorted(collections.Counter(g.page_index + 1 for g in groups).items())),
                   })
               inline_styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+              inline_letters = [label.letter for label in inline_labels]
+              inline_chunks = [
+                  "".join(inline_letters[index:index + 5])
+                  for index in range(0, len(inline_letters), 5)
+              ]
+              canonical_inline_chunks = sum(chunk == "ABCDE" for chunk in inline_chunks)
+              inline_mismatches = [
+                  {"chunk": index + 1, "letters": chunk}
+                  for index, chunk in enumerate(inline_chunks)
+                  if chunk != "ABCDE"
+              ][:12]
 
               fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
 
@@ -167,6 +178,9 @@ jobs:
                   "blockCandidateCount": len(blocks),
                   "styles": styles[:16],
                   "inlineLabelCount": len(inline_labels),
+                  "inlineLetterCounts": dict(sorted(collections.Counter(inline_letters).items())),
+                  "canonicalInlineChunks": canonical_inline_chunks,
+                  "inlineChunkMismatches": inline_mismatches,
                   "inlineStyles": inline_styles[:16],
                   "blockFallbackGroups": len(fallback),
                   "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
