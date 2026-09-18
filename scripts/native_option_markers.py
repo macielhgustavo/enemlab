@@ -227,8 +227,7 @@ def _partition_ordered_line_groups(
     if noise:
         skip_sets = itertools.combinations(removable, noise)
 
-    solution: list[OptionGroup] | None = None
-    solution_skips: tuple[int, ...] | None = None
+    solutions: list[tuple[tuple[int, ...], list[OptionGroup]]] = []
     for skips_iter in skip_sets:
         skips = tuple(skips_iter)
         skip_lookup = set(skips)
@@ -247,15 +246,32 @@ def _partition_ordered_line_groups(
                 valid = False
                 break
             candidate.append(group)
-        if not valid:
-            continue
+        if valid:
+            solutions.append((skips, candidate))
 
-        if solution is not None and skips != solution_skips:
-            return []
-        solution = candidate
-        solution_skips = skips
+    if len(solutions) == 1:
+        return solutions[0][1]
+    if not solutions or noise == 0:
+        return []
 
-    return solution or []
+    # Multiple sequence-preserving removals are normally ambiguous. We resolve
+    # them only when exactly one solution discards labels from a genuinely rare
+    # font/size style. This captures extraction noise while keeping dominant
+    # option typography protected.
+    style_counts = collections.Counter((label.font, label.size) for label in labels)
+    rare_limit = max(2, (len(labels) + 49) // 50)  # at most ~2% of labels
+    rare_solutions = [
+        candidate
+        for skips, candidate in solutions
+        if skips
+        and all(
+            style_counts[(labels[index].font, labels[index].size)] <= rare_limit
+            for index in skips
+        )
+    ]
+    if len(rare_solutions) == 1:
+        return rare_solutions[0]
+    return []
 
 
 def _cluster_rows(
