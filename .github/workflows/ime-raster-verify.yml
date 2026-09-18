@@ -1,4 +1,4 @@
-name: IME raster fallback verification
+name: IME all-editions dry-run verification
 
 on:
   pull_request:
@@ -11,39 +11,56 @@ permissions:
 
 jobs:
   verify:
+    name: IME ${{ matrix.edition }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        edition:
+          - "2018-2019"
+          - "2019-2020"
+          - "2020-2021"
+          - "2021-2022"
+          - "2022-2023"
+          - "2023-2024"
+          - "2024-2025"
+          - "2025-2026"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Run synthetic native tests
-        run: python -m unittest discover -s scripts/tests -p 'test_native_*.py'
-      - name: Prepare IME 2020-2021 without publishing
-        run: python scripts/native_prepare.py ime 2020-2021 --phase first --out bundle | tee prepare-result.json
-      - name: Validate full 2020 structure
+      - name: Prepare without publishing
+        run: python scripts/native_prepare.py ime "${{ matrix.edition }}" --phase first --out bundle | tee prepare-result.json
+      - name: Validate structural invariants
+        env:
+          EDITION: ${{ matrix.edition }}
         run: |
           python - <<'PY'
-          import collections, json
+          import collections, json, os
           from pathlib import Path
+          edition=os.environ["EDITION"]
           result=json.loads(Path("prepare-result.json").read_text())
           pack=json.loads(Path("bundle/native-pack.json").read_text())
           audit=json.loads(Path("src/lib/providers/ime/exam-sources.audit.json").read_text())
           qs=pack.get("questions") or []
           docs=pack.get("documents") or []
-          assert result["identity"]=="ime:2020-2021:first", result
+          assert result["identity"]==f"ime:{edition}:first", result
           assert result["sourceProfile"]=="pinned-archive", result
           assert result["markerProfile"]=="ime-ordered-option-groups", result
           assert len(qs)==40
-          assert [q.get("questionKey") for q in qs]==[f"ime-2020-2021-objective-{i}" for i in range(1,41)]
-          assert len(docs)==1 and docs[0].get("sourceSha256")==audit["records"]["2020-2021"]["examSha256"]
+          assert [q.get("number") for q in qs]==list(range(1,41))
+          assert [q.get("questionKey") for q in qs]==[f"ime-{edition}-objective-{i}" for i in range(1,41)]
+          assert len(docs)==1 and docs[0].get("sourceSha256")==audit["records"][edition]["examSha256"]
           kinds=collections.Counter()
-          raster=[]
+          regions=0
           for i,q in enumerate(qs,1):
               ex=q.get("extraction") or {}
               vc=ex.get("visualCompleteness") or {}
+              assert ex.get("markerDetected") is True, i
               assert ex.get("optionGroupDetected") is True, i
               assert ex.get("markerStrategy")=="ordered-option-groups", i
               assert vc.get("resolved") is True, i
@@ -52,10 +69,14 @@ jobs:
                   issue for issue in ex.get("issues") or []
                   if str(issue).startswith("dependência visual/contextual não resolvida automaticamente:")
               ], i
-              kind=str(ex.get("optionGroupKind") or "unknown")
-              kinds[kind]+=1
-              if kind=="raster-header-image":
-                  raster.append(i)
-          assert raster==[30], raster
-          print(json.dumps({"questions":len(qs),"kinds":dict(kinds),"rasterQuestion":raster}))
+              kinds[str(ex.get("optionGroupKind") or "unknown")]+=1
+              regions+=len(q.get("visualRegions") or [])
+          print(json.dumps({
+              "edition":edition,
+              "questions":len(qs),
+              "assets":result["assets"],
+              "kinds":dict(sorted(kinds.items())),
+              "visualRegions":regions,
+              "sha":docs[0]["sourceSha256"],
+          },sort_keys=True))
           PY
