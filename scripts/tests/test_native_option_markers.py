@@ -172,6 +172,33 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         self.assertEqual(len(groups), 4)
         self.assertTrue(all(group.kind == "ordered-lines" for group in groups))
 
+    def test_ordered_line_partition_accepts_unique_rare_style_surplus(self):
+        labels = []
+        for letter in "ABCDE":
+            labels.append(
+                markers.OptionLabel(
+                    0, len(labels), letter, 40, 100 + len(labels) * 10,
+                    500, 112 + len(labels) * 10, "Body", 12.0
+                )
+            )
+        labels.append(
+            markers.OptionLabel(
+                0, len(labels), "A", 500, 220, 510, 232, "Noise", 8.0
+            )
+        )
+        for letters in ("ABCDE", "ABCDE"):
+            for letter in letters:
+                labels.append(
+                    markers.OptionLabel(
+                        0, len(labels), letter, 40, 250 + len(labels) * 10,
+                        500, 262 + len(labels) * 10, "Body", 12.0
+                    )
+                )
+
+        groups = markers._partition_ordered_line_groups(labels, tuple("ABCDE"), 3)
+
+        self.assertEqual(len(groups), 3)
+
     def test_ordered_line_partition_fails_closed_on_ambiguous_surplus(self):
         labels = []
         for page, letters in enumerate(("ABCDE", "AABCDE", "ABCDE")):
