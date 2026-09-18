@@ -1,8 +1,8 @@
-/** Identidade atual. A próxima marca troca este contrato, não cada tela. */
+/** Identidade exibida. Chaves de persistência e IDs de prova permanecem estáveis. */
 export const PRODUCT_BRAND = {
-  name: "ENEM Lab",
-  monogram: "E",
-  description: "Plataforma pessoal adaptativa para questões reais do ENEM.",
+  name: "Studium Labs",
+  monogram: "S",
+  description: "Estudo orientado por evidências, para provas reais.",
 } as const;
 
 export function Brand() {

@@ -13,7 +13,7 @@
 }
 
 .examContent::before {
-  content: "ENEM LAB  /  SESSÃO EM CURSO";
+  content: "STUDIUM LABS  /  SESSÃO EM CURSO";
   display: block;
   width: min(1580px, 100%);
   margin: 0 auto 12px;

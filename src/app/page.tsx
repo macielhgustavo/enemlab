@@ -10,11 +10,9 @@ import {
   BookOpen,
   CheckCircle2,
   Clock3,
-  Crosshair,
   FileText,
   Repeat2,
   Sparkles,
-  Target,
   TrendingUp,
   TriangleAlert,
 } from "lucide-react";
@@ -35,6 +33,7 @@ import { dueSRS } from "@/lib/domain/srs";
 import { DashboardSkeleton, Sk } from "@/components/Skeleton";
 import { Button } from "@/components/ui/button";
 import { examLabel } from "@/lib/providers/label";
+import { PRODUCT_BRAND } from "@/components/Brand";
 import { listProviders, sameProvider } from "@/lib/providers";
 
 const EvolutionArea = dynamic(
@@ -322,7 +321,6 @@ export default function HomePage() {
 
       <div className="dashboard-grid">
         <Panel className="dash-mission" labelledBy="mission-title">
-          <div className="dash-grid-fade" aria-hidden="true" />
           <div className="dash-mission__content">
             <p>{mission.eyebrow}</p>
             <h2 id="mission-title">{mission.title}</h2>
@@ -332,10 +330,6 @@ export default function HomePage() {
                 {mission.cta} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </Button>
-          </div>
-          <div className="dash-mission__signal" aria-hidden="true">
-            <Crosshair />
-            <span>FOCO</span>
           </div>
         </Panel>
 
@@ -362,13 +356,12 @@ export default function HomePage() {
 
         <section className="dash-loop" aria-label="Ciclo de aprendizagem">
           {[
-            { icon: <Target />, label: "Treinar", value: completed.length },
-            { icon: <TriangleAlert />, label: "Diagnosticar", value: weak.length },
-            { icon: <Repeat2 />, label: "Revisar", value: dueItems.length },
-            { icon: <Crosshair />, label: "Consolidar", value: consolidatedAreas },
+            { label: "Treinar", value: completed.length },
+            { label: "Diagnosticar", value: weak.length },
+            { label: "Revisar", value: dueItems.length },
+            { label: "Consolidar", value: consolidatedAreas },
           ].map((step, index) => (
             <div className="dash-loop__step" key={step.label}>
-              <span>{step.icon}</span>
               <div>
                 <small>0{index + 1}</small>
                 <strong>{step.label}</strong>
@@ -659,7 +652,7 @@ export default function HomePage() {
       </div>
 
       <footer className="dashboard-footer">
-        <span>ENEM Lab · desempenho baseado no seu histórico real</span>
+        <span>{PRODUCT_BRAND.name} · desempenho baseado no seu histórico real</span>
         <span>
           <BookOpen aria-hidden="true" /> {examLabel(providerId)}
         </span>

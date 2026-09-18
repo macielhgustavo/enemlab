@@ -31,7 +31,7 @@ export default function AccountPage() {
 
   const profile = useMemo(() => {
     const meta = cloud.user?.user_metadata || {};
-    const name = String(meta.full_name || meta.name || meta.user_name || cloud.user?.email || "Conta ENEM Lab");
+    const name = String(meta.full_name || meta.name || meta.user_name || cloud.user?.email || "Conta Studium Labs");
     const avatar = typeof meta.avatar_url === "string" ? meta.avatar_url : "";
     return { name, avatar };
   }, [cloud.user]);
@@ -74,7 +74,7 @@ export default function AccountPage() {
         <div className="accountAuthGrid">
           <Card className="accountAuthCard">
             <div className="accountIcon"><Cloud size={20} /></div>
-            <h2>Entrar no ENEM Lab</h2>
+            <h2>Entrar no Studium Labs</h2>
             <p className="muted">Você pode continuar sem conta. Ao entrar, nenhum dado local é apagado automaticamente.</p>
 
             <div className="oauthStack">
@@ -114,7 +114,7 @@ export default function AccountPage() {
             <h2>Local primeiro. Nuvem quando você quiser.</h2>
             <div className="accountPromiseList">
               <div><b>1</b><span>Você segue estudando normalmente mesmo deslogado ou sem internet.</span></div>
-              <div><b>2</b><span>No primeiro login deste navegador, o ENEM Lab pede permissão para mesclar os dados.</span></div>
+              <div><b>2</b><span>No primeiro login deste navegador, o Studium Labs pede permissão para mesclar os dados.</span></div>
               <div><b>3</b><span>Depois disso, mudanças são sincronizadas automaticamente e conflitos preservam o máximo de progresso possível.</span></div>
             </div>
             <div className="accountLocalStats">
@@ -163,7 +163,7 @@ export default function AccountPage() {
             {cloud.status === "needs-merge" ? (
               <>
                 <h2>Mesclar este navegador com sua nuvem</h2>
-                <p className="muted">Este é o primeiro vínculo desta conta neste navegador. O ENEM Lab vai unir tentativas, notas e revisões antes de ativar o sync automático.</p>
+                <p className="muted">Este é o primeiro vínculo desta conta neste navegador. O Studium Labs vai unir tentativas, notas e revisões antes de ativar o sync automático.</p>
                 <div className="mergeSummary"><span>{db.attempts.length} tentativas locais</span><span>{cloud.cloudExists ? "Há dados na nuvem" : "Nuvem ainda vazia"}</span></div>
                 <Button variant="primary" onClick={() => void cloud.mergeAndEnable()}>
                   Mesclar e ativar sincronização

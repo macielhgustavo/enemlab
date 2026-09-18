@@ -6,8 +6,8 @@
 |---|---|---|
 | `npm run test:e2e` | tudo abaixo | qualquer um falha |
 | `npm run test:e2e:ci` | fumaça + a11y | rota quebrada, erro de cliente, violação séria de a11y |
-| `npm run test:a11y` | axe em 4 telas, 2 temas | contraste, nome acessível, papel, foco |
-| `npm run test:visual` | 10 capturas por viewport | layout, cor ou componente mudou |
+| `npm run test:a11y` | axe em 13 telas, 2 temas | contraste, nome acessível, papel, foco |
+| `npm run test:visual` | 13 telas em 2 temas por viewport, mais overlays | layout, cor ou componente mudou |
 
 Dois viewports em todos: desktop 1440×900 e mobile 390×844.
 

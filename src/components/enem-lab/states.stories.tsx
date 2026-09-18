@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, InlineNotice, LoadingState } from "./states";
 
-const meta: Meta = { title: "ENEM Lab/Estados" };
+const meta: Meta = { title: "Studium Labs/Estados" };
 export default meta;
 type Story = StoryObj;
 

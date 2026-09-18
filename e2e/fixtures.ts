@@ -19,6 +19,7 @@ export interface SeedOptions {
 
 function tentativaEnem() {
   const linhas = Array.from({ length: 15 }, (_, i) => ({
+    key: `enem-2023-ingles-${i + 1}`,
     index: i + 1,
     year: 2023,
     area: ["matematica", "ciencias-natureza", "linguagens", "ciencias-humanas"][i % 4],
