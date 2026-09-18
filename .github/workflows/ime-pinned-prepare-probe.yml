@@ -1,4 +1,4 @@
-name: IME 2020 unmatched-label diagnostic
+name: IME 2020 residual-geometry diagnostic
 
 on:
   pull_request:
@@ -19,12 +19,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Diagnose safe A-E line starts
+      - name: Diagnose residual geometry only
         run: |
           python - <<'PY'
-          import json, re, sys
+          import collections, json, sys
           from pathlib import Path
-
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
           import native_orchestrator as core
@@ -37,51 +36,58 @@ jobs:
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
           try:
-              recognized=m._collect_line_option_labels(doc)
-              recognized_keys={(x.page_index, round(x.y0,1), x.letter) for x in recognized}
-              unmatched=[]
-              all_starts=[]
-              exact_tokens=[]
-              for pi,page in enumerate(doc):
-                  data=page.get_text("dict",sort=True)
-                  for bi,block in enumerate(data.get("blocks",[])):
-                      for li,line in enumerate(block.get("lines",[])):
-                          spans=line.get("spans",[])
-                          if not spans:
-                              continue
-                          raw="".join(str(s.get("text","")) for s in spans)
-                          stripped=raw.lstrip()
-                          if not stripped or stripped[0].upper() not in "ABCDE":
-                              continue
-                          letter=stripped[0].upper()
-                          first=spans[0]
-                          boxes=[tuple(map(float,s["bbox"])) for s in spans if s.get("bbox")]
-                          if not boxes:
-                              continue
-                          x0=min(b[0] for b in boxes); y0=min(b[1] for b in boxes)
-                          x1=max(b[2] for b in boxes); y1=max(b[3] for b in boxes)
-                          after=stripped[1:]
-                          next_nonspace=next((ch for ch in after if not ch.isspace()),"")
-                          rec=bool(m._LINE_OPTION_RE.match(raw))
-                          item=[pi+1,letter,round(x0,1),round(y0,1),round(x1,1),round(y1,1),str(first.get("font","")),round(float(first.get("size",0)),1),ord(next_nonspace) if next_nonspace else 0]
-                          all_starts.append(item+[rec])
-                          if not rec:
-                              unmatched.append(item)
-                          if len(stripped)==1:
-                              exact_tokens.append(item)
+              labels,blocks=m._collect(doc)
+              line_labels=m._collect_line_option_labels(doc)
+              line_groups=m._partition_ordered_line_groups(line_labels,tuple("ABCDE"),40)
+              print(json.dumps({"lineGroups":len(line_groups),"isolated":len(labels)}))
 
+              def overlaps_group(label,g):
+                  gy1=g.core_y1 if g.core_y1 is not None else g.y1
+                  return (
+                      label.page_index==g.page_index
+                      and label.x1 >= g.x0-8 and label.x0 <= g.x1+8
+                      and label.y1 >= g.y0-8 and label.y0 <= gy1+8
+                  )
+
+              residual=[l for l in labels if not any(overlaps_group(l,g) for g in line_groups)]
+              by_style=collections.Counter((l.font,l.size) for l in residual)
               print(json.dumps({
-                  "recognized":len(recognized),
-                  "allStarts":len(all_starts),
-                  "unmatched":len(unmatched),
-                  "exactTokens":len(exact_tokens)
+                  "residualCount":len(residual),
+                  "styles":[[f,s,n] for (f,s),n in by_style.most_common()]
               },sort_keys=True))
-              for item in unmatched:
-                  print(json.dumps({"unmatched":item},sort_keys=True))
-              print(json.dumps({"exactTokenCountByPage":{
-                  str(p):sum(1 for x in exact_tokens if x[0]==p)
-                  for p in sorted({x[0] for x in exact_tokens})
-              }},sort_keys=True))
+
+              by_page=collections.defaultdict(list)
+              for l in residual:
+                  by_page[l.page_index].append(l)
+              for pi,items in sorted(by_page.items()):
+                  print(json.dumps({
+                      "page":pi+1,
+                      "labels":[
+                          [l.letter,round(l.x0,1),round(l.y0,1),round(l.x1,1),round(l.y1,1),l.font,l.size]
+                          for l in sorted(items,key=lambda x:(x.y0,x.x0))
+                      ]
+                  },sort_keys=True))
+
+              # Re-run geometric grouping using only residual isolated labels,
+              # grouped by style, so existing 39 proven groups cannot mask a unique supplement.
+              candidates=[]
+              styles=collections.defaultdict(list)
+              for l in residual:
+                  styles[(l.font,l.size)].append(l)
+              for style,items in styles.items():
+                  h,used=m._horizontal_groups(items,tuple("ABCDE"))
+                  v=m._vertical_groups(items,tuple("ABCDE"),used)
+                  w=m._wrapped_groups(items,tuple("ABCDE"),used)
+                  for g in [*h,*v,*w]:
+                      candidates.append(g)
+              candidates.sort(key=lambda g:(g.page_index,g.y0,g.x0))
+              print(json.dumps({
+                  "residualCandidateCount":len(candidates),
+                  "candidates":[
+                      [g.page_index+1,g.kind,round(g.x0,1),round(g.y0,1),round(g.x1,1),round(g.y1,1)]
+                      for g in candidates
+                  ]
+              },sort_keys=True))
           finally:
               doc.close()
           PY
