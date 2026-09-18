@@ -323,6 +323,82 @@ def _block_fallback_groups(
     return fallback
 
 
+def _style_option_groups(
+    labels: list[OptionLabel], option_ids: tuple[str, ...]
+) -> list[OptionGroup]:
+    """Return groups only from styles with repeated geometric evidence.
+
+    A single A..E sequence in an isolated font can be a mathematical false
+    positive. Two or more complete groups using the same font/size is strong
+    enough to make that style eligible; rare true layouts can still be
+    recovered by the punctuation-aware block fallbacks below.
+    """
+    by_style: dict[tuple[str, float], list[OptionLabel]] = collections.defaultdict(list)
+    for label in labels:
+        by_style[(label.font, label.size)].append(label)
+
+    groups: list[OptionGroup] = []
+    for style_labels in by_style.values():
+        horizontal, used = _horizontal_groups(style_labels, option_ids)
+        vertical = _vertical_groups(style_labels, option_ids, used)
+        wrapped = _wrapped_groups(style_labels, option_ids, used)
+        candidates = [*horizontal, *vertical, *wrapped]
+        if len(candidates) >= 2:
+            groups.extend(candidates)
+    return groups
+
+
+def _block_single_label_groups(
+    blocks: list[dict[str, Any]],
+    groups: list[OptionGroup],
+    option_ids: tuple[str, ...],
+) -> list[OptionGroup]:
+    """Recover A..E when each punctuated option starts its own text block.
+
+    These candidates are intentionally built only from blocks that expose one
+    canonical option letter. The same geometric detectors used for isolated
+    spans then validate horizontal, vertical or wrapped A..E structure.
+    """
+    pseudo: list[OptionLabel] = []
+    for block in blocks:
+        seen: list[str] = []
+        for letter in block["letters"]:
+            if not seen or seen[-1] != letter:
+                seen.append(letter)
+        if len(seen) != 1 or seen[0] not in option_ids:
+            continue
+        bx0, by0, bx1, by1 = map(float, block["bbox"])
+        pseudo.append(
+            OptionLabel(
+                page_index=int(block["page_index"]),
+                block_index=int(block["block_index"]),
+                letter=seen[0],
+                x0=bx0,
+                y0=by0,
+                x1=bx1,
+                y1=by1,
+                font="__block_option__",
+                size=0.0,
+            )
+        )
+
+    if not pseudo:
+        return []
+
+    horizontal, used = _horizontal_groups(pseudo, option_ids)
+    vertical = _vertical_groups(pseudo, option_ids, used)
+    wrapped = _wrapped_groups(pseudo, option_ids, used)
+    recovered: list[OptionGroup] = []
+    for candidate in [*horizontal, *vertical, *wrapped]:
+        if any(
+            _intersects_2d(existing, candidate.page_index, (candidate.x0, candidate.y0, candidate.x1, candidate.y1))
+            for existing in [*groups, *recovered]
+        ):
+            continue
+        recovered.append(candidate)
+    return recovered
+
+
 def detect_ordered_option_groups(
     doc: Any,
     option_ids: tuple[str, ...],
@@ -334,25 +410,12 @@ def detect_ordered_option_groups(
         raise OrderedOptionMarkerError("estratégia exige pelo menos três alternativas")
 
     labels, blocks = _collect(doc)
-    if not labels:
+    if not labels and not blocks:
         raise OrderedOptionMarkerError("nenhum rótulo de alternativa detectado")
 
-    styles = collections.Counter((label.font, label.size) for label in labels)
-    dominant_style, dominant_count = styles.most_common(1)[0]
-    minimum_style_evidence = max(len(option_ids) * 2, int(total * len(option_ids) * 0.6))
-    if dominant_count < minimum_style_evidence:
-        raise OrderedOptionMarkerError(
-            f"estilo de alternativa sem evidência suficiente: {dominant_count}/{minimum_style_evidence}"
-        )
-
-    filtered = [
-        label for label in labels if (label.font, label.size) == dominant_style
-    ]
-    horizontal, used = _horizontal_groups(filtered, option_ids)
-    vertical = _vertical_groups(filtered, option_ids, used)
-    wrapped = _wrapped_groups(filtered, option_ids, used)
-    groups = [*horizontal, *vertical, *wrapped]
+    groups = _style_option_groups(labels, option_ids)
     groups.extend(_block_fallback_groups(blocks, groups, option_ids))
+    groups.extend(_block_single_label_groups(blocks, groups, option_ids))
     groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
 
     if len(groups) != total:
