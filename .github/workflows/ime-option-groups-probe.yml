@@ -97,7 +97,7 @@ jobs:
               styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
 
               import re
-              line_re = re.compile(r"^\\s*[\\[(]?([A-Ea-e])[\\])\\.:;-]\\s*")
+              line_re = re.compile(r"^\s*(?:\[|\()?([A-Ea-e])(?:\]|\)|\.|:|;|-)\s*")
               inline_labels = []
               for page_index, page in enumerate(doc):
                   data = page.get_text("dict", sort=True)
