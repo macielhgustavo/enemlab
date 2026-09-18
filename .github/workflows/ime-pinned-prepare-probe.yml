@@ -1,0 +1,83 @@
+name: IME 2020 header signature diagnostic
+
+on:
+  pull_request:
+    branches: [fix/native-ime-pinned-source]
+    paths:
+      - ".github/workflows/ime-pinned-prepare-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
+      - name: Count header signatures
+        run: |
+          python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import native_ingest as ingest
+          import native_orchestrator as core
+          import native_prepare
+
+          target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
+          pdf=native_prepare._verified_pdf_override(target)
+          pipeline=core._load_native_pipeline()
+          fitz,_=pipeline._imports()
+          doc=fitz.open(pdf)
+          signatures=[]
+          try:
+              for pi,page in enumerate(doc):
+                  width=float(page.rect.width)
+                  horizontals=[]
+                  verticals=[]
+                  for drawing in page.get_drawings():
+                      for item in drawing.get("items",[]):
+                          if item[0]=="l":
+                              p1,p2=item[1],item[2]
+                              x0,x1=sorted((float(p1.x),float(p2.x)))
+                              y0,y1=sorted((float(p1.y),float(p2.y)))
+                              if abs(y1-y0)<=1.0 and x1-x0>=width*0.60:
+                                  horizontals.append((round((y0+y1)/2,1),round(x0,1),round(x1,1)))
+                              if abs(x1-x0)<=1.0 and y1-y0>=8:
+                                  verticals.append((round((x0+x1)/2,1),round(y0,1),round(y1,1)))
+                          elif item[0]=="re":
+                              r=item[1]
+                              if float(r.width)>=width*0.60:
+                                  horizontals.extend([
+                                      (round(float(r.y0),1),round(float(r.x0),1),round(float(r.x1),1)),
+                                      (round(float(r.y1),1),round(float(r.x0),1),round(float(r.x1),1)),
+                                  ])
+                              if float(r.height)>=8:
+                                  verticals.extend([
+                                      (round(float(r.x0),1),round(float(r.y0),1),round(float(r.y1),1)),
+                                      (round(float(r.x1),1),round(float(r.y0),1),round(float(r.y1),1)),
+                                  ])
+                  ys=sorted(set(y for y,_,__ in horizontals))
+                  page_sigs=[]
+                  for a,b in zip(ys,ys[1:]):
+                      gap=b-a
+                      if not 15<=gap<=21: continue
+                      dividers=[
+                          [x,vy0,vy1] for x,vy0,vy1 in verticals
+                          if vy0<=a+2.5 and vy1>=b-2.5 and width*0.50<=x<=width*0.80
+                      ]
+                      if dividers:
+                          rec={"page":pi+1,"top":round(a,1),"bottom":round(b,1),"gap":round(gap,1),"dividers":dividers[:6]}
+                          page_sigs.append(rec)
+                          signatures.append(rec)
+                  if page_sigs:
+                      print(json.dumps({"page":pi+1,"signatures":page_sigs},sort_keys=True))
+              print(json.dumps({"signatureCount":len(signatures),"pages":[s["page"] for s in signatures]},sort_keys=True))
+          finally:
+              doc.close()
+          PY
