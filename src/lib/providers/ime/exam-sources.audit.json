@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "provider": "ime",
+  "auditRevision": "ime-objective-source-audit@1",
+  "records": {
+    "2025-2026": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20260909011213id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2025-2026/Prova1fase2025OBJETIVA.pdf",
+      "examSha256": "49cb5bd87d478f89dc65f9af9ce563c619d9bee4bd0fd06dda1f14f9c15f1341",
+      "examBytes": 958262
+    },
+    "2024-2025": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2024-2025/CFG_Objetiva_24_25.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20260909011216id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2024-2025/CFG_Objetiva_24_25.pdf",
+      "examSha256": "409cda4a815657e4ab88d86d3fcecaedd0029c5c4f3e39171a79e6a5661b192e",
+      "examBytes": 2128028
+    },
+    "2023-2024": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2023-2024/Prova_Objetiva_1_FASE.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20260909011221id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2023-2024/Prova_Objetiva_1_FASE.pdf",
+      "examSha256": "15286ea9cdca093195291e64da7dc2e54ec62d08492079e1295754076b791745",
+      "examBytes": 11035451
+    },
+    "2022-2023": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2022-2023/provaobjetiva2022.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20260215083228id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2022-2023/provaobjetiva2022.pdf",
+      "examSha256": "6440dfdafdb09a338c81b5bd8f097d6ea520d26884b2f47a396670da7528171f",
+      "examBytes": 1437111
+    },
+    "2021-2022": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2021-2022/CFG1fase2021.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20251212144751id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2021-2022/CFG1fase2021.pdf",
+      "examSha256": "69f2e48b46029bfadd8933c581e8fb7dad3b10a47644b59f147754d55cd02c20",
+      "examBytes": 3266134
+    },
+    "2020-2021": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2020-2021/Prova_Objetiva_1_FASE.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20260208204245id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2020-2021/Prova_Objetiva_1_FASE.pdf",
+      "examSha256": "a95e7fe2f01b6329903b140f9ead66534c05c2aba1e5fe1426b864074bed5b73",
+      "examBytes": 2577743
+    },
+    "2019-2020": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2019-2020/CFG_PROVA_OBJETIVA_2019_20.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20240719044942id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2019-2020/CFG_PROVA_OBJETIVA_2019_20.pdf",
+      "examSha256": "fa535af722d2646caec13df7178391185eba8bdca52c0e20afb99adf86010cfc",
+      "examBytes": 892850
+    },
+    "2018-2019": {
+      "examUrl": "https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2018-2019/CFG_Prova_Objetiva_2018_2019.pdf",
+      "examArchiveUrl": "https://web.archive.org/web/20190712044628id_/https://www.ime.eb.mil.br/images/arquivos/admissao/cfg/provas-anteriores/2018-2019/CFG_Prova_Objetiva_2018_2019.pdf",
+      "examSha256": "a3f52f471a42bab333574f8f983846afb43390c20202cd9a52bd95d77f444c7f",
+      "examBytes": 435537
+    }
+  }
+}
