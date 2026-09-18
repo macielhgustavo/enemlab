@@ -129,6 +129,7 @@ jobs:
                           serial += 1
 
               inline_styles = []
+              inline_groups_all = []
               inline_by_style = collections.defaultdict(list)
               for label in inline_labels:
                   inline_by_style[(label.font, label.size)].append(label)
@@ -137,6 +138,7 @@ jobs:
                   vertical = markers._vertical_groups(items, tuple("ABCDE"), used)
                   wrapped = markers._wrapped_groups(items, tuple("ABCDE"), used)
                   groups = [*horizontal, *vertical, *wrapped]
+                  inline_groups_all.extend(groups)
                   inline_styles.append({
                       "font": font,
                       "size": size,
@@ -148,6 +150,17 @@ jobs:
               inline_styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
 
               fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
+
+              merged = markers._style_option_groups(labels, tuple("ABCDE"))
+              merged.extend(markers._block_fallback_groups(blocks, merged, tuple("ABCDE")))
+              merged.extend(markers._block_single_label_groups(blocks, merged, tuple("ABCDE")))
+              for candidate in inline_groups_all:
+                  bbox = (candidate.x0, candidate.y0, candidate.x1, candidate.y1)
+                  if any(markers._intersects_2d(existing, candidate.page_index, bbox) for existing in merged):
+                      continue
+                  merged.append(candidate)
+              merged.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+
               print(json.dumps({
                   "edition": edition,
                   "labelCount": len(labels),
@@ -157,6 +170,9 @@ jobs:
                   "inlineStyles": inline_styles[:16],
                   "blockFallbackGroups": len(fallback),
                   "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
+                  "mergedGroupCount": len(merged),
+                  "mergedKinds": dict(sorted(collections.Counter(g.kind for g in merged).items())),
+                  "mergedPages": dict(sorted(collections.Counter(g.page_index + 1 for g in merged).items())),
               }, ensure_ascii=False, sort_keys=True))
           finally:
               doc.close()
