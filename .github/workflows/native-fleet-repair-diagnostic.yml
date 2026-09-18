@@ -5,6 +5,10 @@ on:
     branches: [probe/native-fleet-repair]
     paths:
       - ".github/workflows/native-fleet-repair-diagnostic.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/native-fleet-repair-diagnostic.yml"
 
 permissions:
   contents: read
