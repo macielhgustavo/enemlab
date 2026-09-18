@@ -40,6 +40,72 @@ jobs:
           set -euo pipefail
           python scripts/native_prepare.py ime "$EDITION" --phase first --out bundle > prepare-result.json
           cat prepare-result.json
+      - name: Structural diagnostics on failure
+        if: failure()
+        env:
+          EDITION: ${{ matrix.edition }}
+        run: |
+          python - <<'PY'
+          import collections
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          import fitz
+          import native_ingest as ingest
+          import native_option_markers as markers
+          import native_prepare as prepare
+
+          edition = os.environ["EDITION"]
+          target = prepare.core._select_target(
+              ingest.discover_targets(), "ime", edition, "first"
+          )
+          profiled = prepare.apply_layout_profile(target)
+          pdf = prepare._verified_pdf_override(profiled)
+          if pdf is None:
+              raise SystemExit("pinned source unavailable")
+
+          doc = fitz.open(pdf)
+          try:
+              labels, blocks = markers._collect(doc)
+              by_style = collections.defaultdict(list)
+              for label in labels:
+                  by_style[(label.font, label.size)].append(label)
+
+              styles = []
+              for (font, size), items in by_style.items():
+                  used = set()
+                  horizontal, used = markers._horizontal_groups(items, tuple("ABCDE"))
+                  vertical = markers._vertical_groups(items, tuple("ABCDE"), used)
+                  wrapped = markers._wrapped_groups(items, tuple("ABCDE"), used)
+                  groups = [*horizontal, *vertical, *wrapped]
+                  if len(items) < 5 and not groups:
+                      continue
+                  styles.append({
+                      "font": font,
+                      "size": size,
+                      "labels": len(items),
+                      "letters": dict(sorted(collections.Counter(x.letter for x in items).items())),
+                      "groups": len(groups),
+                      "kinds": dict(sorted(collections.Counter(g.kind for g in groups).items())),
+                      "pages": dict(sorted(collections.Counter(g.page_index + 1 for g in groups).items())),
+                  })
+
+              styles.sort(key=lambda row: (-row["groups"], -row["labels"], row["font"], row["size"]))
+              fallback = markers._block_fallback_groups(blocks, [], tuple("ABCDE"))
+              print(json.dumps({
+                  "edition": edition,
+                  "labelCount": len(labels),
+                  "blockCandidateCount": len(blocks),
+                  "styles": styles[:16],
+                  "blockFallbackGroups": len(fallback),
+                  "blockFallbackPages": dict(sorted(collections.Counter(g.page_index + 1 for g in fallback).items())),
+              }, ensure_ascii=False, sort_keys=True))
+          finally:
+              doc.close()
+          PY
       - name: Validate structural invariants
         env:
           EDITION: ${{ matrix.edition }}
