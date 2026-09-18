@@ -1,4 +1,4 @@
-name: IME 2020 tolerant-heading diagnostic
+name: IME 2020 spatial-heading diagnostic
 
 on:
   pull_request:
@@ -19,10 +19,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Validate tolerant reversed heading sequence
+      - name: Validate spatial question headings
         run: |
           python - <<'PY'
-          import collections, json, re, sys
+          import collections, json, re, sys, unicodedata
           from pathlib import Path
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
@@ -30,55 +30,69 @@ jobs:
           import native_prepare
           import native_option_markers as om
 
+          def norm(s):
+              return "".join(ch for ch in unicodedata.normalize("NFKD",s).upper() if ch.isalnum())
+
           target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
           pdf=native_prepare._verified_pdf_override(target)
           pipeline=core._load_native_pipeline()
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
-          rx=re.compile(r"^\s*(\d{1,2}).{0,6}?QUEST(?:ÃO|AO)\b",re.I)
           try:
               hits=[]
+              quest_words=0
               for pi,page in enumerate(doc):
-                  data=page.get_text("dict",sort=True)
-                  for block in data.get("blocks",[]):
-                      for line in block.get("lines",[]):
-                          spans=line.get("spans",[])
-                          if not spans: continue
-                          raw="".join(str(s.get("text","")) for s in spans)
-                          m=rx.match(raw)
-                          if not m: continue
-                          boxes=[tuple(map(float,s["bbox"])) for s in spans if s.get("bbox")]
-                          if not boxes: continue
-                          first=spans[0]
+                  words=page.get_text("words",sort=True)
+                  by_line=collections.defaultdict(list)
+                  for w in words:
+                      x0,y0,x1,y1,text,block,line,word=w[:8]
+                      by_line[(block,line)].append(w)
+                  for items in by_line.values():
+                      items=sorted(items,key=lambda w:w[0])
+                      for idx,w in enumerate(items):
+                          token=norm(str(w[4]))
+                          if token!="QUESTAO":
+                              continue
+                          quest_words+=1
+                          candidates=[]
+                          for prev in items[max(0,idx-3):idx]:
+                              m=re.search(r"(\d{1,2})",str(prev[4]))
+                              if m:
+                                  candidates.append((int(m.group(1)),prev))
+                          if len(candidates)!=1:
+                              continue
+                          n,prev=candidates[0]
+                          if not 1<=n<=40:
+                              continue
                           hits.append([
-                              int(m.group(1)),pi+1,
-                              round(min(b[0] for b in boxes),1),
-                              round(min(b[1] for b in boxes),1),
-                              str(first.get("font","")),
-                              round(float(first.get("size",0)),1),
+                              n,pi+1,
+                              round(float(prev[0]),1),
+                              round(min(float(prev[1]),float(w[1])),1),
+                              round(float(w[2]),1),
+                              round(max(float(prev[3]),float(w[3])),1),
                           ])
               counts=collections.Counter(h[0] for h in hits)
               print(json.dumps({
+                  "questWords":quest_words,
                   "count":len(hits),
                   "numbers":[h[0] for h in hits],
                   "missing":[n for n in range(1,41) if counts[n]==0],
                   "duplicates":{str(n):c for n,c in counts.items() if c>1},
-                  "styles":[[list(k),v] for k,v in collections.Counter((h[4],h[5]) for h in hits).most_common()],
-                  "markers":hits
+                  "markers":hits,
               },sort_keys=True))
 
-              line_labels=om._collect_line_option_labels(doc)
-              groups=om._partition_ordered_line_groups(line_labels,tuple("ABCDE"),40)
               if len(hits)==40 and [h[0] for h in hits]==list(range(1,41)):
+                  line_labels=om._collect_line_option_labels(doc)
+                  groups=om._partition_ordered_line_groups(line_labels,tuple("ABCDE"),40)
                   coverage={n:0 for n in range(1,41)}
                   for g in groups:
-                      candidate=None
+                      last=None
                       for h in hits:
-                          if h[1]-1>g.page_index or (h[1]-1==g.page_index and h[3]>g.y0):
+                          hp=h[1]-1
+                          if hp>g.page_index or (hp==g.page_index and h[3]>g.y0):
                               break
-                          candidate=h
-                      if candidate:
-                          coverage[candidate[0]]+=1
+                          last=h
+                      if last: coverage[last[0]]+=1
                   print(json.dumps({
                       "lineGroups":len(groups),
                       "uncovered":[n for n,c in coverage.items() if c==0],
