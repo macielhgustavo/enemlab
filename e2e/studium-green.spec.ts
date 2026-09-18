@@ -34,8 +34,15 @@ test("objetivo por teclado e metas continuam acessíveis no novo workspace", asy
   await page.getByRole("button", { name: "Escolher objetivo" }).click();
   const selected = page.getByRole("radio", { name: /^Balanceado/ });
   await selected.focus();
-  await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("radio", { name: /^Recuperação/ })).toBeChecked();
+  // Radix defers roving focus to a timer and selects on focus while the
+  // arrow is held. Wait for that focus before releasing the key.
+  await page.keyboard.down("ArrowDown");
+  try {
+    await expect(page.getByRole("radio", { name: /^Recuperação/ })).toBeFocused();
+    await expect(page.getByRole("radio", { name: /^Recuperação/ })).toBeChecked();
+  } finally {
+    await page.keyboard.up("ArrowDown");
+  }
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Escolher objetivo" })).toContainText(
     "Recuperação",
