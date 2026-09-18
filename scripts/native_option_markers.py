@@ -13,6 +13,7 @@ Qualquer ambiguidade de quantidade falha fechado.
 from __future__ import annotations
 
 import collections
+import itertools
 import re
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -33,6 +34,7 @@ class OptionLabel:
     y1: float
     font: str
     size: float
+    tail_y1: float | None = None
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,9 @@ class OptionGroup:
 
 _TOKEN_RE = re.compile(r"^\s*[\[(]?([A-Ea-e])[\])\.:;-]?\s*$")
 _INLINE_RE = re.compile(r"(?m)^\s*[\[(]?([A-Ea-e])[\])\.:;-]\s+")
+_LINE_OPTION_RE = re.compile(
+    r"^\s*(?:\[|\()?([A-Ea-e])(?:\]|\)|\.|:|;|-)\s*"
+)
 _ROW_TOLERANCE = 4.5
 _WRAPPED_MAX_ROW_GAP = 90.0
 _WRAPPED_MAX_HEIGHT = 140.0
@@ -81,6 +86,7 @@ def _collect(doc: Any) -> tuple[list[OptionLabel], list[dict[str, Any]]]:
                         y1=y1,
                         font=str(first.get("font", "")),
                         size=round(float(first.get("size", 0)), 1),
+                        tail_y1=bbox[3],
                     )
                 )
             raw = "\n".join(raw_lines)
@@ -95,6 +101,157 @@ def _collect(doc: Any) -> tuple[list[OptionLabel], list[dict[str, Any]]]:
                     }
                 )
     return labels, blocks
+
+
+def _collect_line_option_labels(doc: Any) -> list[OptionLabel]:
+    """Collect punctuated A..E labels from line starts in document order.
+
+    Unlike isolated-span detection, this also sees labels embedded at the
+    beginning of option text. Requiring punctuation avoids treating bare
+    mathematical letters as option labels. The containing block tail is kept
+    so a synthetic boundary does not cut wrapped option text immediately after
+    the label line.
+    """
+    labels: list[OptionLabel] = []
+    for page_index, page in enumerate(doc):
+        data = page.get_text("dict", sort=True)
+        serial = 0
+        for block in data.get("blocks", []):
+            block_bbox = tuple(float(value) for value in block.get("bbox", (0, 0, 0, 0)))
+            for line in block.get("lines", []):
+                spans = line.get("spans", [])
+                if not spans:
+                    continue
+                raw = "".join(str(span.get("text", "")) for span in spans)
+                match = _LINE_OPTION_RE.match(raw)
+                if not match:
+                    continue
+                boxes = [
+                    tuple(map(float, span["bbox"]))
+                    for span in spans
+                    if span.get("bbox")
+                ]
+                if not boxes:
+                    continue
+                first = spans[0]
+                labels.append(
+                    OptionLabel(
+                        page_index=page_index,
+                        block_index=serial,
+                        letter=match.group(1).upper(),
+                        x0=min(box[0] for box in boxes),
+                        y0=min(box[1] for box in boxes),
+                        x1=max(box[2] for box in boxes),
+                        y1=max(box[3] for box in boxes),
+                        font=str(first.get("font", "")),
+                        size=round(float(first.get("size", 0)), 1),
+                        tail_y1=max(max(box[3] for box in boxes), block_bbox[3]),
+                    )
+                )
+                serial += 1
+    return labels
+
+
+def _ordered_line_group(
+    labels: list[OptionLabel],
+    option_ids: tuple[str, ...],
+) -> OptionGroup | None:
+    if len(labels) != len(option_ids):
+        return None
+    if len({label.page_index for label in labels}) != 1:
+        return None
+    if collections.Counter(label.letter for label in labels) != collections.Counter(option_ids):
+        return None
+    return OptionGroup(
+        page_index=labels[0].page_index,
+        kind="ordered-lines",
+        x0=min(label.x0 for label in labels),
+        y0=min(label.y0 for label in labels),
+        x1=max(label.x1 for label in labels),
+        y1=max(
+            label.tail_y1 if label.tail_y1 is not None else label.y1
+            for label in labels
+        ),
+    )
+
+
+def _partition_ordered_line_groups(
+    labels: list[OptionLabel],
+    option_ids: tuple[str, ...],
+    total: int,
+) -> list[OptionGroup]:
+    """Prove a near-complete option sequence from punctuated line labels.
+
+    The whole document must partition into consecutive groups containing each
+    option exactly once. At most two surplus labels may be discarded, and the
+    valid discard set must be unique. A nearly complete sequence may return
+    total-1 or total-2 groups so independent geometric evidence can supplement
+    the missing groups later.
+    """
+    width = len(option_ids)
+    if width < 1:
+        return []
+    minimum_groups = max(1, total - 2)
+    target = min(total, len(labels) // width)
+    if target < minimum_groups:
+        return []
+
+    noise = len(labels) - target * width
+    if noise < 0 or noise > 2:
+        return []
+
+    counts = collections.Counter(label.letter for label in labels)
+    expected = collections.Counter({letter: target for letter in option_ids})
+    for letter in option_ids:
+        if counts[letter] < target:
+            return []
+    if sum(max(0, counts[letter] - expected[letter]) for letter in option_ids) != noise:
+        return []
+    if any(letter not in option_ids for letter in counts):
+        return []
+
+    surplus_letters = {
+        letter
+        for letter in option_ids
+        if counts[letter] > target
+    }
+    removable = [
+        index for index, label in enumerate(labels)
+        if label.letter in surplus_letters
+    ]
+    skip_sets = [()]
+    if noise:
+        skip_sets = itertools.combinations(removable, noise)
+
+    solution: list[OptionGroup] | None = None
+    solution_skips: tuple[int, ...] | None = None
+    for skips_iter in skip_sets:
+        skips = tuple(skips_iter)
+        skip_lookup = set(skips)
+        filtered = [
+            label for index, label in enumerate(labels)
+            if index not in skip_lookup
+        ]
+        if len(filtered) != target * width:
+            continue
+
+        candidate: list[OptionGroup] = []
+        valid = True
+        for offset in range(0, len(filtered), width):
+            group = _ordered_line_group(filtered[offset : offset + width], option_ids)
+            if group is None:
+                valid = False
+                break
+            candidate.append(group)
+        if not valid:
+            continue
+
+        if solution is not None and skips != solution_skips:
+            return []
+        solution = candidate
+        solution_skips = skips
+
+    return solution or []
 
 
 def _cluster_rows(
@@ -147,7 +304,10 @@ def _horizontal_groups(
                         x0=min(item[1].x0 for item in window),
                         y0=min(item[1].y0 for item in window),
                         x1=max(item[1].x1 for item in window),
-                        y1=max(item[1].y1 for item in window),
+                        y1=max(
+                            item[1].tail_y1 if item[1].tail_y1 is not None else item[1].y1
+                            for item in window
+                        ),
                     )
                 )
                 index += width
@@ -198,7 +358,10 @@ def _vertical_groups(
                     x0=min(item[1].x0 for item in sequence),
                     y0=min(item[1].y0 for item in sequence),
                     x1=max(item[1].x1 for item in sequence),
-                    y1=max(item[1].y1 for item in sequence),
+                    y1=max(
+                        item[1].tail_y1 if item[1].tail_y1 is not None else item[1].y1
+                        for item in sequence
+                    ),
                 )
             )
     return groups
@@ -250,7 +413,10 @@ def _wrapped_groups(
                 continue
 
             y0 = min(item[1].y0 for item in window)
-            y1 = max(item[1].y1 for item in window)
+            y1 = max(
+                item[1].tail_y1 if item[1].tail_y1 is not None else item[1].y1
+                for item in window
+            )
             if y1 - y0 > _WRAPPED_MAX_HEIGHT:
                 cursor += 1
                 continue
@@ -410,19 +576,48 @@ def detect_ordered_option_groups(
         raise OrderedOptionMarkerError("estratégia exige pelo menos três alternativas")
 
     labels, blocks = _collect(doc)
-    if not labels and not blocks:
+    line_labels = _collect_line_option_labels(doc)
+    if not labels and not blocks and not line_labels:
         raise OrderedOptionMarkerError("nenhum rótulo de alternativa detectado")
 
-    groups = _style_option_groups(labels, option_ids)
-    groups.extend(_block_fallback_groups(blocks, groups, option_ids))
-    groups.extend(_block_single_label_groups(blocks, groups, option_ids))
-    groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+    line_groups = _partition_ordered_line_groups(
+        line_labels, option_ids, total
+    )
+    if len(line_groups) == total:
+        return line_groups
 
-    if len(groups) != total:
+    geometric = _style_option_groups(labels, option_ids)
+    geometric.extend(_block_fallback_groups(blocks, geometric, option_ids))
+    geometric.extend(_block_single_label_groups(blocks, geometric, option_ids))
+    geometric.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+
+    if line_groups:
+        supplements: list[OptionGroup] = []
+        for candidate in geometric:
+            bbox = (candidate.x0, candidate.y0, candidate.x1, candidate.y1)
+            if any(
+                _intersects_2d(existing, candidate.page_index, bbox)
+                for existing in [*line_groups, *supplements]
+            ):
+                continue
+            supplements.append(candidate)
+
+        missing = total - len(line_groups)
+        if len(supplements) == missing:
+            groups = [*line_groups, *supplements]
+            groups.sort(key=lambda group: (group.page_index, group.y0, group.x0))
+            return groups
+
         raise OrderedOptionMarkerError(
-            f"grupos completos de alternativas divergentes: {len(groups)}/{total}"
+            "grupos de linhas pontuadas exigem suplemento inequívoco: "
+            f"{len(line_groups)}+{len(supplements)}/{total}"
         )
-    return groups
+
+    if len(geometric) != total:
+        raise OrderedOptionMarkerError(
+            f"grupos completos de alternativas divergentes: {len(geometric)}/{total}"
+        )
+    return geometric
 
 
 def markers_from_groups(
