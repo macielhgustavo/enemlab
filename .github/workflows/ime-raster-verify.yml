@@ -1,4 +1,4 @@
-name: IME raster fallback extraction diagnostic
+name: IME raster fallback verification
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -19,36 +19,43 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Inspect pre-bundle extraction metadata
+      - name: Run synthetic native tests
+        run: python -m unittest discover -s scripts/tests -p 'test_native_*.py'
+      - name: Prepare IME 2020-2021 without publishing
+        run: python scripts/native_prepare.py ime 2020-2021 --phase first --out bundle | tee prepare-result.json
+      - name: Validate full 2020 structure
         run: |
           python - <<'PY'
-          import json, sys
+          import collections, json
           from pathlib import Path
-          sys.path.insert(0, str(Path("scripts").resolve()))
-          import native_fleet as fleet
-          import native_ime_prepare as ime_prepare
-          import native_ingest as ingest
-          import native_orchestrator as core
-          import native_prepare
-
-          target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
-          profiled=native_prepare.apply_layout_profile(target)
-          pdf=native_prepare._verified_pdf_override(profiled)
-          pack=ime_prepare.prepare(profiled,pdf,core,fleet)
-          for number in (30,39,40):
-              q=pack["questions"][number-1]
+          result=json.loads(Path("prepare-result.json").read_text())
+          pack=json.loads(Path("bundle/native-pack.json").read_text())
+          audit=json.loads(Path("src/lib/providers/ime/exam-sources.audit.json").read_text())
+          qs=pack.get("questions") or []
+          docs=pack.get("documents") or []
+          assert result["identity"]=="ime:2020-2021:first", result
+          assert result["sourceProfile"]=="pinned-archive", result
+          assert result["markerProfile"]=="ime-ordered-option-groups", result
+          assert len(qs)==40
+          assert [q.get("questionKey") for q in qs]==[f"ime-2020-2021-objective-{i}" for i in range(1,41)]
+          assert len(docs)==1 and docs[0].get("sourceSha256")==audit["records"]["2020-2021"]["examSha256"]
+          kinds=collections.Counter()
+          raster=[]
+          for i,q in enumerate(qs,1):
               ex=q.get("extraction") or {}
               vc=ex.get("visualCompleteness") or {}
-              print(json.dumps({
-                  "number":number,
-                  "kind":ex.get("optionGroupKind"),
-                  "issues":ex.get("issues") or [],
-                  "confidence":ex.get("confidence"),
-                  "visualCompleteness":vc,
-                  "regions":[
-                      {"page":r.get("page"),"role":r.get("role"),"rect":r.get("rect")}
-                      for r in (q.get("visualRegions") or [])
-                  ],
-              },sort_keys=True))
-          print(json.dumps({"gateProblems":fleet._automation_gate(profiled,pack)},sort_keys=True))
+              assert ex.get("optionGroupDetected") is True, i
+              assert ex.get("markerStrategy")=="ordered-option-groups", i
+              assert vc.get("resolved") is True, i
+              assert q.get("visualRegions"), i
+              assert not [
+                  issue for issue in ex.get("issues") or []
+                  if str(issue).startswith("dependência visual/contextual não resolvida automaticamente:")
+              ], i
+              kind=str(ex.get("optionGroupKind") or "unknown")
+              kinds[kind]+=1
+              if kind=="raster-header-image":
+                  raster.append(i)
+          assert raster==[30], raster
+          print(json.dumps({"questions":len(qs),"kinds":dict(kinds),"rasterQuestion":raster}))
           PY
