@@ -13,14 +13,36 @@ import native_option_markers as markers
 
 
 class FakePage:
-    def __init__(self, blocks, width=600.0, height=840.0):
+    def __init__(
+        self,
+        blocks,
+        width=600.0,
+        height=840.0,
+        *,
+        drawings=None,
+        image_rects=None,
+    ):
         self.blocks = blocks
         self.rect = SimpleNamespace(width=width, height=height)
+        self.drawings = drawings or []
+        self.image_rects = image_rects or {}
 
     def get_text(self, kind, sort=True):
         if kind != "dict":
             raise AssertionError(kind)
         return {"blocks": self.blocks}
+
+    def get_drawings(self):
+        return self.drawings
+
+    def get_images(self, full=True):
+        return [(xref,) for xref in self.image_rects]
+
+    def get_image_rects(self, xref):
+        return [
+            SimpleNamespace(x0=x0, y0=y0, x1=x1, y1=y1)
+            for x0, y0, x1, y1 in self.image_rects.get(xref, [])
+        ]
 
 
 def span(text, x0, y0, *, font="Body", size=12.0):
@@ -38,6 +60,21 @@ def line(*spans):
 
 def block(lines, bbox):
     return {"lines": lines, "bbox": bbox}
+
+
+def point(x, y):
+    return SimpleNamespace(x=x, y=y)
+
+
+def header_drawing(top, *, divider=384.0, width=600.0):
+    bottom = top + 18.0
+    return {
+        "items": [
+            ("l", point(30.0, top), point(width - 30.0, top)),
+            ("l", point(30.0, bottom), point(width - 30.0, bottom)),
+            ("l", point(divider, top), point(divider, bottom)),
+        ]
+    }
 
 
 class OrderedOptionMarkerTests(unittest.TestCase):
@@ -248,6 +285,63 @@ class OrderedOptionMarkerTests(unittest.TestCase):
 
         self.assertEqual(len(groups), 5)
         self.assertEqual(sum(group.kind == "ordered-lines" for group in groups), 3)
+
+    def test_raster_header_fallback_recovers_exactly_one_missing_group(self):
+        punctuated_blocks = []
+        for base_y in (80.0, 230.0, 550.0):
+            lines = [
+                line(span(f"{letter}) option", 60, base_y + row * 14))
+                for row, letter in enumerate("ABCDE")
+            ]
+            punctuated_blocks.append(block(lines, (60, base_y, 500, base_y + 72)))
+
+        drawings = [
+            header_drawing(50.0),
+            header_drawing(200.0),
+            header_drawing(350.0),
+            header_drawing(500.0),
+            header_drawing(650.0, divider=360.0),
+            header_drawing(720.0, divider=360.0),
+        ]
+        page = FakePage(
+            punctuated_blocks,
+            drawings=drawings,
+            image_rects={1: [(100.0, 390.0, 500.0, 450.0)]},
+        )
+
+        groups = markers.detect_ordered_option_groups([page], tuple("ABCDE"), 4)
+
+        self.assertEqual(len(groups), 4)
+        self.assertEqual([group.kind for group in groups], [
+            "ordered-lines",
+            "ordered-lines",
+            "raster-header-image",
+            "ordered-lines",
+        ])
+        self.assertGreater(groups[2].core_y1, groups[2].y0)
+        self.assertGreater(groups[2].y1, groups[2].core_y1)
+
+    def test_raster_header_fallback_fails_closed_without_significant_image(self):
+        punctuated_blocks = []
+        for base_y in (80.0, 230.0, 550.0):
+            lines = [
+                line(span(f"{letter}) option", 60, base_y + row * 14))
+                for row, letter in enumerate("ABCDE")
+            ]
+            punctuated_blocks.append(block(lines, (60, base_y, 500, base_y + 72)))
+
+        page = FakePage(
+            punctuated_blocks,
+            drawings=[
+                header_drawing(50.0),
+                header_drawing(200.0),
+                header_drawing(350.0),
+                header_drawing(500.0),
+            ],
+        )
+
+        with self.assertRaises(markers.OrderedOptionMarkerError):
+            markers.detect_ordered_option_groups([page], tuple("ABCDE"), 4)
 
     def test_ordered_line_group_extends_to_containing_block_tail(self):
         option_block = block(
