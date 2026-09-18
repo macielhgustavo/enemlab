@@ -1,4 +1,4 @@
-name: IME 2020 structural gap diagnostic
+name: IME 2020 missing-question window diagnostic
 
 on:
   pull_request:
@@ -19,16 +19,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Inspect 2020 group geometry
+      - name: Inspect candidate window without question text
         run: |
           python - <<'PY'
-          import json, sys
+          import json, re, sys
           from pathlib import Path
           sys.path.insert(0, str(Path("scripts").resolve()))
           import native_ingest as ingest
           import native_orchestrator as core
           import native_prepare
-          import native_option_markers as markers
 
           target=core._select_target(ingest.discover_targets(),"ime","2020-2021","first")
           pdf=native_prepare._verified_pdf_override(target)
@@ -36,54 +35,51 @@ jobs:
           fitz,_=pipeline._imports()
           doc=fitz.open(pdf)
           try:
-              line_labels=markers._collect_line_option_labels(doc)
-              line_groups=markers._partition_ordered_line_groups(line_labels, tuple("ABCDE"), 40)
-              labels,blocks=markers._collect(doc)
-              geometric=markers._style_option_groups(labels, tuple("ABCDE"))
-              geometric.extend(markers._block_fallback_groups(blocks, geometric, tuple("ABCDE")))
-              geometric.extend(markers._block_single_label_groups(blocks, geometric, tuple("ABCDE")))
-              geometric.sort(key=lambda g:(g.page_index,g.y0,g.x0))
-
-              print(json.dumps({
-                  "lineLabelCount":len(line_labels),
-                  "lineGroups":len(line_groups),
-                  "lineGroupGeometry":[
-                      {"n":i+1,"page":g.page_index+1,"x0":round(g.x0,1),"y0":round(g.y0,1),"x1":round(g.x1,1),"y1":round(g.y1,1)}
-                      for i,g in enumerate(line_groups)
-                  ],
-                  "geometricGroups":len(geometric),
-                  "geometricGeometry":[
-                      {"page":g.page_index+1,"kind":g.kind,"x0":round(g.x0,1),"y0":round(g.y0,1),"x1":round(g.x1,1),"y1":round(g.y1,1)}
-                      for g in geometric
-                  ],
-              },sort_keys=True))
-
-              for pi,page in enumerate(doc):
-                  width=float(page.rect.width)
-                  ys=[]
-                  for drawing in page.get_drawings():
-                      for item in drawing.get("items",[]):
-                          kind=item[0]
-                          if kind=="l":
-                              p1,p2=item[1],item[2]
-                              if abs(float(p1.y)-float(p2.y))<=1.0 and abs(float(p2.x)-float(p1.x))>=width*0.60:
-                                  ys.append(round((float(p1.y)+float(p2.y))/2,1))
-                          elif kind=="re":
-                              r=item[1]
-                              if float(r.width)>=width*0.60:
-                                  ys.extend([round(float(r.y0),1),round(float(r.y1),1)])
-                  ys=sorted(set(ys))
-                  pairs=[]
-                  for a,b in zip(ys,ys[1:]):
-                      gap=round(b-a,1)
-                      if 15<=gap<=21:
-                          pairs.append([a,b,gap])
-                  if pairs:
-                      group_ys=[
-                          [i+1,round(g.y0,1),round(g.y1,1)]
-                          for i,g in enumerate(line_groups) if g.page_index==pi
-                      ]
-                      print(json.dumps({"page":pi+1,"rulePairs":pairs,"groups":group_ys},sort_keys=True))
+              windows={14:(182.5, float(doc[14].rect.height)*0.975),15:(0.0,143.1)}
+              for pi,(wy0,wy1) in windows.items():
+                  page=doc[pi]
+                  data=page.get_text("dict",sort=True)
+                  entries=[]
+                  for bi,block in enumerate(data.get("blocks",[])):
+                      for li,line in enumerate(block.get("lines",[])):
+                          spans=line.get("spans",[])
+                          if not spans: continue
+                          y0=min(float(s["bbox"][1]) for s in spans if s.get("bbox"))
+                          y1=max(float(s["bbox"][3]) for s in spans if s.get("bbox"))
+                          if y1 < wy0 or y0 > wy1: continue
+                          raw="".join(str(s.get("text","")) for s in spans)
+                          stripped=raw.lstrip()
+                          if not stripped or stripped[0].upper() not in "ABCDE": continue
+                          prefix=stripped[:4]
+                          codepoints=[ord(ch) for ch in prefix]
+                          first=spans[0]
+                          entries.append({
+                              "block":bi,"line":li,
+                              "lead":stripped[0].upper(),
+                              "prefixCodepoints":codepoints,
+                              "x0":round(min(float(s["bbox"][0]) for s in spans if s.get("bbox")),1),
+                              "y0":round(y0,1),"y1":round(y1,1),
+                              "font":str(first.get("font","")),
+                              "size":round(float(first.get("size",0)),1),
+                          })
+                  images=[]
+                  for img in page.get_images(full=True):
+                      xref=img[0]
+                      for rect in page.get_image_rects(xref):
+                          if rect.y1>=wy0 and rect.y0<=wy1:
+                              images.append([round(rect.x0,1),round(rect.y0,1),round(rect.x1,1),round(rect.y1,1)])
+                  drawings=[]
+                  for d in page.get_drawings():
+                      r=d.get("rect")
+                      if r and r.y1>=wy0 and r.y0<=wy1:
+                          drawings.append([round(r.x0,1),round(r.y0,1),round(r.x1,1),round(r.y1,1)])
+                  print(json.dumps({
+                      "page":pi+1,"window":[round(wy0,1),round(wy1,1)],
+                      "leadingAtoE":entries,
+                      "imageRects":images[:40],
+                      "drawingRects":drawings[:80],
+                      "drawingCount":len(drawings),
+                  },sort_keys=True))
           finally:
               doc.close()
           PY
