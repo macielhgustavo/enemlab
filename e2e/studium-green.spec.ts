@@ -48,11 +48,11 @@ test("objetivo por teclado e metas continuam acessíveis no novo workspace", asy
     "Recuperação",
   );
   await page.getByRole("tab", { name: "Metas", exact: true }).click();
-  await page.getByLabel("Questões/semana").fill("180");
+  await page.getByRole("spinbutton", { name: "Questões/semana", exact: true }).fill("180");
   await page.getByRole("tab", { name: "Diagnóstico", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Execução e tempo" })).toBeVisible();
   await page.getByRole("tab", { name: "Metas", exact: true }).click();
-  await expect(page.getByLabel("Questões/semana")).toHaveValue("180");
+  await expect(page.getByRole("spinbutton", { name: "Questões/semana", exact: true })).toHaveValue("180");
 });
 
 for (const width of [375, 425, 768, 1280, 1440]) {
