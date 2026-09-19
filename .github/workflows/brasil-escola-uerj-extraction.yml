@@ -31,7 +31,8 @@ jobs:
       - name: Validate generic UERJ wrapper
         run: |
           python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py scripts/ingest-uerj-safe.py scripts/probe-cederj-safe.py
-          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'\n          python -m unittest discover -s scripts/tests -p 'test_ingest_uerj_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_uerj_safe.py'
       - name: Acquire UERJ mirror packages
         run: |
           python scripts/harvest-brasil-escola-bulk.py \
