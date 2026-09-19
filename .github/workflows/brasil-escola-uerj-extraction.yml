@@ -11,6 +11,8 @@ on:
       - 'scripts/ingest-objective-mirror-core.py'
       - 'scripts/ingest-objective-mirror-safe.py'
       - 'scripts/probe-cederj-safe.py'
+      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
+      - 'scripts/tests/test_ingest_uerj_safe.py'
       - 'scripts/harvest-brasil-escola-bulk.py'
 
 permissions:
@@ -46,7 +48,7 @@ jobs:
           python scripts/probe-cederj-safe.py \
             --input '.cache/uerj-inbox/universidade-estado-rio-janeiro-1' \
             --output '.cache/uerj-probe.json'
-      - name: Extract UERJ with generic deterministic parser
+      - name: Extract deterministic UERJ canonical objective corpus
         run: |
           python scripts/ingest-uerj-safe.py \
             --profile 'uerj' \
@@ -72,6 +74,97 @@ jobs:
                   data = data.get('bulkAcquisition', data)
               print('\n###', path)
               print(json.dumps(data, ensure_ascii=False, indent=2))
+          PY
+      - name: Enforce exact deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/uerj-catalog.json').read_text())['bulkAcquisition']
+          probe = json.loads(Path('.cache/uerj-probe.json').read_text())
+          summary = json.loads(Path('.cache/uerj-extracted/uerj-summary.json').read_text())
+
+          acquisition = {
+              'selected': catalog.get('selected'),
+              'acquired': catalog.get('acquired'),
+              'unavailable': catalog.get('unavailable'),
+              'errors': len(catalog.get('errors', [])),
+          }
+          expected_acquisition = {
+              'selected': 41,
+              'acquired': 7,
+              'unavailable': 34,
+              'errors': 0,
+          }
+          if acquisition != expected_acquisition:
+              raise SystemExit(f'UERJ acquisition changed: {acquisition} != {expected_acquisition}')
+
+          expected_probe = {
+              'packagesScanned': 7,
+              'nativeTextDocuments': 59,
+              'likelyScannedDocuments': 0,
+              'questionNumberSignal': 132,
+              'answerKeyPairSignal': 244,
+          }
+          observed_probe = {key: probe.get(key) for key in expected_probe}
+          if observed_probe != expected_probe:
+              raise SystemExit(f'UERJ probe changed: {observed_probe} != {expected_probe}')
+          expected_roles = {
+              'answer-key': 8,
+              'exam': 31,
+              'rationale': 10,
+              'unknown': 10,
+          }
+          if probe.get('roleCounts') != expected_roles:
+              raise SystemExit(f"UERJ role counts changed: {probe.get('roleCounts')} != {expected_roles}")
+          if probe.get('failures'):
+              raise SystemExit(probe['failures'])
+
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+
+          expected_global = {
+              'archivesScanned': 7,
+              'uniquePackages': 7,
+              'editions': 6,
+              'expectedQuestions': 360,
+              'extractedQuestions': 337,
+              'completeUnits': 0,
+              'missingIdentities': 23,
+              'visualDependencies': 68,
+          }
+          observed_global = {key: summary.get(key) for key in expected_global}
+          if observed_global != expected_global:
+              raise SystemExit(f'UERJ global accounting changed: {observed_global} != {expected_global}')
+
+          expected_cycles = {
+              'uerj-2021': (60, 57, 0, 3, 9),
+              'uerj-2022': (60, 55, 0, 5, 11),
+              'uerj-2023': (60, 59, 0, 1, 13),
+              'uerj-2025': (60, 55, 0, 5, 10),
+              'uerj-2026': (60, 55, 0, 5, 7),
+              'uerj-2027': (60, 56, 0, 4, 18),
+          }
+          observed_cycles = {
+              cycle['editionId']: (
+                  cycle['expectedQuestions'],
+                  cycle['extractedQuestions'],
+                  cycle['completeUnits'],
+                  cycle['missingIdentities'],
+                  cycle['visualDependencies'],
+              )
+              for cycle in summary.get('cycles', [])
+          }
+          if observed_cycles != expected_cycles:
+              raise SystemExit(f'UERJ cycle accounting changed: {observed_cycles} != {expected_cycles}')
+
+          if summary['missingIdentities'] != summary['expectedQuestions'] - summary['extractedQuestions']:
+              raise SystemExit('UERJ missing identity accounting mismatch')
+          if any(cycle['editionId'] == 'uerj-2024' for cycle in summary.get('cycles', [])):
+              raise SystemExit('UERJ 2024 must remain excluded because the live package is discursivo-only')
+
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
           PY
       - name: Upload UERJ benchmark artifact
         if: always()
