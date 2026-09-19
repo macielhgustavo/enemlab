@@ -1298,15 +1298,6 @@
     display: none;
   }
 
-  .app-topbar__context::before {
-    content: "ENEM Lab";
-    color: var(--text-faint);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
   .app-topbar__train,
   .app-topbar__avatar {
     display: none;

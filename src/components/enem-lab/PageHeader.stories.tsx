@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "./PageHeader";
 
-const meta: Meta<typeof PageHeader> = { title: "ENEM Lab/PageHeader", component: PageHeader };
+const meta: Meta<typeof PageHeader> = { title: "Studium Labs/PageHeader", component: PageHeader };
 export default meta;
 type Story = StoryObj<typeof PageHeader>;
 

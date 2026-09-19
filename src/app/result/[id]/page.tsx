@@ -132,7 +132,7 @@ export default function ResultPage() {
     // Cabeçalho
     ctx.fillStyle = C.brand;
     ctx.font = "800 34px Inter, system-ui, sans-serif";
-    ctx.fillText("ENEM Lab", 64, 96);
+    ctx.fillText("Studium Labs", 64, 96);
     ctx.fillStyle = C.muted;
     ctx.font = "600 26px Inter, system-ui, sans-serif";
     ctx.fillText(`Resultado • ${examLabel(provaId)} ${a!.year}`, 64, 134);

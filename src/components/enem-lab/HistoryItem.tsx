@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Status, StatusIndicator, StatusLabel } from "@/components/ui/status";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { examLabel } from "@/lib/providers/label";
@@ -54,11 +55,12 @@ export function HistoryItem({
             </span>
           </>
         ) : (
-          <Badge variant="warning">Em andamento</Badge>
+          <Status status="active"><StatusIndicator /><StatusLabel>Em andamento</StatusLabel></Status>
         )}
       </div>
 
       <div className="el-histitem__meta caption">
+        {concluida && <Status status="complete"><StatusIndicator /><StatusLabel>Concluída</StatusLabel></Status>}
         <span>
           {new Date(attempt.startedAt).toLocaleDateString("pt-BR", {
             day: "2-digit",

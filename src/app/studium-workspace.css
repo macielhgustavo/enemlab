@@ -1,0 +1,470 @@
+/* Registry components adapted to the existing semantic tokens. */
+:root, :root[data-theme="light"], :root[data-theme="dark"] {
+  --chrome-accent-soft: var(--brand-soft);
+  --chrome-accent-glow: transparent;
+  --chrome-accent-strong: var(--brand-ink);
+}
+.ciBar { background: var(--surface-3); }
+.ciBar .range { background: var(--brand); box-shadow: none; }
+.cmdk-item.active { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.loader { box-shadow: none; }
+.skeleton::after { background: linear-gradient(90deg, transparent, var(--surface-3), transparent); }
+.choicebox {
+  display: grid;
+  gap: 2px;
+}
+.choicebox__item {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0;
+}
+.choicebox__item:hover {
+  background: var(--surface-2);
+}
+.choicebox__item:has([data-state="checked"]) { background: var(--brand-soft); }
+.choicebox__item:has(:focus-visible) {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+.choicebox__content {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.choicebox__title {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.choicebox__description {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.choicebox__radio {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  padding: 3px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.choicebox__radio[data-state="checked"] {
+  border-color: var(--brand);
+}
+.choicebox__dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.objective-popover {
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(540px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 10px 35px #0003;
+}
+.objective-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface-1);
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+}
+.objective-trigger:hover {
+  background: var(--surface-2);
+}
+.objective-trigger:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+.adaptive-objective__label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.adaptive-page {
+  gap: 24px;
+  max-width: 1240px;
+  margin-inline: auto;
+}
+.adaptive-intro {
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px 48px;
+  padding: 4px 0 24px;
+}
+.adaptive-kicker {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+.adaptive-intro h1 {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+.adaptive-intro__lead {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: -5px 0 6px;
+}
+.adaptive-recommendation {
+  background: transparent;
+  padding: 16px 0 4px;
+  border: 0;
+}
+.adaptive-recommendation .prio {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.adaptive-recommendation h2 {
+  font-size: 23px;
+  font-weight: 550;
+  margin: 6px 0;
+}
+.adaptive-objective {
+  grid-row: 2 / span 3;
+  border: 0;
+  padding: 4px 0;
+}
+.adaptive-actions {
+  gap: 8px 16px;
+}
+.adaptive-actions__alternatives {
+  gap: 4px;
+}
+.adaptive-kpis .metric small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+.adaptive-kpis .metric b {
+  font-size: 29px;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+}
+.adaptive-kpis__note {
+  max-width: 900px;
+  font-size: 11px;
+  margin-top: -15px;
+}
+.adaptive-workspace {
+  min-width: 0;
+}
+.adaptive-workspace .el-tabs--line {
+  gap: 26px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.adaptive-workspace .el-tabs__trigger {
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.adaptive-workspace .el-tabs__content {
+  padding-top: 28px;
+}
+.adaptive-workspace .el-tabs__content > .grid.grid2 {
+  gap: 40px;
+  margin-top: 28px !important;
+}
+:root .adaptive-page .adaptive-workspace .card {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.adaptive-workspace h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.adaptive-workspace .studyBlock h3 {
+  font-size: 13px;
+}
+.adaptive-workspace .prio {
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.adaptive-workspace .empty {
+  min-height: 0;
+  padding: 24px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  font-size: 13px;
+}
+.adaptive-workspace .muted {
+  line-height: 1.55;
+}
+.adaptive-signals {
+  margin-top: 24px;
+  padding: 18px 0;
+}
+.adaptive-signals .metric small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+.adaptive-signals .metric b {
+  font-size: 22px;
+  font-weight: 550;
+}
+.adaptive-plan > h2 {
+  margin-bottom: 22px;
+}
+.adaptive-step-status {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.adaptive-plan [data-slot="timeline"] {
+  display: flex;
+}
+.adaptive-plan [data-slot="timeline-item"] {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin-top: 16px;
+  padding: 20px 24px 0 0;
+}
+.adaptive-plan [data-slot="timeline-indicator"] {
+  translate: none;
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 0;
+  top: 0;
+  transform: none;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--bg);
+}
+.adaptive-plan [data-completed] [data-slot="timeline-indicator"],
+.adaptive-plan [aria-current="step"] [data-slot="timeline-indicator"] {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.adaptive-plan [data-slot="timeline-separator"] {
+  translate: none;
+  position: absolute;
+  left: 16px;
+  top: 4px;
+  width: calc(100% - 22px);
+  height: 1px;
+  transform: none;
+  background: var(--line);
+}
+.adaptive-plan [data-slot="timeline-item"]:last-child [data-slot="timeline-separator"] {
+  display: none;
+}
+.adaptive-plan [data-slot="timeline-title"] {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.adaptive-plan [data-slot="timeline-content"] {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.notice {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text-dim);
+  box-shadow: none;
+}
+.notice::before {
+  background: var(--line-strong);
+  box-shadow: none;
+}
+.el-provider__trigger,
+.el-provider__logo {
+  box-shadow: none;
+}
+.rail .brand .mark {
+  background: var(--brand);
+  color: var(--text-on-accent);
+}
+.dailyPlanConfidenceFill,
+.dailyPlanProgressTrack > span {
+  background: var(--brand);
+}
+.railnav a:hover {
+  background: var(--surface-2);
+}
+:root .railnav a.active { background: var(--brand-soft); color: var(--brand-ink); }
+:root .railnav a.active svg { color: var(--brand-ink); }
+:root .mobilebar :is(a, button).active { background: var(--brand-soft); color: var(--brand-ink); }
+:root .mobilebar a.active svg { color: var(--brand-ink); }
+:root .el-chip--on { background: var(--brand-soft); border-color: var(--line-glow); color: var(--brand-ink); }
+.el-tabs--line .el-tabs__trigger[data-state="active"] { color: var(--brand-ink); }
+.dash-mission::before { background: var(--brand); }
+.dash-mission__button { background: var(--brand); color: var(--text-on-accent); }
+.dash-mission__button:hover { background: var(--brand-strong); }
+.dash-chart { --chart-1: var(--brand); }
+
+/* Origin/coss compound input: addons share a single focus boundary. */
+.input-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-1);
+  border-radius: 7px;
+  transition: border-color 140ms ease;
+}
+.input-group:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+.input-group:has([aria-invalid="true"]) { border-color: var(--bad); }
+.input-group:has(input:disabled) { opacity: .55; }
+.input-group .input-group__input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 10px 8px;
+  outline: none;
+  font-size: 14px;
+}
+.input-group__input::-webkit-search-cancel-button { display: none; }
+.input-group__addon { display: flex; flex-shrink: 0; align-items: center; color: var(--muted); }
+.input-group__addon--start { order: -1; padding-left: 12px; }
+.input-group__addon--end { order: 1; padding-right: 3px; }
+.input-group__clear {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.input-group__clear:hover { color: var(--text); background: var(--surface-2); }
+.input-group__clear:disabled { opacity: .3; cursor: default; }
+.input-group__clear:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* ReUI number-field layout, retaining the existing native spinbutton. */
+.number-field { display: flex; width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-1); }
+.number-field:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+.number-field input {
+  appearance: textfield;
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  padding: 10px 2px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: none;
+  outline: none;
+}
+.number-field input::-webkit-inner-spin-button,
+.number-field input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.number-field button { display: grid; place-items: center; flex: 0 0 36px; min-height: 40px; border: 0; background: transparent; color: var(--muted); border-radius: 6px; cursor: pointer; }
+.number-field button:hover:not(:disabled) { color: var(--brand-ink); background: var(--brand-soft); }
+.number-field button:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; }
+.number-field button:disabled { opacity: .35; cursor: default; }
+.number-field--compact button { min-height: 34px; }
+.number-field:has(input:disabled) { opacity: .55; }
+.number-field:has(input[aria-invalid="true"]) { border-color: var(--bad); }
+
+/* Kibo status composition: static indicators, always paired with text. */
+.study-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.5; white-space: nowrap; color: var(--muted); }
+.study-status--active { color: var(--warn); }
+.study-status--complete { color: var(--ok); }
+.study-status__indicator { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+@media (pointer: coarse) {
+  .number-field button { flex-basis: 44px; min-height: 44px; }
+  .input-group__clear { width: 44px; height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .input-group { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .adaptive-intro {
+    column-gap: 24px;
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+}
+@media (max-width: 640px) {
+  .adaptive-intro {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .adaptive-objective {
+    grid-row: auto;
+  }
+  .adaptive-intro h1 {
+    font-size: 28px;
+  }
+  .adaptive-recommendation h2 {
+    font-size: 21px;
+  }
+  .adaptive-workspace .el-tabs--line {
+    gap: 20px;
+  }
+.adaptive-workspace .el-tabs__content > .grid.grid2 {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .adaptive-plan [data-slot="timeline"] {
+    flex-direction: column;
+  }
+  .adaptive-plan [data-slot="timeline-item"] {
+    margin: 0;
+    padding: 0 0 24px 26px;
+  }
+  .adaptive-plan [data-slot="timeline-indicator"] {
+    top: 4px;
+  }
+  .adaptive-plan [data-slot="timeline-separator"] {
+    left: 4px;
+    top: 20px;
+    height: calc(100% - 20px);
+    width: 1px;
+  }
+}

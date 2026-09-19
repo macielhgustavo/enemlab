@@ -64,7 +64,7 @@ export default function QuestionIssueReporter() {
 
   const diagnosticText = (report: StoredReport) =>
     [
-      "ENEM Lab — problema de formatação",
+      "Studium Labs — problema de formatação",
       report.question,
       report.area,
       `Tipo: ${report.types.join(", ") || "não informado"}`,

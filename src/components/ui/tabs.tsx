@@ -2,12 +2,27 @@
 import * as React from "react";
 import { Tabs as T } from "radix-ui";
 import { cn } from "@/lib/cn";
+import { cva, type VariantProps } from "class-variance-authority";
 
 /** Abas com navegação por setas e roving tabindex, vindas do primitive. */
 export const Tabs = T.Root;
 
-export function TabsList({ className, ...props }: React.ComponentPropsWithoutRef<typeof T.List>) {
-  return <T.List className={cn("el-tabs", className)} {...props} />;
+const tabsListVariants = cva("el-tabs", {
+  variants: {
+    variant: {
+      segmented: "",
+      line: "el-tabs--line",
+    },
+  },
+  defaultVariants: { variant: "segmented" },
+});
+
+export function TabsList({
+  className,
+  variant,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof T.List> & VariantProps<typeof tabsListVariants>) {
+  return <T.List className={cn(tabsListVariants({ variant }), className)} {...props} />;
 }
 
 export function TabsTrigger({

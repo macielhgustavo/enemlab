@@ -32,7 +32,7 @@ function Controls() {
         <Badge variant="danger">Erro</Badge>
       </div>
       <Tabs defaultValue="recent">
-        <TabsList aria-label="Período">
+        <TabsList variant="line" aria-label="Período">
           <TabsTrigger value="recent">Esta semana</TabsTrigger>
           <TabsTrigger value="all">Todo o período</TabsTrigger>
         </TabsList>

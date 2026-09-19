@@ -6,6 +6,8 @@ import "../src/app/globals.css";
 import "../src/app/daily-plan.css";
 import "../src/app/account.css";
 import "../src/styles/refinement.css";
+import "../src/app/studium-green.css";
+import "../src/app/studium-workspace.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 
