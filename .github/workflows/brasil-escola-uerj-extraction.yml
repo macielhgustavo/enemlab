@@ -1,0 +1,85 @@
+name: Brasil Escola UERJ Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-uerj-extraction.yml'
+      - 'scripts/ingest-uerj-safe.py'
+      - 'scripts/ingest-objective-mirror-core.py'
+      - 'scripts/ingest-objective-mirror-safe.py'
+      - 'scripts/probe-cederj-safe.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5' 'cryptography>=44,<47'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate generic UERJ wrapper
+        run: |
+          python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py scripts/ingest-uerj-safe.py scripts/probe-cederj-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+      - name: Acquire UERJ mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'universidade-estado-rio-janeiro-1' \
+            --workers 8 \
+            --catalog '.cache/uerj-catalog.json' \
+            --download-root '.cache/uerj-inbox'
+      - name: Probe UERJ package structure
+        run: |
+          python scripts/probe-cederj-safe.py \
+            --input '.cache/uerj-inbox/universidade-estado-rio-janeiro-1' \
+            --output '.cache/uerj-probe.json'
+      - name: Extract UERJ with generic deterministic parser
+        run: |
+          python scripts/ingest-uerj-safe.py \
+            --profile 'uerj' \
+            --input '.cache/uerj-inbox/universidade-estado-rio-janeiro-1' \
+            --output '.cache/uerj-extracted'
+      - name: Print observed UERJ benchmark
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in (
+              '.cache/uerj-catalog.json',
+              '.cache/uerj-probe.json',
+              '.cache/uerj-extracted/uerj-summary.json',
+          ):
+              p = Path(path)
+              if not p.exists():
+                  print(path, 'MISSING')
+                  continue
+              data = json.loads(p.read_text())
+              if path.endswith('uerj-catalog.json'):
+                  data = data.get('bulkAcquisition', data)
+              print('\n###', path)
+              print(json.dumps(data, ensure_ascii=False, indent=2))
+          PY
+      - name: Upload UERJ benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UERJ-objective-benchmark
+          path: |
+            .cache/uerj-catalog.json
+            .cache/uerj-probe.json
+            .cache/uerj-extracted/uerj-summary.json
+            .cache/uerj-extracted/uerj/**/bundle.json
+          retention-days: 7
