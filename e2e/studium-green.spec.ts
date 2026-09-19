@@ -20,6 +20,10 @@ for (const theme of ["dark", "light"] as const) {
       expect(report.violations.filter((item) => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([]);
     }
     await page.getByRole("button", { name: "Escolher objetivo" }).click();
+    // Measure the settled surface, rather than the translucent entrance frame.
+    await page.getByRole("dialog", { name: "Escolher objetivo do treino" }).evaluate(async (element) => {
+      await Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => {})));
+    });
     const report = await new AxeBuilder({ page }).analyze();
     expect(report.violations.filter((item) => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([]);
   });
