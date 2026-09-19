@@ -17,7 +17,7 @@ sys.modules[spec.name] = base
 spec.loader.exec_module(base)
 
 core = base.core
-core.PARSER_VERSION = "inbox-uerj@0.2.0"
+core.PARSER_VERSION = "inbox-uerj@0.3.0"
 core.PROFILES["uerj"] = {
     "institution": "UERJ",
     "slug": "universidade-estado-rio-janeiro-1",
@@ -36,6 +36,29 @@ SECTION_RESET = {
     "matematica", "biologia", "fisica", "quimica", "geografia", "historia",
     "ciencias da natureza", "ciencias humanas", "linguagens", "texto base",
 }
+ENGLISH_WORDS = {
+    "the", "and", "of", "to", "in", "that", "this", "which", "following", "according",
+    "paragraph", "sentence", "meaning", "refers", "another", "below", "above", "used",
+    "throughout", "with", "from", "for", "does", "not", "main", "purpose", "can", "has",
+    "have", "are", "is", "was", "were", "its", "their", "they", "it",
+}
+NON_ENGLISH_WORDS = {
+    "el", "los", "las", "del", "una", "segun", "siguiente", "termino", "subrayado",
+    "autora", "sentido", "lectura", "expresa", "repercusiones", "cuenta",
+    "le", "les", "des", "une", "suivante", "reponse", "vers", "pronom", "reference",
+    "adjectif", "remplacer", "changement", "dans", "formulee",
+    "vestibular", "matematica", "assinale", "alternativa", "questao", "seguinte",
+}
+
+
+def _looks_english(candidate) -> bool:
+    payload = core.norm(
+        " ".join([candidate.statement, *candidate.alternatives.values()])
+    )
+    tokens = payload.split()
+    english = sum(token in ENGLISH_WORDS for token in tokens)
+    non_english = sum(token in NON_ENGLISH_WORDS for token in tokens)
+    return english >= 3 and english >= non_english + 2
 
 
 def _language(line: str) -> str | None:
@@ -161,16 +184,25 @@ def parse_question_document(document):
             grouped[candidate.number].append(candidate)
 
     def rank(candidate):
-        language = getattr(candidate, "_uerj_language", None)
-        language_priority = 2 if language == "english" else (1 if language is None else 0)
         return (
-            language_priority,
             len(candidate.alternatives),
             candidate.mode == "layout",
             len(candidate.statement) + sum(len(value) for value in candidate.alternatives.values()),
         )
 
-    return {number: max(items, key=rank) for number, items in grouped.items()}
+    selected = {}
+    for number, items in grouped.items():
+        if number in LANGUAGE_NUMBERS:
+            # The same identities occur once per offered foreign language. A body is only
+            # eligible for the canonical English lane when its own extracted text provides
+            # deterministic lexical evidence of English; never pair a French/Spanish/Portuguese
+            # body merely because it shares the same number.
+            english = [item for item in items if _looks_english(item)]
+            if not english:
+                continue
+            items = english
+        selected[number] = max(items, key=rank)
+    return selected
 
 
 def _answer_tokens(lines: list[str], start: int, needed: int):
@@ -199,7 +231,7 @@ def _answer_tokens(lines: list[str], start: int, needed: int):
                 pending_anu = True
         if accepted_here:
             consumed = offset - start + 1
-        elif values:
+        elif values and not pending_anu:
             break
         if len(values) >= needed:
             break

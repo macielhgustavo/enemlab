@@ -52,6 +52,13 @@ A A A A A B B B B B C C C C C
         self.assertEqual(parsed["answers"][12], "C")
         self.assertEqual(parsed["answers"][1], "D")
 
+    def test_language_lane_requires_english_body(self):
+        Candidate = self.mod.core.Candidate
+        english = Candidate(12, "According to the text, the following meaning is correct.", {"A": "the first option", "B": "the second option", "C": "another answer", "D": "the final answer"}, 1, "plain")
+        french = Candidate(12, "Cette différence est suggérée dans le vers qui suit.", {"A": "une réponse", "B": "le choix", "C": "dans le texte", "D": "la réponse"}, 1, "plain")
+        self.assertTrue(self.mod._looks_english(english))
+        self.assertFalse(self.mod._looks_english(french))
+
     def test_tabular_key_preserves_annulled_slot(self):
         text = """35 36 37 38 39
 A B ANU
