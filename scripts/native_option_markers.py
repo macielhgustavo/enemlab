@@ -16,6 +16,7 @@ import collections
 import itertools
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Callable
 
 
@@ -171,6 +172,7 @@ def _ordered_line_group(
         return None
     if collections.Counter(label.letter for label in labels) != collections.Counter(option_ids):
         return None
+
     return OptionGroup(
         page_index=labels[0].page_index,
         kind="ordered-lines",
@@ -280,6 +282,125 @@ def _partition_ordered_line_groups(
     if len(rare_solutions) == 1:
         return rare_solutions[0]
     return []
+
+
+
+
+def _visual_reading_order(
+    doc: Any,
+    labels: list[OptionLabel],
+    option_ids: tuple[str, ...],
+) -> list[OptionLabel]:
+    """Ordena rótulos por página e por colunas somente quando o gap é provado.
+
+    O corte não assume que a divisória física está no meio da página. Em provas
+    com colunas assimétricas, usamos os X dos rótulos da primeira alternativa e
+    exigimos um gap grande entre dois conjuntos. Sem esse gap, mantemos a ordem
+    simples Y/X e deixamos os detectores seguintes decidirem.
+    """
+    by_page: dict[int, list[OptionLabel]] = collections.defaultdict(list)
+    for label in labels:
+        by_page[label.page_index].append(label)
+
+    ordered: list[OptionLabel] = []
+    anchor = option_ids[0]
+    for page_index in sorted(by_page):
+        page_labels = by_page[page_index]
+        width = float(doc[page_index].rect.width)
+        anchors = sorted(label.x0 for label in page_labels)
+        split_x: float | None = None
+        if len(anchors) >= 2:
+            gaps = [
+                (anchors[index + 1] - anchors[index], index)
+                for index in range(len(anchors) - 1)
+            ]
+            gap, index = max(gaps, default=(0.0, 0))
+            if gap >= width * 0.14:
+                left_anchor = anchors[index]
+                right_anchor = anchors[index + 1]
+                split_x = (left_anchor + right_anchor) / 2.0
+
+        if split_x is None:
+            ordered.extend(sorted(page_labels, key=lambda item: (item.y0, item.x0)))
+            continue
+
+        left = [label for label in page_labels if label.x0 < split_x]
+        right = [label for label in page_labels if label.x0 >= split_x]
+        if not left or not right:
+            ordered.extend(sorted(page_labels, key=lambda item: (item.y0, item.x0)))
+            continue
+
+        ordered.extend(sorted(left, key=lambda item: (item.y0, item.x0)))
+        ordered.extend(sorted(right, key=lambda item: (item.y0, item.x0)))
+    return ordered
+
+def _partition_visual_groups(
+    labels: list[OptionLabel],
+    option_ids: tuple[str, ...],
+    total: int,
+    *,
+    max_noise: int,
+) -> list[OptionGroup]:
+    """Exige uma única partição visual em exatamente N grupos."""
+    width = len(option_ids)
+    noise = len(labels) - total * width
+    if width < 1 or total < 1 or noise < 0 or noise > max_noise:
+        return []
+
+    @lru_cache(maxsize=None)
+    def solve(index: int, groups_done: int, noise_left: int):
+        remaining = len(labels) - index
+        needed = (total - groups_done) * width
+        if remaining < needed or remaining > needed + noise_left:
+            return ()
+        if groups_done == total:
+            if remaining != noise_left:
+                return ()
+            return ((),)
+
+        solutions: list[tuple[OptionGroup, ...]] = []
+        if index + width <= len(labels):
+            group = _ordered_line_group(labels[index : index + width], option_ids)
+            if group is not None:
+                for tail in solve(index + width, groups_done + 1, noise_left):
+                    solutions.append((group, *tail))
+                    if len(solutions) > 1:
+                        return tuple(solutions[:2])
+
+        if noise_left > 0 and index < len(labels):
+            for tail in solve(index + 1, groups_done, noise_left - 1):
+                solutions.append(tail)
+                if len(solutions) > 1:
+                    return tuple(solutions[:2])
+        return tuple(solutions)
+
+    solutions = solve(0, 0, noise)
+    if len(solutions) != 1:
+        return []
+    return list(solutions[0])
+
+
+def detect_visual_ordered_option_groups(
+    doc: Any,
+    labels: list[OptionLabel],
+    option_ids: tuple[str, ...],
+    total: int,
+    *,
+    max_noise: int = 4,
+) -> list[OptionGroup]:
+    ordered = _visual_reading_order(doc, labels, option_ids)
+    groups = _partition_visual_groups(
+        ordered,
+        option_ids,
+        total,
+        max_noise=max_noise,
+    )
+    if len(groups) != total:
+        raise OrderedOptionMarkerError(
+            "rótulos em ordem visual não fecham uma partição única: "
+            f"{len(labels)} rótulos para {total} questões"
+        )
+    return groups
 
 
 def _cluster_rows(
@@ -829,6 +950,36 @@ def detect_ordered_option_groups(
     if len(line_groups) == total:
         return line_groups
 
+    visual_groups: list[OptionGroup] = []
+    if total >= 3:
+        try:
+            visual_groups = detect_visual_ordered_option_groups(
+                doc,
+                line_labels,
+                option_ids,
+                total,
+                max_noise=4,
+            )
+        except OrderedOptionMarkerError:
+            visual_groups = []
+    if len(visual_groups) == total:
+        return visual_groups
+
+    isolated_visual_groups: list[OptionGroup] = []
+    if total >= 3 and labels:
+        try:
+            isolated_visual_groups = detect_visual_ordered_option_groups(
+                doc,
+                labels,
+                option_ids,
+                total,
+                max_noise=4,
+            )
+        except OrderedOptionMarkerError:
+            isolated_visual_groups = []
+    if len(isolated_visual_groups) == total:
+        return isolated_visual_groups
+
     geometric = _style_option_groups(labels, option_ids)
     geometric.extend(_block_fallback_groups(blocks, geometric, option_ids))
     geometric.extend(_block_single_label_groups(blocks, geometric, option_ids))
@@ -884,13 +1035,15 @@ def markers_from_groups(
         else:
             y0 = height * 0.03
         y0 = max(height * 0.02, min(y0, group.y0 - 2))
+        marker_x0 = max(width * 0.02, min(group.x0, width * 0.94))
+        marker_x1 = min(width * 0.98, max(marker_x0 + 2.0, group.x1))
         markers.append(
             marker_factory(
                 number=number,
                 page_index=group.page_index,
-                x0=width * 0.06,
+                x0=marker_x0,
                 y0=y0,
-                x1=width * 0.94,
+                x1=marker_x1,
                 y1=min(group.y0, y0 + 2),
             )
         )

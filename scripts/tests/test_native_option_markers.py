@@ -429,5 +429,116 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         self.assertEqual(regions[2][0][0], 0)
 
 
+class VisualOrderOptionMarkerTests(unittest.TestCase):
+    def test_visual_order_recovers_two_column_sequence(self):
+        labels = []
+        serial = 0
+        for x0 in (50.0, 350.0):
+            for base_y in (100.0, 300.0):
+                for offset, letter in enumerate("ABCDE"):
+                    labels.append(
+                        markers.OptionLabel(
+                            0,
+                            serial,
+                            letter,
+                            x0,
+                            base_y + offset * 20,
+                            x0 + 10,
+                            base_y + offset * 20 + 12,
+                            "Body",
+                            12.0,
+                        )
+                    )
+                    serial += 1
+        labels.sort(key=lambda item: (item.y0, item.x0))
+        groups = markers.detect_visual_ordered_option_groups(
+            [FakePage([], width=600.0)],
+            labels,
+            tuple("ABCDE"),
+            4,
+        )
+        self.assertEqual(len(groups), 4)
+        self.assertLess(groups[0].x0, 300)
+        self.assertLess(groups[1].x0, 300)
+        self.assertGreater(groups[2].x0, 300)
+        self.assertGreater(groups[3].x0, 300)
+
+    def test_visual_order_recovers_asymmetric_two_column_sequence(self):
+        labels = []
+        serial = 0
+        # A coluna direita começa antes do meio físico da página. O detector
+        # antigo por width/2 misturava os dois fluxos de leitura.
+        for x0 in (45.0, 255.0):
+            for base_y in (100.0, 300.0):
+                for offset, letter in enumerate("ABCDE"):
+                    labels.append(
+                        markers.OptionLabel(
+                            0,
+                            serial,
+                            letter,
+                            x0,
+                            base_y + offset * 20,
+                            x0 + 10,
+                            base_y + offset * 20 + 12,
+                            "Body",
+                            12.0,
+                        )
+                    )
+                    serial += 1
+        labels.sort(key=lambda item: (item.y0, item.x0))
+        groups = markers.detect_visual_ordered_option_groups(
+            [FakePage([], width=600.0)],
+            labels,
+            tuple("ABCDE"),
+            4,
+        )
+        self.assertEqual(len(groups), 4)
+        self.assertLess(groups[1].x0, 200)
+        self.assertGreater(groups[2].x0, 200)
+
+    def test_visual_order_splits_columns_even_if_right_column_has_no_a(self):
+        labels = []
+        serial = 0
+        for base_y in (100.0, 300.0):
+            for offset, letter in enumerate("ABCDE"):
+                labels.append(
+                    markers.OptionLabel(
+                        0, serial, letter, 45.0, base_y + offset * 20,
+                        55.0, base_y + offset * 20 + 12, "Body", 12.0
+                    )
+                )
+                serial += 1
+        for offset, letter in enumerate("BCDE"):
+            labels.append(
+                markers.OptionLabel(
+                    0, serial, letter, 350.0, 500.0 + offset * 20,
+                    360.0, 512.0 + offset * 20, "Body", 12.0
+                )
+            )
+            serial += 1
+
+        ordered = markers._visual_reading_order(
+            [FakePage([], width=600.0)],
+            labels,
+            tuple("ABCDE"),
+        )
+
+        self.assertTrue(all(item.x0 < 200 for item in ordered[:10]))
+        self.assertTrue(all(item.x0 > 300 for item in ordered[10:]))
+
+    def test_synthetic_marker_preserves_column_anchor(self):
+        groups = [
+            markers.OptionGroup(0, "ordered-lines", 50, 100, 160, 180),
+            markers.OptionGroup(0, "ordered-lines", 350, 100, 470, 180),
+        ]
+        synthetic = markers.markers_from_groups(
+            [FakePage([], width=600.0)],
+            groups,
+            lambda **kwargs: SimpleNamespace(**kwargs),
+        )
+        self.assertLess(synthetic[0].x0, 300)
+        self.assertGreater(synthetic[1].x0, 300)
+
+
 if __name__ == "__main__":
     unittest.main()

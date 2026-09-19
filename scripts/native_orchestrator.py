@@ -22,8 +22,12 @@ import hashlib
 import importlib.util
 import json
 import re
+import shutil
 import ssl
+import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -439,15 +443,71 @@ def discover_targets() -> list[NativeTarget]:
 
 
 def _download_pdf(url: str, destination: Path) -> Path:
-    request = urllib.request.Request(url, headers=HTTP_HEADERS)
-    context = ssl.create_default_context()
-    with urllib.request.urlopen(request, context=context, timeout=90) as response:
-        data = response.read()
-    if not data.lstrip().startswith(b"%PDF"):
-        raise NativeOrchestratorError("fonte não retornou um PDF")
+    """Baixa PDF com TLS normal, retries e fallback para curl."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_bytes(data)
-    return destination
+    context = ssl.create_default_context()
+    last_error: Exception | None = None
+
+    for attempt in range(3):
+        try:
+            request = urllib.request.Request(url, headers=HTTP_HEADERS)
+            with urllib.request.urlopen(request, context=context, timeout=90) as response:
+                data = response.read()
+            if not data.lstrip().startswith(b"%PDF"):
+                raise NativeOrchestratorError("fonte não retornou um PDF")
+            destination.write_bytes(data)
+            return destination
+        except (OSError, urllib.error.URLError, NativeOrchestratorError) as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(2**attempt)
+
+    curl = shutil.which("curl")
+    if curl:
+        temporary = destination.with_name(destination.name + ".curl")
+        temporary.unlink(missing_ok=True)
+        result = subprocess.run(
+            [
+                curl,
+                "--fail",
+                "--location",
+                "--silent",
+                "--show-error",
+                "--retry",
+                "4",
+                "--retry-all-errors",
+                "--retry-delay",
+                "2",
+                "--connect-timeout",
+                "20",
+                "--max-time",
+                "150",
+                "--user-agent",
+                HTTP_HEADERS["User-Agent"],
+                "--output",
+                str(temporary),
+                url,
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        valid_pdf = False
+        if result.returncode == 0 and temporary.exists() and temporary.stat().st_size > 4:
+            with temporary.open("rb") as handle:
+                valid_pdf = handle.read(4) == b"%PDF"
+        if valid_pdf:
+            temporary.replace(destination)
+            return destination
+        temporary.unlink(missing_ok=True)
+        detail = (result.stderr or "").strip()
+        last_error = NativeOrchestratorError(
+            f"curl falhou ({result.returncode})" + (f": {detail[:240]}" if detail else "")
+        )
+
+    raise NativeOrchestratorError(
+        f"falha ao baixar caderno após retries: {last_error}"
+    ) from last_error
 
 
 def _sha256(path: Path) -> str:

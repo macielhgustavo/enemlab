@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "provider": "espcex",
+  "auditRevision": "native-mirror-audit@1",
+  "records": {
+    "2025:day1": {
+      "catalogExamUrl": "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20A.pdf",
+      "mirrorUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/provas/2025-modelo-a-1-dia-de-prova.pdf",
+      "mirrorSha256": "e25ab87151a2416d42781373fc17442fa2ce692dcea1fd9b18310f884f204474",
+      "mirrorBytes": 1301937,
+      "evidence": "Exact mirror bytes audited with SHA-256, byte length and edition/day/model metadata."
+    },
+    "2025:day2": {
+      "catalogExamUrl": "https://espcex.eb.mil.br/images/concurso/provas/provas2025/2025%20PROVA%20MODELO%20D.pdf",
+      "mirrorUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2025/provas/2025-modelo-d-2-dia-de-prova.pdf",
+      "mirrorSha256": "d2a6c6c3224d7c34aab3f5703f53ea9472200114a22fad7e7b4840836696b232",
+      "mirrorBytes": 826244,
+      "evidence": "Exact mirror bytes audited with SHA-256, byte length and edition/day/model metadata."
+    },
+    "2019:day2": {
+      "catalogExamUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING%20-%20MODELO%20D.pdf",
+      "mirrorUrl": "https://hdocurso.com.br/cursos-preparatorios-militares/preparatorio-espcex/2019/provas/2019%20-%20EsPCEx%20-%20MATGEOHISING%20-%20MODELO%20D.pdf",
+      "mirrorSha256": "b6c831a6354a132170b5959fae5ef5d31491901343ac2b3b94af227dd74e671c",
+      "mirrorBytes": 703357,
+      "evidence": "Pinned source is the previously audited HDO PDF itself; SHA-256 and byte length remain mandatory."
+    }
+  }
+}
