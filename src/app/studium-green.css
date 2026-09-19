@@ -1,6 +1,6 @@
 /*
  * Studium Labs — Ultimate Green.
- * Edition name only. Neutral surfaces and typography carry the identity.
+ * Edition name only. Graphite surfaces, cobalt actions, amber attention.
  */
 :root,
 :root[data-theme="dark"] {
@@ -21,17 +21,19 @@
   --text-faint: #9797a2;
   --line: #303036;
   --line-strong: #474750;
-  --brand: #e4e4e7;
-  --brand-dim: #c4c4cc;
-  --brand-strong: #ffffff;
-  --brand-ink: #e4e4e7;
-  --brand-soft: #29292f;
-  --ok: #aabacb;
-  --cyan: #aabacb;
+  --brand: #91afff;
+  --brand-dim: #7699f2;
+  --brand-strong: #b4c8ff;
+  --brand-ink: #aec5ff;
+  --brand-soft: #222e48;
+  --ok: #a6bfd4;
+  --cyan: #91afff;
+  --warn: #e4b96b;
+  --bad: #f3999e;
   --text-on-accent: #141416;
   --brand2: var(--brand-soft);
   --brand3: var(--brand-ink);
-  --line-glow: #60606b;
+  --line-glow: #5974b7;
   --shadow: 0 12px 28px -22px #000;
   --shadow-lg: 0 20px 42px -24px #000;
   --glow: 0 0 0 1px var(--line-strong);
@@ -62,19 +64,19 @@
   --text-faint: #6b6b76;
   --line: #e1e1e6;
   --line-strong: #c6c6cf;
-  --brand: #27272a;
-  --brand-dim: #18181b;
-  --brand-strong: #45454d;
-  --brand-ink: #35353d;
-  --brand-soft: #ededf0;
+  --brand: #315acb;
+  --brand-dim: #24449f;
+  --brand-strong: #254bb5;
+  --brand-ink: #294daa;
+  --brand-soft: #eaf0ff;
   --ok: #465b72;
-  --cyan: #465b72;
+  --cyan: #315acb;
   --text-on-accent: #ffffff;
   --brand2: var(--brand-soft);
   --brand3: var(--brand-ink);
-  --warn: #775100;
+  --warn: #875900;
   --bad: #9f2424;
-  --line-glow: #b1b1bd;
+  --line-glow: #9fb3e8;
   --shadow: 0 12px 28px -24px #202024;
   --shadow-lg: 0 20px 42px -28px #202024;
   --glow: 0 0 0 1px var(--line-strong);
@@ -102,7 +104,7 @@ body::after {
 .btn,
 .app-topbar__train {
   background: var(--brand);
-  color: var(--void);
+  color: var(--text-on-accent);
   border-color: transparent;
   box-shadow: none;
   border-radius: 8px;

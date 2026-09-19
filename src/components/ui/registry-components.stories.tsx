@@ -1,4 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
+import { NumberField } from "./number-field";
+import { Status, StatusIndicator, StatusLabel } from "./status";
 import {
   Choicebox,
   ChoiceboxItem,
@@ -19,6 +24,75 @@ import {
 const meta: Meta = { title: "Studium Labs/Registry components" };
 export default meta;
 type Story = StoryObj;
+
+export const SearchField: Story = {
+  render: () => (
+    <div style={{ maxWidth: 360 }}>
+      <InputGroup>
+        <InputGroupAddon>
+          <Search size={16} aria-hidden="true" />
+        </InputGroupAddon>
+        <InputGroupInput
+          type="search"
+          aria-label="Buscar questões"
+          placeholder="Buscar questões…"
+        />
+      </InputGroup>
+    </div>
+  ),
+};
+
+function GoalControl() {
+  const [value, setValue] = useState("80");
+  return (
+    <div style={{ maxWidth: 240 }}>
+      <label htmlFor="story-goal">Cobertura alvo %</label>
+      <NumberField
+        id="story-goal"
+        label="Cobertura alvo %"
+        min={0}
+        max={100}
+        value={value}
+        onValueChange={setValue}
+      />
+    </div>
+  );
+}
+export const GoalNumberField: Story = { render: () => <GoalControl /> };
+
+export const SessionStates: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: 24 }}>
+      {(["complete", "active", "waiting"] as const).map((status, index) => (
+        <Status key={status} status={status}>
+          <StatusIndicator />
+          <StatusLabel>{["Concluída", "Em andamento", "Aguardando"][index]}</StatusLabel>
+        </Status>
+      ))}
+    </div>
+  ),
+};
+
+export const Palette: Story = {
+  render: () => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+      {["bg", "surface-1", "brand", "brand-soft", "warn", "bad"].map((token) => (
+        <div key={token}>
+          <div
+            style={{
+              width: 80,
+              height: 64,
+              borderRadius: 6,
+              background: `var(--${token})`,
+              border: "1px solid var(--line)",
+            }}
+          />
+          <span style={{ fontSize: 12 }}>{token}</span>
+        </div>
+      ))}
+    </div>
+  ),
+};
 
 export const StudyObjective: Story = {
   render: () => (

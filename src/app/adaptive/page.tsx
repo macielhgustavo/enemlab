@@ -45,6 +45,7 @@ import { useActiveProvider } from "@/components/ExamSwitch";
 import { examLabel } from "@/lib/providers/label";
 import { Metric, Empty, Card } from "@/components/ui";
 import { ChevronDown } from "lucide-react";
+import { NumberField } from "@/components/ui/number-field";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -574,34 +575,34 @@ export default function AdaptivePage() {
               </div>
               <div>
                 <label htmlFor="goal-weekly">Questões/semana</label>
-                <input
+                <NumberField
                   id="goal-weekly"
-                  type="number"
+                  label="Questões/semana"
                   min="0"
                   value={currentGoalDraft.weekly}
-                  onChange={(e) => updateGoal({ weekly: e.target.value })}
+                  onValueChange={(weekly) => updateGoal({ weekly })}
                 />
               </div>
               <div>
                 <label htmlFor="goal-readiness">Readiness alvo</label>
-                <input
+                <NumberField
                   id="goal-readiness"
-                  type="number"
+                  label="Readiness alvo"
                   min="0"
                   max="100"
                   value={currentGoalDraft.readiness}
-                  onChange={(e) => updateGoal({ readiness: e.target.value })}
+                  onValueChange={(readiness) => updateGoal({ readiness })}
                 />
               </div>
               <div>
                 <label htmlFor="goal-coverage">Cobertura alvo %</label>
-                <input
+                <NumberField
                   id="goal-coverage"
-                  type="number"
+                  label="Cobertura alvo %"
                   min="0"
                   max="100"
                   value={currentGoalDraft.coverage}
-                  onChange={(e) => updateGoal({ coverage: e.target.value })}
+                  onValueChange={(coverage) => updateGoal({ coverage })}
                 />
               </div>
             </div>

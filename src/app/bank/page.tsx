@@ -1,5 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
@@ -218,15 +220,23 @@ export default function BankPage() {
         }}
       >
         <FilterGroup label="Buscar">
-          <input
+          <InputGroup aria-label="Busca de questões">
+          <InputGroupAddon><Search size={16} aria-hidden="true" /></InputGroupAddon>
+          <InputGroupInput
             id="banco-busca"
-            className="el-search"
             type="search"
             aria-label="Buscar no enunciado ou conteúdo"
             placeholder="Buscar no enunciado, conteúdo…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <InputGroupAddon align="inline-end">
+            <button type="button" className="input-group__clear" aria-label="Limpar busca" disabled={!query} onClick={(event) => {
+              setQuery("");
+              event.currentTarget.closest("[data-slot='input-group']")?.querySelector("input")?.focus();
+            }}><X size={15} aria-hidden="true" /></button>
+          </InputGroupAddon>
+          </InputGroup>
         </FilterGroup>
 
         <FilterGroup label="Edição">

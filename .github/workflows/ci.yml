@@ -48,7 +48,7 @@ jobs:
         run: npm run test:e2e:ci
 
       - name: Composição responsiva e teclado (cinco larguras)
-        run: npx playwright test e2e/refinement.spec.ts e2e/studium-green.spec.ts --project desktop
+        run: npx playwright test e2e/refinement.spec.ts e2e/studium-green.spec.ts e2e/palette-components.spec.ts --project desktop
 
       - name: Guardar relatório do Playwright
         if: failure()
