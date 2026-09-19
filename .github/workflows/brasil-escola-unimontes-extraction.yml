@@ -1,0 +1,147 @@
+name: Brasil Escola UNIMONTES Objective Extraction
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/generic-source-harvesting
+    paths:
+      - '.github/workflows/brasil-escola-unimontes-extraction.yml'
+      - 'scripts/ingest-unimontes-safe.py'
+      - 'scripts/ingest-objective-mirror-core.py'
+      - 'scripts/ingest-objective-mirror-safe.py'
+      - 'scripts/probe-cederj-safe.py'
+      - 'scripts/tests/test_ingest_objective_mirror_safe.py'
+      - 'scripts/tests/test_ingest_unimontes_safe.py'
+      - 'scripts/harvest-brasil-escola-bulk.py'
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deterministic PDF dependencies
+        run: python -m pip install --disable-pip-version-check 'pypdf>=6,<7' 'fonttools>=4,<5' 'cryptography>=44,<47'
+      - name: Install archive support
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full unrar-free
+      - name: Validate UNIMONTES objective parser
+        run: |
+          python -m py_compile scripts/ingest-objective-mirror-core.py scripts/ingest-objective-mirror-safe.py scripts/ingest-unimontes-safe.py scripts/probe-cederj-safe.py
+          python -m unittest discover -s scripts/tests -p 'test_ingest_objective_mirror_safe.py'
+          python -m unittest discover -s scripts/tests -p 'test_ingest_unimontes_safe.py'
+      - name: Acquire UNIMONTES mirror packages
+        run: |
+          python scripts/harvest-brasil-escola-bulk.py \
+            --region 'sudeste' \
+            --institution 'universidade-estadual-montes-claros' \
+            --workers 8 \
+            --catalog '.cache/unimontes-catalog.json' \
+            --download-root '.cache/unimontes-inbox'
+      - name: Probe UNIMONTES package structure
+        run: |
+          python scripts/probe-cederj-safe.py \
+            --input '.cache/unimontes-inbox/universidade-estadual-montes-claros' \
+            --output '.cache/unimontes-probe.json'
+      - name: Extract deterministic UNIMONTES regular objective corpus
+        run: |
+          python scripts/ingest-unimontes-safe.py \
+            --profile 'unimontes' \
+            --input '.cache/unimontes-inbox/universidade-estadual-montes-claros' \
+            --output '.cache/unimontes-extracted'
+      - name: Upload UNIMONTES benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brasil-escola-UNIMONTES-objective-benchmark
+          path: |
+            .cache/unimontes-catalog.json
+            .cache/unimontes-probe.json
+            .cache/unimontes-extracted/unimontes-summary.json
+            .cache/unimontes-extracted/unimontes/**/bundle.json
+          retention-days: 7
+      - name: Enforce exact deterministic accounting
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('.cache/unimontes-catalog.json').read_text())['bulkAcquisition']
+          probe = json.loads(Path('.cache/unimontes-probe.json').read_text())
+          summary = json.loads(Path('.cache/unimontes-extracted/unimontes-summary.json').read_text())
+
+          acquisition = {
+              'selected': catalog.get('selected'),
+              'acquired': catalog.get('acquired'),
+              'unavailable': catalog.get('unavailable'),
+              'errors': len(catalog.get('errors', [])),
+          }
+          expected_acquisition = {
+              'selected': 31,
+              'acquired': 5,
+              'unavailable': 26,
+              'errors': 0,
+          }
+          if acquisition != expected_acquisition:
+              raise SystemExit(f'UNIMONTES acquisition changed: {acquisition} != {expected_acquisition}')
+
+          expected_probe = {
+              'packagesScanned': 5,
+              'nativeTextDocuments': 54,
+              'likelyScannedDocuments': 0,
+              'questionNumberSignal': 1718,
+              'answerKeyPairSignal': 812,
+          }
+          observed_probe = {key: probe.get(key) for key in expected_probe}
+          if observed_probe != expected_probe:
+              raise SystemExit(f'UNIMONTES probe changed: {observed_probe} != {expected_probe}')
+          if probe.get('roleCounts') != {'answer-key': 18, 'exam': 36}:
+              raise SystemExit(f"UNIMONTES role counts changed: {probe.get('roleCounts')}")
+          if probe.get('failures'):
+              raise SystemExit(probe['failures'])
+
+          if summary.get('failures'):
+              raise SystemExit(summary['failures'])
+
+          expected_global = {
+              'archivesScanned': 5,
+              'uniquePackages': 3,
+              'editions': 3,
+              'expectedQuestions': 135,
+              'extractedQuestions': 134,
+              'completeUnits': 2,
+              'missingIdentities': 1,
+              'visualDependencies': 19,
+          }
+          observed_global = {key: summary.get(key) for key in expected_global}
+          if observed_global != expected_global:
+              raise SystemExit(f'UNIMONTES global accounting changed: {observed_global} != {expected_global}')
+
+          expected_cycles = {
+              'unimontes-2024-1': (45, 44, 0, 1, 10),
+              'unimontes-2025-1': (45, 45, 1, 0, 2),
+              'unimontes-2026-1': (45, 45, 1, 0, 7),
+          }
+          observed_cycles = {
+              cycle['editionId']: (
+                  cycle['expectedQuestions'],
+                  cycle['extractedQuestions'],
+                  cycle['completeUnits'],
+                  cycle['missingIdentities'],
+                  cycle['visualDependencies'],
+              )
+              for cycle in summary.get('cycles', [])
+          }
+          if observed_cycles != expected_cycles:
+              raise SystemExit(f'UNIMONTES cycle accounting changed: {observed_cycles} != {expected_cycles}')
+
+          if summary['missingIdentities'] != summary['expectedQuestions'] - summary['extractedQuestions']:
+              raise SystemExit('UNIMONTES missing identity accounting mismatch')
+
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
