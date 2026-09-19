@@ -17,7 +17,7 @@ sys.modules[spec.name] = base
 spec.loader.exec_module(base)
 
 core = base.core
-core.PARSER_VERSION = "inbox-uerj@0.3.0"
+core.PARSER_VERSION = "inbox-uerj@0.4.0"
 core.PROFILES["uerj"] = {
     "institution": "UERJ",
     "slug": "universidade-estado-rio-janeiro-1",
@@ -51,14 +51,35 @@ NON_ENGLISH_WORDS = {
 }
 
 
-def _looks_english(candidate) -> bool:
-    payload = core.norm(
-        " ".join([candidate.statement, *candidate.alternatives.values()])
-    )
-    tokens = payload.split()
+def _language_score(value: str):
+    tokens = core.norm(value).split()
     english = sum(token in ENGLISH_WORDS for token in tokens)
     non_english = sum(token in NON_ENGLISH_WORDS for token in tokens)
-    return english >= 3 and english >= non_english + 2
+    return english, non_english, len(tokens)
+
+
+def _looks_english(candidate) -> bool:
+    english, non_english, token_count = _language_score(candidate.statement)
+    if english >= 2 and english >= non_english + 1:
+        return True
+    # Very short prompts such as "Which is correct below:" can be identified only
+    # when the structural section marker itself is English and the alternatives
+    # independently contain enough English lexical evidence.
+    if token_count <= 5 and getattr(candidate, "_uerj_language", None) == "english":
+        all_english, all_non_english, _ = _language_score(
+            " ".join([candidate.statement, *candidate.alternatives.values()])
+        )
+        return all_english >= 3 and all_english >= all_non_english + 2
+    return False
+
+
+def _language_range(document, pages: list[str]) -> set[int]:
+    evidence = core.norm(" ".join([document.first_text or "", *pages[:2]]))
+    if re.search(r"questoes? de numeros? 12 a 18.{0,160}lingua estrangeira", evidence):
+        return set(range(12, 19))
+    if re.search(r"questoes? de numeros? 23 a 27.{0,160}lingua estrangeira", evidence):
+        return set(range(23, 28))
+    return set()
 
 
 def _language(line: str) -> str | None:
@@ -175,13 +196,18 @@ def parse_question_pages(pages: list[str], *, mode: str):
 
 def parse_question_document(document):
     grouped = defaultdict(list)
+    plain_pages = []
     for layout, mode in ((False, "plain"), (True, "layout")):
         try:
             pages = [core.probe.utf8_safe(page) for page in core.base.pdf_pages(document, layout=layout)]
         except Exception:
             continue
+        if not layout:
+            plain_pages = pages
         for candidate in parse_question_pages(pages, mode=mode):
             grouped[candidate.number].append(candidate)
+
+    language_numbers = _language_range(document, plain_pages)
 
     def rank(candidate):
         return (
@@ -192,11 +218,10 @@ def parse_question_document(document):
 
     selected = {}
     for number, items in grouped.items():
-        if number in LANGUAGE_NUMBERS:
-            # The same identities occur once per offered foreign language. A body is only
-            # eligible for the canonical English lane when its own extracted text provides
-            # deterministic lexical evidence of English; never pair a French/Spanish/Portuguese
-            # body merely because it shares the same number.
+        if number in language_numbers:
+            # Only the actual foreign-language interval declared by this caderno is
+            # variant-bearing. A body is eligible for the canonical English lane only
+            # when its own prompt provides deterministic English evidence.
             english = [item for item in items if _looks_english(item)]
             if not english:
                 continue

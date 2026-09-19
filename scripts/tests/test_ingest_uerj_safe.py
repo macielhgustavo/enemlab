@@ -59,6 +59,19 @@ A A A A A B B B B B C C C C C
         self.assertTrue(self.mod._looks_english(english))
         self.assertFalse(self.mod._looks_english(french))
 
+    def test_language_range_is_declared_by_caderno(self):
+        class Doc:
+            first_text = "As questões de números 12 a 18 deverão ser respondidas de acordo com sua opção de Língua Estrangeira."
+        self.assertEqual(self.mod._language_range(Doc(), []), set(range(12, 19)))
+        Doc.first_text = "As questões de números 23 a 27, da área de Linguagens, deverão ser respondidas de acordo com sua opção de Língua Estrangeira."
+        self.assertEqual(self.mod._language_range(Doc(), []), set(range(23, 28)))
+
+    def test_mixed_french_prompt_is_not_accepted_from_english_alternatives(self):
+        Candidate = self.mod.core.Candidate
+        candidate = Candidate(18, "Une réponse possible à la question du poète est proposée.", {"A": "the first option", "B": "the second option", "C": "another answer", "D": "the final answer"}, 1, "plain")
+        candidate._uerj_language = "french"
+        self.assertFalse(self.mod._looks_english(candidate))
+
     def test_tabular_key_preserves_annulled_slot(self):
         text = """35 36 37 38 39
 A B ANU
