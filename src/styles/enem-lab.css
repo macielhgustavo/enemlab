@@ -813,3 +813,55 @@
     grid-column: 1 / -1;
   }
 }
+
+
+/* ---------------- Hierarquia da navegação ----------------
+   O caminho recomendado fica exposto; ferramentas manuais/avançadas
+   continuam acessíveis sem competir com a próxima ação do aluno. */
+.el-rail-more {
+  width: 100%;
+}
+.el-rail-more__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 36px;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.el-rail-more__summary::-webkit-details-marker {
+  display: none;
+}
+.el-rail-more__summary:hover {
+  background: var(--control-hover);
+  color: var(--text-primary);
+}
+.el-rail-more__summary.active {
+  background: var(--panel-2);
+  color: var(--text-primary);
+  font-weight: 650;
+}
+.el-rail-more__body {
+  display: grid;
+  gap: var(--space-16);
+  margin-top: var(--space-8);
+}
+@media (max-width: 1180px) and (min-width: 901px) {
+  .el-rail-more__summary {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .el-rail-more__summary span {
+    display: none;
+  }
+  .el-rail-more__body,
+  .el-rail-more__body .railgroup {
+    width: 100%;
+  }
+}
