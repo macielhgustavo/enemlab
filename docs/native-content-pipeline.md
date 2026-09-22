@@ -134,6 +134,34 @@ O extrator sempre gera `status: review`; nunca se autoaprova. A futura console d
 
 Depois de aprovado, o mesmo pack pode ser publicado de uma vez.
 
+## Saúde por edição no fleet
+
+O catálogo e o NativePack publicado têm papéis diferentes. Estar listado no provider **não** significa que uma edição está pronta para publicação nativa.
+
+O fleet usa quatro estados operacionais:
+
+- `healthy`: o target foi preparado e passou pelos gates de integridade nesta execução;
+- `degraded`: a edição é conhecida e elegível, mas a preparação atual falhou; o restante do fleet continua;
+- `unavailable`: o discoverer bloqueou a edição antes da execução, por exemplo por fonte inadequada ou formato incompatível;
+- `pending`: o target ainda não foi executado no recorte atual (filtro/limite/manual).
+
+Cada job executado produz `health.json`. O resumo do workflow agrega os arquivos sem converter uma falha localizada de layout em falha sistêmica. O workflow ainda falha quando o planejamento, o canary, a infraestrutura do matrix ou o agregador de health falham.
+
+Categorias de falha são explícitas, incluindo `source`, `missing-markers`, `duplicate-markers`, `layout`, `validation` e `prepare`. Erros TLS/certificado ficam em `source`; nunca são tratados como layout e nunca habilitam bypass de TLS.
+
+### Promoção para `healthy`
+
+Uma edição só deve sair de `degraded`/`unavailable` para `healthy` quando:
+
+1. a fonte oficial ou mirror auditado estiver estável;
+2. a identidade e o gabarito continuarem vindos do provider validado;
+3. a preparação gerar exatamente `1..N`, sem markers faltantes/duplicados;
+4. todas as regiões visuais passarem pelo quality gate;
+5. o job individual produzir `health.json` com `status: healthy`;
+6. o pack for publicado apenas depois desses gates.
+
+O frontend já é fail-closed: ausência de NativePack publicado mantém a questão na fonte de referência em vez de fingir que a edição está nativa.
+
 ## Armazenamento
 
 O repositório GitHub permanece sem enunciados/assets privados. O app já possui autenticação/sincronização Supabase, então a primeira implementação deve reutilizar essa infraestrutura:

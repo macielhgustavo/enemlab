@@ -84,6 +84,64 @@ class NativePrepareProfileTests(unittest.TestCase):
         markers = native_pipeline.detect_markers([page], native_prepare.EEAR_MARKER_PATTERN)
         self.assertEqual([marker.number for marker in markers], [1, 2])
 
+    def test_default_marker_deduplicates_same_geometry(self):
+        page = FakePage(
+            [
+                (10, 10, 500, 80, "QUESTÃO 14\ntexto\nQUESTÃO 14", 0, 0),
+                (10, 10, 500, 80, "QUESTÃO 14", 0, 0),
+            ]
+        )
+        found = native_pipeline.detect_markers(
+            [page],
+            native_pipeline.DEFAULT_MARKER,
+        )
+        self.assertEqual([marker.number for marker in found], [14])
+
+    def test_default_marker_deduplicates_same_origin_with_different_tail(self):
+        page = FakePage(
+            [
+                (10, 10, 500, 80, "QUESTÃO 14", 0, 0),
+                (16.5, 16.0, 520, 140, "QUESTÃO 14", 0, 0),
+            ]
+        )
+        found = native_pipeline.detect_markers(
+            [page],
+            native_pipeline.DEFAULT_MARKER,
+        )
+        self.assertEqual([marker.number for marker in found], [14])
+
+    def test_default_marker_keeps_duplicate_in_distinct_region(self):
+        page = FakePage(
+            [
+                (10, 10, 500, 80, "QUESTÃO 14", 0, 0),
+                (10, 120, 500, 190, "QUESTÃO 14", 0, 0),
+            ]
+        )
+        found = native_pipeline.detect_markers(
+            [page],
+            native_pipeline.DEFAULT_MARKER,
+        )
+        self.assertEqual([marker.number for marker in found], [14, 14])
+
+    def test_canonicalize_single_duplicate_uses_unique_geometric_slot(self):
+        marker = native_pipeline.Marker
+        found = [
+            marker(13, 0, 10, 100, 20, 110),
+            marker(14, 0, 10, 120, 20, 130),
+            marker(14, 1, 10, 500, 20, 510),
+            marker(15, 0, 10, 140, 20, 150),
+        ]
+        # This fixture covers only 13..15, so shift into a 3-question local set.
+        local = [
+            marker(1, 0, 10, 100, 20, 110),
+            marker(2, 0, 10, 120, 20, 130),
+            marker(2, 1, 10, 500, 20, 510),
+            marker(3, 0, 10, 140, 20, 150),
+        ]
+        canonical = native_pipeline.canonicalize_markers(local, 3)
+        self.assertEqual([item.number for item in canonical], [1, 2, 3])
+        self.assertEqual(canonical[1].page_index, 0)
+
 
 class NativeImePrepareTests(unittest.TestCase):
     def test_shared_context_resolution_clears_visual_dependency_issue(self):

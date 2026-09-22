@@ -127,6 +127,70 @@ class NativeFleetTests(unittest.TestCase):
             self.assertEqual(broker_actions, ["begin", "begin", "finalize"])
             self.assertEqual(uploaded_urls, ["https://signed/1", "https://signed/2"])
 
+    def test_health_classifies_source_and_marker_failures(self):
+        source = fleet._target_health(
+            "espcex:2025:day1",
+            1,
+            "urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed>",
+        )
+        missing = fleet._target_health(
+            "unioeste:2026:morning",
+            1,
+            "NativeFleetError: marcadores faltantes: [1, 2, 3]",
+        )
+        duplicate = fleet._target_health(
+            "fatec:2024.1:single",
+            1,
+            "NativePipelineError: marcadores duplicados: [14]",
+        )
+
+        self.assertEqual(source["status"], "degraded")
+        self.assertEqual(source["category"], "source")
+        self.assertEqual(missing["category"], "missing-markers")
+        self.assertEqual(duplicate["category"], "duplicate-markers")
+
+    def test_health_success_is_healthy(self):
+        health = fleet._target_health("unesp:2026:first", 0, "")
+        self.assertEqual(
+            health,
+            {
+                "schemaVersion": 1,
+                "identity": "unesp:2026:first",
+                "status": "healthy",
+                "category": None,
+                "reason": None,
+            },
+        )
+
+    def test_health_summary_keeps_degraded_targets_local(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            healthy_dir = root / "healthy"
+            degraded_dir = root / "degraded"
+            healthy_dir.mkdir()
+            degraded_dir.mkdir()
+            fleet._write_health(
+                fleet._target_health("unesp:2026:first", 0, ""),
+                healthy_dir / "health.json",
+            )
+            fleet._write_health(
+                fleet._target_health(
+                    "fatec:2024.1:single",
+                    1,
+                    "NativePipelineError: marcadores duplicados: [14]",
+                ),
+                degraded_dir / "health.json",
+            )
+
+            summary = fleet._health_summary(fleet._collect_health(root))
+            markdown = fleet._health_markdown(summary)
+
+        self.assertEqual(summary["targets"], 2)
+        self.assertEqual(summary["counts"]["healthy"], 1)
+        self.assertEqual(summary["counts"]["degraded"], 1)
+        self.assertEqual(summary["categories"], {"duplicate-markers": 1})
+        self.assertIn("fatec:2024.1:single", markdown)
+
     def test_plan_can_select_one_exact_target(self):
         wanted = SimpleNamespace(
             status="ready",

@@ -116,6 +116,84 @@ def _load_spec(path: Path) -> Spec:
     )
 
 
+def _marker_regions_equivalent(left: Marker, right: Marker) -> bool:
+    if left.number != right.number or left.page_index != right.page_index:
+        return False
+
+    # O marker é uma âncora de início; extratores PDF podem devolver o mesmo
+    # início em blocos com caudas diferentes. Origem praticamente idêntica é
+    # evidência suficiente de que se trata do mesmo marcador visual.
+    if abs(left.x0 - right.x0) <= 8.0 and abs(left.y0 - right.y0) <= 8.0:
+        return True
+
+    ix0 = max(left.x0, right.x0)
+    iy0 = max(left.y0, right.y0)
+    ix1 = min(left.x1, right.x1)
+    iy1 = min(left.y1, right.y1)
+    if ix1 <= ix0 or iy1 <= iy0:
+        return False
+    intersection = (ix1 - ix0) * (iy1 - iy0)
+    left_area = max(0.0, (left.x1 - left.x0) * (left.y1 - left.y0))
+    right_area = max(0.0, (right.x1 - right.x0) * (right.y1 - right.y0))
+    smaller = min(left_area, right_area)
+    if smaller <= 0:
+        return False
+    return intersection / smaller >= 0.92
+
+
+def _collapse_equivalent_markers(markers: list[Marker]) -> list[Marker]:
+    collapsed: list[Marker] = []
+    for marker in markers:
+        if any(_marker_regions_equivalent(existing, marker) for existing in collapsed):
+            continue
+        collapsed.append(marker)
+    return collapsed
+
+
+def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
+    """Resolve duplicatas somente quando a geometria prova a escolha.
+
+    Se exatamente um número aparece duas vezes, todos os demais 1..N existem
+    uma única vez e apenas um dos candidatos fica fisicamente entre os vizinhos
+    numéricos, o candidato espúrio pode ser removido sem adivinhar. Qualquer
+    caso mais complexo permanece intacto para o gate falhar fechado.
+    """
+    markers = _collapse_equivalent_markers(markers)
+    by_number: dict[int, list[Marker]] = {}
+    for marker in markers:
+        by_number.setdefault(marker.number, []).append(marker)
+
+    expected = set(range(1, total + 1))
+    if set(by_number) != expected:
+        return markers
+    duplicates = [number for number, items in by_number.items() if len(items) != 1]
+    if len(duplicates) != 1:
+        return markers
+    number = duplicates[0]
+    candidates = by_number[number]
+    if len(candidates) != 2 or number <= 1 or number >= total:
+        return markers
+    previous = by_number[number - 1]
+    following = by_number[number + 1]
+    if len(previous) != 1 or len(following) != 1:
+        return markers
+
+    def key(marker: Marker) -> tuple[int, float, float]:
+        return (marker.page_index, marker.y0, marker.x0)
+
+    lower = key(previous[0])
+    upper = key(following[0])
+    fitting = [candidate for candidate in candidates if lower < key(candidate) < upper]
+    if len(fitting) != 1:
+        return markers
+    chosen = fitting[0]
+    return [
+        marker
+        for marker in markers
+        if marker.number != number or marker is chosen
+    ]
+
+
 def validate_marker_numbers(markers: list[Marker], total: int) -> None:
     numbers = [marker.number for marker in markers]
     duplicates = sorted({number for number in numbers if numbers.count(number) > 1})
@@ -157,17 +235,26 @@ def detect_markers(doc: Any, pattern: str) -> list[Marker]:
     for page_index, page in enumerate(doc):
         for block in page.get_text("blocks", sort=False):
             text = str(block[4])
+            seen_in_block: set[int] = set()
             for match in marker_re.finditer(text):
-                markers.append(
-                    Marker(
-                        number=int(match.group(1)),
-                        page_index=page_index,
-                        x0=float(block[0]),
-                        y0=float(block[1]),
-                        x1=float(block[2]),
-                        y1=float(block[3]),
-                    )
+                number = int(match.group(1))
+                if number in seen_in_block:
+                    continue
+                seen_in_block.add(number)
+                candidate = Marker(
+                    number=number,
+                    page_index=page_index,
+                    x0=float(block[0]),
+                    y0=float(block[1]),
+                    x1=float(block[2]),
+                    y1=float(block[3]),
                 )
+                equivalent = any(
+                    _marker_regions_equivalent(existing, candidate)
+                    for existing in markers
+                )
+                if not equivalent:
+                    markers.append(candidate)
     return markers
 
 
@@ -454,7 +541,10 @@ def build_pack(spec: Spec, pdf_path: Path, output_dir: Path, scale: float = 1.5,
         )
 
     doc = fitz.open(pdf_path)
-    markers = detect_markers(doc, spec.marker_pattern)
+    markers = canonicalize_markers(
+        detect_markers(doc, spec.marker_pattern),
+        spec.total,
+    )
     validate_marker_numbers(markers, spec.total)
     marker_by_number = {marker.number: marker for marker in markers}
 
