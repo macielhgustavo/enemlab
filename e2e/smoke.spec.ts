@@ -128,3 +128,48 @@ test("a paleta de comandos abre, busca e fecha no Esc", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(busca).toBeHidden();
 });
+
+
+test("a navegação prioriza o caminho recomendado e preserva ferramentas avançadas", async ({ page }) => {
+  await prepare(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await aguardarApp(page);
+
+  const desktop = page.locator(".railnav");
+  await expect(desktop.getByRole("link", { name: "Plano de hoje" })).toBeVisible();
+  await expect(desktop.getByRole("link", { name: "Treino manual" })).not.toBeVisible();
+  await expect(desktop.getByRole("link", { name: "Motor adaptativo" })).not.toBeVisible();
+
+  await page.locator(".el-rail-more__summary").click();
+  await expect(desktop.getByRole("link", { name: "Treino manual" })).toBeVisible();
+  await expect(desktop.getByRole("link", { name: "Motor adaptativo" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = page.locator(".mobilebar");
+  await expect(mobile.getByRole("link", { name: "Plano" })).toBeVisible();
+  await expect(mobile.getByText("Treino", { exact: true })).not.toBeVisible();
+});
+
+test("Home leva da próxima ação até sessão e resultado", async ({ page }) => {
+  await prepare(page);
+  page.on("dialog", (dialog) => void dialog.accept());
+
+  await page.goto("/");
+  await aguardarApp(page);
+
+  const mission = page.locator(".dash-mission");
+  await expect(mission).toContainText("Montar seu primeiro treino");
+  await mission.getByRole("link", { name: /Montar treino/i }).click();
+  await expect(page).toHaveURL(/\/practice$/);
+
+  await page.getByRole("button", { name: "Começar", exact: true }).click();
+  await expect(page).toHaveURL(/\/exam\//);
+  await expect(page.locator(".answer").first()).toBeVisible();
+
+  await page.locator(".answer").first().click();
+  await page.getByRole("button", { name: /Finalizar e corrigir/i }).click();
+
+  await expect(page).toHaveURL(/\/result\//);
+  await expect(page.locator("body")).toContainText(/Próxima ação|Resultado/i);
+});

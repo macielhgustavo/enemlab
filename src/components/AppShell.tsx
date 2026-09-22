@@ -5,7 +5,7 @@ import {
   Home,
   Dumbbell,
   Library,
-  Sparkles,
+  SlidersHorizontal,
   Map,
   Gauge,
   RotateCcw,
@@ -35,39 +35,47 @@ import { examLabel } from "@/lib/providers/label";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
-  { href: "/practice", label: "Treinar", icon: Dumbbell, short: "Treinar" },
+  { href: "/plano", label: "Plano de hoje", icon: Map, short: "Plano" },
   { href: "/bank", label: "Banco", icon: Library, short: "Banco" },
-  { href: "/adaptive", label: "Adaptive 2.0", icon: Sparkles, short: "Adaptive" },
-  { href: "/plano", label: "Plano", icon: Map, short: "Plano" },
-  { href: "/mastery", label: "Domínio", icon: Gauge, short: "Domínio" },
   { href: "/srs", label: "Revisões", icon: RotateCcw, short: "Revisões" },
+  { href: "/mastery", label: "Domínio", icon: Gauge, short: "Domínio" },
   { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
   { href: "/review", label: "Erros", icon: BookX, short: "Erros" },
+  { href: "/practice", label: "Treino manual", icon: Dumbbell, short: "Treino" },
+  {
+    href: "/adaptive",
+    label: "Motor adaptativo",
+    icon: SlidersHorizontal,
+    short: "Adaptativo",
+  },
   { href: "/data", label: "Dados", icon: Database, short: "Dados" },
   { href: "/account", label: "Conta", icon: UserRound, short: "Conta" },
 ];
 
-/**
- * A nav era uma lista de onze itens sem hierarquia, e "Conta" ficava no fim
- * dela como se fosse mais uma ferramenta de estudo. Agrupar diz o que é
- * ação, o que é acompanhamento e o que é configuração — e encurta a busca
- * visual de onze itens para três blocos.
- */
-const GRUPOS: { titulo: string; itens: typeof NAV }[] = [
+const PRIMARY_GROUPS: { titulo: string; itens: typeof NAV }[] = [
   {
     titulo: "Estudar",
-    itens: NAV.filter((n) =>
-      ["/", "/practice", "/bank", "/adaptive", "/plano"].includes(n.href),
-    ),
+    itens: NAV.filter((item) => ["/", "/plano", "/bank", "/srs"].includes(item.href)),
   },
   {
     titulo: "Acompanhar",
-    itens: NAV.filter((n) => ["/mastery", "/srs", "/history", "/review"].includes(n.href)),
+    itens: NAV.filter((item) => ["/mastery", "/history", "/review"].includes(item.href)),
   },
-  { titulo: "Sistema", itens: NAV.filter((n) => ["/data", "/account"].includes(n.href)) },
 ];
 
-const MOBILE = [NAV[0], NAV[1], NAV[2], NAV[6]];
+const ADVANCED_GROUPS: { titulo: string; itens: typeof NAV }[] = [
+  {
+    titulo: "Ferramentas",
+    itens: NAV.filter((item) => ["/practice", "/adaptive"].includes(item.href)),
+  },
+  {
+    titulo: "Sistema",
+    itens: NAV.filter((item) => ["/data", "/account"].includes(item.href)),
+  },
+];
+
+const ALL_GROUPS = [...PRIMARY_GROUPS, ...ADVANCED_GROUPS];
+const MOBILE = NAV.filter((item) => ["/", "/plano", "/bank", "/srs"].includes(item.href));
 
 function openPalette() {
   window.dispatchEvent(
@@ -75,13 +83,6 @@ function openPalette() {
   );
 }
 
-/**
- * Quanto ar cada tela merece.
- *
- * Não é preferência do usuário: é decisão de projeto. Rota não listada fica
- * no padrão — o default precisa ser o certo para a maioria, senão vira uma
- * tabela que alguém tem que manter.
- */
 function densidadeDaRota(pathname: string): "compact" | "default" | "spacious" {
   if (pathname === "/") return "spacious";
   if (pathname.startsWith("/bank") || pathname.startsWith("/srs")) return "compact";
@@ -90,6 +91,30 @@ function densidadeDaRota(pathname: string): "compact" | "default" | "spacious" {
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+function NavItems({
+  pathname,
+  items,
+}: {
+  pathname: string;
+  items: typeof NAV;
+}) {
+  return items.map((item) => {
+    const Icon = item.icon;
+    const on = isActive(pathname, item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={on ? "active" : ""}
+        aria-current={on ? "page" : undefined}
+      >
+        <Icon size={16} aria-hidden="true" />
+        <span>{item.label}</span>
+      </Link>
+    );
+  });
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -123,6 +148,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isExam = pathname.startsWith("/exam/");
   const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
   const canOpenResultReview = /^\/result\/[^/]+$/.test(pathname);
+  const advancedActive = ADVANCED_GROUPS.some((group) =>
+    group.itens.some((item) => isActive(pathname, item.href)),
+  );
 
   if (isExam) {
     return (
@@ -144,26 +172,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Brand />
 
         <nav className="railnav" aria-label="Navegação principal">
-          {GRUPOS.map((grupo) => (
-            <div className="railgroup" key={grupo.titulo}>
-              <span className="railgroup__label label">{grupo.titulo}</span>
-              {grupo.itens.map((item) => {
-                const Icon = item.icon;
-                const on = isActive(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={on ? "active" : ""}
-                    aria-current={on ? "page" : undefined}
-                  >
-                    <Icon size={16} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+          {PRIMARY_GROUPS.map((group) => (
+            <div className="railgroup" key={group.titulo}>
+              <span className="railgroup__label label">{group.titulo}</span>
+              <NavItems pathname={pathname} items={group.itens} />
             </div>
           ))}
+
+          <details className="el-rail-more" open={advancedActive || undefined}>
+            <summary
+              className={`el-rail-more__summary ${advancedActive ? "active" : ""}`}
+            >
+              <Menu size={16} aria-hidden="true" />
+              <span>Mais</span>
+            </summary>
+            <div className="el-rail-more__body">
+              {ADVANCED_GROUPS.map((group) => (
+                <div className="railgroup" key={group.titulo}>
+                  <span className="railgroup__label label">{group.titulo}</span>
+                  <NavItems pathname={pathname} items={group.itens} />
+                </div>
+              ))}
+            </div>
+          </details>
         </nav>
 
         <div className="sysline">
@@ -208,8 +239,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <Link className="app-topbar__train" href="/practice">
-              Treinar
+            <Link className="app-topbar__train" href="/plano">
+              Plano de hoje
             </Link>
             <Link className="app-topbar__avatar" href="/account" aria-label="Abrir conta">
               MC
@@ -217,9 +248,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Densidade por rota: o Banco lista centenas de linhas e a Home tem
-            poucos blocos com muito peso. Antes as duas respiravam igual, porque
-            densidade só existia na documentação. */}
         <main
           id="main-content"
           tabIndex={-1}
@@ -240,14 +268,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="mobilebar" aria-label="Navegação principal">
         {MOBILE.map((item) => {
           const Icon = item.icon;
+          const on = isActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={isActive(pathname, item.href) ? "active" : ""}
-              aria-current={isActive(pathname, item.href) ? "page" : undefined}
+              className={on ? "active" : ""}
+              aria-current={on ? "page" : undefined}
             >
-              <Icon size={18} />
+              <Icon size={18} aria-hidden="true" />
               <span>{item.short}</span>
             </Link>
           );
@@ -264,10 +293,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </SheetTrigger>
           <SheetContent title="Navegação" side="bottom" className="el-navigation-sheet">
             <nav aria-label="Todas as páginas" className="el-mobile-nav">
-              {GRUPOS.map((grupo) => (
-                <div key={grupo.titulo}>
-                  <p className="label">{grupo.titulo}</p>
-                  {grupo.itens.map((item) => (
+              {ALL_GROUPS.map((group) => (
+                <div key={group.titulo}>
+                  <p className="label">{group.titulo}</p>
+                  {group.itens.map((item) => (
                     <SheetClose asChild key={item.href}>
                       <Link
                         href={item.href}
