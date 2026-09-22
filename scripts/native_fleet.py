@@ -35,10 +35,167 @@ ALLOWED_EXTRACTION_ISSUE_PREFIXES = (
 )
 UPLOAD_WORKERS = 8
 UPLOAD_REFRESH_ROUNDS = 3
+HEALTH_SCHEMA_VERSION = 1
+HEALTH_STATES = ("healthy", "degraded", "unavailable", "pending")
 
 
 class NativeFleetError(RuntimeError):
     pass
+
+
+def _failure_category(stderr: str) -> str:
+    text = stderr.lower()
+    if any(
+        token in text
+        for token in (
+            "certificate verify failed",
+            "sslerror",
+            "ssl:",
+            "urlopen error",
+            "falha ao baixar",
+            "download failed",
+            "http error",
+            "source download",
+        )
+    ):
+        return "source"
+    if "marcadores duplicados" in text:
+        return "duplicate-markers"
+    if "marcadores faltantes" in text:
+        return "missing-markers"
+    if any(
+        token in text
+        for token in (
+            "partição única",
+            "grupos completos de alternativas divergentes",
+            "ocr de alternativas",
+            "layout",
+            "recorte",
+        )
+    ):
+        return "layout"
+    if any(
+        token in text
+        for token in (
+            "completude visual",
+            "questionkey",
+            "região visual",
+            "exceção de extração",
+            "quality gate",
+        )
+    ):
+        return "validation"
+    return "prepare"
+
+
+def _failure_reason(stderr: str) -> str:
+    lines = [line.strip() for line in stderr.splitlines() if line.strip()]
+    if not lines:
+        return "prepare falhou sem stderr"
+    preferred = (
+        "NativeFleetError:",
+        "NativePipelineError:",
+        "NativeOrchestratorError:",
+        "OcrOptionMarkerError:",
+        "SSLError:",
+        "URLError:",
+    )
+    chosen = next(
+        (
+            line
+            for line in reversed(lines)
+            if any(marker in line for marker in preferred)
+        ),
+        lines[-1],
+    )
+    if len(chosen) > 1600:
+        chosen = "…" + chosen[-1599:]
+    return chosen
+
+
+def _target_health(identity: str, exit_code: int, stderr: str) -> dict[str, Any]:
+    if exit_code == 0:
+        return {
+            "schemaVersion": HEALTH_SCHEMA_VERSION,
+            "identity": identity,
+            "status": "healthy",
+            "category": None,
+            "reason": None,
+        }
+    return {
+        "schemaVersion": HEALTH_SCHEMA_VERSION,
+        "identity": identity,
+        "status": "degraded",
+        "category": _failure_category(stderr),
+        "reason": _failure_reason(stderr),
+    }
+
+
+def _write_health(record: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _collect_health(root: Path) -> list[dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    for path in sorted(root.rglob("health.json")):
+        record = json.loads(path.read_text(encoding="utf-8"))
+        identity = str(record.get("identity") or "")
+        status = str(record.get("status") or "")
+        if not identity:
+            raise NativeFleetError(f"health sem identity: {path}")
+        if status not in HEALTH_STATES:
+            raise NativeFleetError(f"{identity}: status de health inválido: {status}")
+        if identity in records:
+            raise NativeFleetError(f"health duplicado para {identity}")
+        records[identity] = record
+    if not records:
+        raise NativeFleetError("nenhum health.json encontrado")
+    return [records[key] for key in sorted(records)]
+
+
+def _health_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    counts = {state: 0 for state in HEALTH_STATES}
+    categories: dict[str, int] = {}
+    for record in records:
+        status = str(record["status"])
+        counts[status] += 1
+        category = record.get("category")
+        if category:
+            key = str(category)
+            categories[key] = categories.get(key, 0) + 1
+    return {
+        "schemaVersion": HEALTH_SCHEMA_VERSION,
+        "targets": len(records),
+        "counts": counts,
+        "categories": dict(sorted(categories.items())),
+        "degraded": [record for record in records if record["status"] == "degraded"],
+    }
+
+
+def _health_markdown(summary: dict[str, Any]) -> str:
+    counts = summary["counts"]
+    lines = [
+        "### Native fleet health",
+        f"- Healthy: {counts['healthy']}",
+        f"- Degraded: {counts['degraded']}",
+        f"- Unavailable: {counts['unavailable']}",
+        f"- Pending: {counts['pending']}",
+    ]
+    categories = summary.get("categories") or {}
+    if categories:
+        lines.append("- Failure categories: " + ", ".join(f"{key}={value}" for key, value in categories.items()))
+    degraded = summary.get("degraded") or []
+    if degraded:
+        lines.extend(["", "| Target | Category | Reason |", "| --- | --- | --- |"])
+        for record in degraded:
+            reason = str(record.get("reason") or "").replace("\n", " ").replace("|", "\\|")
+            if len(reason) > 260:
+                reason = reason[:257] + "…"
+            lines.append(
+                f"| {record['identity']} | {record.get('category') or 'prepare'} | {reason} |"
+            )
+    return "\n".join(lines) + "\n"
 
 
 def _base36(value: int) -> str:
@@ -454,6 +611,16 @@ def main(argv: list[str] | None = None) -> int:
     publish.add_argument("--bundle", type=Path, required=True)
     publish.add_argument("--publisher-url", default=os.environ.get("NATIVE_PUBLISHER_URL", DEFAULT_PUBLISHER_URL))
 
+    health = sub.add_parser("health")
+    health.add_argument("identity")
+    health.add_argument("--exit-code", type=int, required=True)
+    health.add_argument("--stderr-file", type=Path)
+    health.add_argument("--out", type=Path)
+
+    summarize = sub.add_parser("summarize-health")
+    summarize.add_argument("--root", type=Path, required=True)
+    summarize.add_argument("--markdown", type=Path)
+
     args = parser.parse_args(argv)
     if args.command == "plan":
         print(json.dumps(_plan(args.provider, args.target, args.limit), separators=(",", ":")))
@@ -466,6 +633,23 @@ def main(argv: list[str] | None = None) -> int:
         pack = ingest._prepare(target)
         bundle = _render_bundle(target, pack, args.out)
         print(json.dumps({"identity": target.identity, "assets": bundle["assetCount"], "revision": REVISION}))
+        return 0
+    if args.command == "health":
+        stderr = ""
+        if args.stderr_file and args.stderr_file.exists():
+            stderr = args.stderr_file.read_text(encoding="utf-8", errors="replace")
+        record = _target_health(args.identity, args.exit_code, stderr)
+        if args.out:
+            _write_health(record, args.out)
+        print(json.dumps(record, ensure_ascii=False))
+        return 0
+    if args.command == "summarize-health":
+        summary = _health_summary(_collect_health(args.root))
+        markdown = _health_markdown(summary)
+        if args.markdown:
+            args.markdown.parent.mkdir(parents=True, exist_ok=True)
+            args.markdown.write_text(markdown, encoding="utf-8")
+        print(json.dumps(summary, ensure_ascii=False))
         return 0
     result = _publish_bundle(args.bundle, args.publisher_url)
     print(json.dumps(result, ensure_ascii=False))

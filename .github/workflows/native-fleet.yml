@@ -104,7 +104,7 @@ jobs:
       - name: Prepare UNESP 2026 bundle
         run: python scripts/native_prepare.py unesp 2026 --phase first --out bundle-unesp
       - name: Publish UNESP canary through OIDC broker
-        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
+        if: ${{ steps.prepare.outputs.health_status == 'healthy' && github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
         run: |
           set -o pipefail
           python scripts/native_fleet.py publish --bundle bundle-unesp | tee publication-unesp.json
@@ -160,27 +160,55 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y --no-install-recommends tesseract-ocr
           }
-      - name: Prepare validated bundle
-        run: >-
-          python scripts/native_prepare.py
-          "${{ matrix.provider }}"
-          "${{ matrix.selector }}"
-          --phase "${{ matrix.phase }}"
-          --out bundle
+      - id: prepare
+        name: Prepare validated bundle and classify health
+        shell: bash
+        run: |
+          set +e
+          python scripts/native_prepare.py \
+            "${{ matrix.provider }}" \
+            "${{ matrix.selector }}" \
+            --phase "${{ matrix.phase }}" \
+            --out bundle \
+            >prepare.stdout 2>prepare.stderr
+          code=$?
+          set -e
+          cat prepare.stdout
+          cat prepare.stderr >&2
+          python scripts/native_fleet.py health \
+            "${{ matrix.identity }}" \
+            --exit-code "$code" \
+            --stderr-file prepare.stderr \
+            --out health.json
+          status="$(python - <<'PY'
+          import json
+          print(json.load(open('health.json', encoding='utf-8'))['status'])
+          PY
+          )"
+          echo "health_status=$status" >> "$GITHUB_OUTPUT"
       - name: Publish through OIDC broker
         if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
         run: |
           set -o pipefail
           python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json
       - name: Mark dry run
-        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && !inputs.publish) }}
+        if: ${{ steps.prepare.outputs.health_status == 'healthy' && (github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && !inputs.publish)) }}
         run: echo '{"status":"prepared-only"}' > publication-result.json
+      - name: Mark degraded target
+        if: ${{ steps.prepare.outputs.health_status != 'healthy' }}
+        run: cp health.json publication-result.json
       - name: Job summary
         if: always()
         run: |
           {
             echo "### Native fleet — ${{ matrix.identity }}"
             echo "- Questions: ${{ matrix.questions }}"
+            if [ -f health.json ]; then
+              echo '- Health:'
+              echo '```json'
+              cat health.json
+              echo '```'
+            fi
             if [ -f publication-result.json ]; then
               echo '- Result:'
               echo '```json'
@@ -188,6 +216,14 @@ jobs:
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload health report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-health-${{ matrix.provider }}-${{ matrix.selector }}-${{ matrix.phase }}
+          path: health.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Upload manifest report
         if: always()
         uses: actions/upload-artifact@v4
@@ -206,11 +242,30 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download target health reports
+        if: ${{ needs.publish.result != 'skipped' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-health-*
+          path: native-health
+      - name: Aggregate fleet health
+        if: ${{ needs.publish.result != 'skipped' }}
+        run: |
+          python scripts/native_fleet.py summarize-health \
+            --root native-health \
+            --markdown fleet-health.md \
+            > fleet-health.json
+          cat fleet-health.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Fleet summary
+        run: |
           echo "### Native fleet" >> "$GITHUB_STEP_SUMMARY"
           echo "- Planned targets: ${{ needs.plan.outputs.targets }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Planned questions: ${{ needs.plan.outputs.questions }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Canary result: ${{ needs.canary.result }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Matrix result: ${{ needs.publish.result }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Matrix infrastructure result: ${{ needs.publish.result }}" >> "$GITHUB_STEP_SUMMARY"
           test "${{ needs.canary.result }}" = "success"
           test "${{ needs.publish.result }}" != "failure"
