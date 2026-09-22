@@ -15,31 +15,40 @@ import { areaStats, wilsonInterval } from "@/lib/domain/stats";
 import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import { buildDailyPlanBlockAttempt } from "@/lib/services/daily-plan-attempt";
 import { Card, PageHead } from "@/components/ui";
+import { providerStudyConfig, setProviderStudyConfig } from "@/lib/domain/study-learning";
 
 const BUDGET_KEY = "enem_lab_daily_minutes";
 const BUDGET_PRESETS = [30, 45, 60, 90, 120];
 
+function storedBudget(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = Number(localStorage.getItem(BUDGET_KEY));
+    return value >= 20 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function PlanoPage() {
   const db = useStore((s) => s.db);
   const addAttempt = useStore((s) => s.addAttempt);
+  const mutate = useStore((s) => s.mutate);
   const router = useRouter();
   const hydrated = useHydrated();
   const { providerId } = useActiveProvider();
   const [now] = useState(() => new Date());
-  const [budget, setBudget] = useState(() => {
-    if (typeof window === "undefined") return 60;
-    try {
-      const stored = Number(localStorage.getItem(BUDGET_KEY));
-      return stored >= 20 ? stored : 60;
-    } catch {
-      return 60;
-    }
-  });
+  const [budgetDraft, setBudgetDraft] = useState<{ providerId: string; value: number } | null>(null);
   const [busyBlock, setBusyBlock] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  const configuredBudget = providerStudyConfig(db, providerId).dailyMinutes ?? storedBudget() ?? 60;
+  const budget = budgetDraft?.providerId === providerId ? budgetDraft.value : configuredBudget;
 
   function changeBudget(value: number) {
-    setBudget(value);
+    setBudgetDraft({ providerId, value });
+    mutate((current) => {
+      setProviderStudyConfig(current, providerId, { dailyMinutes: value });
+    });
     try {
       localStorage.setItem(BUDGET_KEY, String(value));
     } catch {
@@ -101,7 +110,7 @@ export default function PlanoPage() {
         sub="O plano recalcula depois de cada bloco usando retenção, confiança estatística, ritmo semanal, tempo disponível e histórico real de resolução."
         right={
           <Button asChild variant="secondary" size="sm">
-            <Link href="/adaptive">Abrir Adaptive</Link>
+            <Link href="/onboarding">Editar rotina</Link>
           </Button>
         }
       />
