@@ -104,7 +104,7 @@ jobs:
       - name: Prepare UNESP 2026 bundle
         run: python scripts/native_prepare.py unesp 2026 --phase first --out bundle-unesp
       - name: Publish UNESP canary through OIDC broker
-        if: ${{ steps.prepare.outputs.health_status == 'healthy' && github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
+        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
         run: |
           set -o pipefail
           python scripts/native_fleet.py publish --bundle bundle-unesp | tee publication-unesp.json
@@ -153,8 +153,10 @@ jobs:
           python-version: "3.12"
       - name: Install native dependencies
         run: python -m pip install pymupdf==1.28.2 pillow==12.3.0
-      - name: Install EsPCEx structural OCR dependency
+      - id: ocr
+        name: Install EsPCEx structural OCR dependency
         if: ${{ matrix.provider == 'espcex' }}
+        continue-on-error: true
         run: |
           command -v tesseract >/dev/null || {
             sudo apt-get update -qq
@@ -163,16 +165,24 @@ jobs:
       - id: prepare
         name: Prepare validated bundle and classify health
         shell: bash
+        env:
+          OCR_INSTALL_OUTCOME: ${{ steps.ocr.outcome }}
         run: |
-          set +e
-          python scripts/native_prepare.py \
-            "${{ matrix.provider }}" \
-            "${{ matrix.selector }}" \
-            --phase "${{ matrix.phase }}" \
-            --out bundle \
-            >prepare.stdout 2>prepare.stderr
-          code=$?
-          set -e
+          if [ "${{ matrix.provider }}" = "espcex" ] && [ "$OCR_INSTALL_OUTCOME" = "failure" ]; then
+            : > prepare.stdout
+            printf '%s\n' 'NativeDependencyError: tesseract-ocr installation failed' > prepare.stderr
+            code=1
+          else
+            set +e
+            python scripts/native_prepare.py \
+              "${{ matrix.provider }}" \
+              "${{ matrix.selector }}" \
+              --phase "${{ matrix.phase }}" \
+              --out bundle \
+              >prepare.stdout 2>prepare.stderr
+            code=$?
+            set -e
+          fi
           cat prepare.stdout
           cat prepare.stderr >&2
           python scripts/native_fleet.py health \
@@ -187,7 +197,7 @@ jobs:
           )"
           echo "health_status=$status" >> "$GITHUB_OUTPUT"
       - name: Publish through OIDC broker
-        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
+        if: ${{ steps.prepare.outputs.health_status == 'healthy' && github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
         run: |
           set -o pipefail
           python scripts/native_fleet.py publish --bundle bundle | tee publication-result.json

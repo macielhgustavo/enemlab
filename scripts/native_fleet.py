@@ -48,6 +48,15 @@ def _failure_category(stderr: str) -> str:
     if any(
         token in text
         for token in (
+            "nativedependencyerror",
+            "tesseract-ocr installation failed",
+            "dependency install failed",
+        )
+    ):
+        return "dependency"
+    if any(
+        token in text
+        for token in (
             "certificate verify failed",
             "sslerror",
             "ssl:",
@@ -93,6 +102,7 @@ def _failure_reason(stderr: str) -> str:
     if not lines:
         return "prepare falhou sem stderr"
     preferred = (
+        "NativeDependencyError:",
         "NativeFleetError:",
         "NativePipelineError:",
         "NativeOrchestratorError:",

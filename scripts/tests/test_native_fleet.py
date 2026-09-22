@@ -143,11 +143,18 @@ class NativeFleetTests(unittest.TestCase):
             1,
             "NativePipelineError: marcadores duplicados: [14]",
         )
+        dependency = fleet._target_health(
+            "espcex:2021:day2",
+            1,
+            "NativeDependencyError: tesseract-ocr installation failed",
+        )
 
         self.assertEqual(source["status"], "degraded")
         self.assertEqual(source["category"], "source")
         self.assertEqual(missing["category"], "missing-markers")
         self.assertEqual(duplicate["category"], "duplicate-markers")
+        self.assertEqual(dependency["category"], "dependency")
+        self.assertIn("tesseract-ocr", dependency["reason"])
 
     def test_health_success_is_healthy(self):
         health = fleet._target_health("unesp:2026:first", 0, "")
