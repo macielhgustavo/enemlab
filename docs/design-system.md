@@ -84,9 +84,23 @@ número não pode mudar de largura enquanto anima.
 ```
 src/components/ui/          primitives (Radix + nosso CSS)
 src/components/enem-lab/    componentes de produto
-src/styles/components.css   identidade dos primitives  (prefixo el-)
-src/styles/enem-lab.css     identidade dos de produto
+src/styles/components.css       identidade dos primitives  (prefixo el-)
+src/styles/enem-lab.css         identidade dos de produto
+src/styles/dashboard.css        bridge visual da Home (prefixo dash-)
+src/styles/dashboard-a11y.css   ajustes de acessibilidade da Home
 ```
+
+### Responsabilidade dos arquivos CSS
+
+A organização atual separa **contrato novo** de **legado em migração**:
+
+- `tokens.css`, `typography.css`, `components.css` e `enem-lab.css` são a base canônica para código novo;
+- `dashboard.css` e `dashboard-a11y.css` preservam o visual atual da Home durante a extração de fronteiras. Eles usam somente o namespace `dash-`/`dashboard-` e não devem receber classes genéricas;
+- `refinement.css` é uma camada transversal de acabamento para telas ainda em migração;
+- `app/globals.css` mantém tokens históricos, reset e regras legadas compartilhadas. Não é o destino de novos estilos específicos de página;
+- os demais `app/*.css` são bridges por rota e devem encolher à medida que cada tela migra.
+
+A #84 moveu o CSS da Home de `src/app/` para `src/styles/` **sem alterar regras**, justamente para separar ownership antes de qualquer redesign. Novo componente de produto deve preferir `enem-lab.css` + prefixo `el-`; o namespace `dash-` existe para compatibilidade visual da Home atual.
 
 ### Por que não shadcn completo
 
@@ -349,7 +363,7 @@ bastante para reprovar tudo.
 
 | Tela | Estado |
 |---|---|
-| Home | migrada (v1.0) |
+| Home | fronteiras extraídas; CSS visual preservado em `styles/dashboard*.css` |
 | Plano | migrada |
 | Banco | migrada |
 | Histórico | migrada |
@@ -364,7 +378,7 @@ bastante para reprovar tudo.
 | Adaptive | CSS legado |
 | Exam Runner | preservado por decisão de escopo |
 
-CSS: **3208 linhas** legadas contra **1624** do design system. Foram
+CSS: o legado continua sendo migrado de forma incremental. A Home deixou de manter CSS específico dentro de `src/app/`; suas regras `dash-` agora ficam explicitamente isoladas em `src/styles/dashboard*.css`. Foram
 removidas 110 linhas de regras que ficaram sem nenhum uso após a migração
 (`bankFilters`, `bankList`, `bankItem`, `scoreline`, `statrow`,
 `rail-sign`), conferidas uma a uma contra o código.
