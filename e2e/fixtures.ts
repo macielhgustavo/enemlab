@@ -15,6 +15,8 @@ export interface SeedOptions {
   theme?: "dark" | "light";
   /** Com histórico, a Home mostra números em vez do estado vazio. */
   comHistorico?: boolean;
+  /** Sem configuração de estudo, para testar a primeira abertura. */
+  novoUsuario?: boolean;
 }
 
 function tentativaEnem() {
@@ -65,7 +67,7 @@ function tentativaEnem() {
 }
 
 export function seedState(opts: SeedOptions = {}) {
-  const { provider = "enem", theme = "dark", comHistorico = false } = opts;
+  const { provider = "enem", theme = "dark", comHistorico = false, novoUsuario = false } = opts;
   return {
     state: {
       db: {
@@ -79,6 +81,20 @@ export function seedState(opts: SeedOptions = {}) {
         srs: {},
         sessions: [],
         goals: { questions: 150, essays: 2, reviews: 30 },
+        studyIntelligence: {
+          decisions: {},
+          experiments: {},
+          providerConfig: novoUsuario
+            ? {}
+            : {
+                [provider]: {
+                  objective: "balanced",
+                  weeklyQuestions: 150,
+                  dailyMinutes: 60,
+                  onboardingCompletedAt: "2026-09-01T12:00:00.000Z",
+                },
+              },
+        },
         lastOpened: null,
         lastBackupAt: null,
       },

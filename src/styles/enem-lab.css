@@ -865,3 +865,183 @@
     width: 100%;
   }
 }
+
+
+/* ---------------- Onboarding de estudo ---------------- */
+.el-onboarding-shell {
+  min-height: 100dvh;
+  background: var(--bg-base);
+}
+.el-onboarding-shell__content {
+  width: min(920px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(32px, 7vw, 80px) 0;
+}
+.el-onboarding {
+  display: grid;
+  gap: var(--space-24);
+}
+.el-onboarding__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-24);
+  align-items: flex-end;
+}
+.el-onboarding__header h1 {
+  max-width: 18ch;
+  margin-top: var(--space-8);
+}
+.el-onboarding__header p {
+  max-width: 62ch;
+  margin-top: var(--space-8);
+}
+.el-onboarding__progress {
+  display: flex;
+  gap: 6px;
+  min-width: 120px;
+}
+.el-onboarding__progress span {
+  height: 3px;
+  flex: 1;
+  background: var(--border-default);
+}
+.el-onboarding__progress span.active {
+  background: var(--accent-primary);
+}
+.el-onboarding__card {
+  padding: clamp(20px, 4vw, 36px);
+}
+.el-onboarding__section-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-16);
+  align-items: start;
+  margin-bottom: var(--space-24);
+}
+.el-onboarding__section-head > svg {
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+.el-onboarding__section-head h2 {
+  margin-top: 4px;
+}
+.el-onboarding__section-head p {
+  margin-top: 6px;
+  max-width: 68ch;
+}
+.el-onboarding__options,
+.el-onboarding__objectives {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.el-onboarding__options button,
+.el-onboarding__objectives button {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-height: 76px;
+  padding: var(--space-16);
+  text-align: left;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.el-onboarding__objectives button {
+  min-height: 104px;
+}
+.el-onboarding__options button:hover,
+.el-onboarding__objectives button:hover {
+  border-color: var(--border-strong);
+  background: var(--control-hover);
+}
+.el-onboarding__options button.active,
+.el-onboarding__objectives button.active {
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 7%, transparent);
+}
+.el-onboarding__options button > span,
+.el-onboarding__objectives button > span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.el-onboarding__options button > svg {
+  position: absolute;
+  right: var(--space-12);
+  top: var(--space-12);
+  color: var(--accent-primary);
+}
+.el-onboarding__field {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-24);
+  max-width: 420px;
+}
+.el-onboarding__field > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+}
+.el-onboarding__field input {
+  min-height: 42px;
+}
+.el-onboarding__minutes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.el-onboarding__minutes button {
+  min-width: 76px;
+  min-height: 40px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.el-onboarding__minutes button.active {
+  border-color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+  color: var(--text-primary);
+}
+.el-onboarding__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  align-items: center;
+  padding-top: var(--space-24);
+  margin-top: var(--space-32);
+  border-top: 1px solid var(--border-subtle);
+}
+.el-onboarding__actions > div {
+  display: flex;
+  gap: var(--space-8);
+}
+@media (max-width: 720px) {
+  .el-onboarding-shell__content {
+    width: min(100% - 24px, 920px);
+    padding: 28px 0;
+  }
+  .el-onboarding__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .el-onboarding__options,
+  .el-onboarding__objectives {
+    grid-template-columns: 1fr;
+  }
+  .el-onboarding__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .el-onboarding__actions > div {
+    width: 100%;
+  }
+  .el-onboarding__actions > div > * {
+    flex: 1;
+  }
+}
