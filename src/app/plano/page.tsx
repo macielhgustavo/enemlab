@@ -16,6 +16,7 @@ import { buildDailyPlan, type DailyPlanBlock } from "@/lib/domain/daily-plan";
 import { buildDailyPlanBlockAttempt } from "@/lib/services/daily-plan-attempt";
 import { Card, PageHead } from "@/components/ui";
 import { providerStudyConfig, setProviderStudyConfig } from "@/lib/domain/study-learning";
+import { contentRecoveryHref } from "@/lib/domain/content-recovery";
 
 const BUDGET_KEY = "enem_lab_daily_minutes";
 const BUDGET_PRESETS = [30, 45, 60, 90, 120];
@@ -247,7 +248,15 @@ export default function PlanoPage() {
                 <div className="dailyPlanOrder">{String(index + 1).padStart(2, "0")}</div>
                 <div>
                   <div className="eyebrow">{block.eyebrow}</div>
-                  <h3>{block.title}</h3>
+                  <h3>
+                    {block.content ? (
+                      <Link className="el-content-link" href={contentRecoveryHref(providerId, block.content)}>
+                        {block.title}
+                      </Link>
+                    ) : (
+                      block.title
+                    )}
+                  </h3>
                   <div className="dailyPlanReason">{block.reason}</div>
                   <div className="dailyPlanMeta">
                     <span>{block.questions} questões</span>

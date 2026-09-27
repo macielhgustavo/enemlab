@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
@@ -18,6 +19,7 @@ import { FilterChip } from "@/components/enem-lab/FilterBar";
 import { EmptyState } from "@/components/enem-lab/states";
 import { examLabel } from "@/lib/providers/label";
 import type { KnewChoice } from "@/lib/domain/types";
+import { contentRecoveryHref } from "@/lib/domain/content-recovery";
 
 const KNEW: { v: KnewChoice; label: string }[] = [
   { v: "sabia", label: "Eu sabia" },
@@ -130,9 +132,13 @@ export default function ReviewPage() {
                   </div>
                   <div className="multiTags">
                     {tags.map((t) => (
-                      <span className="multiTag" key={t}>
+                      <Link
+                        className="multiTag el-content-link"
+                        href={contentRecoveryHref(providerId, t)}
+                        key={t}
+                      >
                         {t}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 </div>
