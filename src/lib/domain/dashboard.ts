@@ -12,6 +12,7 @@ import { pct } from "../format";
 import { listProviders, sameProvider } from "../providers";
 import { examLabel } from "../providers/label";
 import { areasOf } from "../providers/taxonomy";
+import { providerStudyConfig } from "./study-learning";
 
 export const DASHBOARD_WEEKDAYS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"] as const;
 
@@ -69,7 +70,9 @@ export function buildDashboardModel(db: DB, providerId: string, now: Date) {
     (attempt) => !attempt.finishedAt && sameProvider(attempt.providerId, providerId),
   );
 
-  const targetPerDay = Math.max(1, Math.round((db.goals.questions || 0) / 7));
+  const studyConfig = providerStudyConfig(db, providerId);
+  const weeklyQuestionTarget = studyConfig.weeklyQuestions ?? db.goals.questions ?? 0;
+  const targetPerDay = Math.max(1, Math.round(weeklyQuestionTarget / 7));
   const todayKey = now.toISOString().slice(0, 10);
   const questionsToday = completed
     .filter((attempt) => new Date(attempt.finishedAt!).toISOString().slice(0, 10) === todayKey)

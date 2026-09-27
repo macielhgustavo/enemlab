@@ -80,8 +80,10 @@ export interface StudyProviderConfig {
   objective?: StudyObjectiveId;
   targetDate?: string | null;
   weeklyQuestions?: number | null;
+  dailyMinutes?: number | null;
   targetCoverage?: number | null;
   targetReadiness?: number | null;
+  onboardingCompletedAt?: string | null;
 }
 
 export interface StudyIntelligenceState {

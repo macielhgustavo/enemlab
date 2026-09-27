@@ -1,6 +1,7 @@
 "use client";
+import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Dumbbell,
@@ -32,6 +33,7 @@ import ImageZoomHost from "@/components/ImageZoomHost";
 import QuestionIssueReporter from "@/components/QuestionIssueReporter";
 import ExamExperienceHost from "@/components/ExamExperienceHost";
 import { examLabel } from "@/lib/providers/label";
+import { needsStudyOnboarding } from "@/lib/domain/study-onboarding";
 
 const NAV = [
   { href: "/", label: "Início", icon: Home, short: "Início" },
@@ -119,13 +121,21 @@ function NavItems({
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const theme = useStore((s) => s.db.theme);
   const toggleTheme = useStore((s) => s.toggleTheme);
   const db = useStore((s) => s.db);
   const hydrated = useHydrated();
   const cloud = useCloudSync();
+  const activeProviderId = resolveProviderId(db.activeProvider);
+  const onboardingRequired =
+    hydrated && pathname !== "/onboarding" && needsStudyOnboarding(db, activeProviderId);
 
-  const due = hydrated ? dueSRS(db, resolveProviderId(db.activeProvider)).length : 0;
+  useEffect(() => {
+    if (onboardingRequired) router.replace("/onboarding");
+  }, [onboardingRequired, router]);
+
+  const due = hydrated ? dueSRS(db, activeProviderId).length : 0;
   const attempts = hydrated ? db.attempts.length : 0;
   const sysClass = !hydrated ? "" : due > 10 ? "bad" : due > 0 ? "warn" : "";
   const sysLabel = !hydrated
@@ -144,6 +154,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ? "nuvem em dia"
             : "nuvem offline"
           : "somente local";
+
+  if (pathname === "/onboarding") {
+    return (
+      <div className="el-onboarding-shell">
+        <main className="el-onboarding-shell__content">{children}</main>
+      </div>
+    );
+  }
+
+  if (onboardingRequired) {
+    return (
+      <main className="el-onboarding-shell__content" aria-busy="true">
+        <span className="muted">Preparando sua configuração de estudo…</span>
+      </main>
+    );
+  }
 
   const isExam = pathname.startsWith("/exam/");
   const isResultReview = /^\/result\/[^/]+\/review$/.test(pathname);
