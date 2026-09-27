@@ -4,7 +4,7 @@ import { ArrowRight, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { examLabel } from "@/lib/providers/label";
+import { examLabel, phaseLabel } from "@/lib/providers/label";
 import { pct, shortSec } from "@/lib/format";
 import type { Attempt } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
@@ -41,7 +41,11 @@ export function HistoryItem({
         <Badge variant="outline">{examLabel(attempt.providerId)}</Badge>
         <b className="heading-sm">{attempt.year}</b>
         <span className="caption">
-          {attempt.realDay ? `real dia ${attempt.realDay}` : attempt.mode}
+          {attempt.mode === "simulado" && attempt.simulation
+            ? `simulado · ${attempt.simulation.editionId} · ${phaseLabel(attempt.simulation.phase)}`
+            : attempt.realDay
+              ? `real dia ${attempt.realDay}`
+              : attempt.mode}
         </span>
       </div>
 

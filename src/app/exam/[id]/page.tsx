@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { LETTERS } from "@/lib/domain/constants";
 import { areaLabel } from "@/lib/providers/taxonomy";
+import { phaseLabel } from "@/lib/providers/label";
 import {
   classifyContent,
   discipline,
@@ -67,6 +68,7 @@ export default function ExamPage() {
   // durante a renderização tornaria o componente impuro).
   const startMs = useRef<number | null>(null);
   const passByQuestion = useRef<Record<string, number>>({});
+  const autoFinished = useRef(false);
 
   // Inicializa a partir da tentativa salva (uma vez).
   useEffect(() => {
@@ -219,15 +221,37 @@ export default function ExamPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [answer, goto, setConf, current, essayMode]);
 
-  const finish = useCallback(() => {
-    const blanks = qs.filter((qq) => !answers[questionKey(qq)]).length;
-    if (!confirm(blanks ? `Há ${blanks} em branco. Finalizar?` : "Finalizar e corrigir?")) return;
+  const finalizeAttempt = useCallback(() => {
     commitQTime();
     commit();
     mutate((db) => finishAttemptInDB(db, id, qs));
     void saveSnapshot(useStore.getState().db, "resultado");
     router.push(`/result/${id}`);
-  }, [qs, answers, commit, commitQTime, mutate, id, router]);
+  }, [qs, commit, commitQTime, mutate, id, router]);
+
+  const finish = useCallback(() => {
+    const blanks = qs.filter((qq) => !answers[questionKey(qq)]).length;
+    if (!confirm(blanks ? `Há ${blanks} em branco. Finalizar?` : "Finalizar e corrigir?")) return;
+    finalizeAttempt();
+  }, [qs, answers, finalizeAttempt]);
+
+  // Simulado rígido termina sozinho ao atingir o limite. Ao retomar uma sessão
+  // depois de sair, o relógio usa startedAt e portanto não "pausa" fora da tela.
+  useEffect(() => {
+    if (
+      !attempt ||
+      attempt.mode !== "simulado" ||
+      !attempt.strict ||
+      !qs.length ||
+      autoFinished.current
+    ) {
+      return;
+    }
+    const limit = Math.max(0, (attempt.minutes || 0) * 60);
+    if (!limit || clock.elapsed < limit) return;
+    autoFinished.current = true;
+    finalizeAttempt();
+  }, [attempt, qs.length, clock.elapsed, finalizeAttempt]);
 
   const reveal = useCallback(() => {
     mutate((db) => {
@@ -549,7 +573,7 @@ export default function ExamPage() {
             {/* Abaixo de 5 min o cronômetro entra em estado crítico. */}
             <div className={`timer ${left > 0 && left <= 300 ? "low" : ""}`}>{fmtSec(left)}</div>
           </div>
-          {!attempt.strict && (
+          {(!attempt.strict || attempt.mode === "simulado") && (
             <button
               className="btn secondary"
               onClick={() => {
@@ -558,13 +582,17 @@ export default function ExamPage() {
                 router.push("/history");
               }}
             >
-              Salvar e sair
+              {attempt.mode === "simulado" ? "Salvar e sair · tempo continua" : "Salvar e sair"}
             </button>
           )}
         </div>
         <div className="infoLine" style={{ marginTop: 7 }}>
           <span className="badge2">
-            {attempt.realDay ? `ENEM Real • Dia ${attempt.realDay}` : attempt.mode}
+            {attempt.mode === "simulado" && attempt.simulation
+              ? `Simulado • ${attempt.simulation.editionId} • ${phaseLabel(attempt.simulation.phase)}`
+              : attempt.realDay
+                ? `ENEM Real • Dia ${attempt.realDay}`
+                : attempt.mode}
           </span>
           {attempt.strict && <span className="badge2 strictBadge">modo rígido</span>}
         </div>

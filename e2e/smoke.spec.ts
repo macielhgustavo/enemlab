@@ -14,6 +14,7 @@ const ROTAS: { url: string; nome: string; marca: RegExp }[] = [
   { url: "/practice", nome: "Treinar", marca: /novo treino/i },
   { url: "/bank", nome: "Banco", marca: /banco/i },
   { url: "/plano", nome: "Plano", marca: /plano|prontidão/i },
+  { url: "/simulado", nome: "Simulado", marca: /simulado completo/i },
   { url: "/mastery", nome: "Domínio", marca: /mapa de domínio/i },
   { url: "/srs", nome: "Revisões", marca: /revis/i },
   { url: "/history", nome: "Histórico", marca: /histórico/i },
@@ -142,6 +143,7 @@ test("a navegação prioriza o caminho recomendado e preserva ferramentas avanç
   await expect(desktop.getByRole("link", { name: "Motor adaptativo" })).not.toBeVisible();
 
   await page.locator(".el-rail-more__summary").click();
+  await expect(desktop.getByRole("link", { name: "Simulado" })).toBeVisible();
   await expect(desktop.getByRole("link", { name: "Treino manual" })).toBeVisible();
   await expect(desktop.getByRole("link", { name: "Motor adaptativo" })).toBeVisible();
 
