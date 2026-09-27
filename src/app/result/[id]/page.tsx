@@ -11,7 +11,7 @@ import { discipline } from "@/lib/domain/classify";
 import { coherenceForAttempt, fatigueForAttempt } from "@/lib/domain/stats";
 import { dueSRS } from "@/lib/domain/srs";
 import { resolveProviderId } from "@/lib/providers";
-import { examLabel } from "@/lib/providers/label";
+import { examLabel, phaseLabel } from "@/lib/providers/label";
 import {
   questionsForAttempt,
   buildRetryAttempt,
@@ -87,6 +87,10 @@ export default function ResultPage() {
   // A banca desta tentativa, fixada antes dos callbacks: o rótulo da área sai
   // da taxonomia da prova, e a exportação em imagem também precisa dele.
   const provaId = a.providerId;
+  const isSimulation = a.mode === "simulado" && !!a.simulation;
+  const simulationLabel = a.simulation
+    ? `${a.simulation.editionId} · ${phaseLabel(a.simulation.phase)}`
+    : null;
 
   const areas: Record<string, { c: number; t: number }> = {};
   valid.forEach((x) => {
@@ -259,11 +263,16 @@ export default function ResultPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Resultado"
-        title={`${examLabel(a.providerId)} ${a.year}`}
+        eyebrow={isSimulation ? "Resultado · simulado" : "Resultado"}
+        title={
+          isSimulation && simulationLabel
+            ? `${examLabel(a.providerId)} ${simulationLabel}`
+            : `${examLabel(a.providerId)} ${a.year}`
+        }
         context={
           <>
-            {provaId === "ita" && <Badge variant="info">1ª fase</Badge>}
+            {isSimulation && <Badge variant="accent">Simulado</Badge>}
+            {!isSimulation && provaId === "ita" && <Badge variant="info">1ª fase</Badge>}
             {a.realDay && <Badge variant="outline">real dia {a.realDay}</Badge>}
           </>
         }
@@ -296,12 +305,13 @@ export default function ResultPage() {
           { label: "Acertos por chute", value: lucky },
         ]}
         note={
-          /* O ENEM tem TRI e este número não é ela; o ITA não tem TRI
-             nenhuma, então citá-la ali seria inventar um conceito que a
-             banca não usa. */
-          provaId === "ita"
-            ? "Contagem simples de acertos, pelo gabarito oficial do ITA."
-            : "Acertos brutos; não é a nota TRI oficial do ENEM."
+          isSimulation
+            ? provaId === "enem"
+              ? "Acertos brutos deste simulado; não é nota TRI oficial nem previsão de aprovação."
+              : "Acertos brutos deste simulado; não é nota oficial nem previsão de aprovação."
+            : provaId === "ita"
+              ? "Contagem simples de acertos, pelo gabarito oficial do ITA."
+              : "Acertos brutos; não é a nota TRI oficial do ENEM."
         }
         actions={
           <>
@@ -314,6 +324,38 @@ export default function ResultPage() {
           </>
         }
       />
+
+      {isSimulation && a.simulation && (
+        <Card style={{ marginTop: 14 }}>
+          <div className="row between">
+            <div>
+              <div className="eyebrow">{simulationLabel}</div>
+              <h2>Resumo do simulado</h2>
+            </div>
+            <Badge variant="outline">
+              {a.simulation.timingBasis === "configured" ? "tempo configurado" : "tempo interno"}
+            </Badge>
+          </div>
+          <div className="timeSplit" style={{ marginTop: 12 }}>
+            <div>
+              <small>tempo usado</small>
+              <b>{shortSec(Math.round(a.elapsed || 0))}</b>
+            </div>
+            <div>
+              <small>questões do bloco</small>
+              <b>{a.simulation.questionCount}</b>
+            </div>
+            <div>
+              <small>em branco</small>
+              <b>{r.blank}</b>
+            </div>
+          </div>
+          <p className="muted" style={{ marginTop: 12 }}>
+            Este resultado mede apenas a sessão realizada no Studium. Ele alimenta domínio,
+            caderno de erros, SRS e recomendações exatamente como as demais tentativas.
+          </p>
+        </Card>
+      )}
 
       <div className="grid grid2" style={{ marginTop: 14 }}>
         <Card>

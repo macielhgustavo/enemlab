@@ -28,7 +28,8 @@ export type AttemptMode =
   | "srs-recall"
   | "content"
   | "bank"
-  | "adaptive";
+  | "adaptive"
+  | "simulado";
 
 export type StudyObjectiveId = "balanced" | "recovery" | "coverage" | "exam" | "gain";
 export type StudyFeedbackValue = "helpful" | "neutral" | "not_helpful";
@@ -204,6 +205,14 @@ export interface DailyPlanStamp {
   blockId: string;
 }
 
+export interface SimulationStamp {
+  editionId: string;
+  phase: string;
+  questionCount: number;
+  statementAvailable: boolean;
+  timingBasis: "configured" | "internal-estimate";
+}
+
 export interface Attempt {
   id: string;
   /** Prova de origem. Ausente nos dados antigos: resolve para ENEM. */
@@ -223,6 +232,7 @@ export interface Attempt {
   revealedRecall?: boolean;
   retryOf?: string;
   plan?: DailyPlanStamp;
+  simulation?: SimulationStamp;
   questionRefs: QuestionRef[];
   answers: Record<string, string>;
   confidence: Record<string, Confidence>;

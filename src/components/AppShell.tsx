@@ -19,6 +19,7 @@ import {
   UserRound,
   Cloud,
   Menu,
+  ClipboardCheck,
 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
@@ -43,6 +44,7 @@ const NAV = [
   { href: "/mastery", label: "Domínio", icon: Gauge, short: "Domínio" },
   { href: "/history", label: "Histórico", icon: Clock, short: "Histórico" },
   { href: "/review", label: "Erros", icon: BookX, short: "Erros" },
+  { href: "/simulado", label: "Simulado", icon: ClipboardCheck, short: "Simulado" },
   { href: "/practice", label: "Treino manual", icon: Dumbbell, short: "Treino" },
   {
     href: "/adaptive",
@@ -68,7 +70,7 @@ const PRIMARY_GROUPS: { titulo: string; itens: typeof NAV }[] = [
 const ADVANCED_GROUPS: { titulo: string; itens: typeof NAV }[] = [
   {
     titulo: "Ferramentas",
-    itens: NAV.filter((item) => ["/practice", "/adaptive"].includes(item.href)),
+    itens: NAV.filter((item) => ["/simulado", "/practice", "/adaptive"].includes(item.href)),
   },
   {
     titulo: "Sistema",
