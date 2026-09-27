@@ -16,6 +16,7 @@ export function defaultDB(): DB {
     // O produto é desenhado no escuro; claro fica como alternativa.
     theme: "dark",
     attempts: [],
+    essays: [],
     notes: {},
     srs: {},
     sessions: [],
@@ -34,6 +35,7 @@ export function ensureSchema(db: DB): DB {
   db.notes ||= {};
   db.srs ||= {};
   db.attempts ||= [];
+  db.essays ||= [];
   db.sessions ||= [];
   db.goals ||= { questions: 150, essays: 2, reviews: 30 };
   if (db.studyIntelligence) {
@@ -104,6 +106,10 @@ export const useStore = create<StoreState>()(
           const by = new Map(db.attempts.map((a) => [a.id, a]));
           (incoming.attempts || []).forEach((a) => {
             if (!by.has(a.id)) db.attempts.push(a);
+          });
+          const essays = new Map((db.essays || []).map((essay) => [essay.id, essay]));
+          (incoming.essays || []).forEach((essay) => {
+            if (!essays.has(essay.id)) (db.essays ||= []).push(essay);
           });
           db.notes = { ...(incoming.notes || {}), ...db.notes };
           db.srs = { ...(incoming.srs || {}), ...db.srs };

@@ -1,5 +1,5 @@
 import { mergeStudyIntelligenceState } from "../domain/study-intelligence-merge";
-import type { Attempt, DB, Note, SrsEntry } from "../domain/types";
+import type { Attempt, DB, EssayPractice, Note, SrsEntry } from "../domain/types";
 
 function clone<T>(value: T): T {
   return typeof structuredClone === "function"
@@ -25,6 +25,24 @@ function attemptScore(attempt: Attempt): [number, number, number, number] {
 function preferAttempt(local: Attempt, cloud: Attempt): Attempt {
   const a = attemptScore(local);
   const b = attemptScore(cloud);
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return clone(a[i] > b[i] ? local : cloud);
+  }
+  return clone(local);
+}
+
+function essayScore(essay: EssayPractice): [number, number, number, number] {
+  return [
+    essay.finishedAt ? 1 : 0,
+    essay.evaluations?.length || 0,
+    essay.versions?.length || 0,
+    asTime(essay.updatedAt || essay.startedAt),
+  ];
+}
+
+function preferEssay(local: EssayPractice, cloud: EssayPractice): EssayPractice {
+  const a = essayScore(local);
+  const b = essayScore(cloud);
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return clone(a[i] > b[i] ? local : cloud);
   }
@@ -78,6 +96,15 @@ export function mergeCloudDB(local: DB, cloud: Partial<DB> | null | undefined): 
     attempts.set(attempt.id, existing ? preferAttempt(attempt, existing) : clone(attempt));
   });
 
+  const cloudEssays = Array.isArray(cloud.essays) ? cloud.essays : [];
+  const localEssays = Array.isArray(local.essays) ? local.essays : [];
+  const essays = new Map<string, EssayPractice>();
+  cloudEssays.forEach((essay) => essays.set(essay.id, clone(essay)));
+  localEssays.forEach((essay) => {
+    const existing = essays.get(essay.id);
+    essays.set(essay.id, existing ? preferEssay(essay, existing) : clone(essay));
+  });
+
   const noteKeys = new Set([
     ...Object.keys(cloud.notes || {}),
     ...Object.keys(local.notes || {}),
@@ -103,12 +130,16 @@ export function mergeCloudDB(local: DB, cloud: Partial<DB> | null | undefined): 
   const mergedAttempts = [...attempts.values()].sort(
     (a, b) => Math.max(asTime(b.finishedAt), asTime(b.startedAt)) - Math.max(asTime(a.finishedAt), asTime(a.startedAt)),
   );
+  const mergedEssays = [...essays.values()].sort(
+    (a, b) => asTime(b.updatedAt || b.startedAt) - asTime(a.updatedAt || a.startedAt),
+  );
 
   return {
     ...clone(cloud as DB),
     ...clone(local),
     v: 6,
     attempts: mergedAttempts,
+    essays: mergedEssays,
     notes,
     srs,
     studyIntelligence: mergeStudyIntelligenceState(cloud.studyIntelligence, local.studyIntelligence),
