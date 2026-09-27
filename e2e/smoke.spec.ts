@@ -12,6 +12,7 @@ import { aguardarApp, prepare } from "./fixtures";
 const ROTAS: { url: string; nome: string; marca: RegExp }[] = [
   { url: "/", nome: "Início", marca: /centro de controle/i },
   { url: "/practice", nome: "Treinar", marca: /novo treino/i },
+  { url: "/redacao", nome: "Redação", marca: /treino de redação/i },
   { url: "/bank", nome: "Banco", marca: /banco/i },
   { url: "/plano", nome: "Plano", marca: /plano|prontidão/i },
   { url: "/simulado", nome: "Simulado", marca: /simulado completo/i },

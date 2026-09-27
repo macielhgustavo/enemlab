@@ -193,10 +193,45 @@ export interface AttemptResult {
   blank: number;
 }
 
+export interface EssayVersion {
+  at: string;
+  text: string;
+}
+
 export interface Essay {
   theme: string;
   text: string;
-  versions?: { at: string; text: string }[];
+  versions?: EssayVersion[];
+}
+
+export type EssayEvaluationSource = "self" | "external";
+export type EssayCompetencyId = "c1" | "c2" | "c3" | "c4" | "c5";
+
+export interface EssayEvaluation {
+  id: string;
+  source: EssayEvaluationSource;
+  authorLabel: string;
+  at: string;
+  competencies: Partial<Record<EssayCompetencyId, number>>;
+  feedback: string;
+}
+
+export interface EssayPractice {
+  id: string;
+  providerId: string;
+  themeId: string | null;
+  theme: string;
+  themeSource: "project" | "official-reference" | "external";
+  text: string;
+  versions: EssayVersion[];
+  repertoire: string;
+  improvements: string;
+  evaluations: EssayEvaluation[];
+  elapsedSec: number;
+  timeLimitMin: number | null;
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
 }
 
 export interface DailyPlanStamp {
@@ -296,6 +331,8 @@ export interface DB {
   build: string;
   theme: "light" | "dark";
   attempts: Attempt[];
+  /** Redações independentes de uma prova objetiva. Opcional para backups legados. */
+  essays?: EssayPractice[];
   notes: Record<string, Note>;
   srs: Record<string, SrsEntry>;
   sessions: StudySession[];

@@ -43,8 +43,9 @@ test("menu mobile abre todas as rotas e devolve o foco", async ({ page }) => {
   const more = page.getByRole("button", { name: "Mais", exact: true });
   await more.click();
   const nav = page.getByRole("navigation", { name: "Todas as páginas" });
-  await expect(nav.getByRole("link")).toHaveCount(12);
+  await expect(nav.getByRole("link")).toHaveCount(13);
   await expect(nav.getByRole("link", { name: "Simulado", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Redação", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(more).toBeFocused();
   await more.click();

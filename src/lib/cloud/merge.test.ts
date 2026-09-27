@@ -225,3 +225,104 @@ describe("ida e volta pela nuvem", () => {
     expect(merged.attempts.find((a) => a.id === "a_ita")!.providerId).toBe("ita");
   });
 });
+
+
+describe("merge de redações independentes", () => {
+  it("une redações de aparelhos diferentes e preserva a versão mais completa", () => {
+    const local = base();
+    const cloud = base();
+    local.essays = [
+      {
+        id: "essay-local",
+        providerId: "enem",
+        themeId: null,
+        theme: "Tema local",
+        themeSource: "project",
+        text: "Texto local",
+        versions: [{ at: "2026-09-27T10:00:00.000Z", text: "Texto local" }],
+        repertoire: "",
+        improvements: "",
+        evaluations: [],
+        elapsedSec: 600,
+        timeLimitMin: 90,
+        startedAt: "2026-09-27T09:00:00.000Z",
+        updatedAt: "2026-09-27T10:00:00.000Z",
+        finishedAt: null,
+      },
+      {
+        id: "essay-same",
+        providerId: "enem",
+        themeId: null,
+        theme: "Mesmo tema",
+        themeSource: "project",
+        text: "Versão final",
+        versions: [{ at: "2026-09-27T11:00:00.000Z", text: "Versão final" }],
+        repertoire: "",
+        improvements: "",
+        evaluations: [
+          {
+            id: "eval-local",
+            source: "external",
+            authorLabel: "Professor",
+            at: "2026-09-27T12:00:00.000Z",
+            competencies: { c1: 160 },
+            feedback: "Bom domínio formal.",
+          },
+        ],
+        elapsedSec: 1800,
+        timeLimitMin: 90,
+        startedAt: "2026-09-27T09:00:00.000Z",
+        updatedAt: "2026-09-27T12:00:00.000Z",
+        finishedAt: "2026-09-27T11:30:00.000Z",
+      },
+    ];
+    cloud.essays = [
+      {
+        id: "essay-cloud",
+        providerId: "enem",
+        themeId: null,
+        theme: "Tema nuvem",
+        themeSource: "external",
+        text: "Texto nuvem",
+        versions: [],
+        repertoire: "",
+        improvements: "",
+        evaluations: [],
+        elapsedSec: 300,
+        timeLimitMin: null,
+        startedAt: "2026-09-26T09:00:00.000Z",
+        updatedAt: "2026-09-26T09:05:00.000Z",
+        finishedAt: null,
+      },
+      {
+        id: "essay-same",
+        providerId: "enem",
+        themeId: null,
+        theme: "Mesmo tema",
+        themeSource: "project",
+        text: "Rascunho",
+        versions: [],
+        repertoire: "",
+        improvements: "",
+        evaluations: [],
+        elapsedSec: 300,
+        timeLimitMin: 90,
+        startedAt: "2026-09-27T09:00:00.000Z",
+        updatedAt: "2026-09-27T09:10:00.000Z",
+        finishedAt: null,
+      },
+    ];
+
+    const merged = mergeCloudDB(local, cloud);
+    expect(merged.essays?.map((essay) => essay.id).sort()).toEqual([
+      "essay-cloud",
+      "essay-local",
+      "essay-same",
+    ]);
+    expect(merged.essays?.find((essay) => essay.id === "essay-same")).toMatchObject({
+      finishedAt: "2026-09-27T11:30:00.000Z",
+      text: "Versão final",
+    });
+    expect(merged.essays?.find((essay) => essay.id === "essay-same")?.evaluations).toHaveLength(1);
+  });
+});
