@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
 import { contentPath } from "@/lib/domain/constants";
@@ -14,6 +15,7 @@ import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { EmptyState } from "@/components/enem-lab/states";
 import { useActiveProvider } from "@/components/ExamSwitch";
 import { getProvider, ENEM_PROVIDER_ID } from "@/lib/providers";
+import { contentRecoveryHref } from "@/lib/domain/content-recovery";
 
 export default function MasteryPage() {
   const db = useStore((s) => s.db);
@@ -65,7 +67,11 @@ export default function MasteryPage() {
             const state = contentMasteryState(db, name, v);
             return (
               <div className={`domain ${state.cls}`} key={name} style={{ textAlign: "left" }}>
-                <div className="name">{name}</div>
+                <div className="name">
+                  <Link className="el-content-link" href={contentRecoveryHref(providerId, name)}>
+                    {name}
+                  </Link>
+                </div>
                 <div className="score">{state.p === null ? "—" : state.p + "%"}</div>
                 <div className="path">
                   {state.label} • <span className={state.conf.cls}>conf. {state.conf.label}</span>{" "}
@@ -109,7 +115,11 @@ export default function MasteryPage() {
                 <div className="queueItem" key={x.name}>
                   <div className="qnum">{x.p}%</div>
                   <div>
-                    <b>{x.name}</b>
+                    <b>
+                      <Link className="el-content-link" href={contentRecoveryHref(providerId, x.name)}>
+                        {x.name}
+                      </Link>
+                    </b>
                     <div className="muted" style={{ fontSize: 11 }}>
                       {x.c}/{x.t} • IC95% {ci.low}–{ci.high}%
                     </div>

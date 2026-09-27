@@ -28,6 +28,7 @@ import {
 } from "@/lib/domain/dashboard";
 import { pct, shortSec } from "@/lib/format";
 import { examLabel } from "@/lib/providers/label";
+import { contentRecoveryHref } from "@/lib/domain/content-recovery";
 
 const EvolutionArea = dynamic(
   () => import("@/components/charts").then((module) => module.EvolutionArea),
@@ -347,7 +348,11 @@ export function Dashboard({
                 <li key={item.name}>
                   <span>0{index + 1}</span>
                   <div>
-                    <strong>{item.name}</strong>
+                    <strong>
+                      <Link className="el-content-link" href={contentRecoveryHref(providerId, item.name)}>
+                        {item.name}
+                      </Link>
+                    </strong>
                     <small>{item.t} questões medidas</small>
                   </div>
                   <b>{item.p}%</b>

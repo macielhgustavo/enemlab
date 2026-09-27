@@ -17,17 +17,25 @@ export interface SeedOptions {
   comHistorico?: boolean;
   /** Sem configuração de estudo, para testar a primeira abertura. */
   novoUsuario?: boolean;
+  /** Ajusta a amostra sem alterar os cenários visuais padrão. */
+  questoesHistorico?: number;
+  acertosHistorico?: number;
 }
 
-function tentativaEnem() {
-  const linhas = Array.from({ length: 15 }, (_, i) => ({
+function tentativaEnem(total = 15, acertos?: number) {
+  const safeTotal = Math.max(1, Math.round(total));
+  const customCorrect = Number.isFinite(acertos);
+  const safeCorrect = customCorrect
+    ? Math.max(0, Math.min(safeTotal, Math.round(acertos!)))
+    : 0;
+  const linhas = Array.from({ length: safeTotal }, (_, i) => ({
     index: i + 1,
     year: 2023,
     area: ["matematica", "ciencias-natureza", "linguagens", "ciencias-humanas"][i % 4],
     content: "Conteúdo de teste",
-    selected: "A",
-    correct: i % 3 === 0 ? "B" : "A",
-    isCorrect: i % 3 !== 0,
+    selected: customCorrect ? (i < safeCorrect ? "A" : "B") : "A",
+    correct: customCorrect ? "A" : i % 3 === 0 ? "B" : "A",
+    isCorrect: customCorrect ? i < safeCorrect : i % 3 !== 0,
     timeSec: 60 + i,
     confidence: "certeza",
   }));
@@ -67,7 +75,14 @@ function tentativaEnem() {
 }
 
 export function seedState(opts: SeedOptions = {}) {
-  const { provider = "enem", theme = "dark", comHistorico = false, novoUsuario = false } = opts;
+  const {
+    provider = "enem",
+    theme = "dark",
+    comHistorico = false,
+    novoUsuario = false,
+    questoesHistorico = 15,
+    acertosHistorico,
+  } = opts;
   return {
     state: {
       db: {
@@ -76,7 +91,7 @@ export function seedState(opts: SeedOptions = {}) {
         build: "e2e",
         theme,
         activeProvider: provider,
-        attempts: comHistorico ? [tentativaEnem()] : [],
+        attempts: comHistorico ? [tentativaEnem(questoesHistorico, acertosHistorico)] : [],
         notes: {},
         srs: {},
         sessions: [],

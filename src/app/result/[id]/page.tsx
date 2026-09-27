@@ -25,6 +25,7 @@ import { ResultSummary } from "@/components/enem-lab/ResultSummary";
 import { useToast } from "@/components/Toast";
 import MathContent from "@/components/MathContent";
 import type { ResultRow } from "@/lib/domain/types";
+import { contentRecoveryHref } from "@/lib/domain/content-recovery";
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -221,7 +222,12 @@ export default function ResultPage() {
   if (weakest)
     blocks.push(
       <div className="reportBlock" key="weak">
-        <strong>Conteúdo mais fraco: {weakest.k}</strong>
+        <strong>
+          Conteúdo mais fraco:{" "}
+          <Link className="el-content-link" href={contentRecoveryHref(provaId, weakest.k)}>
+            {weakest.k}
+          </Link>
+        </strong>
         <span className="muted">
           {weakest.c}/{weakest.t} ({weakest.p}%).
         </span>
