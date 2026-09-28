@@ -13,6 +13,7 @@ import { listProviders, sameProvider } from "../providers";
 import { examLabel } from "../providers/label";
 import { areasOf } from "../providers/taxonomy";
 import { providerStudyConfig } from "./study-learning";
+import { buildWeeklyTrajectory } from "./weekly-trajectory";
 
 export const DASHBOARD_WEEKDAYS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"] as const;
 
@@ -71,6 +72,7 @@ export function buildDashboardModel(db: DB, providerId: string, now: Date) {
   );
 
   const studyConfig = providerStudyConfig(db, providerId);
+  const trajectory = buildWeeklyTrajectory(db, providerId, now);
   const weeklyQuestionTarget = studyConfig.weeklyQuestions ?? db.goals.questions ?? 0;
   const targetPerDay = Math.max(1, Math.round(weeklyQuestionTarget / 7));
   const todayKey = now.toISOString().slice(0, 10);
@@ -207,6 +209,15 @@ export function buildDashboardModel(db: DB, providerId: string, now: Date) {
     mission,
     recentAttempts,
     providerSummaries,
+    trajectorySummary: trajectory.targetDate
+      ? {
+          daysRemaining: trajectory.daysRemaining,
+          weeksRemaining: trajectory.weeksRemaining,
+          rhythm: trajectory.rhythm,
+          rhythmPct: trajectory.rhythmPct,
+          confidence: trajectory.confidence,
+        }
+      : null,
     introMessage: inProgress
       ? "Você tem uma sessão em aberto."
       : dueItems.length

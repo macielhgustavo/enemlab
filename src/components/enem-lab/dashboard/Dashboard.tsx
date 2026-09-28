@@ -147,6 +147,7 @@ export function Dashboard({
     mission,
     recentAttempts,
     providerSummaries,
+    trajectorySummary,
     introMessage,
   } = model;
 
@@ -172,6 +173,18 @@ export function Dashboard({
           <span>
             confiança<strong>{confidence.label}</strong>
           </span>
+          {trajectorySummary ? (
+            <Link href="/trajetoria" className="dashboard-intro__trajectory">
+              trajetória
+              <strong>
+                {trajectorySummary.daysRemaining === null
+                  ? "data-alvo"
+                  : trajectorySummary.daysRemaining < 0
+                    ? "atualizar data"
+                    : trajectorySummary.daysRemaining + " dias"}
+              </strong>
+            </Link>
+          ) : null}
         </div>
       </header>
 
