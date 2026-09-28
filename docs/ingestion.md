@@ -1,6 +1,6 @@
 # Plataforma de ingestão
 
-Como uma prova nova entra no ENEM Lab.
+Como uma prova nova entra no Studium.
 
 ## O caminho
 

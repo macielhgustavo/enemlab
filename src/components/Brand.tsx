@@ -1,8 +1,9 @@
-/** Identidade atual. A próxima marca troca este contrato, não cada tela. */
+/** Marca pública da plataforma. Identificadores "enem_lab*" permanecem apenas por compatibilidade técnica. */
 export const PRODUCT_BRAND = {
-  name: "ENEM Lab",
-  monogram: "E",
-  description: "Plataforma pessoal adaptativa para questões reais do ENEM.",
+  name: "Studium",
+  monogram: "S",
+  description:
+    "Plataforma pessoal de estudos para ENEM e vestibulares, com treino, revisão, redação e simulado baseados no histórico real.",
 } as const;
 
 export function Brand() {

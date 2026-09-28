@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/enem-lab/PageHeader";
+import { PRODUCT_BRAND } from "@/components/Brand";
 import { ResultSummary } from "@/components/enem-lab/ResultSummary";
 import { useToast } from "@/components/Toast";
 import MathContent from "@/components/MathContent";
@@ -137,7 +138,7 @@ export default function ResultPage() {
     // Cabeçalho
     ctx.fillStyle = C.brand;
     ctx.font = "800 34px Inter, system-ui, sans-serif";
-    ctx.fillText("ENEM Lab", 64, 96);
+    ctx.fillText(PRODUCT_BRAND.name, 64, 96);
     ctx.fillStyle = C.muted;
     ctx.font = "600 26px Inter, system-ui, sans-serif";
     ctx.fillText(`Resultado • ${examLabel(provaId)} ${a!.year}`, 64, 134);

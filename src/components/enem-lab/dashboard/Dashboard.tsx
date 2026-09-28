@@ -19,6 +19,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Sk } from "@/components/Skeleton";
+import { PRODUCT_BRAND } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import {
   dashboardGreeting,
@@ -531,7 +532,7 @@ export function Dashboard({
       </div>
 
       <footer className="dashboard-footer">
-        <span>ENEM Lab · desempenho baseado no seu histórico real</span>
+        <span>{PRODUCT_BRAND.name} · desempenho baseado no seu histórico real</span>
         <span>
           <BookOpen aria-hidden="true" /> {examLabel(providerId)}
         </span>

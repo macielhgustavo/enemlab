@@ -22,7 +22,7 @@ import {
   ClipboardCheck,
   FilePenLine,
 } from "lucide-react";
-import { Brand } from "@/components/Brand";
+import { Brand, PRODUCT_BRAND } from "@/components/Brand";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
 import { useHydrated } from "@/lib/hooks";
@@ -244,7 +244,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <header className="app-topbar">
           <div className="app-topbar__context">
             <span className="app-topbar__eyebrow">Centro de performance</span>
-            <strong>{hydrated ? examLabel(db.activeProvider) : "ENEM Lab"}</strong>
+            <strong>{hydrated ? examLabel(db.activeProvider) : PRODUCT_BRAND.name}</strong>
             <span className="app-topbar__status">
               <i className={`sysdot ${sysClass}`} aria-hidden="true" />
               {sysLabel}
