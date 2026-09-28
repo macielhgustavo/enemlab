@@ -48,7 +48,9 @@ on:
 
 concurrency:
   group: native-fleet-${{ github.ref }}
-  cancel-in-progress: false
+  # Em PR, só o HEAD atual interessa; em main/schedule uma publicação em
+  # andamento nunca é descartada no meio.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -78,6 +80,24 @@ jobs:
           if [ -n "$TARGET" ]; then args+=(--target "$TARGET"); fi
           if [ "${LIMIT:-0}" != "0" ]; then args+=(--limit "$LIMIT"); fi
           matrix="$(python scripts/native_fleet.py plan "${args[@]}")"
+
+          # PR valida a estratégia de cada provider sem reprocessar a frota
+          # inteira. Push em main, schedule e dispatch continuam completos.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -z "$PROVIDER" ] && [ -z "$TARGET" ]; then
+            matrix="$(python - "$matrix" <<'PY'
+          import json, sys
+          data = json.loads(sys.argv[1])
+          per_provider = {}
+          for item in data.get("include") or []:
+              bucket = per_provider.setdefault(item["provider"], [])
+              if len(bucket) < 2:
+                  bucket.append(item)
+          sample = [item for bucket in per_provider.values() for item in bucket]
+          print(json.dumps({"include": sample}, separators=(",", ":")))
+          PY
+            )"
+          fi
+
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           python - "$matrix" >> "$GITHUB_OUTPUT" <<'PY'
           import json, sys
