@@ -60,7 +60,7 @@ semestres do mesmo ano e, na UDESC, entre as duas sessões da mesma edição.
 
 ## Direitos
 
-`rightsStatus` é `official-reference`. O ENEM Lab não republica os PDFs nem o
+`rightsStatus` é `official-reference`. O Studium não republica os PDFs nem o
 texto das questões; abre os documentos nos sites oficiais da UDESC e da ACAFE.
 A existência pública dos arquivos não é tratada como licença de redistribuição.
 

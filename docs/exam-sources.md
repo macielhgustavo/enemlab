@@ -17,7 +17,7 @@ PROVIDER         como o app usa a prova         ItaProvider
 
 - **Fonte** responde *de onde vem, em que forma, e o que podemos fazer com isso*.
 - **Importador** responde *como transformamos aquilo em dado nosso*.
-- **Provider** responde *como o ENEM Lab executa esta prova*.
+- **Provider** responde *como o Studium executa esta prova*.
 
 As telas conhecem apenas o **provider**. Nenhuma tela deve importar cliente de
 API ou parser.

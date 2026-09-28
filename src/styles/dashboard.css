@@ -1,4 +1,4 @@
-/* Lovable study cockpit, adapted to the real ENEM Lab application shell. */
+/* Lovable study cockpit, adapted to the real Studium application shell. */
 
 .workspace {
   min-width: 0;
@@ -1299,7 +1299,7 @@
   }
 
   .app-topbar__context::before {
-    content: "ENEM Lab";
+    content: "Studium";
     color: var(--text-faint);
     font-size: 9px;
     font-weight: 700;

@@ -1,6 +1,6 @@
 // Camada de FONTE — separada do provider de execução.
 //
-// Provider responde "como o ENEM Lab usa esta prova".
+// Provider responde "como o Studium usa esta prova".
 // Fonte responde "de onde este conteúdo vem, em que forma, e o que podemos
 // fazer com ele". Misturar os dois foi o que deixou o ENEM embutido no app.
 //

@@ -1,4 +1,4 @@
-# Fluxo de estudo do ENEM Lab
+# Fluxo de estudo do Studium
 
 Este documento define a hierarquia de produto da navegação. A inteligência interna pode ter vários motores; o aluno não deve precisar escolher um motor para descobrir o que fazer agora.
 

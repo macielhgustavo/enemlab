@@ -1,4 +1,4 @@
-// Domínio ENEM Lab — modelo de dados tipado (portado do v6, unificado).
+// Domínio Studium — modelo de dados tipado. Identificadores legados permanecem por compatibilidade.
 
 export type AreaId =
   | "matematica"
