@@ -27,7 +27,22 @@ PROVIDER_MARKER_PATTERNS: dict[str, str] = {
     "eear": EEAR_MARKER_PATTERN,
 }
 
-ADAPTIVE_OPTION_PROVIDERS = {"eear", "unioeste", "espcex"}
+ADAPTIVE_OPTION_PROVIDERS = {
+    "eear",
+    "unioeste",
+    "espcex",
+    "ita",
+    "fuvest",
+    "unicamp",
+    "uel",
+    "puc-sp",
+    "udesc",
+    "acafe",
+    "esa",
+    "afa",
+    "epcar",
+}
+OCR_OPTION_PROVIDERS = set(ADAPTIVE_OPTION_PROVIDERS)
 PINNED_ARCHIVE_PROVIDERS = {"ime", "afa", "epcar"}
 SOURCE_AUDIT_FILENAME = "exam-sources.audit.json"
 MIRROR_AUDIT_FILENAME = "native-sources.audit.json"
@@ -487,7 +502,7 @@ def _adaptive_prepare(
             default_valid = False
             default_error = str(error)
 
-        if not default_valid and target.provider_id in {"espcex", "unioeste"}:
+        if not default_valid:
             try:
                 numbered = _numbered_line_markers(doc, target, pipeline)
             except Exception as error:
@@ -531,7 +546,7 @@ def _adaptive_prepare(
             "ordered-option-groups",
         )
 
-    if target.provider_id == "espcex":
+    if target.provider_id in OCR_OPTION_PROVIDERS:
         ocr_number_errors: list[str] = []
         try:
             candidates = ocr_markers.detect_ocr_number_marker_candidates(

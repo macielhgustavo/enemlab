@@ -55,6 +55,11 @@ class NativePrepareProfileTests(unittest.TestCase):
         )
         self.assertIs(native_prepare.apply_layout_profile(target), target)
 
+    def test_scanned_and_reference_providers_use_adaptive_ocr_fallback(self):
+        for provider in ("ita", "fuvest", "unicamp", "uel", "puc-sp", "udesc", "acafe"):
+            self.assertIn(provider, native_prepare.ADAPTIVE_OPTION_PROVIDERS)
+            self.assertIn(provider, native_prepare.OCR_OPTION_PROVIDERS)
+
     def test_eear_marker_ignores_answer_key_prose_and_detects_real_questions(self):
         page = FakePage(
             [

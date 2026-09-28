@@ -374,7 +374,6 @@ export default function BankPage() {
             const [dl, dc] = difficultyLabel(d);
             const st = bankStatus(db, q);
             const marcada = selected.has(k);
-            const semEnunciado = q.statementAvailable === false;
             return (
               <Card
                 key={k}
@@ -400,21 +399,11 @@ export default function BankPage() {
                   </div>
 
                   <div className="el-bankitem__path caption">
-                    {semEnunciado ? (
-                      <>
-                        <span>{areaLabel(String(discipline(q)), providerId)}</span>
-                        <span>{phaseLabel(q.phase)}</span>
-                        <span>objetiva</span>
-                      </>
-                    ) : (
-                      contentPath(c).map((cam) => <span key={cam}>{cam}</span>)
-                    )}
+                    {contentPath(c).map((cam) => <span key={cam}>{cam}</span>)}
                   </div>
 
                   <p className="body-sm el-bankitem__excerpt">
-                    {semEnunciado
-                      ? "Enunciado na prova oficial — abra o documento da banca para ler."
-                      : trecho(String(q.context || q.alternativesIntroduction || ""))}
+                    {trecho(String(q.context || q.alternativesIntroduction || ""))}
                   </p>
                 </div>
 

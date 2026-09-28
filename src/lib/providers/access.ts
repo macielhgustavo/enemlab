@@ -11,6 +11,7 @@ import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
 import { applyPublishedNativeContent } from "../native/loader";
 import { applyLocalNativeDrafts } from "../native/localDraft";
+import { assertNativeQuestionCoverage } from "../native/readiness";
 import { ENEM_PROVIDER_ID } from "./enem";
 import { toLegacyQuestion } from "./legacy";
 import { getProvider, resolveProviderId } from "./registry";
@@ -49,7 +50,13 @@ export async function questionsFor(
   }
 
   const native = await applyPublishedNativeContent(questions);
-  return applyLocalNativeDrafts(native);
+  const complete = applyLocalNativeDrafts(native);
+  assertNativeQuestionCoverage(complete, {
+    providerId: id,
+    year,
+    editionId,
+  });
+  return complete;
 }
 
 /** Metadados da prova (anos, idiomas, áreas) para montar formulários. */
