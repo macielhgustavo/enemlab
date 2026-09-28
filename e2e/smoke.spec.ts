@@ -15,6 +15,7 @@ const ROTAS: { url: string; nome: string; marca: RegExp }[] = [
   { url: "/redacao", nome: "Redação", marca: /treino de redação/i },
   { url: "/bank", nome: "Banco", marca: /banco/i },
   { url: "/plano", nome: "Plano", marca: /plano|prontidão/i },
+  { url: "/trajetoria", nome: "Trajetória", marca: /trajetória até a prova/i },
   { url: "/simulado", nome: "Simulado", marca: /simulado completo/i },
   { url: "/mastery", nome: "Domínio", marca: /mapa de domínio/i },
   { url: "/srs", nome: "Revisões", marca: /revis/i },

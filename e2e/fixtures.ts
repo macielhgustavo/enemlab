@@ -20,6 +20,9 @@ export interface SeedOptions {
   /** Ajusta a amostra sem alterar os cenários visuais padrão. */
   questoesHistorico?: number;
   acertosHistorico?: number;
+  /** Metas opcionais para cenários de trajetória. */
+  targetDate?: string;
+  weeklyQuestions?: number;
 }
 
 function tentativaEnem(total = 15, acertos?: number) {
@@ -82,6 +85,8 @@ export function seedState(opts: SeedOptions = {}) {
     novoUsuario = false,
     questoesHistorico = 15,
     acertosHistorico,
+    targetDate,
+    weeklyQuestions = 150,
   } = opts;
   return {
     state: {
@@ -104,8 +109,9 @@ export function seedState(opts: SeedOptions = {}) {
             : {
                 [provider]: {
                   objective: "balanced",
-                  weeklyQuestions: 150,
+                  weeklyQuestions,
                   dailyMinutes: 60,
+                  targetDate: targetDate ?? null,
                   onboardingCompletedAt: "2026-09-01T12:00:00.000Z",
                 },
               },
