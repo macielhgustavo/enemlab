@@ -26,9 +26,10 @@ import {
 import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
 import { areaLabel, areasOf } from "@/lib/providers/taxonomy";
 import { buildCurrentCatalog } from "@/lib/catalog/current";
-import { examLabel, phaseLabel } from "@/lib/providers/label";
+import { examLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
+import { nativeQuestionCoverage } from "@/lib/native/readiness";
 
 /** Tira imagem markdown do trecho: a lista mostrava a URL crua como texto. */
 function trecho(texto: string): string {
@@ -117,6 +118,8 @@ export default function BankPage() {
     staleTime: Infinity,
   });
 
+  const nativeCoverage = questions ? nativeQuestionCoverage(questions) : null;
+
   const visible = useMemo(() => {
     if (!questions) return [];
     const nq = normalizeText(query);
@@ -168,6 +171,15 @@ export default function BankPage() {
   }
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!isLoading && !error && nativeCoverage && !nativeCoverage.complete) {
+    return (
+      <ErrorState
+        title="Edição ainda não disponível no Studium"
+        description={`Esta edição ainda não passou pelo gate nativo completo (${nativeCoverage.ready}/${nativeCoverage.total}). Nenhuma questão será aberta via PDF.`}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   return (
     <>

@@ -18,6 +18,7 @@ import { saveSnapshot } from "@/lib/idb";
 import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
+import { nativeQuestionCoverage } from "@/lib/native/readiness";
 
 export default function ExamPage() {
   const params = useParams();
@@ -328,6 +329,25 @@ export default function ExamPage() {
         </div>
       </div>
     );
+
+  const nativeCoverage = nativeQuestionCoverage(qs);
+  if (!nativeCoverage.complete) {
+    return (
+      <div className="card questionCard">
+        <div className="loadingQuestion">
+          <div>
+            <b style={{ color: "var(--bad)" }}>Edição ainda não disponível no Studium.</b>
+            <br />
+            {nativeCoverage.ready}/{nativeCoverage.total} questões passaram pelo gate nativo.
+            Nenhuma questão será aberta via PDF.
+            <br />
+            <br />
+            <a className="btn secondary" href="/bank">Voltar ao banco</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const content = classifyContent(q);
   // A banca vem da procedência da própria questão; sem isso o cabeçalho diria
