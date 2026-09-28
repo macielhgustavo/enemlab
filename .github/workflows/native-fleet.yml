@@ -47,7 +47,9 @@ on:
     - cron: "17 3 * * 0"
 
 concurrency:
-  group: native-fleet-${{ github.ref }}
+  # PR usa número estável (e não o merge-ref transitório). Push/schedule usam
+  # a ref normal, então publicação em main continua serializada.
+  group: native-fleet-${{ github.event.pull_request.number || github.ref }}
   # Em PR, só o HEAD atual interessa; em main/schedule uma publicação em
   # andamento nunca é descartada no meio.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
