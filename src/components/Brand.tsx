@@ -1,8 +1,14 @@
-/** Identidade atual. A próxima marca troca este contrato, não cada tela. */
+/**
+ * Identidade pública do produto.
+ *
+ * Identificadores legados como "enem_lab_v7" permanecem estáveis por
+ * compatibilidade de dados; a marca apresentada ao usuário é Studium.
+ */
 export const PRODUCT_BRAND = {
-  name: "ENEM Lab",
-  monogram: "E",
-  description: "Plataforma pessoal adaptativa para questões reais do ENEM.",
+  name: "Studium",
+  monogram: "S",
+  description:
+    "Plataforma pessoal adaptativa para estudar com provas oficiais e múltiplos vestibulares.",
 } as const;
 
 export function Brand() {
