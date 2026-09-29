@@ -280,7 +280,11 @@ def _numbered_line_markers(
                     )
                 )
 
-    markers = pipeline.canonicalize_markers(markers, target.total)
+    markers = pipeline.canonicalize_markers(
+        markers,
+        target.total,
+        prefer_source_order=True,
+    )
     pipeline.validate_marker_numbers(markers, target.total)
     return markers
 

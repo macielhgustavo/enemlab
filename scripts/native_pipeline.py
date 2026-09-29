@@ -157,6 +157,7 @@ def _marker_order_key(marker: Marker) -> tuple[int, float, float, float, float]:
 def _unique_monotonic_marker_path(
     by_number: dict[int, list[Marker]],
     total: int,
+    order_key: Any = _marker_order_key,
 ) -> list[Marker] | None:
     """Encontra a única sequência física 1..N, sem heurística de pontuação.
 
@@ -171,21 +172,21 @@ def _unique_monotonic_marker_path(
     if total < 1:
         return None
 
-    previous = sorted(by_number[1], key=_marker_order_key)
+    previous = sorted(by_number[1], key=order_key)
     counts = [1] * len(previous)
     parents: dict[tuple[int, int], int | None] = {
         (1, index): None for index in range(len(previous))
     }
 
     for number in range(2, total + 1):
-        current = sorted(by_number[number], key=_marker_order_key)
+        current = sorted(by_number[number], key=order_key)
         next_counts: list[int] = []
         for current_index, candidate in enumerate(current):
             contributors: list[tuple[int, int]] = []
             for previous_index, prior in enumerate(previous):
                 if counts[previous_index] == 0:
                     continue
-                if _marker_order_key(prior) < _marker_order_key(candidate):
+                if order_key(prior) < order_key(candidate):
                     contributors.append((previous_index, counts[previous_index]))
 
             path_count = min(2, sum(count for _, count in contributors))
@@ -216,7 +217,7 @@ def _unique_monotonic_marker_path(
     selected: list[Marker] = []
     current_index = finals[0]
     for number in range(total, 0, -1):
-        current = sorted(by_number[number], key=_marker_order_key)
+        current = sorted(by_number[number], key=order_key)
         selected.append(current[current_index])
         if number == 1:
             break
@@ -229,17 +230,18 @@ def _unique_monotonic_marker_path(
     return selected
 
 
-def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
-    """Resolve duplicatas somente quando existe uma sequência física única.
+def canonicalize_markers(
+    markers: list[Marker],
+    total: int,
+    *,
+    prefer_source_order: bool = False,
+) -> list[Marker]:
+    """Resolve duplicatas somente quando a evidência produz uma escolha única.
 
-    Antes, o pipeline conseguia resolver apenas uma duplicata isolada. Provas
-    reais frequentemente contêm vários números repetidos em instruções,
-    sumários ou referências internas. Agora avaliamos todos os candidatos de
-    1..N de uma vez e aceitamos a canonicalização apenas quando há exatamente
-    um caminho monotonamente crescente no documento.
-
-    Marcador faltante, número fora da faixa ou mais de uma sequência possível
-    continuam intactos para `validate_marker_numbers()` falhar fechado.
+    A geometria continua sendo o padrão. Detectores que já percorrem o PDF em
+    ordem de leitura comprovada (PyMuPDF `sort=True`) podem também fornecer a
+    ordem original como evidência. Se as duas estratégias encontrarem soluções
+    diferentes, não escolhemos nenhuma: o gate continua fail-closed.
     """
     markers = _collapse_equivalent_markers(markers)
     by_number: dict[int, list[Marker]] = {}
@@ -252,8 +254,38 @@ def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
     if all(len(items) == 1 for items in by_number.values()):
         return markers
 
-    selected = _unique_monotonic_marker_path(by_number, total)
-    return selected if selected is not None else markers
+    candidates: list[list[Marker]] = []
+    geometric = _unique_monotonic_marker_path(
+        by_number,
+        total,
+        _marker_order_key,
+    )
+    if geometric is not None:
+        candidates.append(geometric)
+
+    if prefer_source_order:
+        source_index = {id(marker): index for index, marker in enumerate(markers)}
+        source = _unique_monotonic_marker_path(
+            by_number,
+            total,
+            lambda marker: source_index[id(marker)],
+        )
+        if source is not None:
+            candidates.append(source)
+
+    if not candidates:
+        return markers
+
+    signatures = {
+        tuple(
+            (item.number, item.page_index, item.x0, item.y0, item.x1, item.y1)
+            for item in candidate
+        )
+        for candidate in candidates
+    }
+    if len(signatures) != 1:
+        return markers
+    return candidates[0]
 
 
 def validate_marker_numbers(markers: list[Marker], total: int) -> None:

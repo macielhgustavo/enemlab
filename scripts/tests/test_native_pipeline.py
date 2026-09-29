@@ -43,6 +43,29 @@ class NativePipelineTests(unittest.TestCase):
         )
         native.validate_marker_numbers(canonical, 4)
 
+    def test_canonicalize_can_use_proven_source_reading_order_for_columns(self):
+        marker = native.Marker
+        markers = [
+            # Ordem de leitura do extrator: coluna esquerda termina e só então
+            # a coluna direita começa. Geometricamente Q2 aparece acima de Q1.
+            marker(1, 0, 40, 500, 80, 515),
+            marker(2, 0, 330, 100, 370, 115),
+            marker(3, 0, 330, 200, 370, 215),
+            # Q2 incidental depois da sequência real.
+            marker(2, 0, 330, 300, 370, 315),
+        ]
+        geometric_only = native.canonicalize_markers(markers, 3)
+        self.assertEqual(len(geometric_only), len(markers))
+
+        canonical = native.canonicalize_markers(
+            markers,
+            3,
+            prefer_source_order=True,
+        )
+        self.assertEqual([item.number for item in canonical], [1, 2, 3])
+        self.assertEqual(canonical[1].y0, 100)
+        native.validate_marker_numbers(canonical, 3)
+
     def test_canonicalize_keeps_ambiguous_complete_sequences_fail_closed(self):
         marker = native.Marker
         markers = [
