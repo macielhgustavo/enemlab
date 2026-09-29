@@ -150,13 +150,96 @@ def _collapse_equivalent_markers(markers: list[Marker]) -> list[Marker]:
     return collapsed
 
 
-def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
-    """Resolve duplicatas somente quando a geometria prova a escolha.
+def _marker_order_key(marker: Marker) -> tuple[int, float, float, float, float]:
+    return (marker.page_index, marker.y0, marker.x0, marker.y1, marker.x1)
 
-    Se exatamente um número aparece duas vezes, todos os demais 1..N existem
-    uma única vez e apenas um dos candidatos fica fisicamente entre os vizinhos
-    numéricos, o candidato espúrio pode ser removido sem adivinhar. Qualquer
-    caso mais complexo permanece intacto para o gate falhar fechado.
+
+def _unique_monotonic_marker_path(
+    by_number: dict[int, list[Marker]],
+    total: int,
+) -> list[Marker] | None:
+    """Encontra a única sequência física 1..N, sem heurística de pontuação.
+
+    Cada marcador legítimo da questão N precisa aparecer fisicamente depois do
+    marcador escolhido para N-1. Duplicatas incidentais (sumário, instruções,
+    números citados no texto) costumam quebrar essa monotonicidade.
+
+    O DP conta no máximo duas soluções. Só devolvemos uma sequência quando há
+    exatamente um caminho completo; qualquer ambiguidade permanece para o gate
+    falhar fechado.
+    """
+    if total < 1:
+        return None
+
+    previous = sorted(by_number[1], key=_marker_order_key)
+    counts = [1] * len(previous)
+    parents: dict[tuple[int, int], int | None] = {
+        (1, index): None for index in range(len(previous))
+    }
+
+    for number in range(2, total + 1):
+        current = sorted(by_number[number], key=_marker_order_key)
+        next_counts: list[int] = []
+        for current_index, candidate in enumerate(current):
+            contributors: list[tuple[int, int]] = []
+            for previous_index, prior in enumerate(previous):
+                if counts[previous_index] == 0:
+                    continue
+                if _marker_order_key(prior) < _marker_order_key(candidate):
+                    contributors.append((previous_index, counts[previous_index]))
+
+            path_count = min(2, sum(count for _, count in contributors))
+            next_counts.append(path_count)
+            if path_count == 1:
+                unique_parent = [
+                    previous_index
+                    for previous_index, count in contributors
+                    if count == 1
+                ]
+                parents[(number, current_index)] = (
+                    unique_parent[0] if len(unique_parent) == 1 else None
+                )
+            else:
+                parents[(number, current_index)] = None
+
+        previous = current
+        counts = next_counts
+
+    total_paths = min(2, sum(counts))
+    if total_paths != 1:
+        return None
+
+    finals = [index for index, count in enumerate(counts) if count == 1]
+    if len(finals) != 1:
+        return None
+
+    selected: list[Marker] = []
+    current_index = finals[0]
+    for number in range(total, 0, -1):
+        current = sorted(by_number[number], key=_marker_order_key)
+        selected.append(current[current_index])
+        if number == 1:
+            break
+        parent = parents.get((number, current_index))
+        if parent is None:
+            return None
+        current_index = parent
+
+    selected.reverse()
+    return selected
+
+
+def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
+    """Resolve duplicatas somente quando existe uma sequência física única.
+
+    Antes, o pipeline conseguia resolver apenas uma duplicata isolada. Provas
+    reais frequentemente contêm vários números repetidos em instruções,
+    sumários ou referências internas. Agora avaliamos todos os candidatos de
+    1..N de uma vez e aceitamos a canonicalização apenas quando há exatamente
+    um caminho monotonamente crescente no documento.
+
+    Marcador faltante, número fora da faixa ou mais de uma sequência possível
+    continuam intactos para `validate_marker_numbers()` falhar fechado.
     """
     markers = _collapse_equivalent_markers(markers)
     by_number: dict[int, list[Marker]] = {}
@@ -166,32 +249,11 @@ def canonicalize_markers(markers: list[Marker], total: int) -> list[Marker]:
     expected = set(range(1, total + 1))
     if set(by_number) != expected:
         return markers
-    duplicates = [number for number, items in by_number.items() if len(items) != 1]
-    if len(duplicates) != 1:
-        return markers
-    number = duplicates[0]
-    candidates = by_number[number]
-    if len(candidates) != 2 or number <= 1 or number >= total:
-        return markers
-    previous = by_number[number - 1]
-    following = by_number[number + 1]
-    if len(previous) != 1 or len(following) != 1:
+    if all(len(items) == 1 for items in by_number.values()):
         return markers
 
-    def key(marker: Marker) -> tuple[int, float, float]:
-        return (marker.page_index, marker.y0, marker.x0)
-
-    lower = key(previous[0])
-    upper = key(following[0])
-    fitting = [candidate for candidate in candidates if lower < key(candidate) < upper]
-    if len(fitting) != 1:
-        return markers
-    chosen = fitting[0]
-    return [
-        marker
-        for marker in markers
-        if marker.number != number or marker is chosen
-    ]
+    selected = _unique_monotonic_marker_path(by_number, total)
+    return selected if selected is not None else markers
 
 
 def validate_marker_numbers(markers: list[Marker], total: int) -> None:
