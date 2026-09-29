@@ -468,6 +468,40 @@ def unique_monotonic_marker_sequence(
     return resolved
 
 
+def _neighbor_recovery_pages(
+    markers: list[Any],
+    missing_numbers: set[int],
+    total: int,
+    *,
+    max_page_gap: int = 2,
+) -> set[int]:
+    """Restringe OCR caro às páginas delimitadas pelos vizinhos conhecidos."""
+    by_number: dict[int, list[Any]] = collections.defaultdict(list)
+    for marker in _dedupe_number_markers(markers):
+        by_number[int(marker.number)].append(marker)
+
+    pages: set[int] = set()
+    for number in sorted(missing_numbers):
+        previous = by_number.get(number - 1, []) if number > 1 else []
+        following = by_number.get(number + 1, []) if number < total else []
+
+        if previous and following:
+            for left in previous:
+                for right in following:
+                    if left.page_index > right.page_index:
+                        continue
+                    gap = int(right.page_index) - int(left.page_index)
+                    if gap > max_page_gap:
+                        continue
+                    pages.update(range(int(left.page_index), int(right.page_index) + 1))
+        elif previous:
+            pages.update(int(item.page_index) for item in previous)
+        elif following:
+            pages.update(int(item.page_index) for item in following)
+
+    return pages
+
+
 def _page_tsv(page: Any, fitz: Any, tesseract: str, dpi: int, psm: int) -> str:
     scale = dpi / 72.0
     pix = page.get_pixmap(
@@ -596,6 +630,67 @@ def detect_ocr_number_marker_candidates(
                 if resolved is not None:
                     # Coloca o candidato provado antes dos passes individuais.
                     return [("ocr-number-line-monotonic", resolved), *candidates]
+
+        if line_anchored_only and merged_line_markers:
+            merged_line_markers = _dedupe_number_markers(merged_line_markers)
+            present = {int(item.number) for item in merged_line_markers}
+            missing = set(range(1, total + 1)) - present
+
+            # Quando a varredura normal perde pouquíssimos números, fazemos uma
+            # recuperação localizada entre os vizinhos estruturais. Isso evita
+            # OCR 300dpi no documento inteiro e, principalmente, impede que uma
+            # leitura ruidosa de outra página "preencha" artificialmente Qn.
+            if 0 < len(missing) <= 4:
+                recovery_pages = _neighbor_recovery_pages(
+                    merged_line_markers,
+                    missing,
+                    total,
+                )
+                if recovery_pages:
+                    recovery_dpi = 300
+                    for psm in (4, 11, 6, 3, 12):
+                        recovered: list[Any] = []
+                        for page_index in sorted(recovery_pages):
+                            page = doc[page_index]
+                            payload = _page_tsv(
+                                page,
+                                fitz,
+                                tesseract,
+                                recovery_dpi,
+                                psm,
+                            )
+                            recovered.extend(
+                                line_question_markers_from_tsv(
+                                    payload,
+                                    page_index=page_index,
+                                    scale=recovery_dpi / 72.0,
+                                    page_width=float(page.rect.width),
+                                    page_height=float(page.rect.height),
+                                    total=total,
+                                    marker_factory=marker_factory,
+                                    x_ranges=x_ranges,
+                                )
+                            )
+                        merged_line_markers.extend(recovered)
+                        merged_line_markers = _dedupe_number_markers(
+                            merged_line_markers
+                        )
+                        resolved = unique_monotonic_marker_sequence(
+                            merged_line_markers,
+                            total,
+                            page_widths,
+                        )
+                        if resolved is not None:
+                            return [
+                                (f"ocr-number-line-monotonic-recovery-psm{psm}", resolved),
+                                *candidates,
+                            ]
+
+            # Diagnóstico explícito para o gate: mostra a cobertura combinada
+            # de todas as passadas quando ainda não há uma sequência única.
+            candidates.append(
+                ("ocr-number-line-merged", merged_line_markers)
+            )
 
         return candidates
     finally:

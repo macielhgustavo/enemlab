@@ -190,6 +190,30 @@ class NativeOcrMarkerTests(unittest.TestCase):
         self.assertIsNotNone(resolved)
         self.assertEqual([item.number for item in resolved], [1, 2])
 
+    def test_neighbor_recovery_pages_stays_between_adjacent_markers(self):
+        marker = SimpleNamespace
+        markers = [
+            marker(number=46, page_index=8, x0=40, y0=100, x1=50, y1=112),
+            marker(number=48, page_index=9, x0=40, y0=300, x1=50, y1=312),
+            # Ruído distante não pode ampliar a recuperação localizada.
+            marker(number=46, page_index=2, x0=40, y0=100, x1=50, y1=112),
+            marker(number=48, page_index=12, x0=40, y0=300, x1=50, y1=312),
+        ]
+        self.assertEqual(
+            ocr._neighbor_recovery_pages(markers, {47}, 48),
+            {8, 9},
+        )
+
+    def test_neighbor_recovery_pages_returns_empty_without_structural_neighbors(self):
+        marker = SimpleNamespace
+        markers = [
+            marker(number=10, page_index=1, x0=40, y0=100, x1=50, y1=112),
+        ]
+        self.assertEqual(
+            ocr._neighbor_recovery_pages(markers, {47}, 48),
+            set(),
+        )
+
     def test_number_tsv_parser_keeps_left_margin_question_number(self):
         header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
         rows = [
