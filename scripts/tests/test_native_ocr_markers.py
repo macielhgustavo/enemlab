@@ -71,6 +71,60 @@ class NativeOcrMarkerTests(unittest.TestCase):
 
         self.assertEqual([(item.letter, item.y0) for item in accepted], [("E", 180)])
 
+    def test_line_question_parser_accepts_right_column_anchor(self):
+        header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        rows = [
+            "5\t1\t1\t1\t1\t1\t1100\t240\t24\t24\t92\t17\n",
+            "5\t1\t1\t1\t1\t2\t1140\t240\t180\t24\t91\tConsidere\n",
+        ]
+        markers = ocr.line_question_markers_from_tsv(
+            header + "".join(rows),
+            page_index=0,
+            scale=2.0,
+            page_width=800.0,
+            page_height=700.0,
+            total=48,
+            marker_factory=lambda **kwargs: kwargs,
+            x_ranges=((0.0, 0.30), (0.45, 0.82)),
+        )
+        self.assertEqual([item["number"] for item in markers], [17])
+
+    def test_line_question_parser_ignores_numeric_token_inside_sentence(self):
+        header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        rows = [
+            "5\t1\t1\t1\t1\t1\t100\t240\t120\t24\t92\tCalcule\n",
+            "5\t1\t1\t1\t1\t2\t260\t240\t24\t24\t92\t17\n",
+        ]
+        markers = ocr.line_question_markers_from_tsv(
+            header + "".join(rows),
+            page_index=0,
+            scale=2.0,
+            page_width=800.0,
+            page_height=700.0,
+            total=48,
+            marker_factory=lambda **kwargs: kwargs,
+            x_ranges=((0.0, 0.30), (0.45, 0.82)),
+        )
+        self.assertEqual(markers, [])
+
+    def test_line_question_parser_accepts_explicit_questao_prefix(self):
+        header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        rows = [
+            "5\t1\t1\t1\t1\t1\t760\t240\t120\t24\t90\tQUESTÃO\n",
+            "5\t1\t1\t1\t1\t2\t900\t240\t24\t24\t90\t09\n",
+        ]
+        markers = ocr.line_question_markers_from_tsv(
+            header + "".join(rows),
+            page_index=0,
+            scale=2.0,
+            page_width=800.0,
+            page_height=700.0,
+            total=48,
+            marker_factory=lambda **kwargs: kwargs,
+            x_ranges=((0.0, 0.30), (0.45, 0.82)),
+        )
+        self.assertEqual([item["number"] for item in markers], [9])
+
     def test_number_tsv_parser_keeps_left_margin_question_number(self):
         header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
         rows = [

@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
@@ -183,6 +184,7 @@ def number_markers_from_tsv(
     page_height: float,
     total: int,
     marker_factory: Callable[..., Any],
+    x_ranges: tuple[tuple[float, float], ...] = ((0.0, 0.22),),
 ) -> list[Any]:
     markers: list[Any] = []
     for row in _rows(payload):
@@ -201,16 +203,143 @@ def number_markers_from_tsv(
             confidence = float(row.get("conf") or -1)
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
             continue
-        # Questões EsPCEx ficam na faixa esquerda do conteúdo. A restrição
-        # também elimina números de página e a maioria dos números do enunciado.
+        # A faixa horizontal é perfilável. O default preserva o comportamento
+        # histórico da EsPCEx; provas em duas colunas podem liberar âncoras
+        # adicionais sem aceitar números arbitrários no miolo do enunciado.
         if confidence < 20:
             continue
-        if left > page_width * 0.22:
+        ratio = left / page_width if page_width > 0 else 1.0
+        if not any(start <= ratio <= end for start, end in x_ranges):
             continue
         if top < page_height * 0.065 or top > page_height * 0.965:
             continue
         if width <= 0 or height <= 0:
             continue
+        markers.append(
+            marker_factory(
+                number=number,
+                page_index=page_index,
+                x0=left,
+                y0=top,
+                x1=left + width,
+                y1=top + height,
+            )
+        )
+    return markers
+
+
+def _normalized_ocr_word(value: str) -> str:
+    return (
+        unicodedata.normalize("NFD", value or "")
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
+
+def line_question_markers_from_tsv(
+    payload: str,
+    *,
+    page_index: int,
+    scale: float,
+    page_width: float,
+    page_height: float,
+    total: int,
+    marker_factory: Callable[..., Any],
+    x_ranges: tuple[tuple[float, float], ...],
+) -> list[Any]:
+    """Extrai números só do início lógico de linhas de questão.
+
+    Em scans de duas colunas, procurar todo token numérico gera falsos
+    positivos em fórmulas. Aqui aceitamos apenas:
+    - linha que começa por um número em uma âncora horizontal permitida; ou
+    - cabeçalho explícito "QUESTÃO/Q <n>".
+
+    A sequência final 1..N continua sendo validada pelo pipeline antes de
+    qualquer pack ser produzido.
+    """
+    grouped: dict[tuple[str, str, str], list[dict[str, str]]] = collections.defaultdict(list)
+    for row in _rows(payload):
+        if not str(row.get("text") or "").strip():
+            continue
+        key = (
+            str(row.get("block_num") or ""),
+            str(row.get("par_num") or ""),
+            str(row.get("line_num") or ""),
+        )
+        grouped[key].append(row)
+
+    markers: list[Any] = []
+    for rows in grouped.values():
+        def word_order(row: dict[str, str]) -> tuple[int, float]:
+            try:
+                word = int(row.get("word_num") or 0)
+            except (TypeError, ValueError):
+                word = 0
+            try:
+                left = float(row.get("left") or 0)
+            except (TypeError, ValueError):
+                left = 0.0
+            return word, left
+
+        words = sorted(rows, key=word_order)
+        parsed: list[tuple[dict[str, str], str, float]] = []
+        for row in words:
+            try:
+                confidence = float(row.get("conf") or -1)
+            except (TypeError, ValueError):
+                continue
+            if confidence < 20:
+                continue
+            parsed.append((row, str(row.get("text") or ""), confidence))
+        if not parsed:
+            continue
+
+        number_row: dict[str, str] | None = None
+        explicit = False
+        for index, (_row, raw, _confidence) in enumerate(parsed[:4]):
+            normalized = _normalized_ocr_word(raw)
+            if normalized not in {"questao", "q"} or index + 1 >= len(parsed):
+                continue
+            candidate = re.sub(r"\s+", "", parsed[index + 1][1])
+            if _NUMBER_TOKEN.fullmatch(candidate):
+                number_row = parsed[index + 1][0]
+                explicit = True
+                break
+
+        if number_row is None:
+            first_row, first_raw, _confidence = parsed[0]
+            if _NUMBER_TOKEN.fullmatch(re.sub(r"\s+", "", first_raw)):
+                number_row = first_row
+
+        if number_row is None:
+            continue
+
+        token = re.sub(r"\s+", "", str(number_row.get("text") or ""))
+        match = _NUMBER_TOKEN.fullmatch(token)
+        if not match:
+            continue
+        number = int(match.group(1))
+        if not 1 <= number <= total:
+            continue
+
+        try:
+            left = float(number_row["left"]) / scale
+            top = float(number_row["top"]) / scale
+            width = float(number_row["width"]) / scale
+            height = float(number_row["height"]) / scale
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            continue
+        if width <= 0 or height <= 0:
+            continue
+        if top < page_height * 0.05 or top > page_height * 0.97:
+            continue
+
+        ratio = left / page_width if page_width > 0 else 1.0
+        if not explicit and not any(start <= ratio <= end for start, end in x_ranges):
+            continue
+
         markers.append(
             marker_factory(
                 number=number,
@@ -281,6 +410,9 @@ def detect_ocr_number_marker_candidates(
     marker_factory: Callable[..., Any],
     *,
     dpi: int = 216,
+    x_ranges: tuple[tuple[float, float], ...] = ((0.0, 0.22),),
+    require_option_evidence: bool = True,
+    line_anchored_only: bool = False,
 ) -> list[tuple[str, list[Any]]]:
     if not 144 <= dpi <= 300:
         raise OcrOptionMarkerError("dpi OCR fora da faixa segura")
@@ -299,12 +431,13 @@ def detect_ocr_number_marker_candidates(
                     page_index=page_index,
                     scale=scale,
                 )
-                # Capa/instruções podem conter listas numeradas. Só páginas com
-                # evidência de alternativas entram no conjunto de boundaries.
-                if len(options) < 2:
+                # Capa/instruções podem conter listas numeradas. O perfil
+                # histórico exige alternativas; scans como o ITA usam um
+                # detector de início de linha e dispensam essa pré-condição.
+                if require_option_evidence and len(options) < 2:
                     continue
-                markers.extend(
-                    number_markers_from_tsv(
+                if line_anchored_only:
+                    page_markers = line_question_markers_from_tsv(
                         payload,
                         page_index=page_index,
                         scale=scale,
@@ -312,10 +445,23 @@ def detect_ocr_number_marker_candidates(
                         page_height=float(page.rect.height),
                         total=total,
                         marker_factory=marker_factory,
+                        x_ranges=x_ranges,
                     )
-                )
+                else:
+                    page_markers = number_markers_from_tsv(
+                        payload,
+                        page_index=page_index,
+                        scale=scale,
+                        page_width=float(page.rect.width),
+                        page_height=float(page.rect.height),
+                        total=total,
+                        marker_factory=marker_factory,
+                        x_ranges=x_ranges,
+                    )
+                markers.extend(page_markers)
             if markers:
-                candidates.append((f"ocr-number-psm{psm}", markers))
+                strategy = "ocr-number-line" if line_anchored_only else "ocr-number"
+                candidates.append((f"{strategy}-psm{psm}", markers))
         return candidates
     finally:
         doc.close()
