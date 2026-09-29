@@ -138,6 +138,8 @@ jobs:
           python scripts/native_fleet.py publish --bundle bundle-unesp | tee publication-unesp.json
       - name: Prepare EEAR Administração bundle
         run: python scripts/native_prepare.py eear 2023-eags-administracao --phase single --out bundle-eear
+      - name: Prepare ITA 2026 structural canary
+        run: python scripts/native_prepare.py ita 2026 --phase first --out bundle-ita
       - name: Publish EEAR canary through OIDC broker
         if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish) }}
         run: |
