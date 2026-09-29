@@ -104,10 +104,34 @@ class NativeInventoryTests(unittest.TestCase):
         esa = self.target("esa", 2022, "single")
         self.assertEqual(esa.status, "blocked")
         self.assertIn("HTML", esa.reason or "")
-        # Mesmo com um PDF local, ainda não se pode criar pack enquanto a
-        # identidade custom não estiver alinhada ao caminho usado no app.
-        with self.assertRaises(native_ingest.core.NativeOrchestratorError):
-            native_ingest.question_key_for(esa, 1)
+        # Fonte e identidade são gates independentes. A variante faz parte do
+        # examId, mas a chave persistida pelo provider é provider+ano+fase+número.
+        self.assertEqual(native_ingest.question_key_for(esa, 1), "esa-2022-single-1")
+
+    def test_ita_is_attempted_by_the_real_pipeline_instead_of_static_blocking(self):
+        ita = next(target for target in self.targets if target.provider_id == "ita")
+        self.assertEqual(ita.status, "ready")
+        self.assertTrue(ita.exam_url)
+        self.assertEqual(
+            native_ingest.question_key_for(ita, 1),
+            f"ita-{ita.year}-first-1",
+        )
+
+    def test_reference_provider_identities_are_audited_against_the_app(self):
+        for provider in ("fuvest", "unicamp", "puc-sp", "udesc", "acafe"):
+            target = next(target for target in self.targets if target.provider_id == provider)
+            edition = native_ingest._normalize_key_segment(target.edition_id or str(target.year))
+            phase = native_ingest._normalize_key_segment(target.phase)
+            self.assertEqual(
+                native_ingest.question_key_for(target, 1),
+                f"{provider}-{edition}-{phase}-1",
+            )
+
+        uel = next(target for target in self.targets if target.provider_id == "uel")
+        self.assertEqual(
+            native_ingest.question_key_for(uel, 1),
+            f"uel-{uel.year}-{uel.phase}-ingles-1",
+        )
 
     def test_eear_inventory_keeps_the_existing_curated_filter(self):
         eear = [target for target in self.targets if target.provider_id == "eear"]

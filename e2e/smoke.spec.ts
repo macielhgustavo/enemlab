@@ -68,34 +68,36 @@ test("a prova ativa troca e a Home acompanha", async ({ page }) => {
   await expect(page.locator(".el-provider__trigger")).toContainText("Prova ativa");
 });
 
-const VESTIBULARES_REFERENCIA = [
-  { id: "ita", alternatives: 5 },
-  { id: "ime", alternatives: 5 },
-  { id: "fuvest", alternatives: 5 },
-  { id: "afa", alternatives: 4 },
-  { id: "epcar", alternatives: 4 },
-  { id: "unicamp", alternatives: 5 },
-  { id: "uel", alternatives: 5 },
-  { id: "puc-sp", alternatives: 5 },
-  { id: "udesc", alternatives: 5 },
-  { id: "acafe", alternatives: 5 },
-];
+const VESTIBULARES_SEM_CORPUS_NATIVO_NA_FIXTURE = [
+  "ita",
+  "ime",
+  "fuvest",
+  "afa",
+  "epcar",
+  "unicamp",
+  "uel",
+  "puc-sp",
+  "udesc",
+  "acafe",
+] as const;
 
-for (const provider of VESTIBULARES_REFERENCIA) {
-  test(`${provider.id} selecionado abre e permite responder`, async ({ page }) => {
-    await prepare(page, { provider: provider.id });
+for (const providerId of VESTIBULARES_SEM_CORPUS_NATIVO_NA_FIXTURE) {
+  test(`${providerId} sem NativePack não cai para PDF`, async ({ page }) => {
+    await prepare(page, { provider: providerId });
     await page.goto("/practice");
     await aguardarApp(page);
 
-    await expect(page.locator("#ref-provider")).toHaveValue(provider.id);
+    await expect(page.locator("#ref-provider")).toHaveValue(providerId);
     await page.getByRole("button", { name: "Começar vestibular" }).click();
     await expect(page).toHaveURL(/\/exam\//);
-    await expect(page.getByText("Enunciado na prova oficial", { exact: true })).toBeVisible();
 
-    const alternatives = page.locator(".answer");
-    await expect(alternatives).toHaveCount(provider.alternatives);
-    await alternatives.first().click();
-    await expect(alternatives.first()).toHaveClass(/selected/);
+    await expect(
+      page.getByText("Edição ainda não disponível no Studium.", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Enunciado na prova oficial", { exact: true })).toHaveCount(0);
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.locator('a[href*=".pdf"]')).toHaveCount(0);
+    await expect(page.locator(".answer")).toHaveCount(0);
   });
 }
 

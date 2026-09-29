@@ -12,24 +12,13 @@ import {
   discipline,
   questionKey,
 } from "@/lib/domain/classify";
-import { BookOpen, ExternalLink } from "lucide-react";
-
 import { fmtSec, shortSec, richText, safeUrl, markdownImageUrls } from "@/lib/format";
 import { questionsForAttempt, finishAttemptInDB } from "@/lib/services/attempts";
 import { saveSnapshot } from "@/lib/idb";
 import { QuestionSkeleton } from "@/components/Skeleton";
 import MathContent from "@/components/MathContent";
 import type { Confidence } from "@/lib/domain/types";
-
-
-/** Host de uma URL, para dizer ao aluno de onde o documento vem. */
-function hostDe(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return "servidor oficial";
-  }
-}
+import { nativeQuestionCoverage } from "@/lib/native/readiness";
 
 export default function ExamPage() {
   const params = useParams();
@@ -56,9 +45,6 @@ export default function ExamPage() {
   const [pass, setPass] = useState(1);
   // Cronômetro como estado: a renderização lê estado puro, não refs.
   const [clock, setClock] = useState({ elapsed: 0, qSec: 0 });
-  // Leitor da prova oficial embutido. Fica aberto entre as questões: numa
-  // sessão do ITA o aluno lê tudo no mesmo documento.
-  const [leitorAberto, setLeitorAberto] = useState(false);
 
   const timeQ = useRef<Record<string, number>>({});
   const elapsed = useRef(0);
@@ -344,6 +330,25 @@ export default function ExamPage() {
       </div>
     );
 
+  const nativeCoverage = nativeQuestionCoverage(qs);
+  if (!nativeCoverage.complete) {
+    return (
+      <div className="card questionCard">
+        <div className="loadingQuestion">
+          <div>
+            <b style={{ color: "var(--bad)" }}>Edição ainda não disponível no Studium.</b>
+            <br />
+            {nativeCoverage.ready}/{nativeCoverage.total} questões passaram pelo gate nativo.
+            Nenhuma questão será aberta via PDF.
+            <br />
+            <br />
+            <a className="btn secondary" href="/bank">Voltar ao banco</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const content = classifyContent(q);
   // A banca vem da procedência da própria questão; sem isso o cabeçalho diria
   // "ENEM" em prova de outro vestibular.
@@ -440,9 +445,7 @@ export default function ExamPage() {
                   </div>
                   <div className="qArea">
                     {subjectLabel}
-                    {/* Classificação de conteúdo é da taxonomia do ENEM: não
-                        faz sentido em prova de outra banca. */}
-                    {q.statementAvailable === false ? "" : ` • ${content}`}
+                    {content ? ` • ${content}` : ""}
                     {q.language ? ` • ${q.language}` : ""}
                   </div>
                 </div>
@@ -456,57 +459,6 @@ export default function ExamPage() {
                 </div>
               </div>
             </div>
-
-            {/* Provas digitalizadas (ITA) não têm enunciado em texto: em vez
-                de uma questão vazia, mandamos o aluno à fonte oficial. */}
-            {q.statementAvailable === false && q.official && (
-              <div className="refSource">
-                <div className="k">Enunciado na prova oficial</div>
-                <p>
-                  Esta prova do {q.official.institution} é publicada como documento
-                  digitalizado, então o enunciado não é reproduzido aqui. Abra a prova
-                  oficial na questão <b>{q.number ?? q.index}</b> e marque a alternativa
-                  abaixo.
-                </p>
-                <div className="refActions">
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={() => setLeitorAberto((v) => !v)}
-                  >
-                    <BookOpen size={15} /> {leitorAberto ? "Fechar leitor" : "Ler aqui"}
-                  </button>
-                  <a
-                    className="btn secondary"
-                    href={q.official.documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={15} /> Abrir prova oficial
-                  </a>
-                </div>
-
-                {/* Carregado só quando o aluno pede: a prova do ITA passa de
-                    12 MB. O arquivo vem do servidor oficial, não do nosso — o
-                    app referencia o documento, não o hospeda. */}
-                {leitorAberto && (
-                  <div className="refEmbed">
-                    <iframe
-                      // Parâmetros de exibição do visualizador de PDF: esconde
-                      // as miniaturas e ajusta à largura. É preferência de
-                      // leitura, não alteração do documento.
-                      src={`${q.official.documentUrl}#navpanes=0&view=FitH`}
-                      title={`Prova oficial ${q.official.institution} ${q.year}`}
-                    />
-                    <div className="refEmbedNote">
-                      Documento oficial do {q.official.institution}, carregado direto de{" "}
-                      {hostDe(q.official.documentUrl)}. Se o leitor aparecer em branco, o
-                      navegador não exibe PDF embutido — use &ldquo;Abrir prova oficial&rdquo;.
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {q.context && <MathContent className="context" html={richText(q.context)} />}
             {files.length > 0 && (
@@ -548,19 +500,7 @@ export default function ExamPage() {
               })}
             </div>
             <div className="sourceLine">
-              {/* A classificação de conteúdo é heurística sobre o enunciado.
-                  Em modo referência não há enunciado aqui, então dizer o
-                  conteúdo seria chute — a linha vira só procedência. */}
-              {q.statementAvailable === false ? (
-                <>
-                  {institution} {q.year} • questão {q.number ?? q.index} • enunciado na prova
-                  oficial.
-                </>
-              ) : (
-                <>
-                  {institution} {q.year} • conteúdo classificado automaticamente como “{content}”.
-                </>
-              )}
+              {institution} {q.year} • conteúdo classificado automaticamente como “{content}”.
             </div>
           </div>
         )}

@@ -26,9 +26,10 @@ import {
 import { EmptyState, ErrorState, LoadingState } from "@/components/enem-lab/states";
 import { areaLabel, areasOf } from "@/lib/providers/taxonomy";
 import { buildCurrentCatalog } from "@/lib/catalog/current";
-import { examLabel, phaseLabel } from "@/lib/providers/label";
+import { examLabel } from "@/lib/providers/label";
 import { useToast } from "@/components/Toast";
 import type { DB, Question } from "@/lib/domain/types";
+import { nativeQuestionCoverage } from "@/lib/native/readiness";
 
 /** Tira imagem markdown do trecho: a lista mostrava a URL crua como texto. */
 function trecho(texto: string): string {
@@ -117,6 +118,8 @@ export default function BankPage() {
     staleTime: Infinity,
   });
 
+  const nativeCoverage = questions ? nativeQuestionCoverage(questions) : null;
+
   const visible = useMemo(() => {
     if (!questions) return [];
     const nq = normalizeText(query);
@@ -168,6 +171,15 @@ export default function BankPage() {
   }
 
   if (!hydrated) return <Card><span className="muted">Carregando…</span></Card>;
+  if (!isLoading && !error && nativeCoverage && !nativeCoverage.complete) {
+    return (
+      <ErrorState
+        title="Edição ainda não disponível no Studium"
+        description={`Esta edição ainda não passou pelo gate nativo completo (${nativeCoverage.ready}/${nativeCoverage.total}). Nenhuma questão será aberta via PDF.`}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   return (
     <>
@@ -374,7 +386,6 @@ export default function BankPage() {
             const [dl, dc] = difficultyLabel(d);
             const st = bankStatus(db, q);
             const marcada = selected.has(k);
-            const semEnunciado = q.statementAvailable === false;
             return (
               <Card
                 key={k}
@@ -400,21 +411,11 @@ export default function BankPage() {
                   </div>
 
                   <div className="el-bankitem__path caption">
-                    {semEnunciado ? (
-                      <>
-                        <span>{areaLabel(String(discipline(q)), providerId)}</span>
-                        <span>{phaseLabel(q.phase)}</span>
-                        <span>objetiva</span>
-                      </>
-                    ) : (
-                      contentPath(c).map((cam) => <span key={cam}>{cam}</span>)
-                    )}
+                    {contentPath(c).map((cam) => <span key={cam}>{cam}</span>)}
                   </div>
 
                   <p className="body-sm el-bankitem__excerpt">
-                    {semEnunciado
-                      ? "Enunciado na prova oficial — abra o documento da banca para ler."
-                      : trecho(String(q.context || q.alternativesIntroduction || ""))}
+                    {trecho(String(q.context || q.alternativesIntroduction || ""))}
                   </p>
                 </div>
 

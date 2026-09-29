@@ -301,7 +301,10 @@ def _ita_targets(path: Path) -> list[NativeTarget]:
                 option_ids=LETTERS,
                 exam_url=f"https://www.vestibular.ita.br/provas/{year}_fase1.pdf",
                 source_kind="ita-template",
-                reason="PDF digitalizado: preparar requer OCR/revisão visual" if year else None,
+                # Digitalização não é motivo para bloquear inventário. O
+                # prepare decide por evidência real (markers/option groups/OCR)
+                # e degrada somente a edição que não passar pelos gates.
+                reason=None,
             )
         )
     return targets

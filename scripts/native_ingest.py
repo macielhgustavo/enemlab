@@ -29,7 +29,16 @@ PROVIDERS = ROOT / "src" / "lib" / "providers"
 # Estes providers foram auditados contra a implementação real de questionKey
 # no app. Novos providers NÃO entram aqui por semelhança de formato: precisam
 # ser conferidos antes, porque a chave alimenta histórico, SRS e mastery.
-AUDITED_REFERENCE_IDENTITIES = {"unesp", "fatec", "eear"}
+AUDITED_REFERENCE_IDENTITIES = {
+    "unesp",
+    "fatec",
+    "eear",
+    "fuvest",
+    "unicamp",
+    "puc-sp",
+    "udesc",
+    "acafe",
+}
 AUDITED_YEAR_PHASE_IDENTITIES = {"espcex", "ita"}
 AUDITED_FAB_IDENTITIES = {"afa", "epcar"}
 AUDITED_CUSTOM_IDENTITIES = {*AUDITED_FAB_IDENTITIES, "ime"}
@@ -94,6 +103,23 @@ def _question_key_format(target: core.NativeTarget) -> str | None:
                 f"edição IME incompatível com questionKey auditada: {target.edition_id!r}"
             )
         return f"ime-{edition}-objective-{{number}}"
+    if target.provider_id == "uel":
+        # O provider reference da UEL fixa inglês como idioma padrão e, por
+        # isso, o segmento faz parte da questionKey executável.
+        return _build_question_key_format(
+            provider_id="uel",
+            edition_id=str(target.year),
+            phase=target.phase,
+            language="ingles",
+        )
+    if target.provider_id == "esa":
+        # A edição do dataset inclui a variante ("2022-geral-a"), mas o
+        # provider executável preserva a identidade histórica por ano.
+        return _build_question_key_format(
+            provider_id="esa",
+            edition_id=str(target.year),
+            phase=target.phase,
+        )
     if target.provider_id == "unioeste":
         # O provider acrescenta idioma a toda a sessão da manhã antes de
         # `referenceQuestionKey()`. A tarde não recebe esse segmento.
