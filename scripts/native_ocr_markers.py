@@ -11,10 +11,12 @@ from __future__ import annotations
 import collections
 import csv
 import io
+import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import unicodedata
 from pathlib import Path
 from typing import Any, Callable
@@ -517,6 +519,33 @@ def unique_monotonic_marker_sequence(
     return resolved
 
 
+def _marker_geometry_diagnostics(
+    markers: list[Any],
+    page_widths: dict[int, float],
+) -> dict[str, list[dict[str, float | int]]]:
+    by_number: dict[int, list[Any]] = collections.defaultdict(list)
+    for marker in _dedupe_number_markers(markers):
+        by_number[int(marker.number)].append(marker)
+
+    result: dict[str, list[dict[str, float | int]]] = {}
+    for number, candidates in sorted(by_number.items()):
+        if len(candidates) < 2:
+            continue
+        rows: list[dict[str, float | int]] = []
+        for item in sorted(candidates, key=lambda x: (x.page_index, x.y0, x.x0)):
+            width = float(page_widths.get(item.page_index) or 1.0)
+            rows.append(
+                {
+                    "p": int(item.page_index) + 1,
+                    "x": round(float(item.x0), 1),
+                    "y": round(float(item.y0), 1),
+                    "xr": round(float(item.x0) / width, 3),
+                }
+            )
+        result[str(number)] = rows
+    return result
+
+
 def _neighbor_recovery_pages(
     markers: list[Any],
     missing_numbers: set[int],
@@ -739,6 +768,18 @@ def detect_ocr_number_marker_candidates(
 
             # Diagnóstico explícito para o gate: mostra a cobertura combinada
             # de todas as passadas quando ainda não há uma sequência única.
+            print(
+                "OCR_MARKER_GEOMETRY "
+                + json.dumps(
+                    _marker_geometry_diagnostics(
+                        merged_line_markers,
+                        page_widths,
+                    ),
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ),
+                file=sys.stderr,
+            )
             candidates.append(
                 ("ocr-number-line-merged", merged_line_markers)
             )
