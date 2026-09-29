@@ -284,7 +284,7 @@ def _numbered_line_markers(
     doc: Any,
     target: core.NativeTarget,
     pipeline: Any,
-) -> list[Any]:
+) -> tuple[list[Any], str]:
     line_labels = option_markers._collect_line_option_labels(doc)
     isolated_labels, _ = option_markers._collect(doc)
     option_page_counts: dict[int, int] = {}
@@ -351,7 +351,7 @@ def _numbered_line_markers(
         pipeline,
     )
     if typed is not None:
-        return typed
+        return typed, "numbered-lines-typography"
 
     markers = [candidate.marker for candidate in candidates]
     markers = pipeline.canonicalize_markers(
@@ -360,7 +360,7 @@ def _numbered_line_markers(
         prefer_source_order=True,
     )
     pipeline.validate_marker_numbers(markers, target.total)
-    return markers
+    return markers, "numbered-lines"
 
 
 def _prepare_with_markers(
@@ -566,6 +566,7 @@ def _adaptive_prepare(
     vector_error = ""
     groups: list[option_markers.OptionGroup] | None = None
     numbered: list[Any] | None = None
+    numbered_strategy = "numbered-lines"
     vector_markers: list[Any] | None = None
     try:
         try:
@@ -584,7 +585,7 @@ def _adaptive_prepare(
 
         if not default_valid:
             try:
-                numbered = _numbered_line_markers(doc, target, pipeline)
+                numbered, numbered_strategy = _numbered_line_markers(doc, target, pipeline)
             except Exception as error:
                 numbered = None
                 numbered_error = str(error)
@@ -624,9 +625,9 @@ def _adaptive_prepare(
                 target,
                 pdf,
                 numbered,
-                "numbered-lines",
+                numbered_strategy,
             ),
-            "numbered-lines",
+            numbered_strategy,
         )
     if groups is not None:
         return (
