@@ -125,6 +125,32 @@ class NativeOcrMarkerTests(unittest.TestCase):
         )
         self.assertEqual([item["number"] for item in markers], [9])
 
+    def test_line_question_parser_repairs_digit_like_ocr_only_when_enabled(self):
+        header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+        row = "5\t1\t1\t1\t1\t1\t1100\t240\t28\t24\t91\t4T\n"
+        common = dict(
+            page_index=0,
+            scale=2.0,
+            page_width=800.0,
+            page_height=700.0,
+            total=48,
+            marker_factory=lambda **kwargs: kwargs,
+            x_ranges=((0.0, 0.30), (0.45, 0.82)),
+        )
+        strict = ocr.line_question_markers_from_tsv(header + row, **common)
+        repaired = ocr.line_question_markers_from_tsv(
+            header + row,
+            allow_digit_confusions=True,
+            **common,
+        )
+        self.assertEqual(strict, [])
+        self.assertEqual([item["number"] for item in repaired], [47])
+
+    def test_digit_confusion_never_turns_pure_letters_into_question_number(self):
+        self.assertIsNone(
+            ocr._ocr_number_value("BT", 48, allow_digit_confusions=True)
+        )
+
     def test_monotonic_sequence_resolves_unique_path_across_columns(self):
         marker = SimpleNamespace
         candidates = [

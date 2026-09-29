@@ -238,6 +238,50 @@ def _normalized_ocr_word(value: str) -> str:
     )
 
 
+_DIGIT_CONFUSIONS = str.maketrans(
+    {
+        "O": "0",
+        "o": "0",
+        "Q": "0",
+        "I": "1",
+        "l": "1",
+        "|": "1",
+        "Z": "2",
+        "S": "5",
+        "s": "5",
+        "G": "6",
+        "T": "7",
+        "B": "8",
+    }
+)
+
+
+def _ocr_number_value(
+    value: str,
+    total: int,
+    *,
+    allow_digit_confusions: bool = False,
+) -> int | None:
+    token = re.sub(r"\s+", "", value or "")
+    strict = _NUMBER_TOKEN.fullmatch(token)
+    if strict:
+        number = int(strict.group(1))
+        return number if 1 <= number <= total else None
+    if not allow_digit_confusions:
+        return None
+
+    core = token.strip("[](){}.:;-")
+    # Não converte uma palavra puramente alfabética em número. O fallback só
+    # corrige um token já parcialmente reconhecido como numérico (ex.: 4T).
+    if not core or len(core) > 3 or not any(char.isdigit() for char in core):
+        return None
+    normalized = core.translate(_DIGIT_CONFUSIONS)
+    if not normalized.isdigit():
+        return None
+    number = int(normalized)
+    return number if 1 <= number <= total else None
+
+
 def line_question_markers_from_tsv(
     payload: str,
     *,
@@ -248,6 +292,7 @@ def line_question_markers_from_tsv(
     total: int,
     marker_factory: Callable[..., Any],
     x_ranges: tuple[tuple[float, float], ...],
+    allow_digit_confusions: bool = False,
 ) -> list[Any]:
     """Extrai números só do início lógico de linhas de questão.
 
@@ -297,31 +342,35 @@ def line_question_markers_from_tsv(
             continue
 
         number_row: dict[str, str] | None = None
+        number: int | None = None
         explicit = False
         for index, (_row, raw, _confidence) in enumerate(parsed[:4]):
             normalized = _normalized_ocr_word(raw)
             if normalized not in {"questao", "q"} or index + 1 >= len(parsed):
                 continue
-            candidate = re.sub(r"\s+", "", parsed[index + 1][1])
-            if _NUMBER_TOKEN.fullmatch(candidate):
+            candidate_value = _ocr_number_value(
+                parsed[index + 1][1],
+                total,
+                allow_digit_confusions=allow_digit_confusions,
+            )
+            if candidate_value is not None:
                 number_row = parsed[index + 1][0]
+                number = candidate_value
                 explicit = True
                 break
 
         if number_row is None:
             first_row, first_raw, _confidence = parsed[0]
-            if _NUMBER_TOKEN.fullmatch(re.sub(r"\s+", "", first_raw)):
+            candidate_value = _ocr_number_value(
+                first_raw,
+                total,
+                allow_digit_confusions=allow_digit_confusions,
+            )
+            if candidate_value is not None:
                 number_row = first_row
+                number = candidate_value
 
-        if number_row is None:
-            continue
-
-        token = re.sub(r"\s+", "", str(number_row.get("text") or ""))
-        match = _NUMBER_TOKEN.fullmatch(token)
-        if not match:
-            continue
-        number = int(match.group(1))
-        if not 1 <= number <= total:
+        if number_row is None or number is None:
             continue
 
         try:
@@ -562,6 +611,7 @@ def detect_ocr_number_marker_candidates(
     x_ranges: tuple[tuple[float, float], ...] = ((0.0, 0.22),),
     require_option_evidence: bool = True,
     line_anchored_only: bool = False,
+    allow_digit_confusions: bool = False,
 ) -> list[tuple[str, list[Any]]]:
     if not 144 <= dpi <= 300:
         raise OcrOptionMarkerError("dpi OCR fora da faixa segura")
@@ -602,6 +652,7 @@ def detect_ocr_number_marker_candidates(
                         total=total,
                         marker_factory=marker_factory,
                         x_ranges=x_ranges,
+                        allow_digit_confusions=allow_digit_confusions,
                     )
                 else:
                     page_markers = number_markers_from_tsv(

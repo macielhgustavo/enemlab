@@ -559,6 +559,7 @@ def _adaptive_prepare(
                     "x_ranges": ((0.0, 0.30), (0.45, 0.82)),
                     "require_option_evidence": False,
                     "line_anchored_only": True,
+                    "allow_digit_confusions": True,
                 }
             candidates = ocr_markers.detect_ocr_number_marker_candidates(
                 pdf,
