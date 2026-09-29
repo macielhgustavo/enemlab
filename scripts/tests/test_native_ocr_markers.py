@@ -240,6 +240,52 @@ class NativeOcrMarkerTests(unittest.TestCase):
             set(),
         )
 
+    def test_structural_noise_suppression_removes_footer_page_numbers(self):
+        marker = SimpleNamespace
+        page_widths = {0: 600.0}
+        page_heights = {0: 840.0}
+        items = [
+            marker(number=2, page_index=0, x0=110.0, y0=320.0, x1=120.0, y1=335.0),
+            marker(number=2, page_index=0, x0=295.0, y0=800.0, x1=305.0, y1=815.0),
+        ]
+        cleaned = ocr.suppress_structural_number_noise(items, page_widths, page_heights)
+        self.assertEqual([(item.number, item.x0) for item in cleaned], [(2, 110.0)])
+
+    def test_structural_noise_suppression_removes_dense_index_when_real_candidates_exist(self):
+        marker = SimpleNamespace
+        page_widths = {0: 600.0, 1: 600.0, 2: 600.0}
+        page_heights = {0: 840.0, 1: 840.0, 2: 840.0}
+        index = [
+            marker(number=n, page_index=0, x0=58.0, y0=300.0 + n * 20, x1=68.0, y1=315.0 + n * 20)
+            for n in range(1, 8)
+        ]
+        real = [
+            marker(number=n, page_index=1 if n <= 4 else 2, x0=110.0, y0=80.0 + (n % 4) * 120, x1=120.0, y1=95.0 + (n % 4) * 120)
+            for n in range(1, 8)
+        ]
+        cleaned = ocr.suppress_structural_number_noise(
+            [*index, *real],
+            page_widths,
+            page_heights,
+        )
+        positions = {(item.number, item.page_index, item.x0) for item in cleaned}
+        # O Q1 mais cedo pode ser legítimo; Q2..Q7 do índice são ruído provado.
+        self.assertIn((1, 0, 58.0), positions)
+        for n in range(2, 8):
+            self.assertNotIn((n, 0, 58.0), positions)
+            self.assertTrue(any(item.number == n and item.page_index > 0 for item in cleaned))
+
+    def test_structural_noise_suppression_keeps_small_real_question_group(self):
+        marker = SimpleNamespace
+        page_widths = {0: 600.0}
+        page_heights = {0: 840.0}
+        items = [
+            marker(number=n, page_index=0, x0=110.0, y0=100.0 + n * 140, x1=120.0, y1=115.0 + n * 140)
+            for n in range(1, 4)
+        ]
+        cleaned = ocr.suppress_structural_number_noise(items, page_widths, page_heights)
+        self.assertEqual([item.number for item in cleaned], [1, 2, 3])
+
     def test_number_tsv_parser_keeps_left_margin_question_number(self):
         header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
         rows = [

@@ -425,6 +425,120 @@ def _dedupe_number_markers(markers: list[Any]) -> list[Any]:
     return deduped
 
 
+def _longest_consecutive_run(numbers: set[int]) -> int:
+    longest = 0
+    current = 0
+    previous: int | None = None
+    for number in sorted(numbers):
+        if previous is not None and number == previous + 1:
+            current += 1
+        else:
+            current = 1
+        longest = max(longest, current)
+        previous = number
+    return longest
+
+
+def suppress_structural_number_noise(
+    markers: list[Any],
+    page_widths: dict[int, float],
+    page_heights: dict[int, float],
+    *,
+    rail_tolerance: float = 0.025,
+) -> list[Any]:
+    """Remove padrões que provam ser índice/rodapé, sem escolher questão por palpite.
+
+    Dois ruídos aparecem em scans de vestibular:
+    - número de página centralizado no rodapé;
+    - listas densas de muitos números na mesma página e no mesmo trilho x
+      (índice, cartão de respostas ou instruções).
+
+    Uma lista densa só perde um candidato quando o mesmo número também existe
+    fora dela. Q1 preserva o primeiro candidato do documento, porque uma lista
+    pode começar exatamente onde a primeira questão começa. O gate monotônico
+    1..N continua obrigatório depois desta limpeza.
+    """
+    items = _dedupe_number_markers(markers)
+    if not items:
+        return []
+
+    def x_ratio(item: Any) -> float:
+        width = float(page_widths.get(int(item.page_index)) or 0)
+        return float(item.x0) / width if width > 0 else 1.0
+
+    # Rodapé numerado: exige simultaneamente centro horizontal e último 7% da
+    # página. Assim uma questão real perto do fim da página não é descartada.
+    footer_ids: set[int] = set()
+    for item in items:
+        height = float(page_heights.get(int(item.page_index)) or 0)
+        if height <= 0:
+            continue
+        yr = float(item.y0) / height
+        xr = x_ratio(item)
+        if yr >= 0.93 and 0.42 <= xr <= 0.58:
+            footer_ids.add(id(item))
+
+    working = [item for item in items if id(item) not in footer_ids]
+    by_page: dict[int, list[Any]] = collections.defaultdict(list)
+    for item in working:
+        by_page[int(item.page_index)].append(item)
+
+    dense_ids: set[int] = set()
+    for page_items in by_page.values():
+        ordered = sorted(page_items, key=lambda item: (x_ratio(item), float(item.y0)))
+        rails: list[list[Any]] = []
+        for item in ordered:
+            ratio = x_ratio(item)
+            if not rails:
+                rails.append([item])
+                continue
+            rail_ratio = sum(x_ratio(value) for value in rails[-1]) / len(rails[-1])
+            if abs(ratio - rail_ratio) <= rail_tolerance:
+                rails[-1].append(item)
+            else:
+                rails.append([item])
+
+        for rail in rails:
+            distinct = {int(item.number) for item in rail}
+            if len(distinct) < 5:
+                continue
+            ys = sorted(float(item.y0) for item in rail)
+            gaps = [right - left for left, right in zip(ys, ys[1:]) if right > left]
+            median_gap = sorted(gaps)[len(gaps) // 2] if gaps else float("inf")
+            is_dense = _longest_consecutive_run(distinct) >= 5 or (
+                len(distinct) >= 6 and median_gap <= 35.0
+            )
+            if not is_dense:
+                continue
+
+            rail_ids = {id(item) for item in rail}
+            for item in rail:
+                # A primeira questão pode coincidir com o começo visual de uma
+                # lista de instruções. Mantemos apenas o Q1 mais cedo; todos os
+                # outros candidatos densos precisam de evidência fora do rail.
+                if int(item.number) == 1:
+                    q1 = [value for value in working if int(value.number) == 1]
+                    earliest = min(
+                        q1,
+                        key=lambda value: (
+                            int(value.page_index),
+                            float(value.y0),
+                            float(value.x0),
+                        ),
+                    )
+                    if item is earliest:
+                        continue
+                has_outside = any(
+                    int(other.number) == int(item.number)
+                    and id(other) not in rail_ids
+                    for other in working
+                )
+                if has_outside:
+                    dense_ids.add(id(item))
+
+    return [item for item in working if id(item) not in dense_ids]
+
+
 def unique_monotonic_marker_sequence(
     markers: list[Any],
     total: int,
@@ -654,6 +768,10 @@ def detect_ocr_number_marker_candidates(
             page_index: float(page.rect.width)
             for page_index, page in enumerate(doc)
         }
+        page_heights = {
+            page_index: float(page.rect.height)
+            for page_index, page in enumerate(doc)
+        }
         psm_modes = (11, 6, 3, 12) if line_anchored_only else (11, 6)
 
         for psm in psm_modes:
@@ -713,7 +831,20 @@ def detect_ocr_number_marker_candidates(
 
         if line_anchored_only and merged_line_markers:
             merged_line_markers = _dedupe_number_markers(merged_line_markers)
-            present = {int(item.number) for item in merged_line_markers}
+            cleaned_line_markers = suppress_structural_number_noise(
+                merged_line_markers,
+                page_widths,
+                page_heights,
+            )
+            resolved = unique_monotonic_marker_sequence(
+                cleaned_line_markers,
+                total,
+                page_widths,
+            )
+            if resolved is not None:
+                return [("ocr-number-line-structural", resolved), *candidates]
+
+            present = {int(item.number) for item in cleaned_line_markers}
             missing = set(range(1, total + 1)) - present
 
             # Quando a varredura normal perde pouquíssimos números, fazemos uma
@@ -722,7 +853,7 @@ def detect_ocr_number_marker_candidates(
             # leitura ruidosa de outra página "preencha" artificialmente Qn.
             if 0 < len(missing) <= 4:
                 recovery_pages = _neighbor_recovery_pages(
-                    merged_line_markers,
+                    cleaned_line_markers,
                     missing,
                     total,
                 )
@@ -749,14 +880,20 @@ def detect_ocr_number_marker_candidates(
                                     total=total,
                                     marker_factory=marker_factory,
                                     x_ranges=x_ranges,
+                                    allow_digit_confusions=allow_digit_confusions,
                                 )
                             )
                         merged_line_markers.extend(recovered)
                         merged_line_markers = _dedupe_number_markers(
                             merged_line_markers
                         )
-                        resolved = unique_monotonic_marker_sequence(
+                        cleaned_line_markers = suppress_structural_number_noise(
                             merged_line_markers,
+                            page_widths,
+                            page_heights,
+                        )
+                        resolved = unique_monotonic_marker_sequence(
+                            cleaned_line_markers,
                             total,
                             page_widths,
                         )
@@ -781,7 +918,7 @@ def detect_ocr_number_marker_candidates(
                 file=sys.stderr,
             )
             candidates.append(
-                ("ocr-number-line-merged", merged_line_markers)
+                ("ocr-number-line-merged", cleaned_line_markers)
             )
 
         return candidates
