@@ -286,6 +286,44 @@ class OrderedOptionMarkerTests(unittest.TestCase):
         self.assertEqual(len(groups), 5)
         self.assertEqual(sum(group.kind == "ordered-lines" for group in groups), 3)
 
+    def test_exact_vector_header_signature_becomes_question_markers(self):
+        page = FakePage(
+            [],
+            drawings=[
+                header_drawing(50.0),
+                header_drawing(200.0),
+                header_drawing(350.0),
+                header_drawing(500.0),
+            ],
+        )
+
+        made = markers.markers_from_vector_headers(
+            [page],
+            4,
+            lambda **values: SimpleNamespace(**values),
+        )
+
+        self.assertEqual([item.number for item in made], [1, 2, 3, 4])
+        self.assertEqual([item.y0 for item in made], [50.0, 200.0, 350.0, 500.0])
+
+    def test_vector_header_marker_fallback_fails_closed_on_wrong_count(self):
+        page = FakePage(
+            [],
+            drawings=[
+                header_drawing(50.0),
+                header_drawing(200.0),
+                header_drawing(350.0),
+            ],
+        )
+        self.assertEqual(
+            markers.markers_from_vector_headers(
+                [page],
+                4,
+                lambda **values: SimpleNamespace(**values),
+            ),
+            [],
+        )
+
     def test_raster_header_fallback_recovers_exactly_one_missing_group(self):
         punctuated_blocks = []
         for base_y in (80.0, 230.0, 550.0):

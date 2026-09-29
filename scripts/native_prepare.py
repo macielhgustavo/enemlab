@@ -489,8 +489,10 @@ def _adaptive_prepare(
     default_error = ""
     numbered_error = ""
     group_error = ""
+    vector_error = ""
     groups: list[option_markers.OptionGroup] | None = None
     numbered: list[Any] | None = None
+    vector_markers: list[Any] | None = None
     try:
         try:
             default_markers = pipeline.canonicalize_markers(
@@ -522,6 +524,19 @@ def _adaptive_prepare(
                 )
             except option_markers.OrderedOptionMarkerError as error:
                 group_error = str(error)
+
+        if not default_valid and numbered is None and groups is None:
+            try:
+                candidate_headers = option_markers.markers_from_vector_headers(
+                    doc,
+                    target.total,
+                    pipeline.Marker,
+                )
+                if candidate_headers:
+                    pipeline.validate_marker_numbers(candidate_headers, target.total)
+                    vector_markers = candidate_headers
+            except Exception as error:
+                vector_error = str(error)
     finally:
         doc.close()
 
@@ -548,6 +563,16 @@ def _adaptive_prepare(
                 "ordered-option-groups",
             ),
             "ordered-option-groups",
+        )
+    if vector_markers is not None:
+        return (
+            _prepare_with_markers(
+                target,
+                pdf,
+                vector_markers,
+                "vector-question-headers",
+            ),
+            "vector-question-headers",
         )
 
     if target.provider_id in OCR_OPTION_PROVIDERS:
@@ -591,6 +616,7 @@ def _adaptive_prepare(
             raise fleet.NativeFleetError(
                 f"{target.identity}: padrão ({default_error}); "
                 f"linhas numeradas ({numbered_error}); grupos ({group_error}); "
+                f"cabeçalhos vetoriais ({vector_error or 'sem assinatura exata'}); "
                 f"OCR números ({' | '.join(ocr_number_errors) or 'sem candidatos'}); "
                 f"OCR alternativas ({error})"
             ) from error
@@ -606,7 +632,8 @@ def _adaptive_prepare(
 
     raise fleet.NativeFleetError(
         f"{target.identity}: padrão ({default_error}); "
-        f"linhas numeradas ({numbered_error}); grupos ({group_error})"
+        f"linhas numeradas ({numbered_error}); grupos ({group_error}); "
+        f"cabeçalhos vetoriais ({vector_error or 'sem assinatura exata'})"
     )
 
 def prepare(provider: str, selector: str, phase: str, out: Path) -> dict[str, object]:

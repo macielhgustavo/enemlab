@@ -800,6 +800,39 @@ def _vector_header_boundaries(doc: Any, total: int) -> list[HeaderBoundary]:
     return sorted(exact[0], key=lambda item: (item.page_index, item.y0))
 
 
+def markers_from_vector_headers(
+    doc: Any,
+    total: int,
+    marker_factory: Callable[..., Any],
+) -> list[Any]:
+    """Converte uma assinatura vetorial exata de N cabeçalhos em markers.
+
+    `_vector_header_boundaries` já exige uma única assinatura dominante e
+    exatamente `total` ocorrências. Aqui apenas transformamos essa evidência
+    independente em boundaries numerados pela ordem do documento. Sem assinatura
+    exata, não há fallback.
+    """
+    boundaries = _vector_header_boundaries(doc, total)
+    if len(boundaries) != total:
+        return []
+
+    made: list[Any] = []
+    for number, boundary in enumerate(boundaries, start=1):
+        page = doc[boundary.page_index]
+        width = float(page.rect.width)
+        made.append(
+            marker_factory(
+                number=number,
+                page_index=boundary.page_index,
+                x0=width * 0.03,
+                y0=boundary.y0,
+                x1=width * 0.97,
+                y1=boundary.y1,
+            )
+        )
+    return made
+
+
 def _significant_raster_group(
     doc: Any,
     boundary: HeaderBoundary,
