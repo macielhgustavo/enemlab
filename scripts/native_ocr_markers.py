@@ -353,6 +353,121 @@ def line_question_markers_from_tsv(
     return markers
 
 
+def _same_number_marker_geometry(left: Any, right: Any, tolerance: float = 7.0) -> bool:
+    return (
+        left.number == right.number
+        and left.page_index == right.page_index
+        and abs(float(left.x0) - float(right.x0)) <= tolerance
+        and abs(float(left.y0) - float(right.y0)) <= tolerance
+    )
+
+
+def _dedupe_number_markers(markers: list[Any]) -> list[Any]:
+    deduped: list[Any] = []
+    for candidate in sorted(
+        markers,
+        key=lambda item: (item.number, item.page_index, item.y0, item.x0),
+    ):
+        if any(_same_number_marker_geometry(existing, candidate) for existing in deduped):
+            continue
+        deduped.append(candidate)
+    return deduped
+
+
+def unique_monotonic_marker_sequence(
+    markers: list[Any],
+    total: int,
+    page_widths: dict[int, float],
+    *,
+    column_split: float = 0.42,
+) -> list[Any] | None:
+    """Resolve duplicatas somente quando existe um único caminho 1..N.
+
+    O grafo liga um candidato de Qn a Q(n+1) apenas quando sua posição avança
+    na ordem de leitura de página/coluna. Contamos caminhos até 2; portanto
+    duas sequências plausíveis continuam ambíguas e falham fechado.
+    """
+    if not 0.2 <= column_split <= 0.8:
+        raise OcrOptionMarkerError("column_split fora da faixa segura")
+
+    markers = _dedupe_number_markers(markers)
+    by_number: dict[int, list[Any]] = {
+        number: [item for item in markers if item.number == number]
+        for number in range(1, total + 1)
+    }
+    if any(not candidates for candidates in by_number.values()):
+        return None
+
+    def reading_key(marker: Any) -> tuple[int, int, float, float]:
+        width = float(page_widths.get(marker.page_index) or 0)
+        if width <= 0:
+            raise OcrOptionMarkerError(
+                f"largura ausente para página OCR {marker.page_index + 1}"
+            )
+        ratio = float(marker.x0) / width
+        column = 0 if ratio < column_split else 1
+        return (int(marker.page_index), column, float(marker.y0), float(marker.x0))
+
+    levels: dict[int, list[Any]] = {}
+    counts: dict[int, list[int]] = {}
+    parents: dict[int, list[int | None]] = {}
+
+    levels[1] = sorted(by_number[1], key=reading_key)
+    counts[1] = [1] * len(levels[1])
+    parents[1] = [None] * len(levels[1])
+
+    for number in range(2, total + 1):
+        previous = levels[number - 1]
+        current = sorted(by_number[number], key=reading_key)
+        current_counts: list[int] = []
+        current_parents: list[int | None] = []
+
+        for candidate in current:
+            contributors: list[int] = []
+            path_count = 0
+            for index, prev in enumerate(previous):
+                if counts[number - 1][index] == 0:
+                    continue
+                if reading_key(prev) >= reading_key(candidate):
+                    continue
+                contributors.append(index)
+                path_count = min(2, path_count + counts[number - 1][index])
+
+            current_counts.append(path_count)
+            if path_count == 1:
+                unique_parent = next(
+                    (
+                        index
+                        for index in contributors
+                        if counts[number - 1][index] == 1
+                    ),
+                    None,
+                )
+                current_parents.append(unique_parent)
+            else:
+                current_parents.append(None)
+
+        levels[number] = current
+        counts[number] = current_counts
+        parents[number] = current_parents
+
+    total_paths = min(2, sum(counts[total]))
+    if total_paths != 1:
+        return None
+
+    final_index = next(index for index, count in enumerate(counts[total]) if count == 1)
+    resolved: list[Any] = [levels[total][final_index]]
+    index = final_index
+    for number in range(total, 1, -1):
+        parent = parents[number][index]
+        if parent is None:
+            return None
+        index = parent
+        resolved.append(levels[number - 1][index])
+    resolved.reverse()
+    return resolved
+
+
 def _page_tsv(page: Any, fitz: Any, tesseract: str, dpi: int, psm: int) -> str:
     scale = dpi / 72.0
     pix = page.get_pixmap(
@@ -421,7 +536,14 @@ def detect_ocr_number_marker_candidates(
     doc = fitz.open(pdf)
     try:
         candidates: list[tuple[str, list[Any]]] = []
-        for psm in (11, 6):
+        merged_line_markers: list[Any] = []
+        page_widths = {
+            page_index: float(page.rect.width)
+            for page_index, page in enumerate(doc)
+        }
+        psm_modes = (11, 6, 3, 12) if line_anchored_only else (11, 6)
+
+        for psm in psm_modes:
             markers: list[Any] = []
             for page_index, page in enumerate(doc):
                 payload = _page_tsv(page, fitz, tesseract, dpi, psm)
@@ -459,9 +581,22 @@ def detect_ocr_number_marker_candidates(
                         x_ranges=x_ranges,
                     )
                 markers.extend(page_markers)
+
             if markers:
                 strategy = "ocr-number-line" if line_anchored_only else "ocr-number"
                 candidates.append((f"{strategy}-psm{psm}", markers))
+
+            if line_anchored_only:
+                merged_line_markers.extend(markers)
+                resolved = unique_monotonic_marker_sequence(
+                    merged_line_markers,
+                    total,
+                    page_widths,
+                )
+                if resolved is not None:
+                    # Coloca o candidato provado antes dos passes individuais.
+                    return [("ocr-number-line-monotonic", resolved), *candidates]
+
         return candidates
     finally:
         doc.close()

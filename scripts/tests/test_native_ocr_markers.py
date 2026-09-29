@@ -125,6 +125,71 @@ class NativeOcrMarkerTests(unittest.TestCase):
         )
         self.assertEqual([item["number"] for item in markers], [9])
 
+    def test_monotonic_sequence_resolves_unique_path_across_columns(self):
+        marker = SimpleNamespace
+        candidates = [
+            marker(number=1, page_index=0, x0=40, y0=100, x1=50, y1=112),
+            marker(number=1, page_index=4, x0=40, y0=100, x1=50, y1=112),
+            marker(number=2, page_index=0, x0=40, y0=200, x1=50, y1=212),
+            marker(number=2, page_index=4, x0=40, y0=200, x1=50, y1=212),
+            marker(number=3, page_index=0, x0=420, y0=100, x1=430, y1=112),
+        ]
+        resolved = ocr.unique_monotonic_marker_sequence(
+            candidates,
+            3,
+            {0: 800.0, 4: 800.0},
+        )
+        self.assertIsNotNone(resolved)
+        self.assertEqual(
+            [(item.number, item.page_index, item.x0) for item in resolved],
+            [(1, 0, 40), (2, 0, 40), (3, 0, 420)],
+        )
+
+    def test_monotonic_sequence_rejects_two_complete_paths(self):
+        marker = SimpleNamespace
+        candidates = [
+            marker(number=1, page_index=0, x0=40, y0=100, x1=50, y1=112),
+            marker(number=1, page_index=2, x0=40, y0=100, x1=50, y1=112),
+            marker(number=2, page_index=0, x0=40, y0=200, x1=50, y1=212),
+            marker(number=2, page_index=2, x0=40, y0=200, x1=50, y1=212),
+        ]
+        self.assertIsNone(
+            ocr.unique_monotonic_marker_sequence(
+                candidates,
+                2,
+                {0: 800.0, 2: 800.0},
+            )
+        )
+
+    def test_monotonic_sequence_rejects_missing_number(self):
+        marker = SimpleNamespace
+        candidates = [
+            marker(number=1, page_index=0, x0=40, y0=100, x1=50, y1=112),
+            marker(number=3, page_index=0, x0=40, y0=300, x1=50, y1=312),
+        ]
+        self.assertIsNone(
+            ocr.unique_monotonic_marker_sequence(
+                candidates,
+                3,
+                {0: 800.0},
+            )
+        )
+
+    def test_monotonic_sequence_dedupes_same_geometry_across_ocr_passes(self):
+        marker = SimpleNamespace
+        candidates = [
+            marker(number=1, page_index=0, x0=40, y0=100, x1=50, y1=112),
+            marker(number=1, page_index=0, x0=42, y0=102, x1=52, y1=114),
+            marker(number=2, page_index=0, x0=40, y0=200, x1=50, y1=212),
+        ]
+        resolved = ocr.unique_monotonic_marker_sequence(
+            candidates,
+            2,
+            {0: 800.0},
+        )
+        self.assertIsNotNone(resolved)
+        self.assertEqual([item.number for item in resolved], [1, 2])
+
     def test_number_tsv_parser_keeps_left_margin_question_number(self):
         header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
         rows = [
