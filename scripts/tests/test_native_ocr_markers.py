@@ -151,6 +151,99 @@ class NativeOcrMarkerTests(unittest.TestCase):
             ocr._ocr_number_value("BT", 48, allow_digit_confusions=True)
         )
 
+    def test_pure_digit_confusion_requires_expected_localized_number(self):
+        self.assertIsNone(
+            ocr._ocr_number_value(
+                "B",
+                48,
+                allow_digit_confusions=True,
+                allow_pure_digit_confusions=True,
+            )
+        )
+        self.assertEqual(
+            ocr._ocr_number_value(
+                "B",
+                48,
+                allow_digit_confusions=True,
+                expected_numbers={8},
+                allow_pure_digit_confusions=True,
+            ),
+            8,
+        )
+        self.assertIsNone(
+            ocr._ocr_number_value(
+                "B",
+                48,
+                allow_digit_confusions=True,
+                expected_numbers={7},
+                allow_pure_digit_confusions=True,
+            )
+        )
+
+    def test_dominant_question_rail_keeps_proven_rail_and_marks_missing(self):
+        marker = SimpleNamespace
+        page_widths = {page: 600.0 for page in range(8)}
+        real = [
+            marker(number=n, page_index=(n - 1) // 2, x0=110.0, y0=80.0 + (n % 2) * 180, x1=120.0, y1=95.0 + (n % 2) * 180)
+            for n in range(1, 13)
+            if n != 8
+        ]
+        noise = [
+            marker(number=n, page_index=min(7, n // 2), x0=330.0, y0=300.0, x1=340.0, y1=315.0)
+            for n in range(2, 9)
+        ]
+        selected, center = ocr.select_dominant_question_rail(
+            [*real, *noise],
+            24,
+            page_widths,
+        )
+        self.assertIsNotNone(center)
+        self.assertNotIn(8, {item.number for item in selected})
+        for n in range(2, 8):
+            self.assertTrue(
+                all(abs(item.x0 - 110.0) < 1 for item in selected if item.number == n)
+            )
+
+    def test_dominant_question_rail_refuses_ambiguous_equal_rails(self):
+        marker = SimpleNamespace
+        page_widths = {page: 600.0 for page in range(8)}
+        left = [
+            marker(number=n, page_index=(n - 1) // 2, x0=110.0, y0=100.0, x1=120.0, y1=115.0)
+            for n in range(1, 9)
+        ]
+        right = [
+            marker(number=n, page_index=(n - 1) // 2, x0=410.0, y0=300.0, x1=420.0, y1=315.0)
+            for n in range(1, 9)
+        ]
+        selected, center = ocr.select_dominant_question_rail(
+            [*left, *right],
+            24,
+            page_widths,
+        )
+        self.assertIsNone(center)
+        self.assertEqual(len(selected), 16)
+
+    def test_recovery_must_stay_between_known_neighbors(self):
+        marker = SimpleNamespace
+        page_widths = {0: 600.0, 1: 600.0, 2: 600.0}
+        known = [
+            marker(number=7, page_index=0, x0=110, y0=600, x1=120, y1=615),
+            marker(number=9, page_index=1, x0=110, y0=220, x1=120, y1=235),
+        ]
+        recovered = [
+            marker(number=8, page_index=1, x0=110, y0=100, x1=120, y1=115),
+            marker(number=8, page_index=2, x0=110, y0=100, x1=120, y1=115),
+        ]
+        accepted = ocr.filter_recovery_between_known_neighbors(
+            recovered,
+            known,
+            page_widths,
+        )
+        self.assertEqual(
+            [(item.number, item.page_index) for item in accepted],
+            [(8, 1)],
+        )
+
     def test_monotonic_sequence_resolves_unique_path_across_columns(self):
         marker = SimpleNamespace
         candidates = [

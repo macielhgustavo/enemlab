@@ -263,25 +263,37 @@ def _ocr_number_value(
     total: int,
     *,
     allow_digit_confusions: bool = False,
+    expected_numbers: set[int] | None = None,
+    allow_pure_digit_confusions: bool = False,
 ) -> int | None:
     token = re.sub(r"\s+", "", value or "")
     strict = _NUMBER_TOKEN.fullmatch(token)
     if strict:
         number = int(strict.group(1))
-        return number if 1 <= number <= total else None
+        if not 1 <= number <= total:
+            return None
+        if expected_numbers is not None and number not in expected_numbers:
+            return None
+        return number
     if not allow_digit_confusions:
         return None
 
     core = token.strip("[](){}.:;-")
-    # Não converte uma palavra puramente alfabética em número. O fallback só
-    # corrige um token já parcialmente reconhecido como numérico (ex.: 4T).
-    if not core or len(core) > 3 or not any(char.isdigit() for char in core):
+    if not core or len(core) > 3:
+        return None
+    has_digit = any(char.isdigit() for char in core)
+    # Fora da recuperação localizada, uma letra pura nunca vira número.
+    if not has_digit and not allow_pure_digit_confusions:
         return None
     normalized = core.translate(_DIGIT_CONFUSIONS)
     if not normalized.isdigit():
         return None
     number = int(normalized)
-    return number if 1 <= number <= total else None
+    if not 1 <= number <= total:
+        return None
+    if expected_numbers is not None and number not in expected_numbers:
+        return None
+    return number
 
 
 def line_question_markers_from_tsv(
@@ -295,6 +307,8 @@ def line_question_markers_from_tsv(
     marker_factory: Callable[..., Any],
     x_ranges: tuple[tuple[float, float], ...],
     allow_digit_confusions: bool = False,
+    expected_numbers: set[int] | None = None,
+    allow_pure_digit_confusions: bool = False,
 ) -> list[Any]:
     """Extrai números só do início lógico de linhas de questão.
 
@@ -354,6 +368,8 @@ def line_question_markers_from_tsv(
                 parsed[index + 1][1],
                 total,
                 allow_digit_confusions=allow_digit_confusions,
+                expected_numbers=expected_numbers,
+                allow_pure_digit_confusions=allow_pure_digit_confusions,
             )
             if candidate_value is not None:
                 number_row = parsed[index + 1][0]
@@ -367,6 +383,8 @@ def line_question_markers_from_tsv(
                 first_raw,
                 total,
                 allow_digit_confusions=allow_digit_confusions,
+                expected_numbers=expected_numbers,
+                allow_pure_digit_confusions=allow_pure_digit_confusions,
             )
             if candidate_value is not None:
                 number_row = first_row
@@ -540,6 +558,140 @@ def suppress_structural_number_noise(
     return [item for item in working if id(item) not in dense_ids]
 
 
+def _marker_reading_key(
+    marker: Any,
+    page_widths: dict[int, float],
+    *,
+    column_split: float = 0.42,
+) -> tuple[int, int, float, float]:
+    width = float(page_widths.get(int(marker.page_index)) or 0)
+    if width <= 0:
+        raise OcrOptionMarkerError(
+            f"largura ausente para página OCR {int(marker.page_index) + 1}"
+        )
+    ratio = float(marker.x0) / width
+    column = 0 if ratio < column_split else 1
+    return (int(marker.page_index), column, float(marker.y0), float(marker.x0))
+
+
+def select_dominant_question_rail(
+    markers: list[Any],
+    total: int,
+    page_widths: dict[int, float],
+    *,
+    bucket_width: float = 0.02,
+    tolerance: float = 0.018,
+) -> tuple[list[Any], float | None]:
+    """Mantém o trilho horizontal comprovado por ampla cobertura numérica.
+
+    Só escolhemos um rail quando ele cobre pelo menos 1/3 da prova, várias
+    páginas e supera claramente o segundo melhor. Números sem candidato no rail
+    ficam ausentes para recuperação localizada; não escolhemos um candidato
+    off-rail por conveniência.
+    """
+    items = _dedupe_number_markers(markers)
+    if not items:
+        return [], None
+
+    buckets: dict[int, list[Any]] = collections.defaultdict(list)
+    for item in items:
+        width = float(page_widths.get(int(item.page_index)) or 0)
+        if width <= 0:
+            continue
+        ratio = float(item.x0) / width
+        # Trilhos de questão ficam dentro da área de conteúdo, não na margem
+        # extrema. A faixa ainda suporta layouts em coluna esquerda/direita.
+        if not 0.04 <= ratio <= 0.90:
+            continue
+        bucket = int(round(ratio / bucket_width))
+        buckets[bucket].append(item)
+
+    scored: list[tuple[int, int, int, float, list[Any]]] = []
+    for bucket, values in buckets.items():
+        numbers = {int(item.number) for item in values}
+        pages = {int(item.page_index) for item in values}
+        if len(numbers) < max(8, total // 3) or len(pages) < 4:
+            continue
+        ratios = sorted(
+            float(item.x0) / float(page_widths[int(item.page_index)])
+            for item in values
+        )
+        center = ratios[len(ratios) // 2]
+        scored.append((len(numbers), len(pages), -bucket, center, values))
+
+    if not scored:
+        return items, None
+    scored.sort(reverse=True)
+    best_numbers, best_pages, _bucket, center, _values = scored[0]
+    if len(scored) > 1:
+        second_numbers, second_pages, *_rest = scored[1]
+        # Sem vantagem clara, fail-closed: não filtramos por rail.
+        if second_numbers >= best_numbers - max(3, total // 10) and second_pages >= best_pages - 2:
+            return items, None
+
+    selected: list[Any] = []
+    by_number: dict[int, list[Any]] = collections.defaultdict(list)
+    for item in items:
+        by_number[int(item.number)].append(item)
+
+    for number in range(1, total + 1):
+        candidates = by_number.get(number, [])
+        if not candidates:
+            continue
+        rail = [
+            item
+            for item in candidates
+            if abs(
+                float(item.x0) / float(page_widths[int(item.page_index)]) - center
+            )
+            <= tolerance
+        ]
+        if number == 1:
+            # Q1 é a única exceção: a capa pode usar recuo diferente. O primeiro
+            # candidato é estruturalmente compatível com o início da prova.
+            selected.append(
+                min(
+                    candidates,
+                    key=lambda item: _marker_reading_key(item, page_widths),
+                )
+            )
+        elif rail:
+            selected.extend(rail)
+        # Sem rail: deixa faltar e força recuperação localizada.
+
+    return _dedupe_number_markers(selected), center
+
+
+def filter_recovery_between_known_neighbors(
+    recovered: list[Any],
+    known: list[Any],
+    page_widths: dict[int, float],
+) -> list[Any]:
+    """Aceita recuperação só dentro do intervalo dos vizinhos conhecidos."""
+    by_number: dict[int, list[Any]] = collections.defaultdict(list)
+    for item in _dedupe_number_markers(known):
+        by_number[int(item.number)].append(item)
+    known_numbers = sorted(by_number)
+    accepted: list[Any] = []
+
+    for candidate in recovered:
+        number = int(candidate.number)
+        lower_numbers = [value for value in known_numbers if value < number]
+        upper_numbers = [value for value in known_numbers if value > number]
+        if not lower_numbers or not upper_numbers:
+            continue
+        lower = by_number[max(lower_numbers)]
+        upper = by_number[min(upper_numbers)]
+        key = _marker_reading_key(candidate, page_widths)
+        if any(
+            _marker_reading_key(left, page_widths) < key < _marker_reading_key(right, page_widths)
+            for left in lower
+            for right in upper
+        ):
+            accepted.append(candidate)
+    return _dedupe_number_markers(accepted)
+
+
 def unique_monotonic_marker_sequence(
     markers: list[Any],
     total: int,
@@ -565,14 +717,11 @@ def unique_monotonic_marker_sequence(
         return None
 
     def reading_key(marker: Any) -> tuple[int, int, float, float]:
-        width = float(page_widths.get(marker.page_index) or 0)
-        if width <= 0:
-            raise OcrOptionMarkerError(
-                f"largura ausente para página OCR {marker.page_index + 1}"
-            )
-        ratio = float(marker.x0) / width
-        column = 0 if ratio < column_split else 1
-        return (int(marker.page_index), column, float(marker.y0), float(marker.x0))
+        return _marker_reading_key(
+            marker,
+            page_widths,
+            column_split=column_split,
+        )
 
     levels: dict[int, list[Any]] = {}
     counts: dict[int, list[int]] = {}
@@ -837,15 +986,25 @@ def detect_ocr_number_marker_candidates(
                 page_widths,
                 page_heights,
             )
-            resolved = unique_monotonic_marker_sequence(
+            rail_markers, rail_center = select_dominant_question_rail(
                 cleaned_line_markers,
                 total,
                 page_widths,
             )
+            resolved = unique_monotonic_marker_sequence(
+                rail_markers,
+                total,
+                page_widths,
+            )
             if resolved is not None:
-                return [("ocr-number-line-structural", resolved), *candidates]
+                strategy = (
+                    "ocr-number-line-dominant-rail"
+                    if rail_center is not None
+                    else "ocr-number-line-structural"
+                )
+                return [(strategy, resolved), *candidates]
 
-            present = {int(item.number) for item in cleaned_line_markers}
+            present = {int(item.number) for item in rail_markers}
             missing = set(range(1, total + 1)) - present
 
             # Quando a varredura normal perde pouquíssimos números, fazemos uma
@@ -854,7 +1013,7 @@ def detect_ocr_number_marker_candidates(
             # leitura ruidosa de outra página "preencha" artificialmente Qn.
             if 0 < len(missing) <= 4:
                 recovery_pages = _neighbor_recovery_pages(
-                    cleaned_line_markers,
+                    rail_markers,
                     missing,
                     total,
                 )
@@ -881,20 +1040,20 @@ def detect_ocr_number_marker_candidates(
                                     total=total,
                                     marker_factory=marker_factory,
                                     x_ranges=x_ranges,
-                                    allow_digit_confusions=allow_digit_confusions,
+                                    allow_digit_confusions=True,
+                                    expected_numbers=set(missing),
+                                    allow_pure_digit_confusions=True,
                                 )
                             )
-                        merged_line_markers.extend(recovered)
-                        merged_line_markers = _dedupe_number_markers(
-                            merged_line_markers
-                        )
-                        cleaned_line_markers = suppress_structural_number_noise(
-                            merged_line_markers,
+                        recovered = filter_recovery_between_known_neighbors(
+                            recovered,
+                            rail_markers,
                             page_widths,
-                            page_heights,
                         )
+                        rail_markers.extend(recovered)
+                        rail_markers = _dedupe_number_markers(rail_markers)
                         resolved = unique_monotonic_marker_sequence(
-                            cleaned_line_markers,
+                            rail_markers,
                             total,
                             page_widths,
                         )
@@ -919,7 +1078,7 @@ def detect_ocr_number_marker_candidates(
                 file=sys.stderr,
             )
             candidates.append(
-                ("ocr-number-line-merged", cleaned_line_markers)
+                ("ocr-number-line-merged", rail_markers)
             )
 
         return candidates
