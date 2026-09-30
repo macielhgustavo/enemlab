@@ -837,19 +837,16 @@ def _neighbor_recovery_pages(
         previous = by_number[max(lower_numbers)] if lower_numbers else []
         following = by_number[min(upper_numbers)] if upper_numbers else []
 
-        if previous and following:
-            for left in previous:
-                for right in following:
-                    if left.page_index > right.page_index:
-                        continue
-                    gap = int(right.page_index) - int(left.page_index)
-                    if gap > max_page_gap:
-                        continue
-                    pages.update(range(int(left.page_index), int(right.page_index) + 1))
-        elif previous:
-            pages.update(int(item.page_index) for item in previous)
-        elif following:
-            pages.update(int(item.page_index) for item in following)
+        if not previous or not following:
+            continue
+        for left in previous:
+            for right in following:
+                if left.page_index > right.page_index:
+                    continue
+                gap = int(right.page_index) - int(left.page_index)
+                if gap > max_page_gap:
+                    continue
+                pages.update(range(int(left.page_index), int(right.page_index) + 1))
 
     return pages
 
@@ -915,6 +912,7 @@ def detect_ocr_number_marker_candidates(
     require_option_evidence: bool = True,
     line_anchored_only: bool = False,
     allow_digit_confusions: bool = False,
+    question_rail_tolerance: float = 0.018,
 ) -> list[tuple[str, list[Any]]]:
     if not 144 <= dpi <= 300:
         raise OcrOptionMarkerError("dpi OCR fora da faixa segura")
@@ -1000,6 +998,7 @@ def detect_ocr_number_marker_candidates(
                 cleaned_line_markers,
                 total,
                 page_widths,
+                tolerance=question_rail_tolerance,
             )
             resolved = unique_monotonic_marker_sequence(
                 rail_markers,

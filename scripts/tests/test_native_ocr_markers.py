@@ -204,6 +204,26 @@ class NativeOcrMarkerTests(unittest.TestCase):
                 all(abs(item.x0 - 110.0) < 1 for item in selected if item.number == n)
             )
 
+    def test_dominant_question_rail_excludes_nearby_false_candidate_with_tight_profile(self):
+        marker = SimpleNamespace
+        page_widths = {page: 600.0 for page in range(10)}
+        real = [
+            marker(number=n, page_index=(n - 1) // 2, x0=110.0, y0=80.0 + (n % 2) * 180, x1=120.0, y1=95.0 + (n % 2) * 180)
+            for n in range(1, 17)
+        ]
+        # Mesmo número, mesma página, mas deslocado ~1,2 p.p. do rail.
+        false_q4 = marker(number=4, page_index=1, x0=116.4, y0=600.0, x1=126.4, y1=615.0)
+        selected, center = ocr.select_dominant_question_rail(
+            [*real, false_q4],
+            24,
+            page_widths,
+            tolerance=0.009,
+        )
+        self.assertIsNotNone(center)
+        q4 = [item for item in selected if item.number == 4]
+        self.assertEqual(len(q4), 1)
+        self.assertEqual(q4[0].x0, 110.0)
+
     def test_dominant_question_rail_refuses_ambiguous_equal_rails(self):
         marker = SimpleNamespace
         page_widths = {page: 600.0 for page in range(8)}

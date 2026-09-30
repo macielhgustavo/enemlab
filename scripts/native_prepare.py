@@ -560,6 +560,10 @@ def _adaptive_prepare(
                     "require_option_evidence": False,
                     "line_anchored_only": True,
                     "allow_digit_confusions": True,
+                    # O ITA 2026 tem rail real em ~18,3% da largura. 0,9 p.p.
+                    # preserva os marcadores reais observados e exclui os
+                    # falsos Q4/Q7 em 19,4%/16,9% sem hardcode de questão.
+                    "question_rail_tolerance": 0.009,
                 }
             candidates = ocr_markers.detect_ocr_number_marker_candidates(
                 pdf,
