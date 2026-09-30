@@ -333,6 +333,17 @@ class NativeOcrMarkerTests(unittest.TestCase):
             set(),
         )
 
+    def test_neighbor_recovery_pages_brackets_consecutive_missing_numbers(self):
+        marker = SimpleNamespace
+        markers = [
+            marker(number=30, page_index=4, x0=110, y0=600, x1=120, y1=615),
+            marker(number=33, page_index=5, x0=110, y0=200, x1=120, y1=215),
+        ]
+        self.assertEqual(
+            ocr._neighbor_recovery_pages(markers, {31, 32}, 48),
+            {4, 5},
+        )
+
     def test_structural_noise_suppression_removes_footer_page_numbers(self):
         marker = SimpleNamespace
         page_widths = {0: 600.0}

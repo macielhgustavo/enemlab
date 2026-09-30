@@ -282,8 +282,11 @@ def _ocr_number_value(
     if not core or len(core) > 3:
         return None
     has_digit = any(char.isdigit() for char in core)
-    # Fora da recuperação localizada, uma letra pura nunca vira número.
-    if not has_digit and not allow_pure_digit_confusions:
+    # Letra pura só pode ser corrigida dentro de recuperação localizada, com
+    # conjunto explícito de números esperados. Ex.: B→8 nunca vale globalmente.
+    if not has_digit and (
+        not allow_pure_digit_confusions or expected_numbers is None
+    ):
         return None
     normalized = core.translate(_DIGIT_CONFUSIONS)
     if not normalized.isdigit():
@@ -815,17 +818,24 @@ def _neighbor_recovery_pages(
     missing_numbers: set[int],
     total: int,
     *,
-    max_page_gap: int = 2,
+    max_page_gap: int = 3,
 ) -> set[int]:
-    """Restringe OCR caro às páginas delimitadas pelos vizinhos conhecidos."""
+    """Restringe OCR caro às páginas entre os vizinhos conhecidos mais próximos.
+
+    Usa o conhecido anterior/posterior, não apenas n-1/n+1, para suportar dois
+    ou mais marcadores consecutivos ausentes sem ampliar a busca ao documento.
+    """
     by_number: dict[int, list[Any]] = collections.defaultdict(list)
     for marker in _dedupe_number_markers(markers):
         by_number[int(marker.number)].append(marker)
+    known_numbers = sorted(by_number)
 
     pages: set[int] = set()
     for number in sorted(missing_numbers):
-        previous = by_number.get(number - 1, []) if number > 1 else []
-        following = by_number.get(number + 1, []) if number < total else []
+        lower_numbers = [value for value in known_numbers if value < number]
+        upper_numbers = [value for value in known_numbers if value > number]
+        previous = by_number[max(lower_numbers)] if lower_numbers else []
+        following = by_number[min(upper_numbers)] if upper_numbers else []
 
         if previous and following:
             for left in previous:
@@ -1007,11 +1017,11 @@ def detect_ocr_number_marker_candidates(
             present = {int(item.number) for item in rail_markers}
             missing = set(range(1, total + 1)) - present
 
-            # Quando a varredura normal perde pouquíssimos números, fazemos uma
-            # recuperação localizada entre os vizinhos estruturais. Isso evita
-            # OCR 300dpi no documento inteiro e, principalmente, impede que uma
-            # leitura ruidosa de outra página "preencha" artificialmente Qn.
-            if 0 < len(missing) <= 4:
+            # Quando o rail comprovado perde poucos números, fazemos recuperação
+            # localizada entre vizinhos conhecidos. O teto é maior que o antigo
+            # porque agora cada leitura também é limitada ao número esperado e
+            # ao intervalo físico, mantendo o fail-closed.
+            if 0 < len(missing) <= 8:
                 recovery_pages = _neighbor_recovery_pages(
                     rail_markers,
                     missing,
