@@ -505,9 +505,10 @@ def suppress_structural_number_noise(
             ys = sorted(float(item.y0) for item in rail)
             gaps = [right - left for left, right in zip(ys, ys[1:]) if right > left]
             median_gap = sorted(gaps)[len(gaps) // 2] if gaps else float("inf")
-            is_dense = _longest_consecutive_run(distinct) >= 5 or (
-                len(distinct) >= 6 and median_gap <= 35.0
-            )
+            # Sequência numérica por si só não prova índice: uma página real
+            # também pode conter Q9..Q13 no mesmo alinhamento. Exigimos
+            # densidade vertical de fato, característica de índice/cartão.
+            is_dense = len(distinct) >= 5 and median_gap <= 40.0
             if not is_dense:
                 continue
 

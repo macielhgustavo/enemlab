@@ -286,6 +286,30 @@ class NativeOcrMarkerTests(unittest.TestCase):
         cleaned = ocr.suppress_structural_number_noise(items, page_widths, page_heights)
         self.assertEqual([item.number for item in cleaned], [1, 2, 3])
 
+    def test_structural_noise_suppression_keeps_spaced_consecutive_question_rail(self):
+        marker = SimpleNamespace
+        page_widths = {0: 600.0, 1: 600.0}
+        page_heights = {0: 840.0, 1: 840.0}
+        # Cinco questões consecutivas no mesmo x, mas espaçadas como conteúdo
+        # real. Uma sequência numérica isolada não pode ser tratada como índice.
+        real = [
+            marker(number=n, page_index=0, x0=110.0, y0=80.0 + (n - 9) * 75.0, x1=120.0, y1=95.0 + (n - 9) * 75.0)
+            for n in range(9, 14)
+        ]
+        # Candidatos espúrios em outra página não devem fazer o rail real sumir.
+        alternates = [
+            marker(number=n, page_index=1, x0=300.0, y0=790.0, x1=310.0, y1=805.0)
+            for n in range(9, 14)
+        ]
+        cleaned = ocr.suppress_structural_number_noise(
+            [*real, *alternates],
+            page_widths,
+            page_heights,
+        )
+        kept = {(item.number, item.page_index) for item in cleaned}
+        for n in range(9, 14):
+            self.assertIn((n, 0), kept)
+
     def test_number_tsv_parser_keeps_left_margin_question_number(self):
         header = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
         rows = [
