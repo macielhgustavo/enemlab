@@ -549,11 +549,28 @@ def _adaptive_prepare(
     if target.provider_id in OCR_OPTION_PROVIDERS:
         ocr_number_errors: list[str] = []
         try:
+            ocr_profile: dict[str, Any] = {}
+            if target.provider_id == "ita":
+                # ITA usa scan em duas colunas: números podem iniciar a coluna
+                # esquerda ou direita, e os rótulos A-E nem sempre são
+                # reconhecidos antes dos números. A validação 1..N continua
+                # obrigatória, então ampliar as âncoras não publica ambiguidade.
+                ocr_profile = {
+                    "x_ranges": ((0.0, 0.30), (0.45, 0.82)),
+                    "require_option_evidence": False,
+                    "line_anchored_only": True,
+                    "allow_digit_confusions": True,
+                    # O ITA 2026 tem rail real em ~18,3% da largura. 0,9 p.p.
+                    # preserva os marcadores reais observados e exclui os
+                    # falsos Q4/Q7 em 19,4%/16,9% sem hardcode de questão.
+                    "question_rail_tolerance": 0.009,
+                }
             candidates = ocr_markers.detect_ocr_number_marker_candidates(
                 pdf,
                 target.option_ids,
                 target.total,
                 pipeline.Marker,
+                **ocr_profile,
             )
         except ocr_markers.OcrOptionMarkerError as error:
             candidates = []
