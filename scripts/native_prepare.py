@@ -16,6 +16,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import native_fleet as fleet
+import native_ita_prepare as ita_prepare
 import native_ime_prepare as ime_prepare
 import native_ingest as ingest
 import native_orchestrator as core
@@ -167,11 +168,30 @@ def prepare(provider: str, selector: str, phase: str, out: Path) -> dict[str, ob
             raise fleet.NativeFleetError(f"{profiled.identity}: fonte auditada pinada é obrigatória")
         pack = ime_prepare.prepare(profiled, pdf_override, core, fleet)
         marker_profile = f"ime-{ime_prepare.MARKER_PROFILE}"
+    elif profiled.provider_id == "ita":
+        pack = ita_prepare.prepare(profiled, pdf_override, core, ingest)
+        marker_profile = ita_prepare.MARKER_PROFILE
     else:
         pack = ingest._prepare(profiled, pdf_override=pdf_override)
         marker_profile = profiled.provider_id if profiled.marker_pattern else "default"
 
     bundle = fleet._render_bundle(profiled, pack, out)
+    health = {
+        "status": "healthy",
+        "identity": profiled.identity,
+        "questions": profiled.total,
+        "revision": fleet.REVISION,
+        "markerProfile": marker_profile,
+        "sourceProfile": "pinned-archive" if pdf_override else "default",
+    }
+    (profiled.output_dir / "health.json").write_text(
+        json.dumps(health, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (out / "health.json").write_text(
+        json.dumps(health, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     return {
         "identity": profiled.identity,
         "assets": bundle["assetCount"],
