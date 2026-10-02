@@ -161,6 +161,19 @@ python scripts/native_pipeline.py \
 
 A saída contém `native-pack.json` e `pages/page-NNN.webp`. `.native-out/` deve permanecer fora do Git.
 
+Para acompanhar a cobertura local da frota nativa, use:
+
+```bash
+npm run native:coverage
+```
+
+O comando gera uma tabela Markdown por provider/edição/fase com estado da frota
+(`healthy`, `degraded`, `unavailable`, `pending`), questões renderizáveis quando
+há `native-pack.json` local e categoria de falha (`source`, `missing-markers`,
+`duplicate-markers`, `layout`, `validation`, `prepare`). O relatório é
+deliberadamente local-only: se o repositório não tiver dados de runtime ou pack
+preparado em `.native-out`, a edição fica como `pending`, sem números inventados.
+
 ## Próximos incrementos
 
 O sistema completo deve evoluir nesta ordem:
