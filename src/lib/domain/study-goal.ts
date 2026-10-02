@@ -38,10 +38,9 @@ function daysUntil(targetDate: string | null | undefined, now: Date): number | n
   const target = new Date(targetDate);
   if (!Number.isFinite(target.getTime())) return null;
   const dayMs = 86400000;
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-  return Math.ceil((target.getTime() - start.getTime()) / dayMs);
+  const startDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const targetDay = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate());
+  return Math.ceil((targetDay - startDay) / dayMs);
 }
 
 /**
