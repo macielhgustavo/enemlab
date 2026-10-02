@@ -297,7 +297,6 @@ def _ita_targets(path: Path) -> list[NativeTarget]:
                 option_ids=LETTERS,
                 exam_url=f"https://www.vestibular.ita.br/provas/{year}_fase1.pdf",
                 source_kind="ita-template",
-                reason="PDF digitalizado: preparar requer OCR/revisão visual" if year else None,
             )
         )
     return targets

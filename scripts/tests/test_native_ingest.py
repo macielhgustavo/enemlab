@@ -91,6 +91,14 @@ class NativeInventoryTests(unittest.TestCase):
             f"ime-2025-2026-objective-{ime.total}",
         )
 
+    def test_ita_is_ready_with_audited_identity_and_ocr_prepare_profile(self):
+        ita = self.target("ita", 2026, "first")
+        self.assertEqual(ita.status, "ready")
+        self.assertEqual(ita.total, 48)
+        self.assertEqual(ita.option_ids, ("A", "B", "C", "D", "E"))
+        self.assertEqual(native_ingest.question_key_for(ita, 1), "ita-2026-first-1")
+        self.assertEqual(native_ingest.question_key_for(ita, ita.total), "ita-2026-first-48")
+
     def test_audited_identity_does_not_bypass_source_gate(self):
         afa = self.target("afa", 2018, "first")
         self.assertIsNone(afa.exam_url)

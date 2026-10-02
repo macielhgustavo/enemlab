@@ -38,6 +38,16 @@ class FakePage:
 
 
 class NativePrepareProfileTests(unittest.TestCase):
+    def test_ita_profile_keeps_default_marker_pattern_but_routes_to_ocr_prepare(self):
+        target = next(
+            target
+            for target in native_prepare.ingest.discover_targets()
+            if target.provider_id == "ita" and target.year == 2026 and target.phase == "first"
+        )
+        profiled = native_prepare.apply_layout_profile(target)
+        self.assertIs(profiled, target)
+        self.assertEqual(profiled.status, "ready")
+
     def test_eear_profile_uses_line_leading_numeric_marker(self):
         target = next(
             target

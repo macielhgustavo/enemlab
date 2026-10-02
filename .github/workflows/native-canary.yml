@@ -8,6 +8,7 @@ on:
       - "scripts/native_*.py"
       - "scripts/tests/test_native_*.py"
       - "src/lib/native/**"
+      - "src/lib/providers/ita/**"
       - "src/lib/providers/unesp/**"
       - "package.json"
 
@@ -36,6 +37,8 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por
           python -m pip install pymupdf pillow
 
       - name: Inventory gate
@@ -130,5 +133,72 @@ jobs:
             .native-out/unesp/2026/first/native-pack.json
             .native-out/unesp/2026/first/spec.json
             .native-out/unesp/2026/first/pages/*.webp
+          retention-days: 7
+          if-no-files-found: error
+
+  ita-2026:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-por
+          python -m pip install pymupdf pillow
+
+      - name: Prepare ITA 2026 canary
+        run: python scripts/native_prepare.py ita 2026 --phase first --out bundle-ita
+
+      - name: Verify healthy bundle
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          pack_path = Path('bundle-ita/native-pack.json')
+          health_path = Path('bundle-ita/health.json')
+          if not pack_path.exists():
+              raise SystemExit('NativePack ITA não foi gerado')
+          if not health_path.exists():
+              raise SystemExit('health.json ITA não foi gerado')
+          health = json.loads(health_path.read_text(encoding='utf-8'))
+          if health.get('status') != 'healthy':
+              raise SystemExit(f"ITA não ficou healthy: {health}")
+          pack = json.loads(pack_path.read_text(encoding='utf-8'))
+          questions = pack.get('questions') or []
+          if len(questions) != 48:
+              raise SystemExit(f'esperadas 48 questões ITA, recebidas {len(questions)}')
+          keys = [question.get('questionKey') for question in questions]
+          expected = [f'ita-2026-first-{number}' for number in range(1, 49)]
+          if keys != expected:
+              raise SystemExit('questionKey ITA diverge da identidade auditada')
+          if any(question.get('status') != 'approved' for question in questions):
+              raise SystemExit('bundle healthy precisa passar pelo gate de aprovação')
+          print(f"OK: ITA 2026 healthy com {len(questions)} questões")
+          PY
+
+      - name: Upload ITA review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-canary-ita-2026
+          path: |
+            bundle-ita/bundle.json
+            bundle-ita/native-pack.json
+            bundle-ita/health.json
           retention-days: 7
           if-no-files-found: error
