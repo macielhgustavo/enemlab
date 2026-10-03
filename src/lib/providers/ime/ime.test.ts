@@ -10,7 +10,7 @@ import {
   imeQuestionKey,
   imeYears,
 } from "./index";
-import { getProvider, listProviders, sameProvider } from "@/lib/providers";
+import { getProvider, listRegisteredProviders, sameProvider } from "@/lib/providers";
 import { areaLabel, areasOf } from "@/lib/providers/taxonomy";
 import { imeSource, importerForProvider, listSources } from "@/lib/sources";
 
@@ -215,7 +215,7 @@ describe("edição por ano", () => {
   });
 
   it("o provider entrega as questões pelo ano", async () => {
-    const p = listProviders().find((x) => x.id === "ime")!;
+    const p = listRegisteredProviders().find((x) => x.id === "ime")!;
     const qs = await p.fetchQuestions({ year: 2026 });
     expect(qs).toHaveLength(40);
     expect(qs[0].providerId).toBe("ime");

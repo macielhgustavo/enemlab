@@ -1,19 +1,17 @@
-// Ponto único de acesso a questões.
+// Ponto único de acesso a questões executáveis.
 //
-// Antes da v8 cada tela importava `fetchExam` do cliente do ENEM, o que
-// deixava o provider embutido em toda a aplicação. Aqui o provider vira um
-// parâmetro: adicionar uma prova nova passa a ser registrar um provider, sem
-// tocar nas telas.
-//
-// Transição: a aplicação ainda consome o formato `Question` (herdado do ENEM).
-// O alvo é `NormalizedQuestion`, e a ponte é o adaptador em `./legacy`.
+// O registry completo preserva vestibulares para histórico e ingestão, mas o
+// produto está temporariamente em modo ENEM-only:
+// - ENEM vem exclusivamente da API enem.dev;
+// - NativePack/local drafts não alteram questões do ENEM;
+// - providers inativos falham fechado ao tentar abrir uma nova sessão.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
 import { applyPublishedNativeContent } from "../native/loader";
 import { applyLocalNativeDrafts } from "../native/localDraft";
 import { ENEM_PROVIDER_ID } from "./enem";
 import { toLegacyQuestion } from "./legacy";
-import { getProvider, resolveProviderId } from "./registry";
+import { getProvider, isProviderEnabled, resolveProviderId } from "./registry";
 
 export { toLegacyQuestion };
 
@@ -24,35 +22,38 @@ export interface QuestionQuery {
   force?: boolean;
 }
 
-/**
- * Busca as questões de uma prova. `providerId` ausente resolve para ENEM,
- * o que mantém todo o código e os dados anteriores funcionando.
- *
- * Ordem dos overlays:
- * 1. provider resolve identidade e gabarito;
- * 2. NativePack realmente publicado acrescenta o visual assinado;
- * 3. bundle local opcional pode substituir somente texto, nunca gabarito.
- */
+export class ProviderDisabledError extends Error {
+  readonly providerId: string;
+
+  constructor(providerId: string) {
+    super(
+      `O provider "${providerId}" está temporariamente desativado. O Studium está usando apenas a API do ENEM.`,
+    );
+    this.name = "ProviderDisabledError";
+    this.providerId = providerId;
+  }
+}
+
 export async function questionsFor(
   providerId: string | null | undefined,
   { year, editionId, language, force }: QuestionQuery,
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
-  let questions: Question[];
+  if (!isProviderEnabled(id)) throw new ProviderDisabledError(id);
 
+  // Fonte única enquanto o modo ENEM-only estiver ativo.
   if (id === ENEM_PROVIDER_ID) {
-    questions = await fetchExam(year, language || "ingles", force);
-  } else {
-    const provider = getProvider(id);
-    const normalized = await provider.fetchQuestions({ year, editionId, language, force });
-    questions = normalized.map(toLegacyQuestion);
+    return fetchExam(year, language || "ingles", force);
   }
 
+  // Mantido para reativação futura sem reconstruir a arquitetura.
+  const provider = getProvider(id);
+  const normalized = await provider.fetchQuestions({ year, editionId, language, force });
+  const questions = normalized.map(toLegacyQuestion);
   const native = await applyPublishedNativeContent(questions);
   return applyLocalNativeDrafts(native);
 }
 
-/** Metadados da prova (anos, idiomas, áreas) para montar formulários. */
 export function providerMetadata(providerId?: string | null) {
   return getProvider(providerId).metadata;
 }
