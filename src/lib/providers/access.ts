@@ -1,17 +1,21 @@
-// Ponto único de acesso a questões executáveis.
+// Ponto único de acesso a questões.
 //
-// O registry completo preserva vestibulares para histórico e ingestão, mas o
-// produto está temporariamente em modo ENEM-only:
+// O registry completo continua funcional para histórico, reconstrução de
+// tentativas, auditorias e testes. O modo ENEM-only é um gate de produto
+// (providers expostos/selecionáveis), não uma mutilação da infraestrutura.
+//
+// Enquanto o ENEM for a única prova ativa:
 // - ENEM vem exclusivamente da API enem.dev;
 // - NativePack/local drafts não alteram questões do ENEM;
-// - providers inativos falham fechado ao tentar abrir uma nova sessão.
+// - outros providers seguem acessíveis internamente para preservar o trabalho
+//   existente e permitir reativação sem migração destrutiva.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
 import { applyPublishedNativeContent } from "../native/loader";
 import { applyLocalNativeDrafts } from "../native/localDraft";
 import { ENEM_PROVIDER_ID } from "./enem";
 import { toLegacyQuestion } from "./legacy";
-import { getProvider, isProviderEnabled, resolveProviderId } from "./registry";
+import { getProvider, resolveProviderId } from "./registry";
 
 export { toLegacyQuestion };
 
@@ -22,31 +26,18 @@ export interface QuestionQuery {
   force?: boolean;
 }
 
-export class ProviderDisabledError extends Error {
-  readonly providerId: string;
-
-  constructor(providerId: string) {
-    super(
-      `O provider "${providerId}" está temporariamente desativado. O Studium está usando apenas a API do ENEM.`,
-    );
-    this.name = "ProviderDisabledError";
-    this.providerId = providerId;
-  }
-}
-
 export async function questionsFor(
   providerId: string | null | undefined,
   { year, editionId, language, force }: QuestionQuery,
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
-  if (!isProviderEnabled(id)) throw new ProviderDisabledError(id);
 
-  // Fonte única enquanto o modo ENEM-only estiver ativo.
+  // Fonte única do ENEM no modo atual: sem overlay nativo/local.
   if (id === ENEM_PROVIDER_ID) {
     return fetchExam(year, language || "ingles", force);
   }
 
-  // Mantido para reativação futura sem reconstruir a arquitetura.
+  // Infraestrutura histórica permanece intacta para reconstrução/auditoria.
   const provider = getProvider(id);
   const normalized = await provider.fetchQuestions({ year, editionId, language, force });
   const questions = normalized.map(toLegacyQuestion);
