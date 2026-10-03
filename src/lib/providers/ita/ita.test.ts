@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getProvider,
-  listProviders,
+  listRegisteredProviders,
   ITA_PROVIDER_ID,
   ENEM_PROVIDER_ID,
   itaYears,
@@ -15,7 +15,7 @@ import type { Question } from "../../domain/types";
 
 describe("registry de provas", () => {
   it("tem as dezessete provas registradas, e nada além disso", () => {
-    expect(listProviders().map((p) => p.id).sort()).toEqual([
+    expect(listRegisteredProviders().map((p) => p.id).sort()).toEqual([
       "acafe",
       "afa",
       "eear",

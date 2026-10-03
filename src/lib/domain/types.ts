@@ -96,7 +96,7 @@ export interface StudyIntelligenceState {
 // ---- Questões vindas da API enem.dev ----
 export interface Alternative {
   letter: string;
-  text: string;
+  text: string | null;
   file?: string | null;
   isCorrect?: boolean;
 }
@@ -124,9 +124,9 @@ export interface Question {
   year: number;
   phase?: string;
   language?: string | null;
-  discipline?: string | { value?: string; label?: string };
-  context?: string;
-  alternativesIntroduction?: string;
+  discipline?: string | { value?: string; label?: string } | null;
+  context?: string | null;
+  alternativesIntroduction?: string | null;
   alternatives?: Alternative[];
   correctAlternative?: string;
   files?: string[];

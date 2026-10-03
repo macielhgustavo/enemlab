@@ -5,7 +5,7 @@ import { buildCurrentCatalog } from "@/lib/catalog/current";
 import { variantsForReference, variantsToIngest } from "@/lib/catalog/variant";
 import {
   getProvider,
-  listProviders,
+  listRegisteredProviders,
   sameProvider,
   unicampAnswerKey,
   unicampFirstPhaseQuestions,
@@ -68,7 +68,7 @@ function minimalRaw(overrides: Partial<ReferenceAnswerKeyRaw> = {}): ReferenceAn
 
 describe("vestibulares em modo referência", () => {
   it("registra os três novos providers executáveis", () => {
-    const ids = listProviders().map((provider) => provider.id);
+    const ids = listRegisteredProviders().map((provider) => provider.id);
     for (const id of PROVIDERS) expect(ids).toContain(id);
   });
 

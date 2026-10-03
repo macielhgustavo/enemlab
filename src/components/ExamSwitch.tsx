@@ -1,13 +1,13 @@
 "use client";
 import { useStore } from "@/lib/store";
-import { listProviders, resolveProviderId } from "@/lib/providers";
+import { listProviders, resolveEnabledProviderId } from "@/lib/providers";
 
 /**
  * Prova ativa da interface. Fica no shell porque atravessa várias telas —
  * e o usuário precisa saber em qual prova está trabalhando sem procurar.
  */
 export function useActiveProvider() {
-  const id = useStore((s) => resolveProviderId(s.db.activeProvider));
+  const id = useStore((s) => resolveEnabledProviderId(s.db.activeProvider));
   const setActiveProvider = useStore((s) => s.setActiveProvider);
   return { providerId: id, setProvider: setActiveProvider };
 }

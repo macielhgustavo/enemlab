@@ -2,11 +2,19 @@
 //
 // Compatibilidade: tentativas, questões e itens de SRS gravados antes da
 // fundação multi-provas não têm `providerId`. Tudo que vier sem esse campo
-// é tratado como ENEM — nunca como "desconhecido" —, porque até aqui o
-// produto só suportava ENEM.
+// é tratado como ENEM.
 import type { ExamProvider } from "./types";
 
 export const DEFAULT_PROVIDER_ID = "enem";
+
+/**
+ * Providers habilitados para novas sessões no produto.
+ *
+ * O registry completo continua carregado para preservar histórico, dados
+ * ingeridos e reativação futura. Alterar esta lista não apaga provider algum.
+ */
+export const ENABLED_PROVIDER_IDS = [DEFAULT_PROVIDER_ID] as const;
+const enabledProviderIds = new Set<string>(ENABLED_PROVIDER_IDS);
 
 const providers = new Map<string, ExamProvider>();
 
@@ -14,6 +22,7 @@ export function registerProvider(provider: ExamProvider): void {
   providers.set(provider.id, provider);
 }
 
+/** Resolve qualquer provider registrado, inclusive os temporariamente inativos. */
 export function getProvider(id?: string | null): ExamProvider {
   const provider = providers.get(resolveProviderId(id));
   if (!provider) {
@@ -22,8 +31,21 @@ export function getProvider(id?: string | null): ExamProvider {
   return provider;
 }
 
+/**
+ * Providers disponíveis na experiência atual do produto.
+ * Hoje: somente ENEM.
+ */
 export function listProviders(): ExamProvider[] {
+  return [...providers.values()].filter((provider) => enabledProviderIds.has(provider.id));
+}
+
+/** Registry completo, para histórico, catálogo interno e auditorias. */
+export function listRegisteredProviders(): ExamProvider[] {
   return [...providers.values()];
+}
+
+export function isProviderEnabled(id?: string | null): boolean {
+  return enabledProviderIds.has(resolveProviderId(id));
 }
 
 export function hasProvider(id?: string | null): boolean {
@@ -31,12 +53,21 @@ export function hasProvider(id?: string | null): boolean {
 }
 
 /**
- * Normaliza o identificador de provider de qualquer registro persistido.
+ * Normaliza o identificador de provider de registros persistidos.
  * Dados legados (sem `providerId`) são ENEM.
+ *
+ * Não faz clamp para providers ativos: histórico antigo precisa preservar sua
+ * banca original.
  */
 export function resolveProviderId(id?: string | null): string {
   const trimmed = typeof id === "string" ? id.trim() : "";
   return trimmed || DEFAULT_PROVIDER_ID;
+}
+
+/** Resolve uma preferência de UI/executável para um provider atualmente ativo. */
+export function resolveEnabledProviderId(id?: string | null): string {
+  const resolved = resolveProviderId(id);
+  return isProviderEnabled(resolved) ? resolved : DEFAULT_PROVIDER_ID;
 }
 
 /** Dois registros pertencem à mesma prova? Usado para não misturar estatísticas. */

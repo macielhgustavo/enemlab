@@ -8,7 +8,7 @@
 // A taxonomia já existe em `metadata.areas` de cada provider. Este módulo é o
 // contrato de leitura — nenhuma tela deve ter a sua própria tabela de rótulos.
 // Importa do índice, não do registry: é o índice que registra as provas.
-import { getProvider, listProviders, resolveProviderId } from "./index";
+import { getProvider, listRegisteredProviders, resolveProviderId } from "./index";
 
 export interface TaxonomyArea {
   id: string;
@@ -38,7 +38,7 @@ export function areaLabel(areaId: string, providerId?: string | null): string {
   const doProvider = areasOf(providerId).find((a) => a.id === areaId);
   if (doProvider) return doProvider.label;
 
-  for (const p of listProviders()) {
+  for (const p of listRegisteredProviders()) {
     const achado = p.metadata.areas.find((a) => a.id === areaId);
     if (achado) return achado.label;
   }
