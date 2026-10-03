@@ -5,6 +5,10 @@ import type {
   ExamSubject,
   NormalizedQuestion,
 } from "../types";
+import {
+  getStructuredQuestion,
+  withStructuredQuestionContent,
+} from "../structuredRegistry";
 
 export const FAB_ARCHIVE_URL = "https://www.fab.mil.br/ingresso/provas.html";
 const LETTERS = ["A", "B", "C", "D"] as const;
@@ -271,7 +275,7 @@ export function fabQuestionsForKey(config: FabProviderConfig, key: FabAnswerKey)
       area: subjectId,
     };
 
-    questions.push({
+    const base: NormalizedQuestion = {
       providerId: config.id,
       examId: `${config.id}-${key.edition}-first`,
       year: key.year,
@@ -296,7 +300,15 @@ export function fabQuestionsForKey(config: FabProviderConfig, key: FabAnswerKey)
       statementAvailable: false,
       official: { official: true, institution: config.institution, documentUrl },
       expectedAnswer: null,
-    });
+    };
+
+    questions.push(
+      withStructuredQuestionContent(
+        base,
+        getStructuredQuestion(config.id, key.year, number, "first"),
+        config.institution,
+      ),
+    );
   }
 
   return questions;

@@ -19,6 +19,10 @@ import type {
 } from "../types";
 import type { EditionVariants } from "../../catalog/variant";
 import bruto from "./answer-keys.generated.json";
+import {
+  getStructuredQuestion,
+  withStructuredQuestionContent,
+} from "../structuredRegistry";
 
 export const FUVEST_PROVIDER_ID = "fuvest";
 
@@ -137,7 +141,7 @@ export function fuvestFirstPhaseQuestions(year: number): NormalizedQuestion[] {
     const annulled = k.annulled.includes(n);
     const correct = annulled ? null : (k.answers[String(n)] ?? null);
 
-    out.push({
+    const base: NormalizedQuestion = {
       providerId: FUVEST_PROVIDER_ID,
       examId: `fuvest-${year}-first`,
       year,
@@ -162,7 +166,15 @@ export function fuvestFirstPhaseQuestions(year: number): NormalizedQuestion[] {
       statementAvailable: false,
       official: { official: true, institution: "FUVEST", documentUrl },
       expectedAnswer: null,
-    });
+    };
+
+    out.push(
+      withStructuredQuestionContent(
+        base,
+        getStructuredQuestion(FUVEST_PROVIDER_ID, year, n, "first"),
+        "FUVEST",
+      ),
+    );
   }
 
   return out;
