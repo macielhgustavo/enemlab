@@ -32,7 +32,7 @@ describe("study goal progress", () => {
       db,
       {
         providerId: "enem",
-        targetDate: "2026-09-24T00:00:00.000Z",
+        targetDate: "2026-09-24",
         weeklyQuestions: 28,
         targetReadiness: 70,
         targetCoverage: 80,
@@ -58,6 +58,20 @@ describe("study goal progress", () => {
     expect(progress.coveragePct).toBeNull();
     expect(progress.coverageGap).toBeNull();
     expect(progress.reasons.join(" ")).toMatch(/denominador explícito/i);
+  });
+
+  it.each([
+    ["2026-09-14", 0],
+    ["2026-09-13", -1],
+    ["not-a-date", null],
+  ])("interprets %s as a local calendar date", (targetDate, expected) => {
+    const progress = studyGoalProgress(makeDB(), { providerId: "enem", targetDate }, undefined, new Date(2026, 8, 14, 12));
+    expect(progress.daysRemaining).toBe(expected);
+  });
+
+  it("counts calendar days across daylight-saving changes", () => {
+    const progress = studyGoalProgress(makeDB(), { providerId: "enem", targetDate: "2026-11-03" }, undefined, new Date(2026, 9, 31, 12));
+    expect(progress.daysRemaining).toBe(3);
   });
 
   it("stays calibrating while readiness evidence is low", () => {
