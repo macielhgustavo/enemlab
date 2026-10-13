@@ -35,13 +35,14 @@ function normalizedTarget(value: number | null | undefined): number | null {
 
 function daysUntil(targetDate: string | null | undefined, now: Date): number | null {
   if (!targetDate) return null;
-  const target = new Date(targetDate);
+  // HTML date inputs describe a local calendar day, not midnight UTC.
+  const target = new Date(/^\d{4}-\d{2}-\d{2}$/.test(targetDate) ? `${targetDate}T00:00:00` : targetDate);
   if (!Number.isFinite(target.getTime())) return null;
   const dayMs = 86400000;
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-  return Math.ceil((target.getTime() - start.getTime()) / dayMs);
+  // Compare calendar ordinals: daylight-saving days need not contain 24 hours.
+  const startDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDay = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate());
+  return (targetDay - startDay) / dayMs;
 }
 
 /**
