@@ -150,8 +150,8 @@ describe("study intelligence temporal/readiness", () => {
     const nightRows = Array.from({ length: 6 }, (_, index) => row(20 + index, "Probabilidade", index < 3));
     const db = makeDB({
       attempts: [
-        attempt("morning", morningRows, "2026-09-10T09:00:00.000Z", 3600),
-        attempt("night", nightRows, "2026-09-11T20:00:00.000Z", 1800),
+        attempt("morning", morningRows, new Date(2026, 8, 10, 9).toISOString(), 3600),
+        attempt("night", nightRows, new Date(2026, 8, 11, 20).toISOString(), 1800),
       ],
     });
     const profile = temporalProfile(db, "enem");
