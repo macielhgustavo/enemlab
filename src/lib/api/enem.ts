@@ -1,13 +1,18 @@
-// Cliente da API enem.dev (portado do v6): paginação, retry em 429, cache em memória.
+// Cliente da API ENEM: paginação por índice, rate-limit e cache em memória.
 import { API_BASE } from "../domain/constants";
 import { discipline, questionKey } from "../domain/classify";
 import { isQuestionUsableForPractice } from "../domain/question-quality";
 import type { Language, Question } from "../domain/types";
 
+const API_PAGE_LIMIT = 50;
+const PAGE_INTERVAL_MS = 1050;
+const MAX_REQUEST_ATTEMPTS = 4;
+const MAX_PAGES = 10;
+
 const yearCache = new Map<string, Question[]>();
 
 function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function readErrorResponse(res: Response): Promise<string> {
@@ -27,13 +32,34 @@ interface ApiError extends Error {
   status?: number;
 }
 
-// Resposta paginada da API: pode vir como array puro ou envelopada.
 interface Envelope {
   questions?: Question[];
   data?: Question[];
-  metadata?: { hasMore?: boolean; has_more?: boolean; total?: number; limit?: number };
+  metadata?: {
+    hasMore?: boolean;
+    has_more?: boolean;
+    total?: number;
+    limit?: number;
+    offset?: number;
+  };
 }
 type Page = Question[] | Envelope;
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function retryDelayMs(res: Response | null, attempt: number): number {
+  if (res?.status === 429) {
+    const raw = res.headers.get("Retry-After") ?? res.headers.get("X-RateLimit-Reset");
+    const fromHeader = Number(raw);
+    if (Number.isFinite(fromHeader) && fromHeader >= 0) {
+      // A API ENEM documenta esses cabeçalhos em milissegundos.
+      return Math.min(10_500, Math.max(50, fromHeader + 50));
+    }
+  }
+  return Math.min(4000, 500 * 2 ** attempt);
+}
 
 async function fetchPage(
   year: number,
@@ -41,31 +67,74 @@ async function fetchPage(
   limit: number,
   offset: number,
 ): Promise<Page> {
-  const p = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (year !== 2009 && lang) p.set("language", lang);
-  let tries = 0;
-  while (tries < 4) {
-    let res: Response;
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (year !== 2009 && lang) params.set("language", lang);
+
+  let lastNetworkError: unknown = null;
+  for (let attempt = 0; attempt < MAX_REQUEST_ATTEMPTS; attempt++) {
+    let res: Response | null = null;
     try {
-      res = await fetch(`${API_BASE}/exams/${year}/questions?${p}`, {
+      res = await fetch(`${API_BASE}/exams/${year}/questions?${params}`, {
         headers: { Accept: "application/json" },
         cache: "no-store",
       });
-    } catch {
-      throw new Error("Falha de rede/CORS");
+
+      if (res.ok) return (await res.json()) as Page;
+
+      const message = await readErrorResponse(res);
+      if (!isRetryableStatus(res.status) || attempt === MAX_REQUEST_ATTEMPTS - 1) {
+        const error: ApiError = new Error(
+          `HTTP ${res.status}${message ? `: ${message}` : ""}`,
+        );
+        error.status = res.status;
+        throw error;
+      }
+
+      await sleep(retryDelayMs(res, attempt));
+    } catch (error) {
+      if ((error as ApiError)?.status) throw error;
+      lastNetworkError = error;
+      if (attempt === MAX_REQUEST_ATTEMPTS - 1) {
+        throw new Error("Falha de rede/CORS ao consultar a API ENEM.");
+      }
+      await sleep(retryDelayMs(res, attempt));
     }
-    if (res.ok) return await res.json();
-    const msg = await readErrorResponse(res);
-    if (res.status === 429) {
-      tries++;
-      await sleep(1200);
-      continue;
-    }
-    const er: ApiError = new Error(`HTTP ${res.status}${msg ? `: ${msg}` : ""}`);
-    er.status = res.status;
-    throw er;
   }
-  throw new Error("Limite de requisições da API");
+
+  throw new Error(
+    lastNetworkError
+      ? "Falha de rede/CORS ao consultar a API ENEM."
+      : "Falha ao consultar a API ENEM.",
+  );
+}
+
+function questionsFromPage(page: Page): Question[] {
+  const questions = Array.isArray(page) ? page : page.questions ?? page.data ?? [];
+  if (!Array.isArray(questions)) {
+    throw new Error("Resposta inválida da API ENEM: lista de questões ausente.");
+  }
+
+  for (const question of questions) {
+    if (
+      !question ||
+      !Number.isInteger(question.index) ||
+      question.index < 1 ||
+      !Number.isInteger(question.year)
+    ) {
+      throw new Error("Resposta inválida da API ENEM: identidade de questão corrompida.");
+    }
+  }
+  return questions;
+}
+
+function pageHasMore(page: Page, questions: Question[], offset: number, limit: number): boolean {
+  if (Array.isArray(page)) return questions.length >= limit;
+
+  const metadata = page.metadata ?? {};
+  if (typeof metadata.hasMore === "boolean") return metadata.hasMore;
+  if (typeof metadata.has_more === "boolean") return metadata.has_more;
+  if (typeof metadata.total === "number") return offset + limit < metadata.total;
+  return questions.length >= limit;
 }
 
 export async function fetchExam(
@@ -76,50 +145,50 @@ export async function fetchExam(
   const key = `${year}|${lang}`;
   if (!force && yearCache.has(key)) return yearCache.get(key)!;
 
-  let working: number | null = null,
-    first: Page | null = null,
-    last: ApiError | null = null;
-  for (const lim of [100, 50, 25, 10]) {
-    try {
-      first = await fetchPage(year, lang, lim, 0);
-      working = lim;
-      break;
-    } catch (e) {
-      last = e as ApiError;
-      if (last.status === 400 || last.status === 422) continue;
-      throw e;
+  const all: Question[] = [];
+  let offset = 0;
+  let pageCount = 0;
+
+  while (pageCount < MAX_PAGES) {
+    pageCount += 1;
+    const page = await fetchPage(year, lang, API_PAGE_LIMIT, offset);
+    const questions = questionsFromPage(page);
+    all.push(...questions);
+
+    if (!pageHasMore(page, questions, offset, API_PAGE_LIMIT) || questions.length === 0) break;
+
+    // O endpoint trabalha com faixa de índice e limite inclusivo. Avançar pelo
+    // tamanho recebido pode repetir/pular posições quando existe sobreposição
+    // de borda ou variação de idioma.
+    offset += API_PAGE_LIMIT;
+    await sleep(PAGE_INTERVAL_MS);
+  }
+
+  if (pageCount >= MAX_PAGES) {
+    const lastOffset = offset;
+    const highestIndex = all.reduce((max, question) => Math.max(max, question.index), 0);
+    // Uma prova ENEM conhecida cabe muito abaixo desse teto. Se ainda parecia
+    // haver página, falhamos alto em vez de retornar banco truncado.
+    if (highestIndex > 0 && lastOffset >= API_PAGE_LIMIT * MAX_PAGES) {
+      throw new Error("Paginação da API ENEM excedeu o limite de segurança.");
     }
   }
-  if (!working) throw new Error(last?.message || "API rejeitou a consulta");
 
-  const all: Question[] = [];
-  let data: Page | null = first,
-    offset = 0,
-    safety = 0;
-  while (data && safety++ < 30) {
-    const q: Question[] = Array.isArray(data) ? data : data.questions || data.data || [];
-    all.push(...q);
-    const m = Array.isArray(data) ? {} : data.metadata || {};
-    const total = m.total;
-    const more =
-      m.hasMore === true ||
-      m.has_more === true ||
-      (typeof total === "number" && offset + q.length < total);
-    if (!more || !q.length) break;
-    offset += q.length;
-    await sleep(1050);
-    data = await fetchPage(year, lang, working, offset);
+  const byIdentity = new Map<string, Question>();
+  for (const question of all) {
+    const identity = `${question.index}|${question.language ?? ""}`;
+    if (!byIdentity.has(identity)) byIdentity.set(identity, question);
   }
 
-  const map = new Map<string, Question>();
-  for (const q of all) {
-    const k = `${q.index}|${q.language || ""}|${discipline(q)}`;
-    if (!map.has(k)) map.set(k, q);
-  }
-  const qs = [...map.values()];
-  if (!qs.length) throw new Error("Nenhuma questão retornada");
-  yearCache.set(key, qs);
-  return qs;
+  const questions = [...byIdentity.values()].sort(
+    (a, b) =>
+      a.index - b.index ||
+      String(a.language ?? "").localeCompare(String(b.language ?? "")),
+  );
+
+  if (!questions.length) throw new Error("Nenhuma questão retornada pela API ENEM.");
+  yearCache.set(key, questions);
+  return questions;
 }
 
 // ---- Montagem de provas ----
@@ -131,8 +200,8 @@ export function dedupeByIndex(all: Question[], lang: string): Question[] {
   const by = new Map<number, Question>();
   [...all]
     .sort((a, b) => a.index - b.index)
-    .forEach((q) => {
-      if (!by.has(q.index) || q.language === lang) by.set(q.index, q);
+    .forEach((question) => {
+      if (!by.has(question.index) || question.language === lang) by.set(question.index, question);
     });
   return [...by.values()].sort((a, b) => a.index - b.index);
 }
@@ -142,42 +211,46 @@ export function buildRealDay(all: Question[], day: 1 | 2, lang: string): Questio
     day === 1
       ? new Set(["linguagens", "ciencias-humanas"])
       : new Set(["ciencias-natureza", "matematica"]);
-  return dedupeByIndex(all.filter((q) => wanted.has(discipline(q))), lang).slice(0, 90);
+  return dedupeByIndex(all.filter((question) => wanted.has(discipline(question))), lang).slice(0, 90);
 }
 
-// Prova inédita cruzando vários anos, com cota por área.
 export async function buildUnseenAcrossYears(
   lang: Language,
   seenKeys: Set<string>,
   n = 90,
 ): Promise<Question[]> {
-  const collected: Question[] = [],
-    wantedAreas = ["linguagens", "ciencias-humanas", "ciencias-natureza", "matematica"],
-    quota = Math.ceil(n / 4),
-    per: Record<string, number> = {};
-  for (const y of [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]) {
+  const collected: Question[] = [];
+  const wantedAreas = ["linguagens", "ciencias-humanas", "ciencias-natureza", "matematica"];
+  const quota = Math.ceil(n / 4);
+  const per: Record<string, number> = {};
+
+  for (const year of [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]) {
     let all: Question[];
     try {
-      all = await fetchExam(y, lang);
+      all = await fetchExam(year, lang);
     } catch {
       continue;
     }
-    for (const ar of wantedAreas) {
-      per[ar] ??= 0;
-      if (per[ar] >= quota) continue;
+
+    for (const area of wantedAreas) {
+      per[area] ??= 0;
+      if (per[area] >= quota) continue;
+
       const pool = all.filter(
-        (q) =>
-          discipline(q) === ar &&
-          isQuestionUsableForPractice(q) &&
-          !seenKeys.has(questionKey(q)) &&
-          !collected.some((x) => questionKey(x) === questionKey(q)),
+        (question) =>
+          discipline(question) === area &&
+          isQuestionUsableForPractice(question) &&
+          !seenKeys.has(questionKey(question)) &&
+          !collected.some((candidate) => questionKey(candidate) === questionKey(question)),
       );
-      const need = Math.min(quota - per[ar], n - collected.length);
+      const need = Math.min(quota - per[area], n - collected.length);
       const chosen = sample(pool, need);
       collected.push(...chosen);
-      per[ar] += chosen.length;
+      per[area] += chosen.length;
     }
+
     if (collected.length >= n) break;
   }
+
   return collected.slice(0, n);
 }

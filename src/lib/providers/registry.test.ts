@@ -6,6 +6,8 @@ import {
   groupByProvider,
   hasProvider,
   listProviders,
+  listRegisteredProviders,
+  resolveEnabledProviderId,
   resolveProviderId,
   sameProvider,
 } from "./index";
@@ -63,6 +65,12 @@ describe("registry", () => {
     expect(getProvider(undefined).id).toBe("enem");
   });
 
+  it("habilita somente ENEM na experiência atual", () => {
+    expect(listProviders().map((provider) => provider.id)).toEqual(["enem"]);
+    expect(resolveEnabledProviderId("ita")).toBe("enem");
+    expect(resolveEnabledProviderId("enem")).toBe("enem");
+  });
+
   it("falha alto para provider desconhecido", () => {
     expect(() => getProvider("ufpr")).toThrow(/não registrado/i);
   });
@@ -70,7 +78,7 @@ describe("registry", () => {
   it("registra explicitamente as dezessete provas desta versão", () => {
     // A lista é explícita de propósito: provider entra por decisão, não por
     // alguém importar um módulo sem querer.
-    expect(listProviders().map((p) => p.id).sort()).toEqual([
+    expect(listRegisteredProviders().map((p) => p.id).sort()).toEqual([
       "acafe",
       "afa",
       "eear",
@@ -92,7 +100,7 @@ describe("registry", () => {
   });
 
   it("mantém fora do runner provas/fases ainda não compatíveis ou não ingeridas", () => {
-    const ids = listProviders().map((p) => p.id);
+    const ids = listRegisteredProviders().map((p) => p.id);
     for (const futuro of [
       "mackenzie",
       "puc-pr",

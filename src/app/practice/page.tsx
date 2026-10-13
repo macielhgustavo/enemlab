@@ -237,14 +237,14 @@ export default function PracticePage() {
         )}
 
         <div className="row between" style={{ marginTop: 20 }}>
-          <span className="caption">Banco estruturado: 2009–2023</span>
+          <span className="caption">Fonte ativa: API ENEM · banco 2009–2023</span>
           <Button variant="primary" onClick={start} loading={busy}>
             Começar
           </Button>
         </div>
       </Card>}
 
-      <Card style={{ marginTop: 14 }}>
+      {referenceProviders.length > 0 && <Card style={{ marginTop: 14 }}>
         <div className="htitle">
           <h2>Vestibulares — modo referência</h2>
           <span className="badge2">gabarito oficial</span>
@@ -302,7 +302,7 @@ export default function PracticePage() {
             Começar vestibular
           </Button>
         </div>
-      </Card>
+      </Card>}
 
       {providerId === ENEM_PROVIDER_ID && <Card style={{ marginTop: 14 }}>
         <h2>Modos de treino</h2>

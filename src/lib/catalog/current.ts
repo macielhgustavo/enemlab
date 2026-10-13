@@ -6,7 +6,7 @@
 
 import { CatalogIndex, type CatalogEntry } from "./index";
 import {
-  listProviders,
+  listRegisteredProviders,
   itaAnswerKey,
   ITA_PROVIDER_ID,
   imeAnswerKey,
@@ -182,7 +182,7 @@ function pushReferenceEntry(
 export function buildCurrentCatalog(): CatalogIndex {
   const entradas: CatalogEntry[] = [];
 
-  for (const provider of listProviders()) {
+  for (const provider of listRegisteredProviders()) {
     const fonte = listSources().find((source) => source.providerId === provider.id);
     if (!fonte) continue;
 
@@ -298,7 +298,7 @@ export function buildCurrentCatalog(): CatalogIndex {
   }
 
   const familias = Object.fromEntries(
-    listProviders().map((provider) => [provider.id, familiaDe(provider.id)]),
+    listRegisteredProviders().map((provider) => [provider.id, familiaDe(provider.id)]),
   );
   return new CatalogIndex(entradas, familias);
 }

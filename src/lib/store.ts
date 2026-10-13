@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { FINAL_BUILD, FINAL_SCHEMA } from "./domain/constants";
 import { mergeStudyIntelligenceState } from "./domain/study-intelligence-merge";
+import { resolveEnabledProviderId } from "./providers/registry";
 import type { Attempt, DB, Goals } from "./domain/types";
 
 const STORAGE_KEY = "enem_lab_v7";
@@ -38,6 +39,7 @@ export function ensureSchema(db: DB): DB {
   db.essays ||= [];
   db.sessions ||= [];
   db.goals ||= { questions: 150, essays: 2, reviews: 30 };
+  db.activeProvider = resolveEnabledProviderId(db.activeProvider);
   if (db.studyIntelligence) {
     db.studyIntelligence.decisions ||= {};
     db.studyIntelligence.experiments ||= {};
@@ -92,7 +94,7 @@ export const useStore = create<StoreState>()(
         }),
       setTheme: (theme) => get().mutate((db) => { db.theme = theme; }),
       setActiveProvider: (providerId) =>
-        get().mutate((db) => { db.activeProvider = providerId; }),
+        get().mutate((db) => { db.activeProvider = resolveEnabledProviderId(providerId); }),
       toggleTheme: () =>
         get().mutate((db) => { db.theme = db.theme === "dark" ? "light" : "dark"; }),
       addAttempt: (a) =>

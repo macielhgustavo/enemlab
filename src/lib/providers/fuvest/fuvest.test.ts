@@ -9,7 +9,7 @@ import {
   fuvestVariants,
   fuvestYears,
 } from "./index";
-import { listProviders, sameProvider } from "@/lib/providers";
+import { listRegisteredProviders, sameProvider } from "@/lib/providers";
 import { fuvestSource, importerForProvider } from "@/lib/sources";
 import { variantsForReference, variantsToIngest } from "@/lib/catalog/variant";
 
@@ -116,7 +116,7 @@ describe("isolamento", () => {
   it("está registrada como prova de universidade", () => {
     expect(fuvestSource.family).toBe("university");
     expect(fuvestSource.providerId).toBe(FUVEST_PROVIDER_ID);
-    expect(listProviders().map((p) => p.id)).toContain("fuvest");
+    expect(listRegisteredProviders().map((p) => p.id)).toContain("fuvest");
   });
 
   it("só a 1ª fase é executável", () => {

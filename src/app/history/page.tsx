@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/enem-lab/PageHeader";
 import { HistoryItem } from "@/components/enem-lab/HistoryItem";
 import { EmptyState } from "@/components/enem-lab/states";
 import { FilterChip } from "@/components/enem-lab/FilterBar";
-import { listProviders, resolveProviderId } from "@/lib/providers";
+import { listRegisteredProviders, resolveProviderId } from "@/lib/providers";
 import { examLabel } from "@/lib/providers/label";
 
 export default function HistoryPage() {
@@ -45,7 +45,7 @@ export default function HistoryPage() {
   // Bancas que realmente aparecem no histórico — não a lista de providers.
   const provasNoHistorico = [
     ...new Set(db.attempts.map((a) => resolveProviderId(a.providerId))),
-  ].filter((id) => listProviders().some((p) => p.id === id));
+  ].filter((id) => listRegisteredProviders().some((p) => p.id === id));
 
   const visiveis =
     filtro === "all"

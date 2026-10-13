@@ -51,55 +51,29 @@ test("resultado abre a partir de uma tentativa semeada", async ({ page }) => {
   await expect(page.locator("body")).toContainText(/ENEM 2023/i);
 });
 
-test("a prova ativa troca e a Home acompanha", async ({ page }) => {
+test("modo ENEM-only não oferece troca de provider", async ({ page }) => {
   await prepare(page, { provider: "enem", comHistorico: true });
   await page.goto("/");
   await aguardarApp(page);
 
-  const gatilho = page.locator(".el-provider__trigger");
-  await expect(gatilho).toContainText("ENEM");
+  await expect(page.locator(".el-provider__trigger")).toHaveCount(0);
 
-  await gatilho.click();
-  await expect(page.getByRole("menuitemradio", { name: /ITA/ })).toBeVisible();
-  await page.getByRole("menuitemradio", { name: /ITA/ }).click();
-
-  await expect(gatilho).toContainText("ITA");
-  // O histórico é do ENEM: no ITA a taxa não pode aparecer como 0%.
-  await expect(page.locator(".el-provider__trigger")).toContainText("Prova ativa");
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(page.getByRole("option", { name: /Trocar para/i })).toHaveCount(0);
+  await page.keyboard.press("Escape");
 });
 
-const VESTIBULARES_SEM_CORPUS_NATIVO_NA_FIXTURE = [
-  "ita",
-  "ime",
-  "fuvest",
-  "afa",
-  "epcar",
-  "unicamp",
-  "uel",
-  "puc-sp",
-  "udesc",
-  "acafe",
-] as const;
+test("provider antigo salvo não reativa vestibular", async ({ page }) => {
+  await prepare(page, { provider: "ita" });
+  await page.goto("/");
+  await aguardarApp(page);
 
-for (const providerId of VESTIBULARES_SEM_CORPUS_NATIVO_NA_FIXTURE) {
-  test(`${providerId} sem NativePack não cai para PDF`, async ({ page }) => {
-    await prepare(page, { provider: providerId });
-    await page.goto("/practice");
-    await aguardarApp(page);
-
-    await expect(page.locator("#ref-provider")).toHaveValue(providerId);
-    await page.getByRole("button", { name: "Começar vestibular" }).click();
-    await expect(page).toHaveURL(/\/exam\//);
-
-    await expect(
-      page.getByText("Edição ainda não disponível no Studium.", { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText("Enunciado na prova oficial", { exact: true })).toHaveCount(0);
-    await expect(page.locator("iframe")).toHaveCount(0);
-    await expect(page.locator('a[href*=".pdf"]')).toHaveCount(0);
-    await expect(page.locator(".answer")).toHaveCount(0);
-  });
-}
+  // Sem configuração ENEM anterior, a migração pode pedir onboarding, mas a
+  // única prova oferecida deve ser ENEM.
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.getByRole("button", { name: /ENEM|Exame Nacional/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /ITA|Instituto Tecnológico/i })).toHaveCount(0);
+});
 
 test("o tema alterna e fica", async ({ page }) => {
   await prepare(page, { theme: "dark" });

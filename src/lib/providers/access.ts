@@ -1,12 +1,14 @@
 // Ponto único de acesso a questões.
 //
-// Antes da v8 cada tela importava `fetchExam` do cliente do ENEM, o que
-// deixava o provider embutido em toda a aplicação. Aqui o provider vira um
-// parâmetro: adicionar uma prova nova passa a ser registrar um provider, sem
-// tocar nas telas.
+// O registry completo continua funcional para histórico, reconstrução de
+// tentativas, auditorias e testes. O modo ENEM-only é um gate de produto
+// (providers expostos/selecionáveis), não uma mutilação da infraestrutura.
 //
-// Transição: a aplicação ainda consome o formato `Question` (herdado do ENEM).
-// O alvo é `NormalizedQuestion`, e a ponte é o adaptador em `./legacy`.
+// Enquanto o ENEM for a única prova ativa:
+// - ENEM vem exclusivamente da API enem.dev;
+// - NativePack/local drafts não alteram questões do ENEM;
+// - outros providers seguem acessíveis internamente para preservar o trabalho
+//   existente e permitir reativação sem migração destrutiva.
 import { fetchExam } from "../api/enem";
 import type { Language, Question } from "../domain/types";
 import { applyPublishedNativeContent } from "../native/loader";
@@ -24,35 +26,25 @@ export interface QuestionQuery {
   force?: boolean;
 }
 
-/**
- * Busca as questões de uma prova. `providerId` ausente resolve para ENEM,
- * o que mantém todo o código e os dados anteriores funcionando.
- *
- * Ordem dos overlays:
- * 1. provider resolve identidade e gabarito;
- * 2. NativePack realmente publicado acrescenta o visual assinado;
- * 3. bundle local opcional pode substituir somente texto, nunca gabarito.
- */
 export async function questionsFor(
   providerId: string | null | undefined,
   { year, editionId, language, force }: QuestionQuery,
 ): Promise<Question[]> {
   const id = resolveProviderId(providerId);
-  let questions: Question[];
 
+  // Fonte única do ENEM no modo atual: sem overlay nativo/local.
   if (id === ENEM_PROVIDER_ID) {
-    questions = await fetchExam(year, language || "ingles", force);
-  } else {
-    const provider = getProvider(id);
-    const normalized = await provider.fetchQuestions({ year, editionId, language, force });
-    questions = normalized.map(toLegacyQuestion);
+    return fetchExam(year, language || "ingles", force);
   }
 
+  // Infraestrutura histórica permanece intacta para reconstrução/auditoria.
+  const provider = getProvider(id);
+  const normalized = await provider.fetchQuestions({ year, editionId, language, force });
+  const questions = normalized.map(toLegacyQuestion);
   const native = await applyPublishedNativeContent(questions);
   return applyLocalNativeDrafts(native);
 }
 
-/** Metadados da prova (anos, idiomas, áreas) para montar formulários. */
 export function providerMetadata(providerId?: string | null) {
   return getProvider(providerId).metadata;
 }
