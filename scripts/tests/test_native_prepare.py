@@ -89,6 +89,52 @@ class NativePrepareProfileTests(unittest.TestCase):
         markers = native_pipeline.detect_markers([page], native_prepare.EEAR_MARKER_PATTERN)
         self.assertEqual([marker.number for marker in markers], [1, 2])
 
+    def test_numbered_marker_typography_removes_numbered_list_noise(self):
+        marker = native_pipeline.Marker
+        target = SimpleNamespace(total=3)
+        candidates = [
+            native_prepare.NumberedMarkerCandidate(
+                marker(1, 0, 40, 100, 80, 112), "QuestionHeader", 12.0
+            ),
+            native_prepare.NumberedMarkerCandidate(
+                marker(2, 0, 40, 200, 80, 212), "QuestionHeader", 12.0
+            ),
+            native_prepare.NumberedMarkerCandidate(
+                marker(3, 0, 40, 300, 80, 312), "QuestionHeader", 12.0
+            ),
+            native_prepare.NumberedMarkerCandidate(
+                marker(2, 0, 90, 150, 120, 162), "Body", 10.0
+            ),
+            native_prepare.NumberedMarkerCandidate(
+                marker(3, 0, 90, 170, 120, 182), "Body", 10.0
+            ),
+        ]
+        selected = native_prepare._markers_from_unique_typographic_signature(
+            candidates,
+            target,
+            native_pipeline,
+        )
+        self.assertIsNotNone(selected)
+        self.assertEqual([item.number for item in selected], [1, 2, 3])
+        self.assertEqual([item.x0 for item in selected], [40, 40, 40])
+
+    def test_numbered_marker_typography_fails_closed_on_two_complete_styles(self):
+        marker = native_pipeline.Marker
+        target = SimpleNamespace(total=2)
+        candidates = [
+            native_prepare.NumberedMarkerCandidate(marker(1, 0, 40, 100, 80, 112), "A", 12.0),
+            native_prepare.NumberedMarkerCandidate(marker(2, 0, 40, 200, 80, 212), "A", 12.0),
+            native_prepare.NumberedMarkerCandidate(marker(1, 1, 40, 100, 80, 112), "B", 11.0),
+            native_prepare.NumberedMarkerCandidate(marker(2, 1, 40, 200, 80, 212), "B", 11.0),
+        ]
+        self.assertIsNone(
+            native_prepare._markers_from_unique_typographic_signature(
+                candidates,
+                target,
+                native_pipeline,
+            )
+        )
+
     def test_default_marker_deduplicates_same_geometry(self):
         page = FakePage(
             [

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -221,11 +221,70 @@ def _verified_mirror_override(target: core.NativeTarget) -> tuple[Path, str] | N
         raise
 
 
+@dataclass(frozen=True)
+class NumberedMarkerCandidate:
+    marker: Any
+    font: str
+    size: float
+
+
+def _markers_from_unique_typographic_signature(
+    candidates: list[NumberedMarkerCandidate],
+    target: core.NativeTarget,
+    pipeline: Any,
+) -> list[Any] | None:
+    """Usa tipografia apenas quando ela prova sozinha a cobertura 1..N.
+
+    Listas, fórmulas e referências internas frequentemente começam por um
+    número, mas costumam usar outra fonte/tamanho. Não escolhemos a assinatura
+    "mais comum": testamos cada assinatura e só aceitamos quando todas as
+    questões 1..N aparecem uma única vez após a canonicalização. Se mais de
+    uma assinatura produzir caminhos diferentes, a evidência é ambígua.
+    """
+    by_style: dict[tuple[str, float], list[Any]] = {}
+    for candidate in candidates:
+        by_style.setdefault(
+            (candidate.font, candidate.size),
+            [],
+        ).append(candidate.marker)
+
+    valid: list[list[Any]] = []
+    for styled in by_style.values():
+        numbers = {marker.number for marker in styled}
+        if numbers != set(range(1, target.total + 1)):
+            continue
+        canonical = pipeline.canonicalize_markers(styled, target.total)
+        try:
+            pipeline.validate_marker_numbers(canonical, target.total)
+        except Exception:
+            continue
+        valid.append(canonical)
+
+    if not valid:
+        return None
+
+    def signature(items: list[Any]) -> tuple[tuple[object, ...], ...]:
+        return tuple(
+            (
+                marker.number,
+                marker.page_index,
+                round(float(marker.x0), 2),
+                round(float(marker.y0), 2),
+                round(float(marker.x1), 2),
+                round(float(marker.y1), 2),
+            )
+            for marker in items
+        )
+
+    unique = {signature(items): items for items in valid}
+    return next(iter(unique.values())) if len(unique) == 1 else None
+
+
 def _numbered_line_markers(
     doc: Any,
     target: core.NativeTarget,
     pipeline: Any,
-) -> list[Any]:
+) -> tuple[list[Any], str]:
     line_labels = option_markers._collect_line_option_labels(doc)
     isolated_labels, _ = option_markers._collect(doc)
     option_page_counts: dict[int, int] = {}
@@ -237,7 +296,7 @@ def _numbered_line_markers(
         if count >= max(2, len(target.option_ids) - 1)
     }
 
-    markers: list[Any] = []
+    candidates: list[NumberedMarkerCandidate] = []
     for page_index, page in enumerate(doc):
         if option_pages and page_index not in option_pages:
             continue
@@ -269,20 +328,39 @@ def _numbered_line_markers(
                 y1 = max(box[3] for box in boxes)
                 if x0 > width * 0.24 or y0 < height * 0.045 or y0 > height * 0.97:
                     continue
-                markers.append(
-                    pipeline.Marker(
-                        number=number,
-                        page_index=page_index,
-                        x0=x0,
-                        y0=y0,
-                        x1=x1,
-                        y1=y1,
+                marker = pipeline.Marker(
+                    number=number,
+                    page_index=page_index,
+                    x0=x0,
+                    y0=y0,
+                    x1=x1,
+                    y1=y1,
+                )
+                first = spans[0]
+                candidates.append(
+                    NumberedMarkerCandidate(
+                        marker=marker,
+                        font=str(first.get("font", "")),
+                        size=round(float(first.get("size", 0.0)), 1),
                     )
                 )
 
-    markers = pipeline.canonicalize_markers(markers, target.total)
+    typed = _markers_from_unique_typographic_signature(
+        candidates,
+        target,
+        pipeline,
+    )
+    if typed is not None:
+        return typed, "numbered-lines-typography"
+
+    markers = [candidate.marker for candidate in candidates]
+    markers = pipeline.canonicalize_markers(
+        markers,
+        target.total,
+        prefer_source_order=True,
+    )
     pipeline.validate_marker_numbers(markers, target.total)
-    return markers
+    return markers, "numbered-lines"
 
 
 def _prepare_with_markers(
@@ -485,8 +563,11 @@ def _adaptive_prepare(
     default_error = ""
     numbered_error = ""
     group_error = ""
+    vector_error = ""
     groups: list[option_markers.OptionGroup] | None = None
     numbered: list[Any] | None = None
+    numbered_strategy = "numbered-lines"
+    vector_markers: list[Any] | None = None
     try:
         try:
             default_markers = pipeline.canonicalize_markers(
@@ -504,7 +585,7 @@ def _adaptive_prepare(
 
         if not default_valid:
             try:
-                numbered = _numbered_line_markers(doc, target, pipeline)
+                numbered, numbered_strategy = _numbered_line_markers(doc, target, pipeline)
             except Exception as error:
                 numbered = None
                 numbered_error = str(error)
@@ -518,6 +599,19 @@ def _adaptive_prepare(
                 )
             except option_markers.OrderedOptionMarkerError as error:
                 group_error = str(error)
+
+        if not default_valid and numbered is None and groups is None:
+            try:
+                candidate_headers = option_markers.markers_from_vector_headers(
+                    doc,
+                    target.total,
+                    pipeline.Marker,
+                )
+                if candidate_headers:
+                    pipeline.validate_marker_numbers(candidate_headers, target.total)
+                    vector_markers = candidate_headers
+            except Exception as error:
+                vector_error = str(error)
     finally:
         doc.close()
 
@@ -531,9 +625,9 @@ def _adaptive_prepare(
                 target,
                 pdf,
                 numbered,
-                "numbered-lines",
+                numbered_strategy,
             ),
-            "numbered-lines",
+            numbered_strategy,
         )
     if groups is not None:
         return (
@@ -544,6 +638,16 @@ def _adaptive_prepare(
                 "ordered-option-groups",
             ),
             "ordered-option-groups",
+        )
+    if vector_markers is not None:
+        return (
+            _prepare_with_markers(
+                target,
+                pdf,
+                vector_markers,
+                "vector-question-headers",
+            ),
+            "vector-question-headers",
         )
 
     if target.provider_id in OCR_OPTION_PROVIDERS:
@@ -604,6 +708,7 @@ def _adaptive_prepare(
             raise fleet.NativeFleetError(
                 f"{target.identity}: padrão ({default_error}); "
                 f"linhas numeradas ({numbered_error}); grupos ({group_error}); "
+                f"cabeçalhos vetoriais ({vector_error or 'sem assinatura exata'}); "
                 f"OCR números ({' | '.join(ocr_number_errors) or 'sem candidatos'}); "
                 f"OCR alternativas ({error})"
             ) from error
@@ -619,7 +724,8 @@ def _adaptive_prepare(
 
     raise fleet.NativeFleetError(
         f"{target.identity}: padrão ({default_error}); "
-        f"linhas numeradas ({numbered_error}); grupos ({group_error})"
+        f"linhas numeradas ({numbered_error}); grupos ({group_error}); "
+        f"cabeçalhos vetoriais ({vector_error or 'sem assinatura exata'})"
     )
 
 def prepare(provider: str, selector: str, phase: str, out: Path) -> dict[str, object]:

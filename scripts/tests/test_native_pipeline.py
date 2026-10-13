@@ -24,6 +24,74 @@ class NativePipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(native.NativePipelineError, "faltantes"):
             native.validate_marker_numbers(markers[:1], 2)
 
+    def test_canonicalize_resolves_multiple_duplicates_when_path_is_unique(self):
+        marker = native.Marker
+        markers = [
+            marker(1, 0, 10, 100, 20, 110),
+            marker(1, 2, 10, 100, 20, 110),  # tarde demais para continuar 1→N
+            marker(2, 0, 10, 50, 20, 60),   # cedo demais para vir após Q1
+            marker(2, 0, 10, 120, 20, 130),
+            marker(3, 0, 10, 140, 20, 150),
+            marker(3, 3, 10, 40, 20, 50),   # tarde demais para Q4
+            marker(4, 0, 10, 160, 20, 170),
+        ]
+        canonical = native.canonicalize_markers(markers, 4)
+        self.assertEqual([item.number for item in canonical], [1, 2, 3, 4])
+        self.assertEqual(
+            [(item.page_index, item.y0) for item in canonical],
+            [(0, 100), (0, 120), (0, 140), (0, 160)],
+        )
+        native.validate_marker_numbers(canonical, 4)
+
+    def test_canonicalize_can_use_proven_source_reading_order_for_columns(self):
+        marker = native.Marker
+        markers = [
+            # Ordem de leitura do extrator: coluna esquerda termina e só então
+            # a coluna direita começa. Geometricamente Q2 aparece acima de Q1.
+            marker(1, 0, 40, 500, 80, 515),
+            marker(2, 0, 330, 100, 370, 115),
+            marker(3, 0, 330, 200, 370, 215),
+            # Q2 incidental depois da sequência real.
+            marker(2, 0, 330, 300, 370, 315),
+        ]
+        geometric_only = native.canonicalize_markers(markers, 3)
+        self.assertEqual(len(geometric_only), len(markers))
+
+        canonical = native.canonicalize_markers(
+            markers,
+            3,
+            prefer_source_order=True,
+        )
+        self.assertEqual([item.number for item in canonical], [1, 2, 3])
+        self.assertEqual(canonical[1].y0, 100)
+        native.validate_marker_numbers(canonical, 3)
+
+    def test_canonicalize_keeps_ambiguous_complete_sequences_fail_closed(self):
+        marker = native.Marker
+        markers = [
+            marker(1, 0, 10, 100, 20, 110),
+            marker(2, 0, 10, 120, 20, 130),
+            marker(3, 0, 10, 140, 20, 150),
+            marker(1, 1, 10, 100, 20, 110),
+            marker(2, 1, 10, 120, 20, 130),
+            marker(3, 1, 10, 140, 20, 150),
+        ]
+        canonical = native.canonicalize_markers(markers, 3)
+        self.assertEqual(len(canonical), len(markers))
+        with self.assertRaisesRegex(native.NativePipelineError, "duplicados"):
+            native.validate_marker_numbers(canonical, 3)
+
+    def test_canonicalize_does_not_invent_missing_question(self):
+        marker = native.Marker
+        markers = [
+            marker(1, 0, 10, 100, 20, 110),
+            marker(3, 0, 10, 140, 20, 150),
+        ]
+        canonical = native.canonicalize_markers(markers, 3)
+        self.assertEqual(canonical, markers)
+        with self.assertRaisesRegex(native.NativePipelineError, "faltantes"):
+            native.validate_marker_numbers(canonical, 3)
+
     def test_semantic_option_detection_is_not_authoritative(self):
         text = "(A) um (B) dois (C) três (D) quatro (E) cinco"
         self.assertEqual(
